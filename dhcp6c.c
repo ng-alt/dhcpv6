@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.27 2003/05/27 20:56:41 shemminger Exp $	*/
+/*	$Id: dhcp6c.c,v 1.28 2003/05/28 21:11:53 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -307,8 +307,8 @@ usage()
 {
 
 	fprintf(stderr, 
-	"usage: dhcpc [-c configfile] [-r all or (ipv6address ipv6address...)]"
-	"[-R (ipv6 address ipv6address...) [-dDIf] interface\n");
+	"usage: dhcpc [-c configfile] [-r all or (ipv6address ipv6address...)]\n"
+	"       [-R (ipv6 address ipv6address...) [-dDIf] interface\n");
 }
 
 /*------------------------------------------------------------*/
