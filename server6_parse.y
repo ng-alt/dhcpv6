@@ -1,4 +1,4 @@
-/*	$Id: server6_parse.y,v 1.7 2003/07/16 19:09:53 shirleyma Exp $	*/
+/*	$Id: server6_parse.y,v 1.8 2004/02/04 23:31:24 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -396,6 +396,7 @@ prefixdef
 		memcpy(&v6prefix->prefix, prefix, sizeof(v6prefix->prefix));
 		v6prefix->next = link->prefixlist;
 		link->prefixlist = v6prefix;
+		free(prefix);
 	}
 	;
 
@@ -489,6 +490,8 @@ rangedef
 				break;
 			}
 		}
+		free(prefix1);
+		free(prefix2);
 	}
 	;
 

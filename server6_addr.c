@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.19 2003/07/02 02:21:25 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.20 2004/02/04 23:31:24 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -204,6 +204,7 @@ struct dhcp6_iaidaddr
 			FNAME, client6_info.iaidinfo.iaid, 
 			duidstr(&client6_info.clientid));
 	}
+	duidfree(&client6_info.clientid);
 	return iaidaddr;
 }
 
