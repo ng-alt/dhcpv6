@@ -1,4 +1,4 @@
-/*	$Id: prefixconf.c,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: prefixconf.c,v 1.1.1.1 2003/01/16 15:41:11 root Exp $	*/
 /*	ported from KAME: prefixconf.c,v 1.9 2002/12/12 09:47:26 suz Exp */
 
 /*

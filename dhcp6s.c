@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: dhcp6s.c,v 1.1.1.1 2003/01/16 15:41:11 root Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*

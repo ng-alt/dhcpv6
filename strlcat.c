@@ -1,4 +1,4 @@
-/*	$Id: strlcat.c,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: strlcat.c,v 1.1.1.1 2003/01/16 15:41:11 root Exp $	*/
 /*	from KAME 12/16/2002	*/
 /*	NetBSD: strlcat.c,v 1.5 1999/09/20 04:39:47 lukem Exp	*/
 /*	from OpenBSD: strlcat.c,v 1.2 1999/06/17 16:28:58 millert Exp 	*/

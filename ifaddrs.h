@@ -1,4 +1,4 @@
-/* 	$Id: ifaddrs.h,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/* 	$Id: ifaddrs.h,v 1.1.1.1 2003/01/16 15:41:11 root Exp $	*/
 /*	from USAGI: ifaddrs.h,v 1.1 2001/01/26 07:11:48 yoshfuji Exp	*/
 
 /*

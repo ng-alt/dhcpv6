@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: config.c,v 1.1.1.1 2003/01/16 15:41:11 root Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*

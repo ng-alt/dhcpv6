@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.h,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: client6_addr.h,v 1.1.1.1 2003/01/16 15:41:11 root Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.

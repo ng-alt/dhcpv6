@@ -1,4 +1,4 @@
-/*	$Id: common.h,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: common.h,v 1.1.1.1 2003/01/16 15:41:11 root Exp $	*/
 /*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*

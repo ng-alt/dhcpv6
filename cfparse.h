@@ -1,4 +1,4 @@
-/*	$Id: cfparse.h,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: cfparse.h,v 1.1.1.1 2003/01/16 15:41:11 root Exp $	*/
 /*	from KAME: cfparse.h,v 1.1 2002/05/01 04:47:53 jinmei Exp	*/
 
 /*

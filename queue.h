@@ -1,4 +1,4 @@
-/*	$Id: queue.h,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: queue.h,v 1.1.1.1 2003/01/16 15:41:11 root Exp $	*/
 /*	from FreeBSD: src/sys/sys/queue.h,v 1.54 2002/08/05 05:18:43 alfred Exp */
  
 /* Copyright (c) 1991, 1993

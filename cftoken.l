@@ -1,4 +1,4 @@
-/*	$Id: cftoken.l,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: cftoken.l,v 1.1.1.1 2003/01/16 15:41:11 root Exp $	*/
 /*	from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
