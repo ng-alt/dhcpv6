@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.19 2004/02/04 23:30:17 shemminger Exp $	*/
+/*	$Id: common.c,v 1.20 2004/04/06 21:05:43 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -1062,7 +1062,7 @@ dhcp6_get_options(p, ep, optinfo)
 						cp + optlen, optinfo))
 				goto fail;
 			break;
-		case DH6OPT_DNS_RESOLVERS:
+		case DH6OPT_DNS_SERVERS:
 			if (optlen % sizeof(struct in6_addr) || optlen == 0)
 				goto malformed;
 			for (val = cp; val < cp + optlen;
@@ -1590,7 +1590,7 @@ dhcp6_set_options(bp, ep, optinfo)
 		     d = TAILQ_NEXT(d, link), in6++) {
 			memcpy(in6, &d->val_addr6, sizeof(*in6));
 		}
-		COPY_OPTION(DH6OPT_DNS_RESOLVERS, optlen, tmpbuf, p);
+		COPY_OPTION(DH6OPT_DNS_SERVERS, optlen, tmpbuf, p);
 		free(tmpbuf);
 	}
 	if (optinfo->dns_list.domainlist != NULL) {
@@ -1831,8 +1831,8 @@ dhcp6optstr(type)
 		return "status code";
 	case DH6OPT_RAPID_COMMIT:
 		return "rapid commit";
-	case DH6OPT_DNS_RESOLVERS:
-		return "DNS_RESOLVERS";
+	case DH6OPT_DNS_SERVERS:
+		return "DNS_SERVERS";
 	default:
 		sprintf(genstr, "opt_%d", type);
 		return (genstr);

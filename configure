@@ -308,7 +308,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP YACC LEX LEXLIB LEX_OUTPUT_ROOT EGREP LIBOBJS dhcpopt_dns_resolvers dhcpopt_domain_list dhcpopt_pdel dhcpopt_pinfo dhcpopt_preq LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA SET_MAKE CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT CPP YACC LEX LEXLIB LEX_OUTPUT_ROOT EGREP LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -845,11 +845,6 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-mediator         build with mediator (obsolete)
-  --with-opt-dns-resolvers=VALUE    specify DHCP option value for DNS resolvers
-  --with-opt-domain-list=VALUE    specify DHCP option value for domain list
-  --with-opt-pdel=VALUE   specify DHCP option value for prefix delegation
-  --with-opt-pinfo=VALUE  specify DHCP option value for prefix information
-  --with-opt-preq=VALUE   specify DHCP option value for prefix request
 
 Some influential environment variables:
   CC          C compiler command
@@ -1247,6 +1242,7 @@ ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
 
 
 
@@ -4879,106 +4875,6 @@ _ACEOF
 		;;
 esac
 
-echo "$as_me:$LINENO: checking for DHCP DNS resolvers option " >&5
-echo $ECHO_N "checking for DHCP DNS resolvers option ... $ECHO_C" >&6
-
-# Check whether --with-opt-dns-resolvers or --without-opt-dns-resolvers was given.
-if test "${with_opt_dns_resolvers+set}" = set; then
-  withval="$with_opt_dns_resolvers"
-  dhcpopt_dns_resolvers="$withval"
-else
-  dhcpopt_dns_resolvers=0
-fi;
-if test $dhcpopt_dns_resolvers = 0 ; then
-	dhcpopt_dns_resolvers=25
-	echo "$as_me:$LINENO: result: unspecified and using $dhcpopt_dns_resolvers" >&5
-echo "${ECHO_T}unspecified and using $dhcpopt_dns_resolvers" >&6
-else
-	echo "$as_me:$LINENO: result: using $dhcpopt_dns_resolvers" >&5
-echo "${ECHO_T}using $dhcpopt_dns_resolvers" >&6
-fi
-
-
-echo "$as_me:$LINENO: checking for DHCP domain list option " >&5
-echo $ECHO_N "checking for DHCP domain list option ... $ECHO_C" >&6
-
-# Check whether --with-opt-domain-list or --without-opt-domain-list was given.
-if test "${with_opt_domain_list+set}" = set; then
-  withval="$with_opt_domain_list"
-  dhcpopt_domain_list="$withval"
-else
-  dhcpopt_domain_list=0
-fi;
-if test $dhcpopt_domain_list = 0 ; then
-	dhcpopt_domain_list=26
-	echo "$as_me:$LINENO: result: unspecified and using $dhcpopt_domain_list" >&5
-echo "${ECHO_T}unspecified and using $dhcpopt_domain_list" >&6
-else
-	echo "$as_me:$LINENO: result: using $dhcpopt_domain_list" >&5
-echo "${ECHO_T}using $dhcpopt_domain_list" >&6
-fi
-
-
-echo "$as_me:$LINENO: checking for DHCP prefix delegation option" >&5
-echo $ECHO_N "checking for DHCP prefix delegation option... $ECHO_C" >&6
-
-# Check whether --with-opt-pdel or --without-opt-pdel was given.
-if test "${with_opt_pdel+set}" = set; then
-  withval="$with_opt_pdel"
-  dhcpopt_pdel="$withval"
-else
-  dhcpopt_pdel=0
-fi;
-if test $dhcpopt_pdel = 0 ; then
-	dhcpopt_pdel=30
-	echo "$as_me:$LINENO: result: unspecified and using $dhcpopt_pdel" >&5
-echo "${ECHO_T}unspecified and using $dhcpopt_pdel" >&6
-else
-	echo "$as_me:$LINENO: result: using $dhcpopt_pdel" >&5
-echo "${ECHO_T}using $dhcpopt_pdel" >&6
-fi
-
-
-echo "$as_me:$LINENO: checking for DHCP prefix information option" >&5
-echo $ECHO_N "checking for DHCP prefix information option... $ECHO_C" >&6
-
-# Check whether --with-opt-pinfo or --without-opt-pinfo was given.
-if test "${with_opt_pinfo+set}" = set; then
-  withval="$with_opt_pinfo"
-  dhcpopt_pinfo="$withval"
-else
-  dhcpopt_pinfo=0
-fi;
-if test $dhcpopt_pinfo = 0 ; then
-	dhcpopt_pinfo=31
-	echo "$as_me:$LINENO: result: unspecified and using $dhcpopt_pinfo" >&5
-echo "${ECHO_T}unspecified and using $dhcpopt_pinfo" >&6
-else
-	echo "$as_me:$LINENO: result: using $dhcpopt_pinfo" >&5
-echo "${ECHO_T}using $dhcpopt_pinfo" >&6
-fi
-
-
-echo "$as_me:$LINENO: checking for DHCP prefix request option" >&5
-echo $ECHO_N "checking for DHCP prefix request option... $ECHO_C" >&6
-
-# Check whether --with-opt-preq or --without-opt-preq was given.
-if test "${with_opt_preq+set}" = set; then
-  withval="$with_opt_preq"
-  dhcpopt_preq="$withval"
-else
-  dhcpopt_preq=0
-fi;
-if test $dhcpopt_preq = 0 ; then
-	dhcpopt_preq=32
-	echo "$as_me:$LINENO: result: unspecified and using $dhcpopt_preq" >&5
-echo "${ECHO_T}unspecified and using $dhcpopt_preq" >&6
-else
-	echo "$as_me:$LINENO: result: using $dhcpopt_preq" >&5
-echo "${ECHO_T}using $dhcpopt_preq" >&6
-fi
-
-
 
 for ac_header in stdarg.h
 do
@@ -5123,6 +5019,7 @@ done
 
 
           ac_config_files="$ac_config_files Makefile"
+
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -5775,11 +5672,6 @@ s,@LEXLIB@,$LEXLIB,;t t
 s,@LEX_OUTPUT_ROOT@,$LEX_OUTPUT_ROOT,;t t
 s,@EGREP@,$EGREP,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
-s,@dhcpopt_dns_resolvers@,$dhcpopt_dns_resolvers,;t t
-s,@dhcpopt_domain_list@,$dhcpopt_domain_list,;t t
-s,@dhcpopt_pdel@,$dhcpopt_pdel,;t t
-s,@dhcpopt_pinfo@,$dhcpopt_pinfo,;t t
-s,@dhcpopt_preq@,$dhcpopt_preq,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
 CEOF
 

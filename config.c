@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.9 2003/04/12 00:25:32 shirleyma Exp $	*/
+/*	$Id: config.c,v 1.10 2004/04/06 21:05:43 shirleyma Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -586,7 +586,7 @@ add_options(int opcode,	struct dhcp6_ifconf *ifc,
 		case DHCPOPT_DNS:
 			switch(opcode) {
 			case DHCPOPTCODE_REQUEST:
-				opttype = DH6OPT_DNS_RESOLVERS;
+				opttype = DH6OPT_DNS_SERVERS;
 				if (dhcp6_add_listval(&ifc->reqopt_list,
 				    &opttype, DHCP6_LISTVAL_NUM) == NULL) {
 					dprintf(LOG_ERR, "%s" "failed to "

@@ -1,5 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(dhcp6c.c)
+AC_INIT
+AC_CONFIG_SRCDIR([dhcp6c.c])
 
 dnl Checks for programs.
 AC_PROG_INSTALL
@@ -45,7 +46,7 @@ dnl fi
 dnl AC_CHECK_LIB(pcap, pcap_lookupdev, [],
 dnl 	[echo "Fatal: libpcap.a not found"
 dnl 	exit 1])
-dnl AC_TRY_COMPILE([#include <pcap.h>], [], [], [dnl
+dnl AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <pcap.h>]], [[]])],[],[dnl
 dnl 	echo "Fatal: pcap.h not found"
 dnl 	exit 1])
 
@@ -77,11 +78,8 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(fcntl.h sys/ioctl.h sys/time.h syslog.h unistd.h ifaddrs.h)
 AC_MSG_CHECKING(for socklen_t)
-AC_TRY_COMPILE([#include <sys/types.h>
-#include <sys/socket.h>],
-	[socklen_t x;  x = 1; return x;],
-	[AC_MSG_RESULT(yes)],
-	[AC_MSG_RESULT(no)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/types.h>
+#include <sys/socket.h>]], [[socklen_t x;  x = 1; return x;]])],[AC_MSG_RESULT(yes)],[AC_MSG_RESULT(no)
 	AC_CHECK_TYPE(socklen_t, int)])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -117,19 +115,13 @@ AC_MSG_RESULT($enableval);
 
 dnl Checks predeclared identifers of function names
 AC_MSG_CHECKING(ANSI predeclared __func__)
-AC_TRY_COMPILE([],
-[void func(void) {printf("%s\n", __func__);}],
-	[AC_MSG_RESULT(yes)
-	 pred_func_id=ansi],
-	[AC_MSG_RESULT(no)
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[void func(void) {printf("%s\n", __func__);}]])],[AC_MSG_RESULT(yes)
+	 pred_func_id=ansi],[AC_MSG_RESULT(no)
 	 pred_func_id=no])
 if test $pred_func_id = no; then
 AC_MSG_CHECKING(gcc predelcared __FUNCTION__)
-	AC_TRY_COMPILE([],
-	[void func(void) {printf("%s\n", __FUNCTION__);}],
-		[AC_MSG_RESULT(yes)
-		 pred_func_id=gcc],
-		[AC_MSG_RESULT(no)
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[void func(void) {printf("%s\n", __FUNCTION__);}]])],[AC_MSG_RESULT(yes)
+		 pred_func_id=gcc],[AC_MSG_RESULT(no)
 		 pred_func_id=no])
 fi
 case $pred_func_id in
@@ -141,68 +133,7 @@ case $pred_func_id in
 		;;
 esac
 
-dnl DHCP option type values not officially defined
-AC_MSG_CHECKING(for DHCP DNS resolvers option )
-AC_ARG_WITH(opt-dns-resolvers,
-[  --with-opt-dns-resolvers=VALUE    specify DHCP option value for DNS resolvers],
-    dhcpopt_dns_resolvers="$withval", dhcpopt_dns_resolvers=0)
-if test $dhcpopt_dns_resolvers = 0 ; then
-	dhcpopt_dns_resolvers=25
-	AC_MSG_RESULT(unspecified and using $dhcpopt_dns_resolvers)
-else
-	AC_MSG_RESULT(using $dhcpopt_dns_resolvers)
-fi
-AC_SUBST(dhcpopt_dns_resolvers)
-
-dnl DHCP option type values not officially defined
-AC_MSG_CHECKING(for DHCP domain list option )
-AC_ARG_WITH(opt-domain-list,
-[  --with-opt-domain-list=VALUE    specify DHCP option value for domain list],
-    dhcpopt_domain_list="$withval", dhcpopt_domain_list=0)
-if test $dhcpopt_domain_list = 0 ; then
-	dhcpopt_domain_list=26
-	AC_MSG_RESULT(unspecified and using $dhcpopt_domain_list)
-else
-	AC_MSG_RESULT(using $dhcpopt_domain_list)
-fi
-AC_SUBST(dhcpopt_domain_list)
-
-AC_MSG_CHECKING(for DHCP prefix delegation option)
-AC_ARG_WITH(opt-pdel,
-[  --with-opt-pdel=VALUE   specify DHCP option value for prefix delegation],
-    dhcpopt_pdel="$withval", dhcpopt_pdel=0)
-if test $dhcpopt_pdel = 0 ; then
-	dhcpopt_pdel=30
-	AC_MSG_RESULT(unspecified and using $dhcpopt_pdel)
-else
-	AC_MSG_RESULT(using $dhcpopt_pdel)
-fi
-AC_SUBST(dhcpopt_pdel)
-
-AC_MSG_CHECKING(for DHCP prefix information option)
-AC_ARG_WITH(opt-pinfo,
-[  --with-opt-pinfo=VALUE  specify DHCP option value for prefix information],
-    dhcpopt_pinfo="$withval", dhcpopt_pinfo=0)
-if test $dhcpopt_pinfo = 0 ; then
-	dhcpopt_pinfo=31
-	AC_MSG_RESULT(unspecified and using $dhcpopt_pinfo)
-else
-	AC_MSG_RESULT(using $dhcpopt_pinfo)
-fi
-AC_SUBST(dhcpopt_pinfo)
-
-AC_MSG_CHECKING(for DHCP prefix request option)
-AC_ARG_WITH(opt-preq,
-[  --with-opt-preq=VALUE   specify DHCP option value for prefix request],
-    dhcpopt_preq="$withval", dhcpopt_preq=0)
-if test $dhcpopt_preq = 0 ; then
-	dhcpopt_preq=32
-	AC_MSG_RESULT(unspecified and using $dhcpopt_preq)
-else
-	AC_MSG_RESULT(using $dhcpopt_preq)
-fi
-AC_SUBST(dhcpopt_preq)
-
 AC_CHECK_HEADERS(stdarg.h)
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.17 2004/03/04 23:31:24 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.18 2004/04/06 21:05:44 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -258,21 +258,11 @@ struct dhcp6 {
 #define DEFAULT_VALID_LIFE_TIME 720000
 #define DEFAULT_PREFERRED_LIFE_TIME 360000
 
-/*
- * The option type has not been assigned for the following options.
- * We temporarily adopt values used in the service specification document
- * (200206xx version) by NTT Communications as default values.
- * Note that we'll fix the following definitions when official values are
- * assigned.
- */
-#define DH6OPT_DNS_RESOLVERS CONF_DH6OPT_DNS_RESOLVERS
-#define DH6OPT_DOMAIN_LIST CONF_DH6OPT_DOMAIN_LIST
+#define DH6OPT_DNS_SERVERS 23
+#define DH6OPT_DOMAIN_LIST 24
 
-/*
- * define PD option according IPv6 Prefix Options for DHCPv6 draft 02
- */
-#define DH6OPT_IA_PD CONF_DH6OPT_IA_PD
-#define DH6OPT_IAPREFIX CONF_DH6OPT_IAPREFIX
+#define DH6OPT_IA_PD 25
+#define DH6OPT_IAPREFIX 26
 
 struct dhcp6opt {
 	u_int16_t dh6opt_type;
