@@ -1,4 +1,4 @@
-/*	$Id: ra_token.l,v 1.1 2003/03/28 23:03:42 shirleyma Exp $	*/
+/*	$Id: ra_token.l,v 1.2 2003/04/01 18:32:22 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -67,7 +67,7 @@ static int num_lines = 0;
 digit           [0-9]
 number          ({digit})+
 hexdigit        ([a-f]|[A-F]|[0-9])
-ipv4addr        ({digit}{1,3}"."{digit}{1,3}"."{digit}{1,3})
+ipv4addr        ({digit}{1,3}"."{digit}{1,3}"."{digit}{1,3}"."{digit}{1,3})
 addr_head       ("::"|{hexdigit}{1,4}(":"|"::"))
 addr_tail       ({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})?
 addr_body       ({hexdigit}{1,4}(":"|"::"))*
