@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.c,v 1.4 2003/02/10 23:47:09 shirleyma Exp $	*/
+/*	$Id: server6_conf.c,v 1.5 2003/02/12 20:51:40 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -255,7 +255,13 @@ post_config(root)
 							    FNAME);
 							exit (1);
 						}
-							
+						if (current->renew_time != 0 &&
+						    current->renew_time >= current->rebind_time) { 
+							dprintf(LOG_ERR, "%s" 
+							     "rebind time must be greater than renew time",
+							     FNAME);
+							exit(1);
+						}
 						memcpy(&seg->parainfo, current, sizeof(seg->parainfo));
 					} else {
 						memcpy(&seg->parainfo, up, sizeof(seg->parainfo));
