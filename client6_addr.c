@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.24 2005/02/25 17:26:51 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.25 2005/02/25 17:51:55 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -704,7 +704,7 @@ create_iaid(struct iaid_table *iaidtab, int num_device)
 	struct iaid_table *temp = iaidtab;
 	char buff[1024];
 	struct ifconf ifc;
-	struct ifreq *ifr, if_hwaddr;
+	struct ifreq *ifr;
 	int i;
 	
 	ifc.ifc_len = sizeof(buff);

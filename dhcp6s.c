@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.19 2004/03/15 22:03:21 shemminger Exp $	*/
+/*	$Id: dhcp6s.c,v 1.20 2005/02/25 17:51:56 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -164,7 +164,7 @@ main(argc, argv)
 	int argc;
 	char **argv;
 {
-	int ch, i = 0;
+	int ch;
 	struct in6_addr a;
 	struct dhcp6_listval *dlv;
 	char *progname, *conffile = DHCP6S_CONF;

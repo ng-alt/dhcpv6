@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.21 2004/04/06 21:18:30 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.22 2005/02/25 17:51:56 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -1598,7 +1598,6 @@ dhcp6_set_options(bp, ep, optinfo)
 	if (optinfo->dns_list.domainlist != NULL) {
 		struct domain_list *dlist;
 		u_char *dst;
-		size_t dstsiz;
 		optlen = 0;
 		tmpbuf = NULL;
 		if ((tmpbuf = malloc(MAXDNAME * MAXDN)) == NULL) {

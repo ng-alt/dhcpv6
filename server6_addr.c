@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.22 2004/04/06 21:18:30 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.23 2005/02/25 17:51:56 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -553,7 +553,6 @@ create_tempaddr(prefix, plen, tempaddr)
 	struct in6_addr *tempaddr;
 {
 	int i, num_bytes;
-	u_int8_t digest[16];
 	u_int8_t seed[16];
 
 	get_random_bytes(seed, 16);
@@ -579,8 +578,6 @@ dhcp6_get_hostconf(roptinfo, optinfo, iaidaddr, host)
 	struct dhcp6_optinfo *optinfo, *roptinfo;
 {
 	struct dhcp6_list *reply_list = &roptinfo->addr_list;
-	struct dhcp6_list *req_list = &optinfo->addr_list;
-	struct dhcp6_listval *lv, *lv_next;
 	
 	if (!(host->hostscope.allow_flags & DHCIFF_TEMP_ADDRS)) {
 		roptinfo->iaidinfo.renewtime = host->hostscope.renew_time;

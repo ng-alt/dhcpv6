@@ -137,8 +137,6 @@ get_if_flags(struct nlmsghdr *nlm, int nlm_len, int request,
 	struct rtattr *rta, *rta1;
 	size_t rtasize, rtasize1, rtapayload;
 	void *rtadata;
-	struct ra_info *rainfo;
-	char addr[64];
 
 	dprintf(LOG_DEBUG, "get_if_flags called");
 
@@ -278,7 +276,7 @@ netlink_recv_rtgenmsg(int sd, int request, int seq, struct dhcp6_if *ifp)
 	struct nlmsghdr *nlm;
 	struct msghdr msgh;
 	struct sockaddr_nl nl_addr;
-	char *newbuf, *buf = NULL;
+	char *buf = NULL;
 	size_t newsize = 65536, size = 0;
 	int msg_len;
 
