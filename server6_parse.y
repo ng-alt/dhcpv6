@@ -1,4 +1,4 @@
-/*	$Id: server6_parse.y,v 1.2 2003/04/12 00:25:33 shirleyma Exp $	*/
+/*	$Id: server6_parse.y,v 1.3 2003/04/22 17:37:29 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -804,12 +804,15 @@ dns_para
 	| STRING
 	{
 		struct domain_list *domainname, *temp;
+		int len = 0;
 		domainname = (struct domain_list *)malloc(sizeof(*domainname));
 		if (domainname == NULL)
 			ABORT;
-		if (strlen($1) > MAXDNAME) 
+		len = strlen($1);
+		if (len > MAXDNAME) 
 			ABORT;
-		strncpy(domainname->name, $1, strlen($1));
+		strncpy(domainname->name, $1, len);
+		domainname->name[len] = '\0';
 		domainname->next = NULL;
 		if (currentscope->scope->dnslist.domainlist == NULL) {
 			currentscope->scope->dnslist.domainlist = domainname;
