@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.13 2003/07/16 19:09:53 shirleyma Exp $	*/
+/*	$Id: lease_token.l,v 1.14 2004/02/04 23:29:24 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -273,7 +273,20 @@ do_iaidaddr_hash(lease_rec, key)
 			lease_rec->lease_addr.plen);
 		free(lease_rec);
 		return (0);
-	} 
+	}
+
+	if (lease_rec->state == INVALID) {
+		dprintf(LOG_INFO, "This lease addr %s/%d is invalid. Removing.",
+		        in6addr2str(&lease_rec->lease_addr.addr, 0),
+		        lease_rec->lease_addr.plen);
+		found_lease = hash_search(lease_hash_table, &lease_rec->lease_addr);
+		/* remove the previous old lease */
+		if(found_lease) {
+			remove_lease(found_lease);
+		}
+		free(lease_rec);
+		return (0);
+	}
 	if (dhcp6_mode == DHCP6_MODE_CLIENT) {
 		if (add_lease(&client6_iaidaddr, lease_rec) != 0)
 			return (-1);
