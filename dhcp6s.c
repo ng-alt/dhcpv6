@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.11 2003/04/12 00:25:33 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.12 2003/04/18 16:10:13 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -691,7 +691,14 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			addr_flag = ADDR_UPDATE;
 		if (dh6->dh6_msgtype == DH6_RELEASE)
 			addr_flag = ADDR_REMOVE;
-		if (dh6->dh6_msgtype == DH6_CONFIRM)
+		if (dh6->dh6_msgtype == DH6_CONFIRM) {
+			/* DNS server */
+			if (dhcp6_copy_list(&roptinfo.dns_list.addrlist, &dnslist.addrlist)) {
+				dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
+				goto fail;
+			}
+		}
+		roptinfo.dns_list.domainlist = dnslist.domainlist;
 			addr_flag = ADDR_VALIDATE;
 		if (dh6->dh6_msgtype == DH6_DECLINE)
 			addr_flag = ADDR_ABANDON;
