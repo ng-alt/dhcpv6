@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.4 2003/02/10 23:47:08 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.5 2003/02/12 19:57:13 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -448,6 +448,14 @@ client6_ifinit()
 				/* create an address list for release all/confirm */
 				for (cl = TAILQ_FIRST(&client6_iaidaddr.lease_list); cl; 
 					cl = TAILQ_NEXT(cl, link)) {
+					/* config the interface for reboot */
+					if ((client6_request_flag & CLIENT6_CONFIRM_ADDR) &&
+					    client6_ifaddrconf(IFADDRCONF_ADD,
+							&cl->lease_addr) != 0) {
+						dprintf(LOG_INFO, "config address failed: %s",
+							in6addr2str(&cl->lease_addr.addr, 0));
+						exit(1);
+					}
 					/* IA_NA address */
 					if ((lv = malloc(sizeof(*lv))) == NULL) {
 						dprintf(LOG_ERR, "%s" 
@@ -788,15 +796,24 @@ client6_send(ev)
 		goto end;
 	}
 
-	/* rapid commit */
-	if (ev->state == DHCP6S_SOLICIT &&
-	    (ifp->send_flags & DHCIFF_RAPID_COMMIT)) {
-		optinfo.flags |= DHCIFF_RAPID_COMMIT;
-		if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
-			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
+	if (ev->state == DHCP6S_SOLICIT) { 
+		/* rapid commit */
+		if (ifp->send_flags & DHCIFF_RAPID_COMMIT) {
+			optinfo.flags |= DHCIFF_RAPID_COMMIT;
+			if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
+				memcpy(&optinfo.iaidinfo, 
+					&client6_iaidaddr.client6_info.iaidinfo,
 					sizeof(optinfo.iaidinfo));
-		     	if (ifp->send_flags & DHCIFF_TEMP_ADDRS)
-				optinfo.flags |= DHCIFF_TEMP_ADDRS;
+		     		if (ifp->send_flags & DHCIFF_TEMP_ADDRS)
+					optinfo.flags |= DHCIFF_TEMP_ADDRS;
+			}
+		}
+		/* support for client preferred ipv6 address */
+		if (client6_request_flag & CLIENT6_REQUEST_ADDR) {
+			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
+				sizeof(optinfo.iaidinfo));
+			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
+				goto end;
 		}
 	}  
 
@@ -1283,6 +1300,9 @@ client6_recvreply(ifp, dh6, len, optinfo)
 	 * the waiting information should be removed.
 	 */
 	switch (ev->state) {
+	case DHCP6S_SOLICIT:
+		if (optinfo->iaidinfo.iaid == 0)
+			break;
 	case DHCP6S_REQUEST:
 		/* NotOnLink: 1. SOLICIT 
 		 * NoAddrAvail: Information Request */
