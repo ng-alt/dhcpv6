@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.29 2003/05/29 15:33:49 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.30 2003/06/03 00:18:29 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -1738,15 +1738,11 @@ static struct dhcp6_timer
 		goto settimer;
 	}
 	if (ifr.ifr_flags & IFF_RUNNING) {
-		dprintf(LOG_DEBUG, "interface is running ...");
 		/* check previous flag 
 		 * set current flag UP */
 		if (ifp->link_flag & IFF_RUNNING) {
-			dprintf(LOG_DEBUG, "interface was running");
 			goto settimer;
 		}
-		dprintf(LOG_DEBUG, "interface was down");
-		dprintf(LOG_DEBUG, "enter checking addr status ...");
 		/* check current state ACTIVE */
 		if (client6_iaidaddr.state == ACTIVE) {
 			/* remove timer for renew/rebind
@@ -1761,9 +1757,10 @@ static struct dhcp6_timer
 				newstate = DHCP6S_CONFIRM;
 			client6_send_newstate(ifp, newstate);
 		}
+		dprintf(LOG_INFO, "interface is from down to up");
 		ifp->link_flag |= IFF_RUNNING;
 	} else {
-		dprintf(LOG_DEBUG, "interface is down");
+		dprintf(LOG_INFO, "interface is down");
 		/* set flag_prev flag DOWN */
 		ifp->link_flag &= ~IFF_RUNNING;
 	}
