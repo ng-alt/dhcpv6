@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.33 2003/06/23 17:33:52 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.34 2003/06/26 21:37:23 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -1351,7 +1351,7 @@ client6_recvreply(ifp, dh6, len, optinfo)
 
 	if (!(DHCP6S_VALID_REPLY(ev->state)) &&
 	    (ev->state != DHCP6S_SOLICIT ||
-	     !(ifp->send_flags & DHCIFF_RAPID_COMMIT))) {
+	     !(optinfo->flags & DHCIFF_RAPID_COMMIT))) {
 		dprintf(LOG_INFO, "%s" "unexpected reply", FNAME);
 		return -1;
 	}
