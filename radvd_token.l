@@ -1,4 +1,4 @@
-/*	$Id: radvd_token.l,v 1.2 2003/05/28 21:12:48 shirleyma Exp $	*/
+/*	$Id: radvd_token.l,v 1.3 2003/05/29 20:32:43 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -82,7 +82,7 @@ static int update_flag;
 static int oldfd, newfd;
 static int num_lines = 0;
 static int brace = 0;
-static int restart = 0;
+static int update = 0;
 
 static int yywrap __P((void));
 static int update_radvd __P((void));
@@ -137,7 +137,6 @@ comment		\#.*
 <S_IFNAME>{rbrace} {struct dhcp6_lease *lv;
 		brace--;
 		if (brace == 0 && update_flag == ADDR_UPDATE) {
-			struct stat buf;
 			/* add prefix which is not on the original prefix list 
 			 * check the lifetime value, AdvValidLifetime,
 			 * AdvPreferredLifetime: infinity or XXX seconds */
@@ -150,14 +149,11 @@ comment		\#.*
 					fprintf(dhcp6_radvd_file, "\tprefix %s/%d {};\n",
 						in6addr2str(&(lv->lease_addr.addr), 0), 
 						lv->lease_addr.plen);
-					restart = 1;
+					update = 1;
 				}
 				dprintf(LOG_DEBUG, "update radvd.conf with new prefixes");
 			}
 			fprintf(dhcp6_radvd_file, yytext);
-			if (restart && !lstat(PATH_RADVD_PID, &buf)) {
-				kill(atoi(PATH_RADVD_PID), SIGHUP);
-			}
 			BEGIN INITIAL;
 		} else {
 			fprintf(dhcp6_radvd_file, yytext);
@@ -187,7 +183,7 @@ comment		\#.*
 		    !addr_on_addrlist((struct dhcp6_list *)&client6iaid->lease_list, 
 		    &lv->val_dhcp6addr)) { 
 			dprintf(LOG_DEBUG, "remove radvd.conf DHCPv6 prefixe");
-			restart = 1;
+			update = 1;
 		} else {
 			TAILQ_INSERT_TAIL(&previous_prefix_list, lv, link);
 			fprintf(dhcp6_radvd_file, DHCP6_MARK);
@@ -325,7 +321,11 @@ update_radvd(void)
 static int 
 yywrap(void)
 {
+	struct stat buf;
 	(void)update_radvd();
 	fclose(yyin);
 	close(oldfd);
+	if (update && !lstat(PATH_RADVD_PID, &buf)) {
+		kill(atoi(PATH_RADVD_PID), SIGHUP);
+	}
 }
