@@ -1,4 +1,4 @@
-/*	$Id: client6_token.l,v 1.7 2003/04/02 23:31:49 shemminger Exp $	*/
+/*	$Id: client6_token.l,v 1.8 2005/03/10 00:49:26 shemminger Exp $	*/
 /*	ported from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -143,6 +143,7 @@ ecl		\}
 <S_CNF>prefer-life-time { DECHO; return (P_TIME); }
 <S_CNF>renew-time { DECHO; return (RENEW_TIME); }
 <S_CNF>rebind-time { DECHO; return (REBIND_TIME); }
+<S_CNF>prefix-delegation-interface { DECHO; return (PREFIX_DELEGATION_INTERFACE); }
 	/* request */
 <S_CNF>request { DECHO; return (REQUEST); }
 

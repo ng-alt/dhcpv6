@@ -1,4 +1,4 @@
-/*	$Id: radvd_token.l,v 1.8 2004/04/06 21:18:30 shirleyma Exp $	*/
+/*	$Id: radvd_token.l,v 1.9 2005/03/10 00:49:26 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -112,14 +112,24 @@ comment		\#.*
 		BEGIN S_INTERFACE;}
 
 <S_INTERFACE>{string} {
+		char *requested_if;
 		fprintf(dhcp6_radvd_file, yytext);
-		if (!strcmp(yytext, dhcp6_if->ifname))
-			BEGIN INITIAL;
-		else {
+		if ( ( ( (requested_if = get_if_option(&(dhcp6_if->option_list), 
+							DECL_PREFIX_DELEGATION_INTERFACE
+						       )
+			   ) != 0L
+			 )
+		       &&( strcmp(yytext, requested_if) == 0)
+		     )		     
+                   ||((requested_if == 0L) && (strcmp(yytext, dhcp6_if->ifname)==0))
+		   )
+		{
 			TAILQ_INIT(&ori_prefix_list);
 			TAILQ_INIT(&previous_prefix_list);
-			BEGIN S_IFNAME;}
-		}
+			BEGIN S_IFNAME;
+		}else 
+		        BEGIN INITIAL;
+}
 
 <S_IFNAME>{comment} {
 		if (strstr(yytext, DHCP6_MARK) != NULL) {
@@ -280,8 +290,7 @@ radvd_parse(struct dhcp6_iaidaddr *client6_iaid, int flag)
 	}
 	client6iaid = client6_iaid;
 	update_flag = flag;
-	yylex();
-	return 0;
+	return yylex();
 }
 
 static int
@@ -341,4 +350,5 @@ yywrap(void)
 	}
 	fclose(yyin);
 	close(oldfd);
+	return 1;
 }

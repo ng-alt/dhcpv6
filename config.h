@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.15 2004/03/04 23:31:24 shirleyma Exp $	*/
+/*	$Id: config.h,v 1.16 2005/03/10 00:49:26 shemminger Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -51,6 +51,15 @@ struct ra_info {
 	int flags;
 };
 
+struct dhcp6_option {
+	TAILQ_ENTRY(dhcp6_option) link;
+	int type;
+	int len;
+	void *val;
+};
+
+TAILQ_HEAD(dhcp6_option_list, dhcp6_option);
+
 /* per-interface information */
 struct dhcp6_if {
 	struct dhcp6_if *next;
@@ -91,11 +100,12 @@ struct dhcp6_if {
 
 	struct in6_addr linklocal;
 	int server_pref;	/* server preference (server only) */
-	struct dhcp6_optconf *send_options;
+
 	struct dhcp6_list reqopt_list;
 	/* request specific addresses list from client */
 	struct dhcp6_list addr_list;
 	struct dhcp6_list prefix_list;
+	struct dhcp6_option_list option_list;
 	struct dhcp6_serverinfo *current_server;
 	struct dhcp6_serverinfo *servers;
 };
@@ -160,12 +170,12 @@ struct dhcp6_ifconf {
 
 	int server_pref;	/* server preference (server only) */
 	struct dhcp6_iaid_info iaidinfo;
-	struct dhcp6_optconf *send_options;
-	struct dhcp6_optconf *allow_options;
 
 	struct dhcp6_list prefix_list;
 	struct dhcp6_list addr_list;
 	struct dhcp6_list reqopt_list;
+
+	struct dhcp6_option_list option_list;
 };
 
 struct prefix_ifconf {
@@ -197,14 +207,6 @@ struct host_conf {
 
 	struct dhcp6_list addr_list;
 	struct dhcp6_list addr_binding_list;
-};
-
-/* DHCP option information */
-struct dhcp6_optconf {
-	struct dhcp6_optconf *next;
-	int type;
-	int len;
-	char *val;
 };
 
 /* structures and definitions used in the config file parser */
@@ -277,7 +279,7 @@ struct cf_list {
 
 enum {DECL_SEND, DECL_ALLOW, DECL_INFO_ONLY, DECL_TEMP_ADDR, DECL_REQUEST, DECL_DUID,
       DECL_PREFIX, DECL_PREFERENCE, DECL_IAID, DECL_RENEWTIME, DECL_REBINDTIME,
-      DECL_ADDRESS, DECL_LINKLOCAL, DECL_PREFIX_INFO, DECL_PREFIX_REQ,
+      DECL_ADDRESS, DECL_LINKLOCAL, DECL_PREFIX_INFO, DECL_PREFIX_REQ, DECL_PREFIX_DELEGATION_INTERFACE,
       DHCPOPT_PREFIX_DELEGATION, IFPARAM_SLA_ID, IFPARAM_SLA_LEN,
       DHCPOPT_RAPID_COMMIT, 
       DHCPOPT_DNS, ADDRESS_LIST_ENT };
@@ -303,3 +305,5 @@ extern void configure_commit (void);
 extern int cfparse (const char *);
 extern int resolv_parse (struct dns_list *);
 extern int get_if_rainfo(struct dhcp6_if *ifp);
+
+extern void *get_if_option( struct dhcp6_option_list *, int);

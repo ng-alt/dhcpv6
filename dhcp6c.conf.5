@@ -1,4 +1,4 @@
-.\" $Id: dhcp6c.conf.5,v 1.3 2005/03/10 00:44:41 shemminger Exp $
+.\" $Id: dhcp6c.conf.5,v 1.4 2005/03/10 00:49:26 shemminger Exp $
 .\"
 .\" Copyright (C) International Business Machines  Corp., 2003
 .\" All rights reserved.
@@ -170,6 +170,13 @@ dhcp6c requests the DNS server address via the DHCPv6 mechanism.
 .fi
 If this option is used in a "request [dhcpoptions];" declaration, 
 dhcp6c requests a Prefix Delegation to the DHCPv6 servers.
+
+.nf
+.B prefix\-delegation\-interface <interface name>
+Specifies the name of the interface definition in radvd.conf 
+that dhcp6c will write the 'prefix' declaration for. By default,
+dhcp6c will write a radvd.conf prefix declaration for the interface
+on which it receives the prefix delegation lease.
 
 .SH EXAMPLES
 .PP

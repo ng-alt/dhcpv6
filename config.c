@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.10 2004/04/06 21:05:43 shirleyma Exp $	*/
+/*	$Id: config.c,v 1.11 2005/03/10 00:49:26 shemminger Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -57,9 +57,11 @@ enum { DHCPOPTCODE_SEND, DHCPOPTCODE_REQUEST, DHCPOPTCODE_ALLOW };
 
 static int add_options __P((int, struct dhcp6_ifconf *, struct cf_list *));
 static int add_address __P((struct dhcp6_list *, struct dhcp6_addr *));
+static int add_option  __P((struct dhcp6_option_list *, struct cf_list *));
+static int clear_option_list  __P((struct dhcp6_option_list *));
+
 static void clear_ifconf __P((struct dhcp6_ifconf *));
 static void clear_hostconf __P((struct host_conf *));
-static void clear_options __P((struct dhcp6_optconf *));
 
 int
 configure_interface(const struct cf_namelist *iflist)
@@ -88,6 +90,7 @@ configure_interface(const struct cf_namelist *iflist)
 		ifc->server_pref = DH6OPT_PREF_UNDEF;
 		TAILQ_INIT(&ifc->reqopt_list);
 		TAILQ_INIT(&ifc->addr_list);
+		TAILQ_INIT(&ifc->option_list);
 
 		for (cfl = ifp->params; cfl; cfl = cfl->next) {
 			switch(cfl->type) {
@@ -184,6 +187,13 @@ configure_interface(const struct cf_namelist *iflist)
 				/* XX: ToDo */
 				break;
 			case DECL_PREFIX_INFO:
+				break;
+			case DECL_PREFIX_DELEGATION_INTERFACE:
+			        if (add_option(&ifc->option_list, cfl)){
+					dprintf(LOG_ERR, "%s failed to configure prefix-delegation-interface for %s",
+						FNAME, ifc->ifname);
+					goto bad;
+				}
 				break;
 			default:
 				dprintf(LOG_ERR, "%s" "%s:%d "
@@ -450,11 +460,6 @@ configure_commit(void)
 
 			ifp->allow_flags = ifc->allow_flags;
 
-			clear_options(ifp->send_options);
-
-			ifp->send_options = ifc->send_options;
-			ifc->send_options = NULL;
-
 			dhcp6_clear_list(&ifp->reqopt_list);
 			ifp->reqopt_list = ifc->reqopt_list;
 			TAILQ_INIT(&ifc->reqopt_list);
@@ -467,6 +472,10 @@ configure_commit(void)
 			ifp->prefix_list = ifc->prefix_list;
 			TAILQ_INIT(&ifc->prefix_list);
 			
+			clear_option_list(&ifp->option_list);
+			ifp->option_list = ifc->option_list;
+			TAILQ_INIT(&ifc->option_list);
+
 			ifp->server_pref = ifc->server_pref;
 
 			memcpy(&ifp->iaidinfo, &ifc->iaidinfo, sizeof(ifp->iaidinfo));
@@ -492,7 +501,7 @@ clear_ifconf(struct dhcp6_ifconf *iflist)
 		ifc_next = ifc->next;
 
 		free(ifc->ifname);
-		clear_options(ifc->send_options);
+
 		dhcp6_clear_list(&ifc->reqopt_list);
 
 		free(ifc);
@@ -516,19 +525,6 @@ clear_hostconf(struct host_conf *hlist)
 		if (host->duid.duid_id)
 			free(host->duid.duid_id);
 		free(host);
-	}
-}
-
-static void
-clear_options(struct dhcp6_optconf *opt0)
-{
-	struct dhcp6_optconf *opt, *opt_next;
-
-	for (opt = opt0; opt; opt = opt_next) {
-		opt_next = opt->next;
-
-		free(opt->val);
-		free(opt);
 	}
 }
 
@@ -647,3 +643,53 @@ add_address(struct dhcp6_list *addr_list,
 	return (0);
 }
 
+int add_option (struct dhcp6_option_list *opts, struct cf_list *cfl)
+{
+	struct dhcp6_option *opt ;
+
+	if ( get_if_option( opts, cfl->type ) != 0L )
+		return (-1);
+
+	switch (cfl->type)
+	{
+	case DECL_PREFIX_DELEGATION_INTERFACE:
+		opt = (struct dhcp6_option*)malloc(sizeof(struct dhcp6_option));
+		opt->type = cfl->type;
+		if ( cfl->ptr != 0L )
+		{
+			opt->len = strlen((char*)(cfl->ptr))+1;
+			opt->val = malloc(opt->len);
+			memcpy(opt->val, cfl->ptr, opt->len);
+		}else
+		{
+			opt->val = malloc(1);
+			opt->len = 0;
+			*((char*)(opt->val))='\0';
+		}
+		TAILQ_INSERT_TAIL(opts, opt, link);
+		break;
+	default:
+	        break;
+	}
+	return (0);
+}
+
+int clear_option_list (struct dhcp6_option_list *opts)
+{
+	struct dhcp6_option *opt;
+	while ((opt = TAILQ_FIRST(opts)) != NULL) {
+		TAILQ_REMOVE(opts, opt, link);
+		free(opt);
+	}
+}
+
+void *get_if_option( struct dhcp6_option_list *opts, int type )
+{
+	struct dhcp6_option *opt;
+	TAILQ_FOREACH( opt, opts, link)
+	{
+		if ( opt->type == type )
+			return opt->val;
+	}
+	return 0L;
+}

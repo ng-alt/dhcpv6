@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.11 2004/04/06 21:18:30 shirleyma Exp $	*/
+/*	$Id: client6_parse.y,v 1.12 2005/03/10 00:49:25 shemminger Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -39,6 +39,7 @@
 
 #include <arpa/inet.h>
 
+#include <malloc.h>
 #include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
@@ -94,7 +95,7 @@ static void cleanup_cflist __P((struct cf_list *));
 %token REQUEST SEND 
 %token RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS 
 %token INFO_ONLY TEMP_ADDR
-%token ADDRESS PREFIX IAID RENEW_TIME REBIND_TIME V_TIME P_TIME
+%token ADDRESS PREFIX IAID RENEW_TIME REBIND_TIME V_TIME P_TIME PREFIX_DELEGATION_INTERFACE
 %token NUMBER SLASH EOS BCL ECL STRING INFINITY
 %token COMMA OPTION
 
@@ -235,6 +236,15 @@ declaration:
 		
 			$$ = l;
 		}
+        |       PREFIX_DELEGATION_INTERFACE STRING EOS
+                {
+			struct cf_list *l;
+			char *pp = (char*)malloc(strlen($2)+1);
+			strcpy(pp,$2);
+			MAKE_CFLIST(l, DECL_PREFIX_DELEGATION_INTERFACE, pp, NULL );
+			
+			$$ = l;
+                }
 	;
 
 dhcpoption:
@@ -265,27 +275,32 @@ dhcpoption:
 	;
 
 addrdecl:
-	
+       
 		addrparam addrvtime 
 		{
-			(struct dhcp6_addr *)$1->validlifetime = (u_int32_t)$2;
+		    struct dhcp6_addr *addr=(struct dhcp6_addr *)$1;
+		    
+			addr->validlifetime = (u_int32_t)$2;
 			$$ = $1;
 		}
 	|	 addrparam addrptime
 		{
-			(struct dhcp6_addr *)$1->preferlifetime = (u_int32_t)$2;
+		    struct dhcp6_addr *addr=(struct dhcp6_addr *)$1;
+		        addr->preferlifetime = (u_int32_t)$2;
 			$$ = $1;
 		}
 	|	 addrparam addrvtime addrptime 
 		{
-			(struct dhcp6_addr *)$1->validlifetime = (u_int32_t)$2;
-			(struct dhcp6_addr *)$1->preferlifetime = (u_int32_t)$3;
+		    struct dhcp6_addr *addr=(struct dhcp6_addr *)$1;
+			addr->validlifetime = (u_int32_t)$2;
+			addr->preferlifetime = (u_int32_t)$3;
 			$$ = $1;
 		}
 	| 	addrparam addrptime addrvtime
 		{
-			(struct dhcp6_addr *)$1->validlifetime = (u_int32_t)$3;
-			(struct dhcp6_addr *)$1->preferlifetime = (u_int32_t)$2;
+		    struct dhcp6_addr *addr=(struct dhcp6_addr *)$1;
+			addr->validlifetime = (u_int32_t)$3;
+			addr->preferlifetime = (u_int32_t)$2;
 			$$ = $1;
 			}
 	| 	addrparam
