@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.21 2003/06/23 17:33:46 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.22 2003/07/02 02:21:25 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -54,7 +54,6 @@
 #include "common.h"
 #include "timer.h"
 #include "lease.h"
-
 
 static int dhcp6_update_lease __P((struct dhcp6_addr *, struct dhcp6_lease *));
 static int dhcp6_add_lease __P((struct dhcp6_addr *));
@@ -710,25 +709,26 @@ create_iaid(struct iaid_table *iaidtab, int num_device)
 
 	ifr = ifc.ifc_req;
 	for (i = ifc.ifc_len / sizeof(struct ifreq); --i >= 0 && num_device < MAX_DEVICE; 
-	     ifr++, num_device++) {
+	     ifr++) {
 		if (!strcmp(ifr->ifr_name, "lo")) continue;
-		strcpy(if_hwaddr.ifr_name, ifr->ifr_name);
-		if (ioctl(nlsock, SIOCGIFHWADDR, &if_hwaddr) < 0) {
-			dprintf(LOG_ERR, "%s" "ioctl SIOCGIFHWADDR",
-				FNAME, ifr->ifr_name);
-			return -1;
-		}
-		/* so far we only support ethernet hw */
-		if (if_hwaddr.ifr_hwaddr.sa_family == ARPHRD_ETHER) {
-			unsigned char *hwaddr = (unsigned char *)if_hwaddr.ifr_hwaddr.sa_data;
-			temp->hwaddr.len = 6;
-			memcpy(temp->hwaddr.data, hwaddr, temp->hwaddr.len);
-			memcpy(&temp->iaid, (unsigned char *)&hwaddr[3], 
-				sizeof(temp->iaid));
-			temp->hwaddr.type = if_hwaddr.ifr_hwaddr.sa_family;	
+		temp->hwaddr.len = gethwid(temp->hwaddr.data, sizeof(temp->hwaddr.data), ifr->ifr_name, &temp->hwaddr.type);
+		switch (temp->hwaddr.type) {
+		case ARPHRD_ETHER:
+		case ARPHRD_IEEE802:
+			memcpy(&temp->iaid, temp->hwaddr.data, sizeof(temp->iaid));
+			break;
+		case ARPHRD_PPP:
+			temp->iaid = do_hash(ifr->ifr_name,sizeof(ifr->ifr_name))
+				+ if_nametoindex(ifr->ifr_name);
+			break;
+		default:
+			dprintf(LOG_INFO, "doesn't support %s address family %d", 
+				ifr->ifr_name, temp->hwaddr.type);
+			continue;
 		}
 		dprintf(LOG_DEBUG, "%s"" create iaid %u for interface %s", 
-				FNAME, temp->iaid, ifr->ifr_name);
+			FNAME, temp->iaid, ifr->ifr_name);
+		num_device++;
 		temp++;
 	}
 	return num_device;

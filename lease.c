@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.11 2003/06/23 17:33:53 shirleyma Exp $	*/
+/*	$Id: lease.c,v 1.12 2003/07/02 02:21:25 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -60,7 +60,7 @@ extern FILE *server6_lease_file;
 extern char *server6_lease_temp;
 extern FILE *client6_lease_file;
 extern char *client6_lease_temp;
-static u_int32_t do_hash __P((const void *, u_int8_t ));
+u_int32_t do_hash __P((const void *, u_int8_t ));
 static int init_lease_hashes __P((void));
 
 int 
@@ -226,7 +226,7 @@ init_lease_hashes(void)
 
 }
 
-static u_int32_t 
+u_int32_t 
 do_hash(const void *key, u_int8_t len)
 {
 	int i;
@@ -364,7 +364,7 @@ get_linklocal(const char *ifname,
 	for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
 		if (strcmp(ifa->ifa_name, ifname)) continue;
 		sd = (struct sockaddr *)ifa->ifa_addr;
-		if (sd->sa_family != AF_INET6) continue;
+		if (!sd || sd->sa_family != AF_INET6) continue;
 		if (!IN6_IS_ADDR_LINKLOCAL(&sd->sa_data[6])) continue;
 		/* which linklocal do we want, if find many 
 		 * from scope id??? sa_data[32]

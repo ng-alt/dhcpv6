@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.12 2003/05/28 21:12:16 shirleyma Exp $	*/
+/*	$Id: lease.h,v 1.13 2003/07/02 02:21:25 shirleyma Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -81,6 +81,7 @@ struct dhcp6_iaidaddr {
 	TAILQ_HEAD(,dhcp6_lease) lease_list;
 };
 
+extern u_int32_t do_hash __P((const void *, u_int8_t ));
 int get_linklocal __P((const char *, struct in6_addr *));
 extern void dhcp6_init_iaidaddr __P((void));
 extern int dhcp6_remove_iaidaddr __P((struct dhcp6_iaidaddr *));

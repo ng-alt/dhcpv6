@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.18 2003/06/23 17:33:53 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.19 2003/07/02 02:21:25 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -133,13 +133,13 @@ dhcp6_add_iaidaddr(optinfo)
 		return (0);
 	}
 	if (hash_add(server6_hash_table, &iaidaddr->client6_info, iaidaddr)) {
-		dprintf(LOG_ERR, "%s" "failed to hash_add an iaidaddr %d for client duid %s", 
+		dprintf(LOG_ERR, "%s" "failed to hash_add an iaidaddr %u for client duid %s", 
 			FNAME, iaidaddr->client6_info.iaidinfo.iaid,
 				duidstr(&iaidaddr->client6_info.clientid));
 		dhcp6_remove_iaidaddr(iaidaddr);
 		return (-1);
 	}
-	dprintf(LOG_DEBUG, "%s" "hash_add an iaidaddr %d for client duid %s", 
+	dprintf(LOG_DEBUG, "%s" "hash_add an iaidaddr %u for client duid %s", 
 		FNAME, iaidaddr->client6_info.iaidinfo.iaid,
 			duidstr(&iaidaddr->client6_info.clientid));
 	/* set up timer for iaidaddr */
@@ -184,7 +184,7 @@ dhcp6_remove_iaidaddr(iaidaddr)
 	}
 	if (iaidaddr->timer)
 		dhcp6_remove_timer(iaidaddr->timer);
-	dprintf(LOG_DEBUG, "%s" "removed iaidaddr %d", FNAME,
+	dprintf(LOG_DEBUG, "%s" "removed iaidaddr %u", FNAME,
 		iaidaddr->client6_info.iaidinfo.iaid);
 	free(iaidaddr);
 	return (0);
@@ -403,8 +403,8 @@ dhcp6_add_lease(iaidaddr, addr)
 	timo.tv_sec = (long)d;
 	timo.tv_usec = 0;
 	dhcp6_set_timer(&timo, sp->timer);
-	dprintf(LOG_DEBUG, "%s" "add lease for %s/%d iaid %u with preferlifetime %d"
-			" with validlifetime %d", FNAME,
+	dprintf(LOG_DEBUG, "%s" "add lease for %s/%d iaid %u with preferlifetime %u"
+			" with validlifetime %u", FNAME,
 		in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen, 
 		sp->iaidaddr->client6_info.iaidinfo.iaid,
 		sp->lease_addr.preferlifetime, sp->lease_addr.validlifetime);
@@ -492,7 +492,7 @@ dhcp6_iaidaddr_timo(void *arg)
 {
 	struct dhcp6_iaidaddr *sp = (struct dhcp6_iaidaddr *)arg;
 
-	dprintf(LOG_DEBUG, "server6_iaidaddr timeout for %d, state=%d", 
+	dprintf(LOG_DEBUG, "server6_iaidaddr timeout for %u, state=%d", 
 		sp->client6_info.iaidinfo.iaid, sp->state);
 	switch(sp->state) {
 	case ACTIVE:
@@ -809,10 +809,10 @@ server6_get_prefixpara(v6addr, seg)
 	} else if (seg->parainfo.valid_life_time == 0) {
 		seg->parainfo.valid_life_time = 2 * seg->parainfo.prefer_life_time;
 	}
-	dprintf(LOG_DEBUG, " preferlifetime %d, validlifetime %d", 
+	dprintf(LOG_DEBUG, " preferlifetime %u, validlifetime %u", 
 		seg->parainfo.prefer_life_time, seg->parainfo.valid_life_time);
 
-	dprintf(LOG_DEBUG, " renewtime %d, rebindtime %d", 
+	dprintf(LOG_DEBUG, " renewtime %u, rebindtime %u", 
 		seg->parainfo.renew_time, seg->parainfo.rebind_time);
 	v6addr->preferlifetime = seg->parainfo.prefer_life_time;
 	v6addr->validlifetime = seg->parainfo.valid_life_time;
@@ -835,10 +835,10 @@ server6_get_addrpara(v6addr, seg)
 	} else if (seg->parainfo.valid_life_time == 0) {
 		seg->parainfo.valid_life_time = 2 * seg->parainfo.prefer_life_time;
 	}
-	dprintf(LOG_DEBUG, " preferlifetime %d, validlifetime %d",
+	dprintf(LOG_DEBUG, " preferlifetime %u, validlifetime %u",
 		seg->parainfo.prefer_life_time, seg->parainfo.valid_life_time);
 
-	dprintf(LOG_DEBUG, " renewtime %d, rebindtime %d", 
+	dprintf(LOG_DEBUG, " renewtime %u, rebindtime %u", 
 		seg->parainfo.renew_time, seg->parainfo.rebind_time);
 	v6addr->preferlifetime = seg->parainfo.prefer_life_time;
 	v6addr->validlifetime = seg->parainfo.valid_life_time;
@@ -878,7 +878,7 @@ dhcp6_create_prefixlist(roptinfo, optinfo, iaidaddr, subnet)
 		v6addr->val_dhcp6addr.type = IAPD;
 		server6_get_prefixpara(&v6addr->val_dhcp6addr, prefix6);
 		dprintf(LOG_DEBUG, " get prefix %s/%d, "
-			"preferlifetime %d, validlifetime %d",
+			"preferlifetime %u, validlifetime %u",
 			in6addr2str(&v6addr->val_dhcp6addr.addr, 0), 
 			v6addr->val_dhcp6addr.plen,
 			v6addr->val_dhcp6addr.preferlifetime, 

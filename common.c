@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.17 2003/06/23 17:33:48 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.18 2003/07/02 02:21:25 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -796,7 +796,7 @@ gethwid(buf, len, ifname, hwtypep)
 	ssize_t l;
 	struct ifreq if_hwaddr;
 	
-	if ((skfd = socket(AF_INET, SOCK_DGRAM, 0 )) < 0)
+	if ((skfd = socket(AF_INET6, SOCK_DGRAM, 0 )) < 0)
 		return -1;
 
 	strcpy(if_hwaddr.ifr_name, ifname);
@@ -809,12 +809,18 @@ gethwid(buf, len, ifname, hwtypep)
 		*hwtypep = ARPHRD_ETHER;
 		l = 6;
 		break;
+	case ARPHRD_PPP:
+		*hwtypep = ARPHRD_PPP;
+		l = 0;
+		return l;
 	default:
+		dprintf(LOG_INFO, "dhcpv6 doesn't support hardware type %d",
+			if_hwaddr.ifr_hwaddr.sa_family);
 		return -1; /* XXX */
 	}
-	dprintf(LOG_DEBUG, "%s" "found an interface %s",
-		FNAME, ifname);
 	memcpy(buf, if_hwaddr.ifr_hwaddr.sa_data, l);
+	dprintf(LOG_DEBUG, "%s" "found an interface %s harware %x",
+		FNAME, ifname, buf);
 	return l;
 }
 
