@@ -1,4 +1,4 @@
-/*	$Id: server6_parse.y,v 1.8 2004/02/04 23:31:24 shemminger Exp $	*/
+/*	$Id: server6_parse.y,v 1.9 2004/02/05 00:10:31 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -83,7 +83,6 @@ extern int sfyylex __P((void));
 %token	<bool>	BOOLEAN
 %token	<addr>	IPV6ADDR
 %token 	<str>	INFINITY
-%token	<str>	OPTION
 
 %token	<str>	HOST
 %token	<str>	POOL
