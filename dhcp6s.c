@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.4 2003/02/10 23:47:08 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.5 2003/02/12 19:44:03 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -643,7 +643,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		/* preference (if configured) */
 		if (ifp->server_pref != DH6OPT_PREF_UNDEF)
 			roptinfo.pref = ifp->server_pref;
-
+		
 		/* ToDo: will merger the two configuration file later */
 		if ((optinfo->flags & DHCIFF_RAPID_COMMIT) && 
 				(ifp->allow_flags & DHCIFF_RAPID_COMMIT)) {
@@ -652,7 +652,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		 * server has been configured to respond with committed address
 		 * assignments and other resources, responds to the Solicit
 		 * with a Reply message.
-		 * [dhcpv6-26 Section 17.2.1]
+		 * [dhcpv6-28 Section 17.2.1]
 		 */
 			roptinfo.flags |= DHCIFF_RAPID_COMMIT;
 			do_binding = 1;
@@ -660,13 +660,16 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		} else
 			resptype = DH6_ADVERTISE;
 
+		/* [dhcpv6-28 Section 17.2.2] */
+		if (optinfo->iaidinfo.iaid != 0) {
+			memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo, 
+					sizeof(roptinfo.iaidinfo));
+			addr_request = 1;
+			resptype = DH6_ADVERTISE;
+						
+		}
 		if ((optinfo->flags & DHCIFF_RAPID_COMMIT) && 
 				(subnet->linkscope.allow_flags & DHCIFF_RAPID_COMMIT)) {
-			if (optinfo->iaidinfo.iaid != 0) {
-				memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo, 
-						sizeof(roptinfo.iaidinfo));
-				addr_request = 1;
-			}
 			roptinfo.flags |= DHCIFF_RAPID_COMMIT;
 			resptype = DH6_REPLY;
 		} else

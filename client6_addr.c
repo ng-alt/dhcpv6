@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.4 2003/02/10 23:47:06 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.5 2003/02/12 19:43:14 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -55,13 +55,12 @@
 #include "lease.h"
 #include "queue.h"
 
-typedef enum { IFADDRCONF_ADD, IFADDRCONF_REMOVE } ifaddrconf_cmd_t;
 
 static int dhcp6_update_lease __P((struct dhcp6_addr *, struct dhcp6_lease *));
 static int dhcp6_add_lease __P((struct dhcp6_addr *));
 struct dhcp6_lease *dhcp6_find_lease __P((struct dhcp6_iaidaddr *, 
 			struct dhcp6_addr *));
-static int client6_ifaddrconf __P((ifaddrconf_cmd_t, struct dhcp6_addr *));
+int client6_ifaddrconf __P((ifaddrconf_cmd_t, struct dhcp6_addr *));
 u_int32_t get_min_preferlifetime __P((struct dhcp6_iaidaddr *));
 u_int32_t get_max_validlifetime __P((struct dhcp6_iaidaddr *));
 struct dhcp6_timer *dhcp6_iaidaddr_timo __P((void *));
@@ -548,7 +547,7 @@ dhcp6_lease_timo(arg)
 	return (sp->timer);
 }
 
-static int
+int
 client6_ifaddrconf(cmd, ifaddr)
 	ifaddrconf_cmd_t cmd;
 	struct dhcp6_addr *ifaddr;

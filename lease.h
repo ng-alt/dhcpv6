@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.1 2003/02/10 23:47:09 shirleyma Exp $	*/
+/*	$Id: lease.h,v 1.2 2003/02/12 19:43:28 shirleyma Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -48,6 +48,7 @@ typedef enum { ACTIVE, RENEW,
 	       REBIND, EXPIRED,
 	       INVALID } state_t;
 
+typedef enum { IFADDRCONF_ADD, IFADDRCONF_REMOVE } ifaddrconf_cmd_t;
 /* DUID: DHCP unique Identifier */
 enum hash_type{HT_IPV6ADDR = 0, HT_IAIDADDR};
 
