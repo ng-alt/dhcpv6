@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.12 2003/03/28 23:01:53 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.13 2003/04/02 19:09:00 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -1120,7 +1120,7 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 			if (optlen > sizeof(val16)) {
 				dprintf(LOG_INFO, 
 					"status message for this address is: %-*s",
-					optlen-sizeof(val16), p+(val16));
+					(int)(optlen-sizeof(val16)), p+(val16));
 			}
 			/* XXX: need to check duplication? */
 			if (dhcp6_add_listval(&optinfo->stcode_list,
@@ -1171,7 +1171,7 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 				if (optlen > sizeof(val16)) {
 					dprintf(LOG_INFO, 
 						"status message for this address is: %-*s",
-						optlen-sizeof(val16), p+(val16));
+						(int)(optlen-sizeof(val16)), p+(val16));
 				}
 				break;
 			default:
@@ -1220,7 +1220,7 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 				if (optlen > sizeof(val16)) {
 					dprintf(LOG_INFO, 
 						"status message for this prefix is: %-*s",
-						optlen-sizeof(val16), p+(val16));
+						(int)(optlen-sizeof(val16)), p+(val16));
 				}
 				break;
 			default:
