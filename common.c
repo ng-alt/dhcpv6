@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.15 2003/04/18 20:10:27 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.16 2003/04/30 19:04:06 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -167,6 +167,8 @@ ifinit(const char *ifname)
 #else
 	ifp->linkid = ifp->ifid; /* XXX */
 #endif
+	if (get_linklocal(ifname, &ifp->linklocal) < 0)
+		goto die;
 	ifp->next = dhcp6_if;
 	dhcp6_if = ifp;
 	return;
@@ -481,7 +483,7 @@ transmit_sa(s, sa, buf, len)
 {
 	int error;
 
-	error = sendto(s, buf, len, 0, (struct sockaddr *)sa, sizeof(*sa));
+	error = sendto(s, buf, len, MSG_DONTROUTE, (struct sockaddr *)sa, sizeof(*sa));
 
 	return (error != len) ? -1 : 0;
 }
@@ -689,7 +691,7 @@ configure_duid(const char *str,
 }
 
 int
-get_duid(const 	char *idfile,
+get_duid(const 	char *idfile, const char *ifname,
 	 struct duid *duid)
 {
 	FILE *fp = NULL;
@@ -710,7 +712,7 @@ get_duid(const 	char *idfile,
 	} else {
 		int l;
 
-		if ((l = gethwid(tmpbuf, sizeof(tmpbuf), device, &hwtype)) < 0) {
+		if ((l = gethwid(tmpbuf, sizeof(tmpbuf), ifname, &hwtype)) < 0) {
 			dprintf(LOG_INFO, "%s"
 			    "failed to get a hardware address", FNAME);
 			goto fail;
@@ -797,8 +799,6 @@ gethwid(buf, len, ifname, hwtypep)
 	if ((skfd = socket(AF_INET, SOCK_DGRAM, 0 )) < 0)
 		return -1;
 
-	if (!ifname)
-		ifname = device;
 	strcpy(if_hwaddr.ifr_name, ifname);
 	if (ioctl(skfd, SIOCGIFHWADDR, &if_hwaddr) < 0)
 		return -1;

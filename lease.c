@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.6 2003/03/28 23:01:56 shirleyma Exp $	*/
+/*	$Id: lease.c,v 1.7 2003/04/30 19:04:11 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -46,6 +46,7 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <linux/sockios.h>
+#include <ifaddrs.h>
 
 #include "queue.h"
 #include "dhcp6.h"
@@ -347,6 +348,32 @@ prefixcmp(addr, prefix, len)
 	if((addr->s6_addr[num_bytes] & mask.s6_addr[num_bytes]) != 
 	   (prefix->s6_addr[num_bytes] & mask.s6_addr[num_bytes]))
  		return -1;
+	return 0;
+}
+
+int
+get_linklocal(const char *ifname,
+	      struct in6_addr *linklocal)
+{	
+	struct ifaddrs *ifa, *ifap;
+	struct sockaddr *sd;
+	if (getifaddrs(&ifap) < 0) {
+		dprintf(LOG_ERR, "getifaddrs error");
+		return -1;
+	}
+	/* ifa->ifa_addr is sockaddr_in6 */
+	for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
+		if (strcmp(ifa->ifa_name, ifname)) continue;
+		sd = (struct sockaddr *)ifa->ifa_addr;
+		if (sd->sa_family != AF_INET6) continue;
+		if (!IN6_IS_ADDR_LINKLOCAL(&sd->sa_data[6])) continue;
+		/* which linklocal do we want, if find many 
+		 * from scope id??? sa_data[32]
+		 * */
+		memcpy(linklocal, &sd->sa_data[6], sizeof(*linklocal));
+		break;
+	}
+	freeifaddrs(ifap);
 	return 0;
 }
 

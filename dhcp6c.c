@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.21 2003/04/28 22:12:20 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.22 2003/04/30 19:04:09 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -84,10 +84,12 @@ static u_long sig_flags = 0;
 	 a == DHCP6S_RELEASE || a == DHCP6S_CONFIRM || \
 	 a == DHCP6S_INFOREQ)
 
+
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_CLIENT;
 
-char *device = NULL;
-static struct iaid_table iaidtab[50];
+static char *device = NULL;
+static int num_device = 0;
+static struct iaid_table iaidtab[100];
 static u_int8_t client6_request_flag = 0;
 
 #define CLIENT6_RELEASE_ADDR	0x1
@@ -305,7 +307,10 @@ client6_init(device)
 	int error, on = 1;
 	struct dhcp6_if *ifp;
 	int ifidx;
-
+	struct ifaddrs *ifa, *ifap;
+	char linklocal[64];
+	struct in6_addr lladdr;
+	
 	ifidx = if_nametoindex(device);
 	if (ifidx == 0) {
 		dprintf(LOG_ERR, "if_nametoindex(%s)", device);
@@ -313,20 +318,27 @@ client6_init(device)
 	}
 
 	/* get our DUID */
-	if (get_duid(DUID_FILE, &client_duid)) {
+	if (get_duid(DUID_FILE, device, &client_duid)) {
 		dprintf(LOG_ERR, "%s" "failed to get a DUID", FNAME);
 		exit(1);
 	}
-
+	if (get_linklocal(device, &lladdr) < 0) {
+		exit(1);
+	}
+	if (inet_ntop(AF_INET6, &lladdr, linklocal, sizeof(linklocal)) < 0) {
+		exit(1);
+	}
+	dprintf(LOG_DEBUG, "link local addr is %s", linklocal);
+	
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_INET6;
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_protocol = IPPROTO_UDP;
-	hints.ai_flags = AI_PASSIVE;
-	error = getaddrinfo(NULL, DH6PORT_DOWNSTREAM, &hints, &res);
+	hints.ai_flags = 0;
+	error = getaddrinfo(linklocal, DH6PORT_DOWNSTREAM, &hints, &res);
 	if (error) {
 		dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
-			FNAME, gai_strerror(error));
+			FNAME, strerror(error));
 		exit(1);
 	}
 	insock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
@@ -351,15 +363,17 @@ client6_init(device)
 		exit(1);
 	}
 #endif
+	((struct sockaddr_in6 *)(res->ai_addr))->sin6_scope_id = ifidx;
+	dprintf(LOG_DEBUG, "res addr is %s/%d", addr2str(res->ai_addr), res->ai_addrlen);
 	if (bind(insock, res->ai_addr, res->ai_addrlen) < 0) {
-		dprintf(LOG_ERR, "%s" "bind(inbonud): %s",
+		dprintf(LOG_ERR, "%s" "bind(inbound): %s",
 			FNAME, strerror(errno));
 		exit(1);
 	}
 	freeaddrinfo(res);
 
 	hints.ai_flags = 0;
-	error = getaddrinfo(NULL, DH6PORT_UPSTREAM, &hints, &res);
+	error = getaddrinfo(linklocal, DH6PORT_UPSTREAM, &hints, &res);
 	if (error) {
 		dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
 			FNAME, gai_strerror(error));
@@ -378,16 +392,13 @@ client6_init(device)
 			FNAME, strerror(errno));
 		exit(1);
 	}
-	if (setsockopt(outsock, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &on,
-		       sizeof(on)) < 0) {
-		dprintf(LOG_ERR, "%s"
-			"setsockopt(outsock, IPV6_MULTICAST_LOOP): %s",
+	((struct sockaddr_in6 *)(res->ai_addr))->sin6_scope_id = ifidx;
+	if (bind(outsock, res->ai_addr, res->ai_addrlen) < 0) {
+		dprintf(LOG_ERR, "%s" "bind(outbound): %s",
 			FNAME, strerror(errno));
 		exit(1);
 	}
-	/* make the socket write-only */
 	freeaddrinfo(res);
-
 	/* open a routing socket to watch the routing table */
 	if ((rtsock = socket(PF_ROUTE, SOCK_RAW, 0)) < 0) {
 		dprintf(LOG_ERR, "%s" "open a routing socket: %s",
@@ -445,9 +456,15 @@ client6_ifinit()
 	for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
 		dhcp6_init_iaidaddr();
 		/* get iaid for each interface */
-		if ((ifp->iaidinfo.iaid = get_iaid(ifp->ifname, iaidtab)) == 0) {
-			create_iaid(iaidtab);
-			ifp->iaidinfo.iaid = get_iaid(ifp->ifname, iaidtab);
+		if (num_device == 0) {
+			if ((num_device = create_iaid(&iaidtab[0], num_device)) < 0)
+				exit(1);
+			ifp->iaidinfo.iaid = get_iaid(ifp->ifname, &iaidtab[0], num_device);
+			if (ifp->iaidinfo.iaid == 0) {
+				dprintf(LOG_DEBUG, "%s" "interface %s iaid failed to be created", 
+					FNAME, ifp->ifname);
+				exit(1);
+			}
 			dprintf(LOG_DEBUG, "%s" "interface %s iaid is %d", 
 				FNAME, ifp->ifname, ifp->iaidinfo.iaid);
 		}
@@ -1001,8 +1018,9 @@ client6_send(ev)
 		break;
 	}
 	dst.sin6_scope_id = ifp->linkid;
-
-	if (sendto(ifp->outsock, buf, len, 0, (struct sockaddr *)&dst,
+	dprintf(LOG_DEBUG, "send dst if %s addr is %s scope id is %d", 
+		ifp->ifname, addr2str((struct sockaddr *)&dst), ifp->linkid);
+	if (sendto(ifp->outsock, buf, len, MSG_DONTROUTE, (struct sockaddr *)&dst,
 	    sizeof(dst)) == -1) {
 		dprintf(LOG_ERR, FNAME "transmit failed: %s", strerror(errno));
 		goto end;
@@ -1061,16 +1079,20 @@ client6_recv()
 		dprintf(LOG_NOTICE, "%s" "failed to get packet info", FNAME);
 		return;
 	}
-	if ((ifp = find_ifconfbyname(device)) == NULL) {
+	if ((ifp = find_ifconfbyid(pi->ipi6_ifindex)) == NULL) {
 		dprintf(LOG_INFO, "%s" "unexpected interface (%d)", FNAME,
 			(unsigned int)pi->ipi6_ifindex);
 		return;
 	}
+	dprintf(LOG_DEBUG, "receive packet info ifname %s, addr is %s scope id is %d", 
+		ifp->ifname, in6addr2str(&pi->ipi6_addr, 0), pi->ipi6_ifindex);
 	dh6 = (struct dhcp6 *)rbuf;
 
-	dprintf(LOG_DEBUG, "%s" "receive %s from %s on %s", FNAME,
+	dprintf(LOG_DEBUG, "%s" "receive %s from %s scope id %d %s", FNAME,
 		dhcp6msgstr(dh6->dh6_msgtype),
-		addr2str((struct sockaddr *)&from), ifp->ifname);
+		addr2str((struct sockaddr *)&from),
+		((struct sockaddr_in6 *)&from)->sin6_scope_id,
+		ifp->ifname);
 
 	/* get options */
 	dhcp6_init_options(&optinfo);
@@ -1417,10 +1439,8 @@ client6_recvreply(ifp, dh6, len, optinfo)
 			optinfo->iaidinfo.iaid = 0;
 			newstate = DHCP6S_INFOREQ;
 			break;
-#ifdef TEST
 		case DH6OPT_STCODE_SUCCESS:
 		case DH6OPT_STCODE_UNDEFINE:
-#endif
 		default:
 			if (!TAILQ_EMPTY(&optinfo->addr_list)) {
 				dhcp6_add_iaidaddr(optinfo);
@@ -1428,13 +1448,12 @@ client6_recvreply(ifp, dh6, len, optinfo)
 			break;
 		}
 		break;
+	case DHCP6S_RENEW:
 	case DHCP6S_REBIND:
 		if (client6_request_flag & CLIENT6_CONFIRM_ADDR) {
-			client6_request_flag &= 0;	
+			client6_request_flag &= 0;
 			goto rebind_confirm;
-			
 		}
-	case DHCP6S_RENEW:
 		/* NoBinding for RENEW, REBIND, send REQUEST */
 		switch(addr_status_code) {
 		case DH6OPT_STCODE_NOBINDING:
@@ -1467,6 +1486,8 @@ rebind_confirm:	switch(addr_status_code) {
 			newstate = DHCP6S_SOLICIT;
 			break;
 		case DH6OPT_STCODE_SUCCESS:
+		case DH6OPT_STCODE_UNDEFINE:
+		default:
 		{
 			struct timeb now;
 			struct timeval timo;
@@ -1498,8 +1519,6 @@ rebind_confirm:	switch(addr_status_code) {
 			dhcp6_set_timer(&timo, client6_iaidaddr.timer);
 			break;
 		}
-		default:
-			break;
 		}
 		break;
 	case DHCP6S_DECLINE:

@@ -1,4 +1,4 @@
-/*	$Id: resolv_token.l,v 1.3 2003/04/18 16:03:02 shirleyma Exp $	*/
+/*	$Id: resolv_token.l,v 1.4 2003/04/30 19:04:13 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -63,7 +63,6 @@
 
 
 extern struct dhcp6_if *dhcp6_if;
-extern char *device;
 static int num_lines = 0;
 static struct dns_list *new_dns_list;
 static FILE *dhcp6_resolv_file;

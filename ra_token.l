@@ -1,4 +1,4 @@
-/*	$Id: ra_token.l,v 1.3 2003/04/12 00:25:33 shirleyma Exp $	*/
+/*	$Id: ra_token.l,v 1.4 2003/04/30 19:04:12 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -56,7 +56,6 @@
 } while (0)
 
 extern struct dhcp6_if *dhcp6_if;
-extern char *device;
 const char *rafile = "/proc/net/ra_inet6";
 
 static struct ra_info *rainfo;

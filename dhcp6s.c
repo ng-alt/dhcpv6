@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.13 2003/04/18 20:14:37 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.14 2003/04/30 19:04:10 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -88,10 +88,10 @@ struct dhcp6_binding {
 };
 static TAILQ_HEAD(, dhcp6_binding) dhcp6_binding_head;
 
+static char *device[100];
+static int num_device = 0;
 static int debug = 0;
-
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_SERVER;
-char *device = NULL;
 int insock;	/* inbound udp port */
 int outsock;	/* outbound udp port */
 extern FILE *server6_lease_file;
@@ -128,8 +128,10 @@ static int server6_send __P((int, struct dhcp6_if *, struct dhcp6 *,
 			     struct dhcp6_optinfo *,
 			     struct sockaddr *, int,
 			     struct dhcp6_optinfo *));
-extern struct link_decl *dhcp6_allocate_link __P((struct rootgroup *, struct in6_addr *));
-extern struct host_decl *dhcp6_allocate_host __P((struct rootgroup *, struct dhcp6_optinfo *));
+extern struct link_decl *dhcp6_allocate_link __P((struct dhcp6_if *, struct rootgroup *, 
+			struct in6_addr *));
+extern struct host_decl *dhcp6_allocate_host __P((struct dhcp6_if *, struct rootgroup *, 
+			struct dhcp6_optinfo *));
 
 extern int dhcp6_get_hostconf __P((struct dhcp6_optinfo *, struct dhcp6_optinfo *,
 			struct dhcp6_iaidaddr *, struct host_decl *)); 
@@ -138,7 +140,7 @@ main(argc, argv)
 	int argc;
 	char **argv;
 {
-	int ch;
+	int ch, i = 0;
 	struct in6_addr a;
 	struct dhcp6_listval *dlv;
 	char *progname, *conffile = DHCP6S_CONF;
@@ -184,14 +186,10 @@ main(argc, argv)
 			/* NOTREACHED */
 		}
 	}
-	argc -= optind;
-	argv += optind;
-
-	if (argc != 1) {
-		usage();
-		/* NOTREACHED */
+	while (optind < argc) {
+		device[num_device] = argv[optind++];
+		num_device += 1;
 	}
-	device = argv[0];
 
 	if (foreground == 0) {
 		if (daemon(0, 0) < 0)
@@ -200,8 +198,6 @@ main(argc, argv)
 	}
 	setloglevel(debug);
 
-	ifinit(device);
-	
 	server6_init();
 	if ((server6_lease_file = init_leases(PATH_SERVER6_LEASE)) == NULL) {
 		dprintf(LOG_ERR, "%s" "failed to parse lease file",
@@ -241,39 +237,16 @@ server6_init()
 {
 	struct addrinfo hints;
 	struct addrinfo *res, *res2;
-	int error;
-	int ifidx;
+	int error, skfd, i;
 	int on = 1;
+	int ifidx[MAX_DEVICE];
 	struct ipv6_mreq mreq6;
 	static struct iovec iov;
 	static struct sockaddr_in6 sa6_any_downstream_storage;
-
-	TAILQ_INIT(&dhcp6_binding_head);
-
-	ifidx = if_nametoindex(device);
-	if (ifidx == 0) {
-		dprintf(LOG_ERR, "%s" "invalid interface %s", FNAME, device);
-		exit(1);
-	}
-
-	/* get our DUID */
-	if (get_duid(DUID_FILE, &server_duid)) {
-		dprintf(LOG_ERR, "%s" "failed to get a DUID", FNAME);
-		exit(1);
-	}
-
-	/* initialize send/receive buffer */
-	iov.iov_base = (caddr_t)rdatabuf;
-	iov.iov_len = sizeof(rdatabuf);
-	rmh.msg_iov = &iov;
-	rmh.msg_iovlen = 1;
-	rmsgctllen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-	if ((rmsgctlbuf = (char *)malloc(rmsgctllen)) == NULL) {
-		dprintf(LOG_ERR, "%s" "memory allocation failed", FNAME);
-		exit(1);
-	}
-
-	/* initialize socket */
+	char buff[1024];
+	struct ifconf ifc;
+	struct ifreq *ifr;
+	/* initialize inbound socket */
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_INET6;
 	hints.ai_socktype = SOCK_DGRAM;
@@ -315,49 +288,8 @@ server6_init()
 	}
 	freeaddrinfo(res);
 
-	hints.ai_flags = 0;
-	error = getaddrinfo(DH6ADDR_ALLAGENT, DH6PORT_UPSTREAM, &hints, &res2);
-	if (error) {
-		dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
-			FNAME, gai_strerror(error));
-		exit(1);
-	}
-	memset(&mreq6, 0, sizeof(mreq6));
-	mreq6.ipv6mr_interface = ifidx;
-	memcpy(&mreq6.ipv6mr_multiaddr,
-	    &((struct sockaddr_in6 *)res2->ai_addr)->sin6_addr,
-	    sizeof(mreq6.ipv6mr_multiaddr));
-	if (setsockopt(insock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
-	    &mreq6, sizeof(mreq6))) {
-		dprintf(LOG_ERR, "%s" "setsockopt(insock, IPV6_JOIN_GROUP) %s",
-			FNAME, strerror(errno));
-		exit(1);
-	}
-	freeaddrinfo(res2);
-
-	hints.ai_flags = 0;
-	error = getaddrinfo(DH6ADDR_ALLSERVER, DH6PORT_UPSTREAM,
-			    &hints, &res2);
-	if (error) {
-		dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
-			FNAME, gai_strerror(error));
-		exit(1);
-	}
-	memset(&mreq6, 0, sizeof(mreq6));
-	mreq6.ipv6mr_interface = ifidx;
-	memcpy(&mreq6.ipv6mr_multiaddr,
-	    &((struct sockaddr_in6 *)res2->ai_addr)->sin6_addr,
-	    sizeof(mreq6.ipv6mr_multiaddr));
-	if (setsockopt(insock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
-	    &mreq6, sizeof(mreq6))) {
-		dprintf(LOG_ERR,
-			"%s" "setsockopt(insock, IPV6_JOIN_GROUP): %s",
-			FNAME, strerror(errno));
-		exit(1);
-	}
-	freeaddrinfo(res2);
-
-	hints.ai_flags = 0;
+	/* initiallize outbound interface */
+	hints.ai_flags = AI_PASSIVE;
 	error = getaddrinfo(NULL, DH6PORT_DOWNSTREAM, &hints, &res);
 	if (error) {
 		dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
@@ -370,32 +302,133 @@ server6_init()
 			FNAME, strerror(errno));
 		exit(1);
 	}
-	/* set outgoing interface of multicast packets for DHCP reconfig */
-	if (setsockopt(outsock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
-	    &ifidx, sizeof(ifidx)) < 0) {
-		dprintf(LOG_ERR,
-			"%s" "setsockopt(outsock, IPV6_MULTICAST_IF): %s",
+	if (bind(outsock, res->ai_addr, res->ai_addrlen) < 0) {
+		dprintf(LOG_ERR, "%s" "bind(outsock): %s",
 			FNAME, strerror(errno));
 		exit(1);
 	}
-	/* make the socket write-only */
-	freeaddrinfo(res);
 
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = PF_INET6;
-	hints.ai_socktype = SOCK_DGRAM;
-	hints.ai_protocol = IPPROTO_UDP;
-	error = getaddrinfo("::", DH6PORT_DOWNSTREAM, &hints, &res);
-	if (error) {
-		dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
-			FNAME, gai_strerror(error));
-		exit(1);
-	}
 	memcpy(&sa6_any_downstream_storage, res->ai_addr, res->ai_addrlen);
 	sa6_any_downstream =
 		(const struct sockaddr_in6*)&sa6_any_downstream_storage;
 	freeaddrinfo(res);
+
+	/* initialize send/receive buffer */
+	iov.iov_base = (caddr_t)rdatabuf;
+	iov.iov_len = sizeof(rdatabuf);
+	rmh.msg_iov = &iov;
+	rmh.msg_iovlen = 1;
+	rmsgctllen = CMSG_SPACE(sizeof(struct in6_pktinfo));
+	if ((rmsgctlbuf = (char *)malloc(rmsgctllen)) == NULL) {
+		dprintf(LOG_ERR, "%s" "memory allocation failed", FNAME);
+		exit(1);
+	}
+	if (num_device != 0) {
+		for (i = 0; i < num_device; i++) {
+			ifidx[i] = if_nametoindex(device[i]);
+			if (ifidx[i] == 0) {
+				dprintf(LOG_ERR, "%s" 
+					"invalid interface %s", FNAME, device[0]);
+				exit(1);
+			}
+			ifinit(device[i]);
+		}
+		if (get_duid(DUID_FILE, device[0], &server_duid)) {
+			dprintf(LOG_ERR, "%s" "failed to get a DUID", FNAME);
+			exit(1);
+		}
+	} else {		
+		/* all the interfaces join multicast group */
+		ifc.ifc_len = sizeof(buff);
+		ifc.ifc_buf = buff;
+		if ((skfd = socket(AF_INET, SOCK_DGRAM,0)) < 0) {
+			dprintf(LOG_ERR, "new socket failed");
+			exit(1);
+		}
+		if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
+			dprintf(LOG_ERR, "SIOCGIFCONF: %s\n", strerror(errno));
+			exit(1);
+		}
+		ifr = ifc.ifc_req;
+		for (i = ifc.ifc_len / sizeof(struct ifreq); --i >= 0; ifr++) {
+			dprintf(LOG_DEBUG, "found device %s", ifr->ifr_name);
+			ifidx[num_device] = if_nametoindex(ifr->ifr_name);
+			if (ifidx[num_device] < 0) {
+				dprintf(LOG_ERR, "%s: unknown interface.\n",
+					ifr->ifr_name);
+				continue;
+			}
+			dprintf(LOG_DEBUG, "if %s index is %d", ifr->ifr_name, 
+				ifidx[num_device]);
+#ifdef mshirley
+			if (((ifr->ifr_flags & IFF_UP) == 0)) continue;
+#endif
+			if (strcmp(ifr->ifr_name, "lo")) {
+				/* get our DUID */
+				if (get_duid(DUID_FILE, ifr->ifr_name, &server_duid)) {
+					dprintf(LOG_ERR, "%s" "failed to get a DUID", FNAME);
+					exit(1);
+				}
+			}
+			ifinit(ifr->ifr_name);
+			num_device += 1;
+		}
+	}
+	for (i = 0; i < num_device; i++) {
+		hints.ai_flags = 0;
+		error = getaddrinfo(DH6ADDR_ALLAGENT, DH6PORT_UPSTREAM, &hints, &res2);
+		if (error) {
+			dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
+				FNAME, gai_strerror(error));
+			exit(1);
+		}
+		memset(&mreq6, 0, sizeof(mreq6));
+		mreq6.ipv6mr_interface = ifidx[i];
+		memcpy(&mreq6.ipv6mr_multiaddr,
+	    		&((struct sockaddr_in6 *)res2->ai_addr)->sin6_addr,
+	    		sizeof(mreq6.ipv6mr_multiaddr));
+		if (setsockopt(insock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
+		    &mreq6, sizeof(mreq6))) {
+			dprintf(LOG_ERR, "%s" "setsockopt(insock, IPV6_JOIN_GROUP) %s",
+				FNAME, strerror(errno));
+			exit(1);
+		}
+		freeaddrinfo(res2);
+
+		hints.ai_flags = 0;
+		error = getaddrinfo(DH6ADDR_ALLSERVER, DH6PORT_UPSTREAM,
+				    &hints, &res2);
+		if (error) {
+			dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
+				FNAME, gai_strerror(error));
+			exit(1);
+		}
+		memset(&mreq6, 0, sizeof(mreq6));
+		mreq6.ipv6mr_interface = ifidx[i];
+		memcpy(&mreq6.ipv6mr_multiaddr,
+	    		&((struct sockaddr_in6 *)res2->ai_addr)->sin6_addr,
+	    		sizeof(mreq6.ipv6mr_multiaddr));
+		if (setsockopt(insock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
+		    &mreq6, sizeof(mreq6))) {
+			dprintf(LOG_ERR,
+				"%s" "setsockopt(insock, IPV6_JOIN_GROUP): %s",
+				FNAME, strerror(errno));
+			exit(1);
+		}
+		freeaddrinfo(res2);
+
+		/* set outgoing interface of multicast packets for DHCP reconfig */
+		if (setsockopt(outsock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
+		    &ifidx[i], sizeof(ifidx[i])) < 0) {
+			dprintf(LOG_ERR,
+				"%s" "setsockopt(outsock, IPV6_MULTICAST_IF): %s",
+				FNAME, strerror(errno));
+			exit(1);
+		}
+	}
+	return;
 }
+
 
 static void
 server6_mainloop()
@@ -471,6 +504,8 @@ server6_recv(s)
 		dprintf(LOG_NOTICE, "%s" "failed to get packet info", FNAME);
 		return -1;
 	}
+	dprintf(LOG_DEBUG, "received message packet info addr is %s, scope id (%d)",
+	    in6addr2str(&pi->ipi6_addr, 0), (unsigned int)pi->ipi6_ifindex);
 	if ((ifp = find_ifconfbyid((unsigned int)pi->ipi6_ifindex)) == NULL) {
 		dprintf(LOG_INFO, "%s" "unexpected interface (%d)", FNAME,
 		    (unsigned int)pi->ipi6_ifindex);
@@ -497,12 +532,12 @@ server6_recv(s)
 		return -1;
 	}
 	/* check host decl first */
-	host = dhcp6_allocate_host(globalgroup, &optinfo);
+	host = dhcp6_allocate_host(ifp, globalgroup, &optinfo);
 	/* ToDo: allocate subnet after relay agent done
 	 * now assume client is on the same link as server
 	 * if the subnet couldn't be found return status code NotOnLink to client
 	 */
-	subnet = dhcp6_allocate_link(globalgroup, NULL);
+	subnet = dhcp6_allocate_link(ifp, globalgroup, NULL);
 	if (!(DH6_VALID_MESSAGE(dh6->dh6_msgtype)))
 		dprintf(LOG_INFO, "%s" "unknown or unsupported msgtype %s",
 		    FNAME, dhcp6msgstr(dh6->dh6_msgtype));
@@ -609,7 +644,8 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	dprintf(LOG_DEBUG, "server preference is %2x", roptinfo.pref);
 	if (roptinfo.flags & DHCIFF_UNICAST) {
 		/* todo find the right server unicast address to client*/
-		memcpy(&roptinfo.server_addr, &pi->ipi6_addr,
+		/* get_linklocal(device, &roptinfo.server_addr) */
+		memcpy(&roptinfo.server_addr, &ifp->linklocal,
 		       sizeof(roptinfo.server_addr));
 		dprintf(LOG_DEBUG, "%s" "server address is %s",
 			FNAME, in6addr2str(&roptinfo.server_addr, 0));
@@ -747,7 +783,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 							iaidaddr, subnet);
 				/* in case there is not bindings available */
 				if (TAILQ_EMPTY(&roptinfo.addr_list)) {
-					num = DH6OPT_STCODE_NOTONLINK;
+					num = DH6OPT_STCODE_NOBINDING;
 					dprintf(LOG_INFO, "%s" 
 					    "Bindings are not on link for client %s iaid %d",
 						FNAME, duidstr(&optinfo->clientID), 
@@ -757,7 +793,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			}
 			if (addr_flag == ADDR_VALIDATE) {
 				if (dhcp6_validate_bindings(&roptinfo, iaidaddr))
-					num = DH6OPT_STCODE_NOTONLINK;
+					num = DH6OPT_STCODE_NOBINDING;
 				break;
 			} else {
 				/* do update if this is not a confirm */
@@ -899,6 +935,8 @@ server6_send(type, ifp, origmsg, optinfo, from, fromlen, roptinfo)
 	dst = *sa6_any_downstream;
 	dst.sin6_addr = ((struct sockaddr_in6 *)from)->sin6_addr;
 	dst.sin6_scope_id = ((struct sockaddr_in6 *)from)->sin6_scope_id;
+	dprintf(LOG_DEBUG, "send destination address is %s, scope id is %d", 
+		addr2str((struct sockaddr *)&dst), dst.sin6_scope_id);
 	if (transmit_sa(outsock, &dst, replybuf, len) != 0) {
 		dprintf(LOG_ERR, "%s" "transmit %s to %s failed", FNAME,
 			dhcp6msgstr(type), addr2str((struct sockaddr *)&dst));

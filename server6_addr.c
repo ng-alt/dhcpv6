@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.10 2003/04/18 16:03:02 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.11 2003/04/30 19:04:13 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -71,8 +71,10 @@ static void  server6_get_newaddr __P((iatype_t, struct dhcp6_addr *, struct v6ad
 static void  server6_get_addrpara __P((struct dhcp6_addr *, struct v6addrseg *));
 static void  server6_get_prefixpara __P((struct dhcp6_addr *, struct v6prefix *));
 
-struct link_decl *dhcp6_allocate_link __P((struct rootgroup *, struct in6_addr *));
-struct host_decl *dhcp6_allocate_host __P((struct rootgroup *, struct dhcp6_optinfo *));
+struct link_decl *dhcp6_allocate_link __P((struct dhcp6_if *, struct rootgroup *, 
+			struct in6_addr *));
+struct host_decl *dhcp6_allocate_host __P((struct dhcp6_if *, struct rootgroup *, 
+			struct dhcp6_optinfo *));
 int dhcp6_get_hostconf __P((struct dhcp6_optinfo *, struct dhcp6_optinfo *,
 			struct dhcp6_iaidaddr *, struct host_decl *)); 
 
@@ -880,7 +882,8 @@ dhcp6_create_prefixlist(roptinfo, optinfo, iaidaddr, subnet)
 }
 
 struct host_decl *
-dhcp6_allocate_host(rootgroup, optinfo)
+dhcp6_allocate_host(ifp, rootgroup, optinfo)
+	struct dhcp6_if *ifp;
 	struct rootgroup *rootgroup;
 	struct dhcp6_optinfo *optinfo;
 {
@@ -889,7 +892,7 @@ dhcp6_allocate_host(rootgroup, optinfo)
 	struct duid *duid = &optinfo->clientID;
 	u_int32_t iaid = optinfo->iaidinfo.iaid;
 	for (ifnetwork = rootgroup->iflist; ifnetwork; ifnetwork = ifnetwork->next) {
-		if (strcmp(ifnetwork->name, device) != 0)
+		if (strcmp(ifnetwork->name, ifp->ifname) != 0)
 			continue;
 		else {
 			host = find_hostdecl(duid, iaid, ifnetwork->hostlist);
@@ -900,7 +903,8 @@ dhcp6_allocate_host(rootgroup, optinfo)
 }
 
 struct link_decl *
-dhcp6_allocate_link(rootgroup, relay)
+dhcp6_allocate_link(ifp, rootgroup, relay)
+	struct dhcp6_if *ifp;
 	struct rootgroup *rootgroup;
 	struct in6_addr *relay;
 {
@@ -908,7 +912,7 @@ dhcp6_allocate_link(rootgroup, relay)
 	struct interface *ifnetwork;
 	ifnetwork = rootgroup->iflist;
 	for (ifnetwork = rootgroup->iflist; ifnetwork; ifnetwork = ifnetwork->next) {
-		if (strcmp(ifnetwork->name, device) != 0)
+		if (strcmp(ifnetwork->name, ifp->ifname) != 0)
 			continue;
 		else {
 			for (link = ifnetwork->linklist; link; link = link->next) {

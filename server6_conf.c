@@ -1,4 +1,4 @@
-/*    $Id: server6_conf.c,v 1.11 2003/04/12 00:25:33 shirleyma Exp $   */
+/*    $Id: server6_conf.c,v 1.12 2003/04/30 19:04:14 shirleyma Exp $   */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -40,7 +40,6 @@
 #include <sys/socket.h>
 #include <net/if.h>
 #include <openssl/md5.h>
-#include <ifaddrs.h>
 
 #include "queue.h"
 #include "dhcp6.h"
@@ -291,31 +290,6 @@ download_scope(up, current)
 	if (current->dnslist.domainlist == NULL)
 		current->dnslist.domainlist = up->dnslist.domainlist;
 	return;
-}
-
-int
-get_linklocal(const char *ifname,
-	      struct in6_addr *linklocal)
-{	
-	struct ifaddrs *ifa, *ifap;
-	struct sockaddr *sd;
-	if (getifaddrs(&ifap) < 0) {
-		perror("getifaddrs");
-		return -1;
-	}
-	/* ifa->ifa_addr is sockaddr_in6 */
-	for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-		if (!strcpy(ifa->ifa_name, ifname)) continue;
-		sd = (struct sockaddr *)ifa->ifa_addr;
-		if (sd->sa_family != AF_INET6) continue;
-		if (!IN6_IS_ADDR_LINKLOCAL(&sd->sa_data[6])) continue;
-		/* which linklocal do we want, if find many 
-		 * from scope id??? sa_data[32]
-		 * */
-		memcpy(linklocal, &sd->sa_data[6], sizeof(*linklocal));
-	}
-	freeifaddrs(ifap);
-	return 0;
 }
 
 int 

@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.11 2003/04/18 20:08:55 shirleyma Exp $	*/
+/*	$Id: config.h,v 1.12 2003/04/30 19:04:08 shirleyma Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -30,10 +30,12 @@
  * SUCH DAMAGE.
  */
 
+#define MAX_DEVICE 100
+
 struct hardware {
 	u_int16_t type;
 	u_int8_t len;
-	unsigned char data[17];
+	unsigned char data[6];
 };
 
 struct iaid_table {
@@ -81,7 +83,7 @@ struct dhcp6_if {
 #define DHCIFF_UNICAST 0x10
 
 
-
+	struct in6_addr linklocal;
 	int server_pref;	/* server preference (server only) */
 	struct dhcp6_optconf *send_options;
 	struct dhcp6_list reqopt_list;
@@ -151,7 +153,6 @@ struct dhcp6_ifconf {
 	u_long allow_flags;
 
 	int server_pref;	/* server preference (server only) */
-
 	struct dhcp6_iaid_info iaidinfo;
 	struct dhcp6_optconf *send_options;
 	struct dhcp6_optconf *allow_options;

@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.h,v 1.8 2003/04/12 00:25:33 shirleyma Exp $	*/
+/*	$Id: server6_conf.h,v 1.9 2003/04/30 19:04:14 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -163,7 +163,6 @@ struct v6addr *getprefix __P((struct in6_addr *, int));
 struct in6_addr *inc_ipv6addr __P((struct in6_addr *));
 struct scopelist *push_double_list __P((struct scopelist *, struct scope *));
 struct scopelist *pop_double_list __P((struct scopelist *));
-int get_linklocal __P((const char *, struct in6_addr *));
 int get_primary_ipv6addr __P((const char *device));
 
 #endif

@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.7 2003/04/18 16:03:02 shirleyma Exp $	*/
+/*	$Id: lease.h,v 1.8 2003/04/30 19:04:12 shirleyma Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -97,6 +97,7 @@ struct dhcp6_lease {
 	struct dhcp6_timer *timer;
 };
 
+int get_linklocal __P((const char *, struct in6_addr *));
 extern void dhcp6_init_iaidaddr __P((void));
 extern int dhcp6_remove_iaidaddr __P((struct dhcp6_iaidaddr *));
 extern int dhcp6_add_iaidaddr __P((struct dhcp6_optinfo *));
@@ -110,8 +111,8 @@ extern struct dhcp6_lease *dhcp6_find_lease __P((struct dhcp6_iaidaddr *,
 			struct dhcp6_addr *));
 extern int dhcp6_remove_lease __P((struct dhcp6_lease *));
 extern int dhcp6_validate_bindings __P((struct dhcp6_optinfo *, struct dhcp6_iaidaddr *));
-extern int get_iaid __P((const char *, const struct iaid_table *));
-extern int create_iaid __P((struct iaid_table *));
+extern int get_iaid __P((const char *, const struct iaid_table *, int));
+extern int create_iaid __P((struct iaid_table *, int));
 extern FILE *init_leases __P((const char *));
 extern void lease_parse __P((FILE *));
 extern int do_iaidaddr_hash __P((struct dhcp6_lease *, struct client6_if *));

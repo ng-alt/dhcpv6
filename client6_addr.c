@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.13 2003/04/28 22:09:53 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.14 2003/04/30 19:04:05 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -440,9 +440,13 @@ dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr,
 			in6addr2str(&ifaddr->addr, 0), ifaddr->plen);
 		dprintf(LOG_DEBUG, "%s" "lease address is %s/%d ", FNAME,
 			in6addr2str(&sp->lease_addr.addr, 0), ifaddr->plen);
-		if (IN6_ARE_ADDR_EQUAL(&sp->lease_addr.addr, &ifaddr->addr) &&
-		    sp->lease_addr.plen == ifaddr->plen) {
-			return (sp);
+		if (IN6_ARE_ADDR_EQUAL(&sp->lease_addr.addr, &ifaddr->addr)) {
+			if (sp->lease_addr.type == IAPD) {
+				if (sp->lease_addr.plen == ifaddr->plen)
+					return (sp);
+			} else if (sp->lease_addr.type == IANA ||
+				   sp->lease_addr.type == IATA)
+				return (sp);
 		}
 	}
 	return (NULL);
@@ -658,27 +662,32 @@ get_max_validlifetime(struct dhcp6_iaidaddr *sp)
 }
 
 int
-get_iaid(const char *ifname, const struct iaid_table *iaidtab)
+get_iaid(const char *ifname, const struct iaid_table *iaidtab, int num_device)
 {
-	const struct iaid_table *temp;
 	struct hardware hdaddr;
-	hdaddr.len = gethwid(hdaddr.data, 17, ifname, &hdaddr.type);
-	for (temp = iaidtab; temp; temp++) {
-		if (strncmp(temp->hwaddr.data, hdaddr.data, hdaddr.len)) continue;
-		else
+	struct iaid_table *temp = (struct iaid_table *)iaidtab;
+	int i;
+	hdaddr.len = gethwid(hdaddr.data, 6, ifname, &hdaddr.type);
+	for (i = 0; i < num_device; i++, temp++) {
+		if (!memcmp(temp->hwaddr.data, hdaddr.data, temp->hwaddr.len)
+		    && hdaddr.len == temp->hwaddr.len && hdaddr.type == temp->hwaddr.type) {
+			dprintf(LOG_DEBUG, "%s"" found interface %s iaid %d", 
+				FNAME, ifname, temp->iaid);
 			return temp->iaid;
+		} else 
+			continue;
 	}
 	return 0;
 }
 
 int 
-create_iaid(struct iaid_table *iaidtab)
+create_iaid(struct iaid_table *iaidtab, int num_device)
 {
+	struct iaid_table *temp = iaidtab;
 	char buff[1024];
 	struct ifconf ifc;
 	struct ifreq *ifr, if_hwaddr;
 	int sock, i;
-
 	if ((sock = socket(AF_INET, SOCK_DGRAM, 0 )) < 0) 
 		return -1;
 	
@@ -690,25 +699,27 @@ create_iaid(struct iaid_table *iaidtab)
 	}
 
 	ifr = ifc.ifc_req;
-	for (i = ifc.ifc_len / sizeof(struct ifreq); --i >= 0; ifr++) {
+	for (i = ifc.ifc_len / sizeof(struct ifreq); --i >= 0 && num_device < MAX_DEVICE; 
+	     ifr++, num_device++) {
 		if (!strcmp(ifr->ifr_name, "lo")) continue;
 		strcpy(if_hwaddr.ifr_name, ifr->ifr_name);
 		if (ioctl(sock, SIOCGIFHWADDR, &if_hwaddr) < 0) {
-			dprintf(LOG_ERR, "%s" "ioctl SIOCGIFHWADDR", FNAME);
+			dprintf(LOG_ERR, "%s" "ioctl SIOCGIFHWADDR",
+				FNAME, ifr->ifr_name);
 			return -1;
 		}
 		/* so far we only support ethernet hw */
 		if (if_hwaddr.ifr_hwaddr.sa_family == ARPHRD_ETHER) {
 			unsigned char *hwaddr = (unsigned char *)if_hwaddr.ifr_hwaddr.sa_data;
-			memcpy(iaidtab->hwaddr.data, hwaddr, sizeof(hwaddr));
-			iaidtab->hwaddr.len = 6;
-			memcpy(&iaidtab->iaid, (unsigned char *)&hwaddr[3], 
-					sizeof(iaidtab->iaid));
-			iaidtab->hwaddr.type = if_hwaddr.ifr_hwaddr.sa_family;	
+			temp->hwaddr.len = 6;
+			memcpy(temp->hwaddr.data, hwaddr, temp->hwaddr.len);
+			memcpy(&temp->iaid, (unsigned char *)&hwaddr[3], 
+				sizeof(temp->iaid));
+			temp->hwaddr.type = if_hwaddr.ifr_hwaddr.sa_family;	
 		}
-		dprintf(LOG_DEBUG, "%s"" interface is %s, iaid is %d", 
-				FNAME, ifr->ifr_name, iaidtab->iaid);
-		iaidtab += 1;
+		dprintf(LOG_DEBUG, "%s"" create iaid %d for interface %s", 
+				FNAME, temp->iaid, ifr->ifr_name);
+		temp++;
 	}
-	return 0;
+	return num_device;
 }

@@ -1,4 +1,4 @@
-/*	$Id: common.h,v 1.8 2003/04/22 18:05:32 shemminger Exp $	*/
+/*	$Id: common.h,v 1.9 2003/04/30 19:04:07 shirleyma Exp $	*/
 /*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*
@@ -48,7 +48,6 @@
 
 extern int foreground;
 extern int debug_thresh;
-extern char *device;
 
 /* common.c */
 extern int dhcp6_copy_list __P((struct dhcp6_list *, const struct dhcp6_list *));
@@ -81,7 +80,7 @@ extern void dprintf(int, const char *, ...)
 extern void dprintf __P((int, const char *, ...));
 #endif
 
-extern int get_duid __P((const char *, struct duid *));
+extern int get_duid __P((const char *, const char *, struct duid *));
 extern void dhcp6_init_options __P((struct dhcp6_optinfo *));
 extern void dhcp6_clear_options __P((struct dhcp6_optinfo *));
 extern int dhcp6_copy_options __P((struct dhcp6_optinfo *,
