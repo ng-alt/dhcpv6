@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.25 2003/05/22 23:00:26 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.26 2003/05/23 19:00:36 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -873,9 +873,15 @@ client6_send(ev)
 		dprintf(LOG_DEBUG, "%s" "ifp %p event %p a new XID (%x) is generated",
 			FNAME, ifp, ev, ev->xid);
 	} else {
+		unsigned int etime;
 		gettimeofday(&now, NULL);
 		timeval_sub(&now, &(ev->start_time), &duration);
-		optinfo.elapsed_time = (duration.tv_sec) * 100 + (duration.tv_usec) / 10000;
+		optinfo.elapsed_time = 
+		etime = (duration.tv_sec) * 100 + (duration.tv_usec) / 10000;
+		if (etime > DHCP6_ELAPSEDTIME_MAX)
+			optinfo.elapsed_time = DHCP6_ELAPSEDTIME_MAX;
+		else
+			optinfo.elapsed_time = etime;
 	}
 	dh6->dh6_xid &= ~ntohl(DH6_XIDMASK);
 	dh6->dh6_xid |= htonl(ev->xid);

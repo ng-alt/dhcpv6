@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.16 2003/05/22 23:00:26 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.17 2003/05/23 19:00:35 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -92,7 +92,12 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	struct timeval timo;
 	struct dhcp6_lease *cl_lease;
 	double d;
-	
+	/* ignore IA with T1 > T2 */
+	if (client6_iaidaddr.client6_info.iaidinfo.renewtime >
+	    client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
+		dprintf(LOG_INFO, " T1 time is greater than T2 time");
+		return (0);
+	}
 	memcpy(&client6_iaidaddr.client6_info.iaidinfo, &optinfo->iaidinfo, 
 			sizeof(client6_iaidaddr.client6_info.iaidinfo));
 	client6_iaidaddr.client6_info.type = optinfo->type;
@@ -101,12 +106,6 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 		dprintf(LOG_ERR, "%s" "failed to copy server ID %s", 
 			FNAME, duidstr(&optinfo->serverID));
 		return (-1);
-	}
-	if ((client6_iaidaddr.timer = 
-		    dhcp6_add_timer(dhcp6_iaidaddr_timo, &client6_iaidaddr)) == NULL) {
-		 dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %d",
-			FNAME, client6_iaidaddr.client6_info.iaidinfo.iaid);
-		 return (-1);
 	}
 	/* add new address */
 	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
@@ -132,25 +131,43 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 			continue;
 		}
 	}
-	/* set up renew T1, rebind T2 timer renew/rebind based on iaid */
-	/* Should we process IA_TA, IA_NA differently */
-	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
-		client6_iaidaddr.client6_info.iaidinfo.renewtime 
-			= get_min_preferlifetime(&client6_iaidaddr) / 2;
-	}
-	if (client6_iaidaddr.client6_info.iaidinfo.rebindtime == 0) {
-		client6_iaidaddr.client6_info.iaidinfo.rebindtime 
-			= (get_min_preferlifetime(&client6_iaidaddr) * 4) / 5;
-	}
 	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list) || 
 	    client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
 		dhcp6_remove_timer(client6_iaidaddr.timer);
 		return 0;
 	}
+	/* set up renew T1, rebind T2 timer renew/rebind based on iaid */
+	/* Should we process IA_TA, IA_NA differently */
+	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0 ||
+	    client6_iaidaddr.client6_info.iaidinfo.renewtime >
+	    client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
+		u_int32_t min_plifetime;
+		min_plifetime = get_min_preferlifetime(&client6_iaidaddr);
+		if (min_plifetime == DHCP6_DURATITION_INFINITE)
+			client6_iaidaddr.client6_info.iaidinfo.renewtime = min_plifetime;
+		else
+			client6_iaidaddr.client6_info.iaidinfo.renewtime = min_plifetime / 2;
+	}
+	if (client6_iaidaddr.client6_info.iaidinfo.rebindtime == 0 ||
+		 client6_iaidaddr.client6_info.iaidinfo.renewtime >
+		 client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
+		client6_iaidaddr.client6_info.iaidinfo.rebindtime = 
+			get_min_preferlifetime(&client6_iaidaddr) * 4 / 5;
+	}
 	dprintf(LOG_INFO, "renew time %d, rebind time %d", 
 		client6_iaidaddr.client6_info.iaidinfo.renewtime,
 		client6_iaidaddr.client6_info.iaidinfo.rebindtime);
+	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == DHCP6_DURATITION_INFINITE) {
+		client6_iaidaddr.client6_info.iaidinfo.rebindtime == DHCP6_DURATITION_INFINITE;
+		return (0);
+	}
 	/* set up start date, and renew timer */
+	if ((client6_iaidaddr.timer = 
+	    dhcp6_add_timer(dhcp6_iaidaddr_timo, &client6_iaidaddr)) == NULL) {
+		 dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %d",
+			FNAME, client6_iaidaddr.client6_info.iaidinfo.iaid);
+		 return (-1);
+	}
 	time(&client6_iaidaddr.start_date);
 	client6_iaidaddr.state = ACTIVE;
 	d = client6_iaidaddr.client6_info.iaidinfo.renewtime;
@@ -178,8 +195,9 @@ dhcp6_add_lease(addr)
 			in6addr2str(&addr->addr, 0), dhcp6_stcodestr(addr->status_code));
 		return (0);
 	}
-	if (addr->validlifetime == 0 || addr->preferlifetime == 0) {
-		dprintf(LOG_ERR, "%s" "zero address life time for %s",
+	if (addr->validlifetime == 0 || addr->preferlifetime == 0 ||
+	    addr->preferlifetime > addr->validlifetime) {
+		dprintf(LOG_ERR, "%s" "invalid address life time for %s",
 			FNAME, in6addr2str(&addr->addr, 0));
 		return (0);
 	}
@@ -195,20 +213,9 @@ dhcp6_add_lease(addr)
 	}
 	memset(sp, 0, sizeof(*sp));
 	memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
-	/* set up expired timer for lease*/
-	if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
-		dprintf(LOG_ERR, "%s" "failed to add a timer for lease %s",
-			FNAME, in6addr2str(&addr->addr, 0));
-		free(sp);
-		return (-1);
-	}
 	sp->iaidaddr = &client6_iaidaddr;
 	time(&sp->start_date);
 	sp->state = ACTIVE;
-	d = sp->lease_addr.preferlifetime;
-	timo.tv_sec = (long)d;
-	timo.tv_usec = 0;
-	dhcp6_set_timer(&timo, sp->timer);
 	if (write_lease(sp, client6_lease_file) != 0) {
 		dprintf(LOG_ERR, "%s" "failed to write a new lease address %s to lease file", 
 			FNAME, in6addr2str(&sp->lease_addr.addr, 0));
@@ -217,12 +224,9 @@ dhcp6_add_lease(addr)
 		free(sp);
 		return (-1);
 	}
-	/* XXX: ToDo: prefix delegation for client */
 	if (sp->lease_addr.type == IAPD) {
 		dprintf(LOG_INFO, "request prefix is %s/%d", 
 			in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen);
-		/* XXX: add to update prefix list */
-		
 	} else if (client6_ifaddrconf(IFADDRCONF_ADD, addr) != 0) {
 		dprintf(LOG_ERR, "%s" "adding address failed: %s",
 		    FNAME, in6addr2str(&addr->addr, 0));
@@ -232,6 +236,24 @@ dhcp6_add_lease(addr)
 		return (-1);
 	}
 	TAILQ_INSERT_TAIL(&client6_iaidaddr.lease_list, sp, link);
+	/* for infinite lifetime don't do any timer */
+	if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE || 
+	    sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
+		dprintf(LOG_INFO, "%s" "infinity address life time for %s",
+			FNAME, in6addr2str(&addr->addr, 0));
+		return (0);
+	}
+	/* set up expired timer for lease*/
+	if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
+		dprintf(LOG_ERR, "%s" "failed to add a timer for lease %s",
+			FNAME, in6addr2str(&addr->addr, 0));
+		free(sp);
+		return (-1);
+	}
+	d = sp->lease_addr.preferlifetime;
+	timo.tv_sec = (long)d;
+	timo.tv_usec = 0;
+	dhcp6_set_timer(&timo, sp->timer);
 	return 0;
 }
 
@@ -295,7 +317,11 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	struct dhcp6_lease *cl, *cl_next;
 	struct timeval timo;
 	double d;
-	dprintf(LOG_DEBUG, "%s" " called", FNAME);
+	if (client6_iaidaddr.client6_info.iaidinfo.renewtime >
+	    client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
+		dprintf(LOG_INFO, " T1 time is greater than T2 time");
+		return (0);
+	}
 	if (flag == ADDR_REMOVE) {
 		for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
 			lv_next = TAILQ_NEXT(lv, link);
@@ -348,6 +374,30 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 			return (-1);
 		}
 	}
+	/* set up renew T1, rebind T2 timer renew/rebind based on iaid */
+	/* Should we process IA_TA, IA_NA differently */
+	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
+		u_int32_t min_plifetime;
+		min_plifetime = get_min_preferlifetime(&client6_iaidaddr);
+		if (min_plifetime == DHCP6_DURATITION_INFINITE)
+			client6_iaidaddr.client6_info.iaidinfo.renewtime = min_plifetime;
+		else
+			client6_iaidaddr.client6_info.iaidinfo.renewtime = min_plifetime / 2;
+	}
+	if (client6_iaidaddr.client6_info.iaidinfo.rebindtime == 0) {
+		client6_iaidaddr.client6_info.iaidinfo.rebindtime = 
+			get_min_preferlifetime(&client6_iaidaddr) * 4 / 5;
+	}
+	dprintf(LOG_INFO, "renew time %d, rebind time %d", 
+		client6_iaidaddr.client6_info.iaidinfo.renewtime,
+		client6_iaidaddr.client6_info.iaidinfo.rebindtime);
+	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list) ||
+	    client6_iaidaddr.client6_info.iaidinfo.renewtime == DHCP6_DURATITION_INFINITE) {
+		client6_iaidaddr.client6_info.iaidinfo.rebindtime == DHCP6_DURATITION_INFINITE;
+		dhcp6_remove_timer(client6_iaidaddr.timer);
+		return (0);
+	}
+	/* update the start date and timer */
 	if (client6_iaidaddr.timer == NULL) {
 		if ((client6_iaidaddr.timer = 
 		     dhcp6_add_timer(dhcp6_iaidaddr_timo, &client6_iaidaddr)) == NULL) {
@@ -356,12 +406,6 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	 		return (-1);
 	    	}
 	}
-	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list) || 
-	    client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
-		dhcp6_remove_timer(client6_iaidaddr.timer);
-		return 0;
-	}
-	/* update the start date and timer */
 	time(&client6_iaidaddr.start_date);
 	client6_iaidaddr.state = ACTIVE;
 	d = client6_iaidaddr.client6_info.iaidinfo.renewtime;
@@ -376,36 +420,18 @@ dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp)
 {
 	struct timeval timo;
 	double d;
-	if (addr->preferlifetime == DHCP6_DURATITION_INFINITE) {
-		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
-		    "with infinite preferlifetime", FNAME,
-			in6addr2str(&addr->addr, 0), addr->plen);
-	} else {
-		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
-		    "with preferlifetime %d", FNAME,
-		    in6addr2str(&addr->addr, 0), addr->plen,
-		    addr->preferlifetime);
-	}
-	if (addr->validlifetime == DHCP6_DURATITION_INFINITE) {
-		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
-		    "with infinite validlifetime", FNAME,
-			in6addr2str(&addr->addr, 0), addr->plen);
-	} else {
-		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
-		    "with validlifetime %d", FNAME,
-		    in6addr2str(&addr->addr, 0), addr->plen,
-		    addr->validlifetime);
-	}
+	
 	if (addr->status_code != DH6OPT_STCODE_SUCCESS &&
-		 	addr->status_code != DH6OPT_STCODE_UNDEFINE) {
+	    addr->status_code != DH6OPT_STCODE_UNDEFINE) {
 		dprintf(LOG_ERR, "%s" "not successful status code for %s is %s", FNAME,
 			in6addr2str(&addr->addr, 0), dhcp6_stcodestr(addr->status_code));
 		dhcp6_remove_lease(sp);
 		return (0);
 	}
 	/* remove leases with validlifetime == 0, and preferlifetime == 0 */
-	if (addr->validlifetime == 0 || addr->preferlifetime == 0) {
-		dprintf(LOG_ERR, "%s" "zero address life time for %s",
+	if (addr->validlifetime == 0 || addr->preferlifetime == 0 ||
+	    addr->preferlifetime > addr->validlifetime) {
+		dprintf(LOG_ERR, "%s" "invalid address life time for %s",
 			FNAME, in6addr2str(&addr->addr, 0));
 		dhcp6_remove_lease(sp);
 		return (0);
@@ -418,6 +444,14 @@ dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp)
 			"failed to write an updated lease address %s to lease file", 
 			FNAME, in6addr2str(&sp->lease_addr.addr, 0));
 		return (-1);
+	}
+	if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE || 
+	    sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
+		dprintf(LOG_INFO, "%s" "infinity address life time for %s",
+			FNAME, in6addr2str(&addr->addr, 0));
+		if (sp->timer)
+			dhcp6_remove_timer(sp->timer);
+		return (0);
 	}
 	if (sp->timer == NULL) {
 		if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {

@@ -1,4 +1,4 @@
-/*    $Id: server6_conf.c,v 1.12 2003/04/30 19:04:14 shirleyma Exp $   */
+/*    $Id: server6_conf.c,v 1.13 2003/05/23 19:00:37 shirleyma Exp $   */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -277,6 +277,10 @@ download_scope(up, current)
 		current->renew_time = up->renew_time;
 	if (current->rebind_time == 0 && up->rebind_time != 0)
 		current->rebind_time = up->rebind_time;
+	if (current->renew_time > current->rebind_time) {
+		dprintf(LOG_ERR, "dhcpv6 server defines T1 > T2");
+		exit(1);
+	}
 	if (current->server_pref == 0 || current->server_pref == DH6OPT_PREF_UNDEF) {
 		if (up->server_pref != 0)
 			current->server_pref = up->server_pref;

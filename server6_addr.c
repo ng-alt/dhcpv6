@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.13 2003/05/22 23:00:31 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.14 2003/05/23 19:00:36 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -338,12 +338,6 @@ dhcp6_add_lease(iaidaddr, addr)
 	memset(sp, 0, sizeof(*sp));
 	memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
 	sp->iaidaddr = iaidaddr;	
-	if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
-		dprintf(LOG_ERR, "%s" "failed to create a new event "
-	    		"timer", FNAME);
-		free(sp);
-		return (-1); 
-	}
 	/* ToDo: preferlifetime EXPIRED; validlifetime DELETED; */
 	/* if a finite lease perferlifetime is specified, set up a timer. */
 	time(&sp->start_date);
@@ -365,6 +359,18 @@ dhcp6_add_lease(iaidaddr, addr)
 			return (-1);
 	}
 	TAILQ_INSERT_TAIL(&iaidaddr->lease_list, sp, link);
+	if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE || 
+	    sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
+		dprintf(LOG_INFO, "%s" "infinity address life time for %s",
+			FNAME, in6addr2str(&addr->addr, 0));
+		return (0);
+	}
+	if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
+		dprintf(LOG_ERR, "%s" "failed to create a new event "
+	    		"timer", FNAME);
+		free(sp);
+		return (-1); 
+	}
 	d = sp->lease_addr.preferlifetime; 
 	timo.tv_sec = (long)d;
 	timo.tv_usec = 0;
@@ -399,33 +405,6 @@ dhcp6_update_lease(addr, sp)
 		dhcp6_remove_lease(sp);
 		return (0);
 	}
-	if (addr->preferlifetime == DHCP6_DURATITION_INFINITE) {
-		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
-		    "with infinite preferlifetime", FNAME,
-			in6addr2str(&addr->addr, 0), addr->plen);
-	} else {
-		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
-		    "with preferlifetime %d", FNAME,
-		    in6addr2str(&addr->addr, 0), addr->plen,
-		    addr->preferlifetime);
-	}
-	if (addr->validlifetime == DHCP6_DURATITION_INFINITE) {
-		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
-		    "with infinite validlifetime", FNAME,
-			in6addr2str(&addr->addr, 0), addr->plen);
-	} else {
-		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
-		    "with validlifetime %d", FNAME,
-		    in6addr2str(&addr->addr, 0), addr->plen,
-		    addr->validlifetime);
-	}
-	if (sp->timer == NULL) {
-		if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to create a new event "
-	    			"timer", FNAME);
-			return (-1); 
-		}
-	}
 	memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
 	time(&sp->start_date);
 	sp->state = ACTIVE;
@@ -433,6 +412,19 @@ dhcp6_update_lease(addr, sp)
 		dprintf(LOG_ERR, "%s" "failed to write an updated lease %s to lease file", 
 			FNAME, in6addr2str(&sp->lease_addr.addr, 0));
 		return (-1);
+	}
+	if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE || 
+	    sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
+		dprintf(LOG_INFO, "%s" "infinity address life time for %s",
+			FNAME, in6addr2str(&addr->addr, 0));
+		return (0);
+	}
+	if (sp->timer == NULL) {
+		if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
+			dprintf(LOG_ERR, "%s" "failed to create a new event "
+	    			"timer", FNAME);
+			return (-1); 
+		}
 	}
 	d = sp->lease_addr.preferlifetime; 
 	timo.tv_sec = (long)d;

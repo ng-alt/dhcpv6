@@ -1,4 +1,4 @@
-/*	$Id: server6_parse.y,v 1.5 2003/04/30 19:04:16 shirleyma Exp $	*/
+/*	$Id: server6_parse.y,v 1.6 2003/05/23 19:00:37 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -867,7 +867,7 @@ paradecl
 		    currentscope->scope->valid_life_time <
 		    currentscope->scope->prefer_life_time) {
 			dprintf(LOG_ERR, "%s" 
-				"validlifetime is less than(equal) preferlifetime", FNAME);
+				"validlifetime is less than preferlifetime", FNAME);
 			ABORT;
 		}
 	}
@@ -883,7 +883,7 @@ paradecl
 		    currentscope->scope->valid_life_time <
 		    currentscope->scope->prefer_life_time) {
 			dprintf(LOG_ERR, "%s" 
-				"validlifetime is less than(equal) preferlifetime", FNAME);
+				"validlifetime is less than preferlifetime", FNAME);
 			ABORT;
 		}
 	}
