@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.9 2003/03/11 23:52:23 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.10 2003/03/28 23:01:55 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -201,6 +201,15 @@ main(argc, argv)
 	setloglevel(debug);
 
 	ifinit(device);
+	
+	server6_init();
+	if ((server6_lease_file = init_leases(PATH_SERVER6_LEASE)) == NULL) {
+		dprintf(LOG_ERR, "%s" "failed to parse lease file",
+			FNAME);
+		exit(1);
+	}
+	server6_lease_file = 
+		sync_leases(server6_lease_file, PATH_SERVER6_LEASE, server6_lease_temp);	
 	globalgroup = (struct rootgroup *)malloc(sizeof(struct rootgroup));
 	if (globalgroup == NULL) {
 		dprintf(LOG_ERR, "failed to allocate memory %s", strerror(errno));
@@ -211,26 +220,6 @@ main(argc, argv)
 		dprintf(LOG_ERR, "%s" "failed to parse addr configuration file",
 			FNAME);
 		exit(1);
-	}
-	
-	server6_init();
-	if ((server6_lease_file = init_leases(PATH_SERVER6_LEASE)) == NULL) {
-		dprintf(LOG_ERR, "%s" "failed to parse lease file",
-			FNAME);
-		exit(1);
-	}
-	server6_lease_file = 
-		sync_leases(server6_lease_file, PATH_SERVER6_LEASE, server6_lease_temp);	
-	/* prohibit a mixture of old and new style of DNS server config */
-	if (!TAILQ_EMPTY(&arg_dnslist)) {
-		if (!TAILQ_EMPTY(&dnslist)) {
-			dprintf(LOG_INFO, "%s" "do not specify DNS servers "
-			    "both by command line and by configuration file.",
-			    FNAME);
-			exit(1);
-		}
-		dnslist = arg_dnslist;
-		TAILQ_INIT(&arg_dnslist);
 	}
 	server6_mainloop();
 	exit(0);
@@ -512,8 +501,7 @@ server6_recv(s)
 	 * now assume client is on the same link as server
 	 * if the subnet couldn't be found return status code NotOnLink to client
 	 */
-	if (host == NULL)
-		subnet = dhcp6_allocate_link(globalgroup, NULL);
+	subnet = dhcp6_allocate_link(globalgroup, NULL);
 	if (!(DH6_VALID_MESSAGE(dh6->dh6_msgtype)))
 		dprintf(LOG_INFO, "%s" "unknown or unsupported msgtype %s",
 		    FNAME, dhcp6msgstr(dh6->dh6_msgtype));
@@ -562,7 +550,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		}
 		/* the contents of the Server Identifier option must match ours */
 		if (duidcmp(&optinfo->serverID, &server_duid)) {
-			dprintf(LOG_INFO, "server ID mismatch", 
+			dprintf(LOG_INFO, "server ID %s mismatch %s", 
 				duidstr(&optinfo->serverID), duidstr(&server_duid));
 			return -1;
 		}
@@ -593,15 +581,28 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		else
 			goto send;
 	}
-	if (host) {
-		roptinfo.pref = host->hostscope.server_pref;
-		roptinfo.flags = (optinfo->flags & host->hostscope.allow_flags) |
-				host->hostscope.send_flags;
-	}
 	if (subnet) {
 		roptinfo.pref = subnet->linkscope.server_pref;
 		roptinfo.flags = (optinfo->flags & subnet->linkscope.allow_flags) |
 				subnet->linkscope.send_flags;
+		dnslist = subnet->linkscope.dnslist;
+	}
+	if (host) {
+		roptinfo.pref = host->hostscope.server_pref;
+		roptinfo.flags = (optinfo->flags & host->hostscope.allow_flags) |
+				host->hostscope.send_flags;
+		dnslist = host->hostscope.dnslist;
+	}
+	/* prohibit a mixture of old and new style of DNS server config */
+	if (!TAILQ_EMPTY(&arg_dnslist)) {
+		if (!TAILQ_EMPTY(&dnslist)) {
+			dprintf(LOG_INFO, "%s" "do not specify DNS servers "
+			    "both by command line and by configuration file.",
+			    FNAME);
+			exit(1);
+		}
+		dnslist = arg_dnslist;
+		TAILQ_INIT(&arg_dnslist);
 	}
 	dprintf(LOG_DEBUG, "server preference is %2x", roptinfo.pref);
 	/*
@@ -790,13 +791,11 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		}
 		if (host)
 			dhcp6_get_hostconf(&roptinfo, optinfo, iaidaddr, host);
-		if (subnet) {
-			/* valid and create addresses list */
-			if (optinfo->type == IAPD)
-				dhcp6_create_prefixlist(&roptinfo, optinfo, iaidaddr, subnet);
-			else
-				dhcp6_create_addrlist(&roptinfo, optinfo, iaidaddr, subnet);
-		}
+		/* valid and create addresses list */
+		if (optinfo->type == IAPD)
+			dhcp6_create_prefixlist(&roptinfo, optinfo, iaidaddr, subnet);
+		else
+			dhcp6_create_addrlist(&roptinfo, optinfo, iaidaddr, subnet);
 		if (TAILQ_EMPTY(&roptinfo.addr_list)) {
 			num = DH6OPT_STCODE_NOADDRAVAIL;
 		} else {

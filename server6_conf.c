@@ -1,4 +1,4 @@
-/*    $Id: server6_conf.c,v 1.9 2003/03/11 23:52:23 shirleyma Exp $   */
+/*    $Id: server6_conf.c,v 1.10 2003/03/28 23:01:59 shirleyma Exp $   */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -116,28 +116,6 @@ get_random_bytes(u_int8_t seed[], int num)
 	return;
 }
 #endif
-
-int
-prefixcmp(addr, prefix, len)
-	struct in6_addr *addr;
-	struct in6_addr *prefix;
-	int len;
-{
-	int i, num_bytes;
-	struct in6_addr mask;
-	num_bytes = len / 8;
-	for (i = 0; i < num_bytes; i++) {
-		mask.s6_addr[i] = 0xFF;
-	}
-	mask.s6_addr[num_bytes] = (0xFF << 8) - len % 8 ;
-	for (i = 0; i < num_bytes; i++) {
-		if (addr->s6_addr[i] != prefix->s6_addr[i]) return -1;
-	}
-	if((addr->s6_addr[num_bytes] & mask.s6_addr[num_bytes]) != 
-	   (prefix->s6_addr[num_bytes] & mask.s6_addr[num_bytes]))
- 		return -1;
-	return 0;
-}
 
 int
 get_numleases(currentpool, poolfile)
@@ -306,9 +284,10 @@ download_scope(up, current)
 		else
 			current->server_pref = DH6OPT_PREF_UNDEF;
 	}
-	dprintf(LOG_DEBUG, "server preference is %2x", current->server_pref);
 	current->allow_flags |= up->allow_flags;
 	current->send_flags |= up->send_flags;
+	if (TAILQ_EMPTY(&current->dnslist)) 
+		dhcp6_copy_list(&current->dnslist, &up->dnslist);
 	return;
 }
 

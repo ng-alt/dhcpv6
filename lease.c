@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.5 2003/03/11 23:52:23 shirleyma Exp $	*/
+/*	$Id: lease.c,v 1.6 2003/03/28 23:01:56 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -137,8 +137,8 @@ sync_leases (FILE *file, const char *original, char *template)
                 return (NULL);
         }
 	if (dhcp6_mode == DHCP6_MODE_SERVER) {
-		for (i = 0; i < hash_anchors[HT_IPV6ADDR]->hash_size; i++) {
-			element = hash_anchors[HT_IPV6ADDR]->hash_list[i];
+		for (i = 0; i < lease_hash_table->hash_size; i++) {
+			element = lease_hash_table->hash_list[i];
 			while (element) {
 				if (write_lease((struct dhcp6_lease *)element->data, 
 							sync_file) < 0) {
@@ -204,15 +204,21 @@ init_lease_hashes(void)
 		dprintf(LOG_ERR, "%s" "Couldn't malloc hash anchors", FNAME);
 		return (-1);
 	}
-        hash_anchors[HT_IPV6ADDR] = hash_table_create(DEFAULT_HASH_SIZE, 
-			addr_hash, lease_findkey, lease_key_compare);
-	if (!hash_anchors[HT_IPV6ADDR]) {
+        host_addr_hash_table = hash_table_create(DEFAULT_HASH_SIZE, 
+			addr_hash, v6addr_findkey, v6addr_key_compare);
+	if (!host_addr_hash_table) {
 		dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
 		return (-1);
 	}
-        hash_anchors[HT_IAIDADDR] = hash_table_create(DEFAULT_HASH_SIZE, 
+        lease_hash_table = hash_table_create(DEFAULT_HASH_SIZE, 
+			addr_hash, lease_findkey, lease_key_compare);
+	if (!lease_hash_table) {
+		dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
+		return (-1);
+	}
+        server6_hash_table = hash_table_create(DEFAULT_HASH_SIZE, 
 			iaid_hash, iaid_findkey, iaid_key_compare);
-	if (!hash_anchors[HT_IAIDADDR]) {
+	if (!server6_hash_table) {
 		dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
 		return (-1);
 	}
@@ -254,6 +260,23 @@ addr_hash(const void *key)
 	unsigned int index;
 	index = do_hash((const void *)addrkey, sizeof(*addrkey));
 	return index;
+}
+
+void * 
+v6addr_findkey(const void *data)
+{
+        const struct dhcp6_addr *v6addr = (const struct dhcp6_addr *)data;
+	return (void *)(&(v6addr->addr));
+}
+
+int 
+v6addr_key_compare(const void *data, const void *key)
+{ 
+	struct dhcp6_addr *v6addr = (struct dhcp6_addr *)data;	
+	if (IN6_ARE_ADDR_EQUAL(&v6addr->addr, (struct in6_addr *)key)) {
+		return MATCH;
+	} else
+		return MISCOMPARE;
 }
 
 void * 
@@ -304,3 +327,40 @@ iaid_key_compare(const void *data,
 	}
 	return MISCOMPARE;
 }
+
+int
+prefixcmp(addr, prefix, len)
+	struct in6_addr *addr;
+	struct in6_addr *prefix;
+	int len;
+{
+	int i, num_bytes;
+	struct in6_addr mask;
+	num_bytes = len / 8;
+	for (i = 0; i < num_bytes; i++) {
+		mask.s6_addr[i] = 0xFF;
+	}
+	mask.s6_addr[num_bytes] = (0xFF << 8) - len % 8 ;
+	for (i = 0; i < num_bytes; i++) {
+		if (addr->s6_addr[i] != prefix->s6_addr[i]) return -1;
+	}
+	if((addr->s6_addr[num_bytes] & mask.s6_addr[num_bytes]) != 
+	   (prefix->s6_addr[num_bytes] & mask.s6_addr[num_bytes]))
+ 		return -1;
+	return 0;
+}
+
+int
+dhcp6_get_prefixlen(addr, ifp)
+	struct in6_addr *addr;
+	struct dhcp6_if *ifp;
+{
+	struct ra_info *rainfo;
+	for (rainfo = ifp->ralist; rainfo; rainfo = rainfo->next) {
+		/* prefixes are sorted by plen */
+		if (prefixcmp(addr, &rainfo->prefix, rainfo->plen) == 0)	
+			return rainfo->plen;
+	}
+	return PREFIX_LEN_NOTINRA;
+}
+

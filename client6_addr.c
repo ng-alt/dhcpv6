@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.10 2003/03/11 23:52:22 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.11 2003/03/28 23:01:51 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -60,6 +60,7 @@ static int dhcp6_update_lease __P((struct dhcp6_addr *, struct dhcp6_lease *));
 static int dhcp6_add_lease __P((struct dhcp6_addr *));
 struct dhcp6_lease *dhcp6_find_lease __P((struct dhcp6_iaidaddr *, 
 			struct dhcp6_addr *));
+int dhcp6_get_prefixlen __P((struct in6_addr *, struct dhcp6_if *));
 int client6_ifaddrconf __P((ifaddrconf_cmd_t, struct dhcp6_addr *));
 u_int32_t get_min_preferlifetime __P((struct dhcp6_iaidaddr *));
 u_int32_t get_max_validlifetime __P((struct dhcp6_iaidaddr *));
@@ -72,7 +73,6 @@ extern void client6_send __P((struct dhcp6_event *));
 extern void free_servers __P((struct dhcp6_if *));
 extern ssize_t gethwid __P((char *, int, const char *, u_int16_t *));
 
-#define DEFAULT_PREFIX_LEN 64
 extern FILE *client6_lease_file;
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern struct dhcp6_list request_list;
@@ -110,6 +110,13 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	/* add new address */
 	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
 		lv_next = TAILQ_NEXT(lv, link);
+		lv->val_dhcp6addr.plen = 
+			dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
+		if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
+			dprintf(LOG_WARNING, "assigned address %s prefix len is not in any RAs"
+				" prefix length using 64 bit instead",
+				in6addr2str(&lv->val_dhcp6addr.addr, 0));
+		}
 		if ((cl_lease = dhcp6_find_lease(&client6_iaidaddr, 
 						&lv->val_dhcp6addr)) != NULL) {
 			dhcp6_update_lease(&lv->val_dhcp6addr, cl_lease);
@@ -295,6 +302,13 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	/* flag == ADDR_UPDATE */
 	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
 		lv_next = TAILQ_NEXT(lv, link);
+		lv->val_dhcp6addr.plen = 
+			dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
+		if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
+			dprintf(LOG_WARNING, "assigned address %s is not in any RAs"
+				" prefix length using 64 bit instead",
+				in6addr2str(&lv->val_dhcp6addr.addr, 0)); 
+		}
 		if ((cl = dhcp6_find_lease(&client6_iaidaddr, &lv->val_dhcp6addr)) != NULL) {
 		/* update leases */
 			dhcp6_update_lease(&lv->val_dhcp6addr, cl);
@@ -589,11 +603,8 @@ client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr)
 	memset(&req, 0, sizeof(req));
 	req.ifr6_ifindex = if_nametoindex(ifp->ifname);
 	memcpy(&req.ifr6_addr, &ifaddr->addr, sizeof(req.ifr6_addr));
-	/*ToDo: an draft issue here, how to get the right prefix for 
-	 * client, so far len = 64; 
+	
 	req.ifr6_prefixlen = ifaddr->plen;
-	 */
-	req.ifr6_prefixlen = DEFAULT_PREFIX_LEN;
 
 	if (ioctl(s, ioctl_cmd, &req)) {
 		dprintf(LOG_NOTICE, "%s" "failed to %s an address on %s: %s",

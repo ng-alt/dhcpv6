@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.7 2003/03/01 00:24:48 shemminger Exp $	*/
+/*	$Id: config.h,v 1.8 2003/03/28 23:01:53 shirleyma Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -42,6 +42,13 @@ struct iaid_table {
 	u_int32_t iaid;
 };
 
+struct ra_info {
+	struct ra_info *next;
+	struct in6_addr prefix;
+	int plen;
+	int flags;
+};
+
 /* per-interface information */
 struct dhcp6_if {
 	struct dhcp6_if *next;
@@ -58,9 +65,9 @@ struct dhcp6_if {
 	/* static parameters of the interface */
 	char *ifname;
 	unsigned int ifid;
+	struct ra_info *ralist;
 	u_int32_t linkid;	/* to send link-local packets */
 	struct dhcp6_iaid_info iaidinfo;	
-	u_int32_t iaid;
 	
 	/* configuration parameters */
 	u_long send_flags;
@@ -94,6 +101,7 @@ struct dhcp6_event {
 	struct duid serverid;
 
 	/* internal timer parameters */
+	struct timeval start_time;
 	long retrans;
 	long init_retrans;
 	long max_retrans_cnt;

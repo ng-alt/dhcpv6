@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.11 2003/03/11 23:52:23 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.12 2003/03/28 23:01:54 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -90,6 +90,7 @@ static u_int8_t client6_request_flag = 0;
 #define CLIENT6_RELEASE_ADDR	0x1
 #define CLIENT6_CONFIRM_ADDR	0x2
 #define CLIENT6_REQUEST_ADDR	0x4
+#define CLIENT6_INFO_REQ	0x8
 
 int insock;	/* inbound udp port */
 int outsock;	/* outbound udp port */
@@ -150,7 +151,7 @@ main(argc, argv)
 		progname++;
 
 	TAILQ_INIT(&request_list);
-	while ((ch = getopt(argc, argv, "c:r:R:P:dDf")) != -1) {
+	while ((ch = getopt(argc, argv, "c:r:R:P:dDfI")) != -1) {
 		switch (ch) {
 		case 'c':
 			conffile = optarg;
@@ -230,6 +231,9 @@ main(argc, argv)
 				}
 			} 
 			break;
+		case 'I':
+			client6_request_flag |= CLIENT6_INFO_REQ;
+			break;
 		case 'd':
 			debug = 1;
 			break;
@@ -286,7 +290,7 @@ usage()
 
 	fprintf(stderr, 
 	"usage: dhcpc [-c configfile] [-r all or (ipv6address ipv6address...)]"
-	"[-R (ipv6 address ipv6address...) [-dDf] interface\n");
+	"[-R (ipv6 address ipv6address...) [-dDIf] interface\n");
 }
 
 /*------------------------------------------------------------*/
@@ -604,10 +608,19 @@ client6_timo(arg)
 {
 	struct dhcp6_event *ev = (struct dhcp6_event *)arg;
 	struct dhcp6_if *ifp;
-
+	struct timeval now;
+	struct ra_info *rainfo;
+#ifdef TEST
+	int mbitset = 0;
+#else
+	int mbitset = 1;
+#endif
 	ifp = ev->ifp;
 	ev->timeouts++;
-	if (ev->max_retrans_cnt && ev->timeouts >= ev->max_retrans_cnt) {
+	gettimeofday(&now, NULL);
+	if ((ev->max_retrans_cnt && ev->timeouts >= ev->max_retrans_cnt) ||
+	    (ev->max_retrans_dur && (now.tv_sec - ev->start_time.tv_sec) 
+	     >= ev->max_retrans_dur)) {
 		/* XXX: check up the duration time for renew & rebind */
 		dprintf(LOG_INFO, "%s" "no responses were received", FNAME);
 		dhcp6_remove_event(ev);	/* XXX: should free event data? */
@@ -623,7 +636,15 @@ client6_timo(arg)
 		 * go to SOLICIT state if the client requests addresses;
 		 */
 		ev->timeouts = 0; /* indicate to generate a new XID. */
-		if (ifp->send_flags & DHCIFF_INFO_ONLY) 
+		/* check RA flags M bits */
+		for (rainfo = ifp->ralist; rainfo; rainfo = rainfo->next) {
+			if (rainfo->flags & RA_MBIT_SET) {
+				mbitset = 1;
+				break;
+			}
+		}
+		if ((ifp->send_flags & DHCIFF_INFO_ONLY) || 
+		    (client6_request_flag & CLIENT6_INFO_REQ) || mbitset == 0)
 			ev->state = DHCP6S_INFOREQ;
 		else if (client6_request_flag & CLIENT6_RELEASE_ADDR) 
 			/* do release */
@@ -736,6 +757,7 @@ client6_send(ev)
 	struct dhcp6 *dh6;
 	struct dhcp6_optinfo optinfo;
 	ssize_t optlen, len;
+	struct timeval duration, now;
 
 	ifp = ev->ifp;
 
@@ -783,7 +805,13 @@ client6_send(ev)
 		dprintf(LOG_ERR, "%s" "unexpected state %d", FNAME, ev->state);
 		exit(1);	/* XXX */
 	}
+	/*
+	 * construct options
+	 */
+	dhcp6_init_options(&optinfo);
 	if (ev->timeouts == 0) {
+		gettimeofday(&ev->start_time, NULL);
+		optinfo.elapsed_time = 0;
 		/*
 		 * A client SHOULD generate a random number that cannot easily
 		 * be guessed or predicted to use as the transaction ID for
@@ -795,15 +823,15 @@ client6_send(ev)
 		ev->xid = random() & DH6_XIDMASK;
 		dprintf(LOG_DEBUG, "%s" "ifp %p event %p a new XID (%x) is generated",
 			FNAME, ifp, ev, ev->xid);
+	} else {
+		gettimeofday(&now, NULL);
+		timeval_sub(&now, &(ev->start_time), &duration);
+		optinfo.elapsed_time = (duration.tv_sec) * 100 + (duration.tv_usec) / 10000;
 	}
 	dh6->dh6_xid &= ~ntohl(DH6_XIDMASK);
 	dh6->dh6_xid |= htonl(ev->xid);
 	len = sizeof(*dh6);
 
-	/*
-	 * construct options
-	 */
-	dhcp6_init_options(&optinfo);
 
 	/* server ID */
 	switch(ev->state) {

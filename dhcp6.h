@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.6 2003/03/11 23:52:23 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.7 2003/03/28 23:01:54 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -93,6 +93,9 @@
 
 #define DHCP6_DURATITION_INFINITE 0xffffffff
 
+#define RA_MBIT_SET 0x01
+#define RA_OBIT_SET 0x02
+
 typedef enum { IANA, IATA, IAPD} iatype_t;
 /* Internal data structure */
 
@@ -141,6 +144,7 @@ typedef enum { DHCP6_LISTVAL_NUM, DHCP6_LISTVAL_ADDR6,
 struct dhcp6_optinfo {
 	struct duid clientID;	/* DUID */
 	struct duid serverID;	/* DUID */
+	u_int16_t elapsed_time;
 	struct dhcp6_iaid_info iaidinfo;
 	iatype_t type;
 	u_int8_t flags;	/* flags for rapid commit, info_only, temp address */
@@ -213,7 +217,8 @@ struct dhcp6 {
  * Note that we'll fix the following definitions when official values are
  * assigned.
  */
-#define DH6OPT_DNS CONF_DH6OPT_DNS
+#define DH6OPT_DNS_RESOLVERS CONF_DH6OPT_DNS_RESOLVERS
+#define DH6OPT_DOMAIN_LIST CONF_DH6OPT_DOMAIN_LIST
 
 /*
  * define PD option according IPv6 Prefix Options for DHCPv6 draft 02

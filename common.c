@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.11 2003/03/11 23:52:23 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.12 2003/03/28 23:01:53 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -935,6 +935,14 @@ dhcp6_get_options(p, ep, optinfo)
 				goto fail;
 			}
 			break;
+		case DH6OPT_ELAPSED_TIME:
+			if (optlen != sizeof(u_int16_t))
+				goto malformed;
+			memcpy(&val16, cp, sizeof(val16));
+			num = ntohs(val16);
+			dprintf(LOG_DEBUG, " this message elapsed time is: %d",
+				num);
+			break;
 		case DH6OPT_STATUS_CODE:
 			if (optlen < sizeof(u_int16_t))
 				goto malformed;
@@ -1031,7 +1039,7 @@ dhcp6_get_options(p, ep, optinfo)
 						cp + optlen, optinfo))
 				goto fail;
 			break;
-		case DH6OPT_DNS:
+		case DH6OPT_DNS_RESOLVERS:
 			if (optlen % sizeof(struct in6_addr) || optlen == 0)
 				goto malformed;
 			for (val = cp; val < cp + optlen;
@@ -1282,6 +1290,8 @@ dhcp6_set_options(bp, ep, optinfo)
 		COPY_OPTION(DH6OPT_SERVERID, optinfo->serverID.duid_len,
 			    optinfo->serverID.duid_id, p);
 	}
+	if (dhcp6_mode == DHCP6_MODE_CLIENT) 
+		COPY_OPTION(DH6OPT_ELAPSED_TIME, 2, &optinfo->elapsed_time, p);
 
 	if (optinfo->flags & DHCIFF_RAPID_COMMIT)
 		COPY_OPTION(DH6OPT_RAPID_COMMIT, 0, NULL, p);
@@ -1516,10 +1526,10 @@ dhcp6_set_options(bp, ep, optinfo)
 		     d = TAILQ_NEXT(d, link), in6++) {
 			memcpy(in6, &d->val_addr6, sizeof(*in6));
 		}
-		COPY_OPTION(DH6OPT_DNS, optlen, tmpbuf, p);
+		COPY_OPTION(DH6OPT_DNS_RESOLVERS, optlen, tmpbuf, p);
 		free(tmpbuf);
 	}
-
+	
 	return (len);
 
   fail:
@@ -1730,8 +1740,8 @@ dhcp6optstr(type)
 		return "status code";
 	case DH6OPT_RAPID_COMMIT:
 		return "rapid commit";
-	case DH6OPT_DNS:
-		return "DNS";
+	case DH6OPT_DNS_RESOLVERS:
+		return "DNS_RESOLVERS";
 	default:
 		sprintf(genstr, "opt_%d", type);
 		return (genstr);

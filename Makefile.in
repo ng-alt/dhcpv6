@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.5 2003/02/25 00:31:52 shirleyma Exp $
+# $Id: Makefile.in,v 1.6 2003/03/28 23:01:47 shirleyma Exp $
 #
 
 srcdir=	@srcdir@
@@ -23,13 +23,13 @@ etc=/etc
 sysconfigdir=/etc/sysconfig
 CHKCONFIG=/sbin/chkconfig
 
-CFLAGS+= -DCONF_DH6OPT_DNS=@dhcpopt_dns@ \
+CFLAGS+= -DCONF_DH6OPT_DNS_RESOLVERS=@dhcpopt_dns_resolvers@ \
 	-DCONF_DH6OPT_IA_PD=@dhcpopt_pdel@ \
 	-DCONF_DH6OPT_IAPREFIX=@dhcpopt_iaprefix@ 
 
 COMMONGENSRCS=lease_token.c
-CLIENTGENSRCS=client6_parse.c client6_token.c 
-SERVERGENSRCS=server6_addr_parse.c server6_addr_token.c 
+CLIENTGENSRCS=client6_parse.c client6_token.c ra_token.c
+SERVERGENSRCS=server6_parse.c server6_token.c 
 CLIENTOBJS=	dhcp6c.o common.o config.o timer.o client6_addr.o \
 		hash.o lease.o \
 	$(CLIENTGENSRCS:%.c=%.o) $(COMMONGENSRCS:%.c=%.o)
@@ -37,8 +37,8 @@ SERVOBJS=	dhcp6s.o common.o timer.o hash.o lease.o \
 		server6_conf.o server6_addr.o \
 	$(SERVERGENSRCS:%.c=%.o) $(COMMONGENSRCS:%.c=%.o)
 
-CLEANFILES=cf.tab.h cp.tab.h sf.tab.h cfparse.c cftoken.c client6_token.c client6_parse.c \
-		server6_addr_parse.c server6_addr_token.c lease_token.c 
+CLEANFILES=cf.tab.h cp.tab.h sf.tab.h ra_token.c client6_token.c client6_parse.c \
+		server6_parse.c server6_token.c lease_token.c 
 
 all:	$(TARGET) 
 dhcp6c:	$(CLIENTOBJS) $(LIBOBJS)
@@ -46,9 +46,9 @@ dhcp6c:	$(CLIENTOBJS) $(LIBOBJS)
 dhcp6s:	$(SERVOBJS) $(LIBOBJS)
 	$(CC) $(LDFLAGS) -o dhcp6s $(SERVOBJS) $(LIBOBJS) $(LIBS) 
 
-cftoken.c: cftoken.l cf.tab.h
-	lex -Pcfyy cftoken.l
-	mv lex.cfyy.c $@	
+ra_token.c: ra_token.l
+	lex -Prayy ra_token.l
+	mv lex.rayy.c $@
 
 client6_parse.c cp.tab.h: client6_parse.y
 	yacc -d -p cpyy client6_parse.y
@@ -63,13 +63,13 @@ lease_token.c: lease_token.l
 	lex -Plyy lease_token.l
 	mv lex.lyy.c $@
 
-server6_addr_parse.c sf.tab.h: server6_addr_parse.y
-	yacc -d -p sfyy server6_addr_parse.y
+server6_parse.c sf.tab.h: server6_parse.y
+	yacc -d -p sfyy server6_parse.y
 	mv y.tab.h sf.tab.h
-	mv y.tab.c server6_addr_parse.c 
+	mv y.tab.c server6_parse.c 
 
-server6_addr_token.c: server6_addr_token.l sf.tab.h
-	lex -Psfyy server6_addr_token.l
+server6_token.c: server6_token.l sf.tab.h
+	lex -Psfyy server6_token.l
 	mv lex.sfyy.c $@
 
 install::

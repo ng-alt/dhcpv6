@@ -4200,17 +4200,17 @@ echo $ECHO_N "checking for DHCP DNS option... $ECHO_C" >&6
 # Check whether --with-opt-dns or --without-opt-dns was given.
 if test "${with_opt_dns+set}" = set; then
   withval="$with_opt_dns"
-  dhcpopt_dns="$withval"
+  dhcpopt_dns_resolvers="$withval"
 else
-  dhcpopt_dns=0
+  dhcpopt_dns_resolvers=0
 fi;
-if test $dhcpopt_dns = 0 ; then
-	dhcpopt_dns=25
-	echo "$as_me:$LINENO: result: unspecified and using $dhcpopt_dns" >&5
-echo "${ECHO_T}unspecified and using $dhcpopt_dns" >&6
+if test $dhcpopt_dns_resolvers = 0 ; then
+	dhcpopt_dns_resolvers=25
+	echo "$as_me:$LINENO: result: unspecified and using $dhcpopt_dns_resolvers" >&5
+echo "${ECHO_T}unspecified and using $dhcpopt_dns_resolvers" >&6
 else
-	echo "$as_me:$LINENO: result: using $dhcpopt_dns" >&5
-echo "${ECHO_T}using $dhcpopt_dns" >&6
+	echo "$as_me:$LINENO: result: using $dhcpopt_dns_resolvers" >&5
+echo "${ECHO_T}using $dhcpopt_dns_resolvers" >&6
 fi
 
 
@@ -4981,7 +4981,7 @@ s,@EXEEXT@,$EXEEXT,;t t
 s,@OBJEXT@,$OBJEXT,;t t
 s,@CPP@,$CPP,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
-s,@dhcpopt_dns@,$dhcpopt_dns,;t t
+s,@dhcpopt_dns_resolvers@,$dhcpopt_dns_resolvers,;t t
 s,@dhcpopt_pdel@,$dhcpopt_pdel,;t t
 s,@dhcpopt_iaprefix@,$dhcpopt_iaprefix,;t t
 s,@dhcpopt_preq@,$dhcpopt_preq,;t t

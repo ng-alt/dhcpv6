@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.8 2003/03/11 23:52:23 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.9 2003/03/28 23:01:56 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -59,11 +59,7 @@
 #include "timer.h"
 #include "hash.h"
 
-extern struct hash_table **hash_anchors;
 extern FILE *server6_lease_file;
-
-#define server6_hash_table hash_anchors[HT_IAIDADDR]
-#define lease_hash_table hash_anchors[HT_IPV6ADDR]
 
 struct dhcp6_lease *
 dhcp6_find_lease __P((struct dhcp6_iaidaddr *, struct dhcp6_addr *));
@@ -754,8 +750,9 @@ server6_get_newaddr(type, v6addr, seg)
 			break;
 		}
 
-	} while ((hash_search(lease_hash_table, (void *)v6addr) != NULL 
-			|| is_anycast(&v6addr->addr, seg->prefix.plen)));
+	} while ((hash_search(lease_hash_table, (void *)v6addr) != NULL) ||
+		 (hash_search(host_addr_hash_table, (void *)&v6addr->addr) != NULL) ||
+		 (is_anycast(&v6addr->addr, seg->prefix.plen)));
 	if (IN6_IS_ADDR_UNSPECIFIED(&v6addr->addr)) {
 		return;
 	}

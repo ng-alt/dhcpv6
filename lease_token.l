@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.5 2003/03/11 23:52:23 shirleyma Exp $	*/
+/*	$Id: lease_token.l,v 1.6 2003/03/28 23:01:56 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -286,10 +286,9 @@ do_iaidaddr_hash(lease_rec, key)
 			return (0);
 		}
 	}
-	iaidaddr = (struct dhcp6_iaidaddr *)hash_search(hash_anchors[HT_IAIDADDR], key); 
+	iaidaddr = (struct dhcp6_iaidaddr *)hash_search(lease_hash_table, key); 
 	if (iaidaddr){
-		found_lease = hash_search(hash_anchors[HT_IPV6ADDR], 
-			&lease_rec->lease_addr.addr);
+		found_lease = hash_search(lease_hash_table, &lease_rec->lease_addr.addr);
 		/* remove the previous old lease */
 		if(found_lease) {
 			if (found_lease->start_date < lease_rec->start_date) {
@@ -334,7 +333,7 @@ do_iaidaddr_hash(lease_rec, key)
 		/* iaidaddr will be removed if no lease under lease_list */
 		iaidaddr->timer = NULL;
 		TAILQ_INIT(&iaidaddr->lease_list);
-		if (hash_add(hash_anchors[HT_IAIDADDR], 
+		if (hash_add(server6_hash_table, 
 				&iaidaddr->client6_info, iaidaddr) != 0) {
 			dprintf(LOG_ERR, "%s" "hash add failed", FNAME);
 			free(iaidaddr);
@@ -439,8 +438,7 @@ add_lease(iaidaddr, lease)
 	timo.tv_usec = 0;
 	dhcp6_set_timer(&timo, lease_rec->timer);
 	if (dhcp6_mode == DHCP6_MODE_SERVER) {
-		if (hash_add(hash_anchors[HT_IPV6ADDR],
-		    &lease_rec->lease_addr.addr, lease_rec) != 0) {
+		if (hash_add(lease_hash_table, &lease_rec->lease_addr.addr, lease_rec) != 0) {
 			dprintf(LOG_ERR, "%s" "hash add lease failed for %s",
 				FNAME, in6addr2str(&lease_rec->lease_addr.addr, 0));
 			free(lease_rec);
@@ -461,7 +459,7 @@ remove_lease(lease)
 	struct dhcp6_lease *lease;
 {
 	if (dhcp6_mode == DHCP6_MODE_SERVER) {
-		if (hash_delete(hash_anchors[HT_IPV6ADDR], &lease->lease_addr.addr)) {
+		if (hash_delete(lease_hash_table, &lease->lease_addr.addr)) {
 			dprintf(LOG_ERR, "%s" "failed to remove an address %s from hash", 
 				FNAME, in6addr2str(&lease->lease_addr.addr, 0));
 			return (-1);

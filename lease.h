@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.5 2003/03/11 23:52:23 shirleyma Exp $	*/
+/*	$Id: lease.h,v 1.6 2003/03/28 23:01:56 shirleyma Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -42,7 +42,14 @@
 #define PATH_SERVER6_LEASE "/var/db/dhcpv6/server6.leases"
 #define PATH_CLIENT6_LEASE "/var/db/dhcpv6/client6.leases"
 
-#define HASH_TABLE_COUNT 	2
+#define HASH_TABLE_COUNT 	4
+
+extern struct hash_table **hash_anchors;
+#define server6_hash_table hash_anchors[HT_IAIDADDR]
+#define lease_hash_table hash_anchors[HT_IPV6LEASE]
+#define host_addr_hash_table hash_anchors[HT_IPV6ADDR]
+#define PREFIX_LEN_NOTINRA 64 
+
 
 typedef enum { ACTIVE, RENEW,
 	       REBIND, EXPIRED,
@@ -50,7 +57,7 @@ typedef enum { ACTIVE, RENEW,
 
 typedef enum { IFADDRCONF_ADD, IFADDRCONF_REMOVE } ifaddrconf_cmd_t;
 
-enum hash_type{HT_IPV6ADDR = 0, HT_IAIDADDR};
+enum hash_type{HT_IPV6ADDR = 0, HT_IPV6LEASE, HT_IAIDADDR};
 
 struct dhcp6_iaidaddr client6_iaidaddr;
 FILE *server6_lease_file;
@@ -117,8 +124,11 @@ extern void * iaid_findkey __P((const void *));
 extern int iaid_key_compare __P((const void *, const void *));
 extern void * lease_findkey __P((const void *));
 extern int lease_key_compare __P((const void *, const void *));
+extern void * v6addr_findkey __P((const void *));
+extern int v6addr_key_compare __P((const void *, const void *));
 extern int client6_ifaddrconf __P((ifaddrconf_cmd_t , struct dhcp6_addr *));
-
+extern int dhcp6_get_prefixlen __P((struct in6_addr *, struct dhcp6_if *));
+extern int prefixcmp __P((struct in6_addr *, struct in6_addr *, int));
 
 struct link_decl;
 extern int dhcp6_create_prefixlist __P((struct dhcp6_optinfo *,

@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.6 2003/03/11 23:52:23 shirleyma Exp $	*/
+/*	$Id: client6_parse.y,v 1.7 2003/03/28 23:01:52 shirleyma Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -84,6 +84,7 @@ struct cf_list *cf_dns_list;
 
 extern int cpyylex __P((void));
 static void cleanup __P((void));
+static int add_namelist __P((struct cf_namelist *, struct cf_namelist **));
 static void cleanup_namelist __P((struct cf_namelist *));
 static void cleanup_cflist __P((struct cf_list *));
 %}
@@ -134,7 +135,7 @@ interface_statement:
 
 declarations:
 		{ $$ = NULL; }
-	| 	declarations declaration;
+	| 	declarations declaration EOS
 		{
 			struct cf_list *head;
 
