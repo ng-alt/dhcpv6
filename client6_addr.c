@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.12 2003/04/28 17:25:18 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.13 2003/04/28 22:09:53 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -396,12 +396,14 @@ dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp)
 		dprintf(LOG_ERR, "%s" "not successful status code for %s is %s", FNAME,
 			in6addr2str(&addr->addr, 0), dhcp6_stcodestr(addr->status_code));
 		dhcp6_remove_lease(sp);
+		return (0);
 	}
 	/* remove leases with validlifetime == 0, and preferlifetime == 0 */
 	if (addr->validlifetime == 0 || addr->preferlifetime == 0) {
 		dprintf(LOG_ERR, "%s" "zero address life time for %s",
 			FNAME, in6addr2str(&addr->addr, 0));
 		dhcp6_remove_lease(sp);
+		return (0);
 	}
 	memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
 	sp->state = ACTIVE;
