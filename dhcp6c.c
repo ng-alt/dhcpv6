@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.28 2003/05/28 21:11:53 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.29 2003/05/29 15:33:49 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -1703,6 +1703,8 @@ static struct dhcp6_timer
 	struct timeval timo;
 	double d;
 	int newstate;
+	if (client6_iaidaddr.client6_info.type == IAPD)
+		goto end;
 	dprintf(LOG_DEBUG, "enter checking dad ...");
 	if (dad_parse(ifproc_file) < 0) {
 		dprintf(LOG_DEBUG, "");
