@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.16 2003/06/03 19:12:00 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.17 2003/06/03 19:53:29 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -166,14 +166,10 @@ dhcp6_remove_iaidaddr(iaidaddr)
 	struct dhcp6_lease *lv, *lv_next;
 	struct dhcp6_lease *lease;
 	
-	dprintf(LOG_DEBUG, "%s" "removing iaidaddr %d", FNAME,
-		iaidaddr->client6_info.iaidinfo.iaid);
 	/* remove all the leases in this iaid */
 	for (lv = TAILQ_FIRST(&iaidaddr->lease_list); lv; lv = lv_next) {
 		lv_next = TAILQ_NEXT(lv, link);
 		if ((lease = hash_search(lease_hash_table, (void *)&lv->lease_addr)) != NULL) {
-			dprintf(LOG_DEBUG, "%s" "lease address is %s", FNAME,
-				in6addr2str(&lv->lease_addr.addr, 0));
 			if (dhcp6_remove_lease(lv)) {
 				dprintf(LOG_ERR, "%s" "failed to remove an iaid %d", FNAME,
 					 iaidaddr->client6_info.iaidinfo.iaid);
@@ -188,6 +184,8 @@ dhcp6_remove_iaidaddr(iaidaddr)
 	}
 	if (iaidaddr->timer)
 		dhcp6_remove_timer(iaidaddr->timer);
+	dprintf(LOG_DEBUG, "%s" "removed iaidaddr %d", FNAME,
+		iaidaddr->client6_info.iaidinfo.iaid);
 	free(iaidaddr);
 	return (0);
 }
@@ -213,8 +211,6 @@ int
 dhcp6_remove_lease(lease)
 	struct dhcp6_lease *lease;
 {
-	dprintf(LOG_DEBUG, "%s" "removing lease %s", FNAME,
-		in6addr2str(&lease->lease_addr.addr, 0));
 	lease->state = INVALID;
 	if (write_lease(lease, server6_lease_file) != 0) {
 		dprintf(LOG_ERR, "%s" "failed to write an invalid lease %s to lease file", 
@@ -229,6 +225,8 @@ dhcp6_remove_lease(lease)
 	if (lease->timer)
 		dhcp6_remove_timer(lease->timer);
 	TAILQ_REMOVE(&lease->iaidaddr->lease_list, lease, link);
+	dprintf(LOG_DEBUG, "%s" "removed lease %s", FNAME,
+		in6addr2str(&lease->lease_addr.addr, 0));
 	free(lease);
 	return 0;
 }
