@@ -1,4 +1,4 @@
-/*	$Id: radvd_token.l,v 1.4 2003/05/29 22:18:25 shirleyma Exp $	*/
+/*	$Id: radvd_token.l,v 1.5 2003/06/25 01:00:35 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -321,11 +321,24 @@ update_radvd(void)
 static int 
 yywrap(void)
 {
-	struct stat buf;
+	int fd;
+	char buff[8];
+	pid_t radvd_pid;
 	(void)update_radvd();
+	if (update) {
+		if ((fd = open(PATH_RADVD_PID, O_RDONLY)) > 0) {
+			if (read(fd, buff, sizeof(buff)) > 0) {
+				radvd_pid = strtol(buff, NULL, 10);
+				if (radvd_pid == 0)
+					dprintf(LOG_INFO, "invalid radvd pid");
+				else if (kill(radvd_pid, SIGHUP) != 0)
+					dprintf(LOG_INFO, "failed to reload radvd");
+			} else
+				dprintf(LOG_INFO, "failed to read radvd pid file");
+			close(fd);
+		} else
+			dprintf(LOG_INFO, "failed to open radvd pid file");
+	}
 	fclose(yyin);
 	close(oldfd);
-	if (update && !lstat(PATH_RADVD_PID, &buf)) {
-		kill(atoi(PATH_RADVD_PID), SIGHUP);
-	}
 }
