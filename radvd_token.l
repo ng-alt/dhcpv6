@@ -1,4 +1,4 @@
-/*	$Id: radvd_token.l,v 1.5 2003/06/25 01:00:35 shirleyma Exp $	*/
+/*	$Id: radvd_token.l,v 1.6 2003/06/25 17:00:02 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -113,7 +113,7 @@ comment		\#.*
 
 <S_INTERFACE>{string} {
 		fprintf(dhcp6_radvd_file, yytext);
-		if (strcmp(yytext, dhcp6_if->ifname))
+		if (!strcmp(yytext, dhcp6_if->ifname))
 			BEGIN INITIAL;
 		else {
 			TAILQ_INIT(&ori_prefix_list);
