@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.5 2003/02/12 19:44:03 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.6 2003/02/25 00:31:52 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -128,18 +128,6 @@ static int server6_send __P((int, struct dhcp6_if *, struct dhcp6 *,
 			     struct dhcp6_optinfo *,
 			     struct sockaddr *, int,
 			     struct dhcp6_optinfo *));
-static int create_conflist __P((dhcp6_conftype_t, struct duid *,
-				struct dhcp6_list *, struct dhcp6_list *,
-				struct dhcp6_list *, int));
-static struct dhcp6_binding *add_binding __P((struct duid *,
-					      dhcp6_conftype_t, void *));
-static struct dhcp6_binding *find_binding __P((struct duid *,
-					       dhcp6_conftype_t, void *));
-static void update_binding __P((struct dhcp6_binding *));
-static void remove_binding __P((struct dhcp6_binding *));
-static struct dhcp6_timer *binding_timo __P((void *));
-static char *bindingstr __P((struct dhcp6_binding *));
-
 extern struct link_decl *dhcp6_allocate_link __P((struct rootgroup *, struct in6_addr *));
 
 int
@@ -223,11 +211,6 @@ main(argc, argv)
 		exit(1);
 	}
 	
-	if ((cfparse(conffile)) != 0) {
-		dprintf(LOG_ERR, "%s" "failed to parse configuration file",
-			FNAME);
-		exit(1);
-	}
 	server6_init();
 	if ((server6_lease_file = init_leases(PATH_SERVER6_LEASE)) == NULL) {
 		dprintf(LOG_ERR, "%s" "failed to parse lease file",
@@ -553,7 +536,6 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	struct host_decl *hostlist = NULL;
 	struct host_decl *host;
 	int addr_flag;
-	int do_binding = 0;
 	int addr_request = 0;
 	int resptype = DH6_REPLY;
 	int num = DH6OPT_STCODE_SUCCESS;
@@ -634,11 +616,6 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 
 	switch (dh6->dh6_msgtype) {
 	case DH6_SOLICIT: 
-		/* get per-host configuration for the client, if any. */
-		if ((client_conf = find_hostconf(&optinfo->clientID))) {
-			dprintf(LOG_DEBUG, "%s" "found a host configuration for %s",
-				FNAME, client_conf->name);
-		}
 
 		/* preference (if configured) */
 		if (ifp->server_pref != DH6OPT_PREF_UNDEF)
@@ -655,7 +632,6 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		 * [dhcpv6-28 Section 17.2.1]
 		 */
 			roptinfo.flags |= DHCIFF_RAPID_COMMIT;
-			do_binding = 1;
 			resptype = DH6_REPLY;
 		} else
 			resptype = DH6_ADVERTISE;
@@ -664,6 +640,8 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		if (optinfo->iaidinfo.iaid != 0) {
 			memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo, 
 					sizeof(roptinfo.iaidinfo));
+			roptinfo.type = optinfo->type;
+			dprintf(LOG_DEBUG, "option type is %d", roptinfo.type);
 			addr_request = 1;
 			resptype = DH6_ADVERTISE;
 						
@@ -687,6 +665,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		if (optinfo->iaidinfo.iaid != 0) {
 			memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo, 
 					sizeof(roptinfo.iaidinfo));
+			roptinfo.type = optinfo->type;
 			addr_request = 1;
 		} 
 		/* DNS server */
@@ -712,49 +691,12 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			addr_flag = ADDR_VALIDATE;
 		if (dh6->dh6_msgtype == DH6_DECLINE)
 			addr_flag = ADDR_ABANDON;
-		for (lv = TAILQ_FIRST(&optinfo->prefix_list); lv;
-	     			lv = TAILQ_NEXT(lv, link)) {
-			struct dhcp6_binding *binding;
-			binding = find_binding(&optinfo->clientID,
-					       DHCP6_CONFINFO_PREFIX,
-					       &lv->val_prefix6);
-			if (binding == NULL) {
-				num = DH6OPT_STCODE_NOBINDING;
-				dprintf(LOG_INFO, "%s" "can't find a binding of prefix"
-					" %s/%d for %s", FNAME,
-					in6addr2str(&lv->val_prefix6.addr, 0),
-					lv->val_prefix6.plen,
-					duidstr(&optinfo->clientID));
-				continue; /* XXX: is this okay? */
-			}
-
-			/* we always extend the requested binding. */
-			update_binding(binding);
-
-			/* include a Status Code option with value Success. */
-			num = DH6OPT_STCODE_SUCCESS;
-
-			if (dhcp6_add_listval(&roptinfo.stcode_list,
-		    		&num, DHCP6_LISTVAL_NUM) == NULL) {
-				dprintf(LOG_ERR, "%s" "failed to add a "
-			    		"status code", FNAME);
-			}
-			/* add the prefix */
-			if (dhcp6_add_listval(&roptinfo.prefix_list, binding->val,
-		    		DHCP6_LISTVAL_PREFIX6) == NULL) {
-				dprintf(LOG_ERR, "%s" "failed to add a renewed prefix",
-			   		 FNAME);
-				goto fail;
-			}
-		}
 	if (optinfo->iaidinfo.iaid != 0) {
 		if (!TAILQ_EMPTY(&optinfo->addr_list)) {
 			struct dhcp6_iaidaddr *iaidaddr;
-			int tempaddr = 0;
-			if (optinfo->flags & DHCIFF_TEMP_ADDRS) 
-				tempaddr = 1;
 			memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo, 
 					sizeof(roptinfo.iaidinfo));
+			roptinfo.type = optinfo->type;
 			/* find bindings */
 			if ((iaidaddr = dhcp6_find_iaidaddr(&roptinfo)) == NULL) {
 				num = DH6OPT_STCODE_NOBINDING;
@@ -766,8 +708,12 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			if (addr_flag != ADDR_UPDATE) {
 				dhcp6_copy_list(&roptinfo.addr_list, &optinfo->addr_list);
 			} else {
-				dhcp6_create_addrlist(&roptinfo, optinfo, iaidaddr, 
-						subnet, tempaddr);
+				if (optinfo->type == IAPD)
+					dhcp6_create_prefixlist(&roptinfo, optinfo, 
+							iaidaddr, subnet);
+				else
+					dhcp6_create_addrlist(&roptinfo, optinfo, 
+							iaidaddr, subnet);
 				/* in case there is not bindings available */
 				if (TAILQ_EMPTY(&roptinfo.addr_list)) {
 					num = DH6OPT_STCODE_NOTONLINK;
@@ -797,13 +743,14 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			num = DH6OPT_STCODE_SUCCESS;
 		} else 
 			num = DH6OPT_STCODE_NOADDRAVAIL;
-	}
+	} else 
+		dprintf(LOG_ERR, "invalid message type");
 		break;
 	default:
 		break;
 	}
 	/*
- 	 * see if we have information for requested options, and if so,
+ 	 * XXX: see if we have information for requested options, and if so,
  	 * configure corresponding options.
  	 */
 	/*
@@ -816,33 +763,9 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	 * that we can provide.  So we do not have to check the option request
 	 * options.
 	 */
-	switch (dh6->dh6_msgtype) {
-	case DH6_SOLICIT:
-	case DH6_RENEW:
-	case DH6_REBIND:
-		for (lv = TAILQ_FIRST(&optinfo->reqopt_list); lv;
-     				lv = TAILQ_NEXT(lv, link)) {
-			switch(lv->val_num) {
-			case DH6OPT_PREFIX_DELEGATION:
-				create_conflist(DHCP6_CONFINFO_PREFIX,
-		    			&optinfo->clientID, &roptinfo.prefix_list,
-		    			client_conf ? &client_conf->prefix_list : NULL,
-		    			TAILQ_EMPTY(&optinfo->prefix_list) ?
-		    			NULL : &optinfo->prefix_list,
-		    			do_binding);
-			break;
-			}
-		}
-		break;
-	default:
-		break;
-	}
 	if (addr_request == 1) {
 		int found_binding = 0;
-		int tempaddr_flag = 0;
 		struct dhcp6_iaidaddr *iaidaddr;
-		if (roptinfo.flags & DHCIFF_TEMP_ADDRS) 
-			tempaddr_flag = 1;
 		/* get per-host configuration for the client, if any. */
 		if ((client_conf = find_hostconf(&optinfo->clientID))) {
 			dprintf(LOG_DEBUG, "%s" "found a host configuration named %s",
@@ -853,9 +776,11 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			found_binding = 1;
 			addr_flag = ADDR_UPDATE;
 		}
-		/* valid and create addresses list */	
-		dhcp6_create_addrlist(&roptinfo, optinfo, iaidaddr, subnet, 
-				tempaddr_flag); 
+		/* valid and create addresses list */
+		if (optinfo->type == IAPD)
+			dhcp6_create_prefixlist(&roptinfo, optinfo, iaidaddr, subnet);
+		else
+			dhcp6_create_addrlist(&roptinfo, optinfo, iaidaddr, subnet);
 		if (TAILQ_EMPTY(&roptinfo.addr_list)) {
 			num = DH6OPT_STCODE_NOADDRAVAIL;
 		} else {
@@ -878,14 +803,6 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 					num = DH6OPT_STCODE_SUCCESS;
 			}
 		}
-		/*
-	 	 * See if we have to make a binding of some configuration information
-	 	 * for the client.
-	 	 */
-		create_conflist(DHCP6_CONFINFO_PREFIX,
-	    		&optinfo->clientID, &roptinfo.prefix_list,
-	    		client_conf ? &client_conf->prefix_list : NULL,
-	    		&optinfo->prefix_list, 1);
 	}
 	/* add address status code */
   send:
@@ -961,279 +878,3 @@ server6_send(type, ifp, origmsg, optinfo, from, fromlen, roptinfo)
 	return 0;
 }
 
-static int
-create_conflist(type, clientid, ret_list, conf_list, req_list, do_binding)
-	dhcp6_conftype_t type;
-	struct duid *clientid;
-	struct dhcp6_list *ret_list, *conf_list, *req_list;
-	int do_binding;
-{
-	struct dhcp6_listval *clv;
-	struct dhcp6_binding *binding;
-	void *val;
-
-	if (conf_list == NULL)
-		return 0;
-
-	/* sanity check about type */
-	switch(type) {
-	case DHCP6_CONFINFO_PREFIX:
-		break;
-	default:
-		dprintf(LOG_ERR, "%s" "unexpected configuration type(%d)",
-			FNAME, type);
-		exit(1);
-	}
-
-	for (clv = TAILQ_FIRST(conf_list); clv; clv = TAILQ_NEXT(clv, link)) {
-		struct dhcp6_listval *dl;
-
-		/* 
-		 * If the client explicitly specified a list of option values,
-		 * we only return those specified values (if authorized). 
-		 */
-		if (req_list) {
-			switch(type) {
-			case DHCP6_CONFINFO_PREFIX:
-				if (dhcp6_find_listval(req_list,
-				    &clv->val_prefix6,
-				    DHCP6_LISTVAL_PREFIX6) == NULL) {
-					continue;
-				}
-				break;
-			}
-		}
-
-		/*
-		 * TODO: check if the requesting router is authorized.
-		 */
-		;
-
-		/*
-		 * If we already have a binding for the prefix, the request
-		 * is probably being retransmitted or the information is being
-		 * renewed.  Then just update the timer of the binding.
-		 * Otherwise, create a binding for the prefix.
-		 */
-		if (do_binding) {
-			if ((binding = find_binding(clientid, type, &clv->uv)))
-				update_binding(binding);
-			else if ((binding = add_binding(clientid, type,
-							&clv->uv)) == NULL) {
-				dprintf(LOG_ERR, "%s" "failed to create a "
-					"binding");
-				continue;
-			}
-			val = binding->val;
-		} else
-			val = (void *)&clv->uv;
-
-		/* add the entry to the returned list */
-		if ((dl = malloc(sizeof(*dl))) == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to allocate "
-				"memory for prefix", FNAME);
-			continue; /* XXX: remove binding? */
-		}
-		switch(type) {
-		case DHCP6_CONFINFO_PREFIX:
-			dl->val_prefix6 = *(struct dhcp6_prefix *)val;
-			break;
-		}
-
-		TAILQ_INSERT_TAIL(ret_list, dl, link);
-	}
-
-	return 0;
-}
-
-static struct dhcp6_binding *
-add_binding(clientid, type, val0)
-	struct duid *clientid;
-	dhcp6_conftype_t type;
-	void *val0;
-{
-	struct dhcp6_binding *binding = NULL;
-	u_int32_t duration = DHCP6_DURATITION_INFINITE;
-	char *val = NULL;
-
-	if ((binding = malloc(sizeof(*binding))) == NULL) {
-		dprintf(LOG_ERR, "%s" "failed to allocate memory", FNAME);
-		return (NULL);
-	}
-	memset(binding, 0, sizeof(*binding));
-	binding->type = type;
-	if (duidcpy(&binding->clientid, clientid)) {
-		dprintf(LOG_ERR, "%s" "failed to copy DUID");
-		goto fail;
-	}
-
-	switch(type) {
-	case DHCP6_CONFINFO_PREFIX:
-		duration = ((struct dhcp6_prefix *)val0)->duration;
-		if ((val = malloc(sizeof(struct dhcp6_prefix))) == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to allocate memory for "
-				"prefix");
-			goto fail;
-		}
-		memcpy(val, val0, sizeof(struct dhcp6_prefix));
-		binding->val = val;
-		break;
-	default:
-		dprintf(LOG_ERR, "%s" "unexpected binding type(%d)", FNAME,
-			type);
-		exit(1);
-	}
-
-	binding->duration = duration;
-	if (duration != DHCP6_DURATITION_INFINITE) {
-		struct timeval timo;
-
-		binding->timer = dhcp6_add_timer(binding_timo, binding);
-		if (binding->timer == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to add timer", FNAME);
-			goto fail;
-		}
-		timo.tv_sec = (long)duration;
-		timo.tv_usec = 0;
-		dhcp6_set_timer(&timo, binding->timer);
-	}
-
-	TAILQ_INSERT_TAIL(&dhcp6_binding_head, binding, link);
-
-	dprintf(LOG_DEBUG, "%s" "add a new binding %s for %s", FNAME,
-		bindingstr(binding), duidstr(clientid));
-
-	return (binding);
-
-  fail:
-	if (binding) {
-		duidfree(&binding->clientid);
-		free(binding);
-	}
-	if (val)
-		free(val);
-	return (NULL);
-}
-
-static struct dhcp6_binding *
-find_binding(clientid, type, val0)
-	struct duid *clientid;
-	dhcp6_conftype_t type;
-	void *val0;
-{
-	struct dhcp6_binding *bp;
-	struct dhcp6_prefix *pfx0, *pfx;
-
-	for (bp = TAILQ_FIRST(&dhcp6_binding_head); bp;
-	     bp = TAILQ_NEXT(bp, link)) {
-		if (bp->type != type ||
-		    duidcmp(&bp->clientid, clientid)) {
-			continue;
-		}
-
-		switch(type) {
-		case DHCP6_CONFINFO_PREFIX:
-			pfx0 = (struct dhcp6_prefix *)val0;
-			pfx = (struct dhcp6_prefix *)bp->val;
-			if (pfx0->plen == pfx->plen &&
-			    IN6_ARE_ADDR_EQUAL(&pfx0->addr, &pfx->addr)) {
-				return (bp);
-			}
-			break;
-		default:
-			dprintf(LOG_ERR,
-				"%s" "unexpected binding type(%d)", FNAME,
-				type);
-			exit(1);
-		}
-	}
-
-	return (NULL);
-}
-
-static void
-update_binding(binding)
-	struct dhcp6_binding *binding;
-{
-	struct timeval timo;
-
-	/* if the lease duration is infinite, there's nothing to do. */
-	if (binding->duration == DHCP6_DURATITION_INFINITE)
-		return;
-
-	/* reset the timer with the duration */
-	timo.tv_sec = (long)binding->duration;
-	timo.tv_usec = 0;
-	dhcp6_set_timer(&timo, binding->timer);
-
-	dprintf(LOG_DEBUG, "%s" "update a binding %s for %s", FNAME,
-		bindingstr(binding), duidstr(&binding->clientid));
-}
-
-static void
-remove_binding(binding)
-	struct dhcp6_binding *binding;
-{
-	void *val = binding->val;
-
-	dprintf(LOG_DEBUG, "%s" "removing a binding %s for %s", FNAME,
-		bindingstr(binding), duidstr(&binding->clientid));
-
-	if (binding->timer)
-		dhcp6_remove_timer(&binding->timer);
-
-	TAILQ_REMOVE(&dhcp6_binding_head, binding, link);
-
-	switch(binding->type) {
-	case DHCP6_CONFINFO_PREFIX:
-		dprintf(LOG_INFO, "%s" "remove prefix binding %s/%d for %s",
-			FNAME,
-			in6addr2str(&((struct dhcp6_prefix *)val)->addr, 0),
-			((struct dhcp6_prefix *)val)->plen,
-			duidstr(&binding->clientid));
-		free(binding->val);
-		break;
-	default:
-		dprintf(LOG_ERR, "%s" "unexpected binding type(%d)", FNAME,
-			binding->type);
-		exit(1);
-	}
-
-	duidfree(&binding->clientid);
-	free(binding);
-}
-
-static struct dhcp6_timer *
-binding_timo(arg)
-	void *arg;
-{
-	struct dhcp6_binding *binding = (struct dhcp6_binding *)arg;
-
-	remove_binding(binding);
-
-	return NULL;
-}
-
-static char *
-bindingstr(binding)
-	struct dhcp6_binding *binding;
-{
-	struct dhcp6_prefix *pfx;
-	static char strbuf[LINE_MAX];	/* XXX: thread unsafe */
-
-	switch(binding->type) {
-	case DHCP6_CONFINFO_PREFIX:
-		pfx = (struct dhcp6_prefix *)binding->val;
-		snprintf(strbuf, sizeof(strbuf),
-			 "[prefix: %s/%d, duration=%ld]",
-			 in6addr2str(&pfx->addr, 0), pfx->plen,
-			 (unsigned long)binding->duration);
-		break;
-	default:
-		dprintf(LOG_ERR, "%s" "unexpected binding type(%d)", FNAME,
-			binding->type);
-		exit(1);
-	}
-
-	return (strbuf);
-}

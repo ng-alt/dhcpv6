@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.3 2003/02/11 02:21:26 shirleyma Exp $	*/
+/*	$Id: client6_parse.y,v 1.4 2003/02/25 00:31:52 shirleyma Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -89,9 +89,9 @@ static void cleanup_cflist __P((struct cf_list *));
 
 %token INTERFACE IFNAME IPV6ADDR
 %token REQUEST SEND 
-%token OPTION RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS PREFIX_INFO PREFIX_REQ
+%token OPTION RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS 
 %token INFO_ONLY TEMP_ADDR
-%token ADDRESS IAID RENEW_TIME REBIND_TIME V_TIME P_TIME
+%token ADDRESS PREFIX IAID RENEW_TIME REBIND_TIME V_TIME P_TIME
 %token NUMBER SLASH EOS BCL ECL STRING INFINITY
 %token COMMA
 
@@ -100,14 +100,12 @@ static void cleanup_cflist __P((struct cf_list *));
 	char* str;
 	struct cf_list *list;
 	struct in6_addr addr;
-	struct dhcp6_prefix *prefix;
 	struct dhcp6_addr *v6addr;
 }
 
 %type <str> IFNAME STRING
 %type <num> NUMBER duration addrvtime addrptime
 %type <list> declaration declarations dhcpoption 
-%type <prefix> prefixparam 
 %type <v6addr> addrparam addrdecl
 %type <addr> IPV6ADDR
 
@@ -194,6 +192,17 @@ declaration:
 			$$ = l;
 
 		}
+	
+	|	PREFIX BCL addrdecl ECL EOS
+		{
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DECL_PREFIX, $3, NULL);
+
+			$$ = l;
+
+		}
+	
 	|	RENEW_TIME duration EOS
 		{
 			struct cf_list *l;
@@ -223,23 +232,6 @@ declaration:
 		
 			$$ = l;
 		}
-	|	PREFIX_INFO prefixparam EOS
-		{
-			struct cf_list *l;
-
-			MAKE_CFLIST(l, DECL_PREFIX_INFO, $2, NULL);
-
-			$$ = l;
-		}
-	|	PREFIX_REQ NUMBER EOS
-		{
-			struct cf_list *l;
-
-			MAKE_CFLIST(l, DECL_PREFIX_REQ, NULL, NULL);
-
-			l->num = $2;
-			$$ = l;
-		}
 	;
 
 dhcpoption:
@@ -266,36 +258,6 @@ dhcpoption:
 			MAKE_CFLIST(l, DHCPOPT_DNS, NULL, NULL);
 			/* currently no value */
 			$$ = l;
-		}
-	;
-
-prefixparam:
-		
-		STRING SLASH NUMBER duration
-		{
-			struct dhcp6_prefix pconf0, *pconf;		
-	
-			memset(&pconf0, 0, sizeof(pconf0));
-			if (inet_pton(AF_INET6, $1, &pconf0.addr) != 1) {
-				cpyywarn("invalid IPv6 address: %s", $1);
-				free($1);
-				return (-1);
-			}
-			free($1);
-			/* validate other parameters later */
-			pconf0.plen = $3;
-			if ($4 < 0)
-				pconf0.duration = DHCP6_DURATITION_INFINITE;
-			else
-				pconf0.duration = (u_int32_t)$4;
-	
-			if ((pconf = malloc(sizeof(*pconf))) == NULL) {
-				cpyywarn("can't allocate memory");
-				return (-1);
-			}
-			*pconf = pconf0;
-
-			$$ = pconf;
 		}
 	;
 

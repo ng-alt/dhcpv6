@@ -4240,17 +4240,17 @@ echo $ECHO_N "checking for DHCP prefix information option... $ECHO_C" >&6
 # Check whether --with-opt-pinfo or --without-opt-pinfo was given.
 if test "${with_opt_pinfo+set}" = set; then
   withval="$with_opt_pinfo"
-  dhcpopt_pinfo="$withval"
+  dhcpopt_iaprefix="$withval"
 else
-  dhcpopt_pinfo=0
+  dhcpopt_iaprefix=0
 fi;
-if test $dhcpopt_pinfo = 0 ; then
-	dhcpopt_pinfo=31
-	echo "$as_me:$LINENO: result: unspecified and using $dhcpopt_pinfo" >&5
-echo "${ECHO_T}unspecified and using $dhcpopt_pinfo" >&6
+if test $dhcpopt_iaprefix = 0 ; then
+	dhcpopt_iaprefix=31
+	echo "$as_me:$LINENO: result: unspecified and using $dhcpopt_iaprefix" >&5
+echo "${ECHO_T}unspecified and using $dhcpopt_iaprefix" >&6
 else
-	echo "$as_me:$LINENO: result: using $dhcpopt_pinfo" >&5
-echo "${ECHO_T}using $dhcpopt_pinfo" >&6
+	echo "$as_me:$LINENO: result: using $dhcpopt_iaprefix" >&5
+echo "${ECHO_T}using $dhcpopt_iaprefix" >&6
 fi
 
 
@@ -4983,7 +4983,7 @@ s,@CPP@,$CPP,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@dhcpopt_dns@,$dhcpopt_dns,;t t
 s,@dhcpopt_pdel@,$dhcpopt_pdel,;t t
-s,@dhcpopt_pinfo@,$dhcpopt_pinfo,;t t
+s,@dhcpopt_iaprefix@,$dhcpopt_iaprefix,;t t
 s,@dhcpopt_preq@,$dhcpopt_preq,;t t
 CEOF
 

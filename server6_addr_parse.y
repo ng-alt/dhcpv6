@@ -1,4 +1,4 @@
-/*	$Id: server6_addr_parse.y,v 1.4 2003/02/10 23:47:09 shirleyma Exp $	*/
+/*	$Id: server6_addr_parse.y,v 1.5 2003/02/25 00:31:53 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -69,7 +69,7 @@ void sfyyerror(char *msg);
 
 extern int sfyylex __P((void));
 %}
-%token	<str>	INTERFACE
+%token	<str>	INTERFACE IFNAME
 %token	<str>	PREFIX
 %token	<str>	LINK	
 %token	<str>	RELAY
@@ -93,20 +93,21 @@ extern int sfyylex __P((void));
 %token	<str>	RENEWTIME
 %token	<str>	REBINDTIME
 %token	<str>	RAPIDCOMMIT
-%token	<str>	FIXEDIPV6ADDR
+%token	<str>	ADDRESS
 %token	<str>	VALIDLIFETIME
 %token	<str>	PREFERLIFETIME
 %token	<str>	UNICAST
 %token	<str>	TEMPIPV6ADDR
-%token	<str>	DUID IAID 
-%token	<str>	DUID_ID 
+%token	<str>	DUID DUID_ID
+%token	<str>	IAID IAIDINFO
 %token  <str>	INFO_ONLY
 %token	<str>	TO
 
 %token	<str>	BAD_TOKEN
 
-%type	<str>		name
-%type   <num>		number_or_infinity
+%type	<str>	name
+%type   <num>	number_or_infinity
+%type	<v6list>	hostaddr6 hostprefix6 addr6para v6address
 
 %union {
 	int	num;
@@ -115,6 +116,7 @@ extern int sfyylex __P((void));
 	int 	dec;
 	int	bool;
 	struct in6_addr	addr;
+	struct dhcp6_addrlist *v6list;
 }
 %%
 statements	
@@ -125,7 +127,7 @@ statements
 networkdef	
 	: ifdef
 	| groupdef
-	| paralist
+	| confdecl
 	| linkdef
 	;
 
@@ -156,7 +158,7 @@ ifdef
 	;
 
 ifhead		
-	: INTERFACE name
+	: INTERFACE IFNAME 
 	{
 		struct interface *temp_if = ifnetworklist;
 		while (temp_if)
@@ -203,7 +205,7 @@ ifparams
 	: linkdef
 	| hostdef
 	| groupdef
-	| paralist
+	| confdecl
 	;	
 
 linkdef	
@@ -268,9 +270,10 @@ linkbody
 linkparams	
 	: pooldef
 	| rangedef
+	| prefixdef
 	| hostdef
 	| groupdef
-	| paralist
+	| confdecl
 	;
 
 relaylist	
@@ -345,7 +348,50 @@ poolparas
 	: hostdef
 	| groupdef
 	| rangedef
-	| paralist
+	| prefixdef
+	| confdecl
+	;
+
+prefixdef
+	: PREFIX IPV6ADDR '/' NUMBER ';'
+	{
+		struct v6prefix *v6prefix, *v6prefix0;
+		struct v6addr *prefix;
+		if (!link) {
+			dprintf(LOG_ERR, "prefix must be defined under link");
+			ABORT;
+		}
+		v6prefix = (struct v6prefix *)malloc(sizeof(*v6prefix));
+		if (v6prefix == NULL) {
+			dprintf(LOG_ERR, "failed to allocate memory");
+			ABORT;
+		}
+		memset(v6prefix, 0, sizeof(*v6prefix));
+		v6prefix->link = link;
+		if (pool)
+			v6prefix->pool = pool;
+		/* make sure the range ipv6 address within the prefixaddr */
+		if ($4 > 128 || $4 < 0) {
+			dprintf(LOG_ERR, "invalid prefix length in line %d", num_lines);
+			ABORT;
+		}
+		prefix = getprefix(&$2, $4);
+		for (v6prefix0 = link->prefixlist; v6prefix0; v6prefix0 = v6prefix0->next) {
+			if (IN6_ARE_ADDR_EQUAL(prefix, &v6prefix0->prefix.addr) && 
+					$4 == v6prefix0->prefix.plen)  {
+				dprintf(LOG_ERR, "duplicated prefix defined within same link");
+				ABORT;
+			}
+		}
+		/* check the assigned prefix is not reserved pv6 addresses */
+		if (IN6_IS_ADDR_RESERVED(prefix)) {
+			dprintf(LOG_ERR, "config reserved prefix");
+			ABORT;
+		}
+		memcpy(&v6prefix->prefix, prefix, sizeof(v6prefix->prefix));
+		v6prefix->next = link->prefixlist;
+		link->prefixlist = v6prefix;
+	}
 	;
 
 rangedef
@@ -379,7 +425,8 @@ rangedef
 			ABORT;
 		}
 		if (ipv6addrcmp(&prefix1->addr, &prefix2->addr)) {
-			dprintf(LOG_ERR, "address range defined doesn't in the same prefix range");
+			dprintf(LOG_ERR, 
+				"address range defined doesn't in the same prefix range");
 			ABORT;
 		}
 		if (ipv6addrcmp(&$2, &$4) < 0) {
@@ -422,7 +469,7 @@ rangedef
 				}
 				if (prefix1->plen == temp_seg->prefix.plen) {
 	     				if (!(ipv6addrcmp(&seg->min, &temp_seg->max) > 0
-						|| ipv6addrcmp(&seg->max, &temp_seg->min) < 0)) {
+					    || ipv6addrcmp(&seg->max, &temp_seg->min) < 0)) {
 		   				dprintf(LOG_ERR, "overlap range addr defined");
 		   				ABORT;
 					}
@@ -464,8 +511,9 @@ groupparas
 	| pooldef
 	| linkdef
 	| rangedef
+	| prefixdef
 	| ifdef
-	| paralist
+	| confdecl
 	;
 
 grouphead	
@@ -496,8 +544,9 @@ hostdef
 		struct host_decl *temp_host = hostlist;
 		while (temp_host)
 		{
-			if (temp_host->iaid = host->iaid) {
-				dprintf(LOG_ERR, "duplicated host %d redefined", host->iaid);
+			if (temp_host->iaidinfo.iaid = host->iaidinfo.iaid) {
+				dprintf(LOG_ERR, "duplicated host %d redefined", 
+					host->iaidinfo.iaid);
 				ABORT;
 			}
 			temp_host = temp_host->next;
@@ -540,54 +589,129 @@ hosthead
 	}
 	;
 
-hostbody	
-	:
-	| hostbody ipv6addr_list
+hostbody
+	: hostbody hostdecl
+	| hostdecl
+	;
+
+hostdecl
+	: DUID DUID_ID ';'
+	{
+		if (host == NULL) {
+			dprintf(LOG_DEBUG, "duid should be defined under host decl");
+			ABORT;
+		}
+		configure_duid($2, &host->cid);
+	}
+	| iaiddef
 	| hostparas
 	;
 
-hostparas	
+iaiddef
+	: IAIDINFO '{' iaidbody '}' ';'
+	;
+
+iaidbody
+	: iaidbody RENEWTIME number_or_infinity ';'
+	{
+		host->iaidinfo.renewtime = $3;
+	}
+	| iaidbody REBINDTIME number_or_infinity ';'
+	{
+		host->iaidinfo.rebindtime = $3;
+	}
+	| iaidpara
+	;
+
+iaidpara
+	: IAID NUMBER ';'
+	{
+		if (host == NULL) {
+			dprintf(LOG_DEBUG, "iaid should be defined under host decl");
+			ABORT;
+		}
+		host->iaidinfo.iaid = $2;
+	}
+	;	
+
+hostparas
 	: hostparas hostpara
 	| hostpara
 	;
 
-hostpara	
-	: paralist
-	| DUID DUID_ID ';'
+hostpara
+	: hostaddr6
 	{
-		configure_duid($2, &host->cid);
+		if (host == NULL) {
+			dprintf(LOG_DEBUG, "address should be defined under host decl");
+			ABORT;
+		}
+		$1->next = host->addrlist;
+		host->addrlist = $1;
 	}
-	| IAID NUMBER ';'
+	| hostprefix6
 	{
-		host->iaid = $2;
+		if (host == NULL) {
+			dprintf(LOG_DEBUG, "prefix should be defined under host decl");
+			ABORT;
+		}
+		$1->next = host->prefixlist;
+		host->prefixlist = $1;
 	}
-	| LINKLOCAL IPV6ADDR ';'
+	| optiondecl
+	;
+
+hostaddr6
+	: ADDRESS '{' addr6para '}' ';'
 	{
-		memcpy(&host->linklocal, &$2, sizeof(host->linklocal));
+		$$ = $3;
 	}
 	;
 
-ipv6addr_list	
-	: FIXEDIPV6ADDR IPV6ADDR '/' NUMBER ';'
+hostprefix6
+	: PREFIX '{' addr6para '}' ';'
 	{
-		struct v6addrlist *temp;
-		temp = (struct v6addrlist *)malloc(sizeof(*temp));
+		$$ = $3;
+	}
+	;
+	
+addr6para
+	: addr6para VALIDLIFETIME number_or_infinity ';'
+	{
+		$1->v6addr.validlifetime = $3;
+	}
+	| addr6para PREFERLIFETIME number_or_infinity ';'
+	{
+		$1->v6addr.preferlifetime = $3;
+	}
+	| v6address
+	{
+		$$ = $1;
+	}
+	;
+
+v6address
+	: IPV6ADDR '/' NUMBER ';'
+	{
+		struct dhcp6_addrlist *temp;
+		temp = (struct dhcp6_addrlist *)malloc(sizeof(*temp));
 		if (temp == NULL) {
 			dprintf(LOG_ERR, "v6addr memory allocation failed");
 			ABORT;
 		}
 		memset(temp, 0, sizeof(*temp));
-		memcpy(&temp->v6addr, &$2, sizeof(temp->v6addr));
-		temp->v6addr.plen = $4;
-		temp->next = host->addrlist;
-		host->addrlist = temp;
+		memcpy(&temp->v6addr.addr, &$1, sizeof(temp->v6addr.addr));
+		if ($3 > 128 || $3 < 0) {
+			dprintf(LOG_ERR, "invalid prefix length in line %d", num_lines);
+			ABORT;
+		}
+		temp->v6addr.plen = $3;
+		$$ = temp;
 	}
 	;
 
-optiondecl	
-	: optionhead optionparas
-	{
-	}
+optiondecl
+	: optionhead optionpara
 	;
 
 optionhead	
@@ -599,7 +723,7 @@ optionhead
 				ABORT;
 		}
 	}	
-	| ALLOW OPTION
+	| ALLOW 
 	{		
 		if (!currentscope) {
 			currentscope = push_double_list(currentscope, &globalgroup->scope);
@@ -608,11 +732,6 @@ optionhead
 		}
 		allow = 1;
 	}	
-	;
-
-optionparas	
-	: optionparas optionpara
-	| optionpara
 	;
 
 optionpara	
@@ -650,12 +769,12 @@ optionpara
 	}
 	;
 
-paralist	
+confdecl	
 	: paradecl
 	| optiondecl
 	;
 
-paradecl	
+paradecl
 	: RENEWTIME number_or_infinity ';'
 	{
 		if (!currentscope) {
@@ -683,8 +802,10 @@ paradecl
 		}
 		currentscope->scope->valid_life_time = $2;
 		if (currentscope->scope->prefer_life_time != 0 && 
-		    currentscope->scope->valid_life_time <= currentscope->scope->prefer_life_time) {
-			dprintf(LOG_ERR, "%s" "validlifetime is less than(equal) preferlifetime", FNAME);
+		    currentscope->scope->valid_life_time <
+		    currentscope->scope->prefer_life_time) {
+			dprintf(LOG_ERR, "%s" 
+				"validlifetime is less than(equal) preferlifetime", FNAME);
 			ABORT;
 		}
 	}
@@ -697,8 +818,10 @@ paradecl
 		}
 		currentscope->scope->prefer_life_time = $2;
 		if (currentscope->scope->valid_life_time != 0 &&
-		    currentscope->scope->valid_life_time <= currentscope->scope->prefer_life_time) {
-			dprintf(LOG_ERR, "%s" "validlifetime is less than(equal) preferlifetime", FNAME);
+		    currentscope->scope->valid_life_time <
+		    currentscope->scope->prefer_life_time) {
+			dprintf(LOG_ERR, "%s" 
+				"validlifetime is less than(equal) preferlifetime", FNAME);
 			ABORT;
 		}
 	}
@@ -711,7 +834,7 @@ number_or_infinity
 	}
 	| INFINITY
 	{
-		$$ = (int)~0;
+		$$ = DHCP6_DURATITION_INFINITE;
 	}
 	;
 

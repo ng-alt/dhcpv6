@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.7 2003/02/13 18:58:11 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.8 2003/02/25 00:31:52 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -68,7 +68,6 @@
 #include <config.h>
 #include <common.h>
 #include <timer.h>
-#include <prefixconf.h>
 #include <queue.h>
 #include "lease.h"
 
@@ -153,11 +152,36 @@ main(argc, argv)
 		progname++;
 
 	TAILQ_INIT(&request_list);
-	while ((ch = getopt(argc, argv, "c:r:R:dDf")) != -1) {
+	while ((ch = getopt(argc, argv, "c:r:R:P:dDf")) != -1) {
 		switch (ch) {
 		case 'c':
 			conffile = optarg;
 			break;
+		case 'P':
+			client6_request_flag |= CLIENT6_REQUEST_ADDR;
+			for (addr = strtok(optarg, " "); addr; 
+					addr = strtok(NULL, " ")) {
+				struct dhcp6_listval *lv;
+				if ((lv = 
+					(struct dhcp6_listval *)malloc(sizeof(*lv)))
+						== NULL) {
+					dprintf(LOG_ERR, "failed to allocate memory");
+					exit(1);
+				}
+				memset(lv, 0, sizeof(*lv));
+				if (inet_pton(AF_INET6, strtok(addr, "/"), 
+						&lv->val_dhcp6addr.addr) < 1) {
+					dprintf(LOG_ERR, 
+						"invalid ipv6address for release");
+					usage();
+					exit(1);
+				}
+				lv->val_dhcp6addr.plen = atoi(strtok(NULL, "/"));
+				lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
+				TAILQ_INSERT_TAIL(&request_list, lv, link);
+			} 
+			break;
+
 		case 'R':
 			client6_request_flag |= CLIENT6_REQUEST_ADDR;
 			for (addr = strtok(optarg, " "); addr; 
@@ -386,9 +410,6 @@ client6_init(device)
 	}
 	ifp->outsock = outsock;
 
-	prefix6_init();
-
-
 	if (signal(SIGHUP, client6_signal) == SIG_ERR) {
 		dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
 			FNAME, strerror(errno));
@@ -448,15 +469,7 @@ client6_ifinit()
 				/* create an address list for release all/confirm */
 				for (cl = TAILQ_FIRST(&client6_iaidaddr.lease_list); cl; 
 					cl = TAILQ_NEXT(cl, link)) {
-					/* config the interface for reboot */
-					if ((client6_request_flag & CLIENT6_CONFIRM_ADDR) &&
-					    client6_ifaddrconf(IFADDRCONF_ADD,
-							&cl->lease_addr) != 0) {
-						dprintf(LOG_INFO, "config address failed: %s",
-							in6addr2str(&cl->lease_addr.addr, 0));
-						exit(1);
-					}
-					/* IA_NA address */
+					/* IANA, IAPD */
 					if ((lv = malloc(sizeof(*lv))) == NULL) {
 						dprintf(LOG_ERR, "%s" 
 					"failed to allocate memory for an ipv6 addr", FNAME);
@@ -466,6 +479,20 @@ client6_ifinit()
 						sizeof(lv->val_dhcp6addr));
 					lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
 					TAILQ_INSERT_TAIL(&request_list, lv, link);
+					/* config the interface for reboot */
+					if (cl->addr_type == IAPD) {
+						dprintf(LOG_INFO, "confirm prefix %s/%d",
+							in6addr2str(&cl->lease_addr.addr, 0),
+							cl->lease_addr.plen);
+						/* XXX:	what to do for PD */
+						continue;
+					} else if ((client6_request_flag & CLIENT6_CONFIRM_ADDR) 
+						    && client6_ifaddrconf(IFADDRCONF_ADD,
+						    &cl->lease_addr) != 0) {
+						dprintf(LOG_INFO, "config address failed: %s",
+							in6addr2str(&cl->lease_addr.addr, 0));
+						exit(1);
+					}
 					
 				}
 			} else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
@@ -508,9 +535,6 @@ free_resources()
 {
 	struct dhcp6_if *ifp;
 	
-	/* release delegated prefixes (should send DHCPv6 release?) */
-	prefix6_remove_all();
-
 	for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
 		struct dhcp6_event *ev, *ev_next;
 		dprintf(LOG_DEBUG, "%s" " remove all events on interface", FNAME);
@@ -796,24 +820,6 @@ client6_send(ev)
 		goto end;
 	}
 
-	if (ev->state == DHCP6S_SOLICIT) { 
-		/* rapid commit */
-		if (ifp->send_flags & DHCIFF_RAPID_COMMIT) 
-			optinfo.flags |= DHCIFF_RAPID_COMMIT;
-		if (!(ifp->send_flags & DHCIFF_INFO_ONLY) ||
-		    (client6_request_flag & CLIENT6_REQUEST_ADDR)) {
-			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
-					sizeof(optinfo.iaidinfo));
-		     	if (ifp->send_flags & DHCIFF_TEMP_ADDRS)
-				optinfo.flags |= DHCIFF_TEMP_ADDRS;
-		}
-		/* support for client preferred ipv6 address */
-		if (client6_request_flag & CLIENT6_REQUEST_ADDR) {
-			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
-				goto end;
-		}
-	}  
-
 	/* option request options */
 	if (dhcp6_copy_list(&optinfo.reqopt_list, &ifp->reqopt_list)) {
 		dprintf(LOG_ERR, "%s" "failed to copy requested options",
@@ -821,52 +827,56 @@ client6_send(ev)
 		goto end;
 	}
 	
-	/* configuration information provided by the server */
-	if (ev->state == DHCP6S_REQUEST) {
-		/* do we have to check if we wanted prefixes? */
-		if (dhcp6_copy_list(&optinfo.prefix_list,
-		    &ifp->current_server->optinfo.prefix_list)) {
-			dprintf(LOG_ERR, "%s" "failed to copy prefixes",
-			    FNAME);
-			goto end;
+	switch(ev->state) {
+	case DHCP6S_SOLICIT:
+		/* rapid commit */
+		if (ifp->send_flags & DHCIFF_RAPID_COMMIT) 
+			optinfo.flags |= DHCIFF_RAPID_COMMIT;
+		if (!(ifp->send_flags & DHCIFF_INFO_ONLY) ||
+		    (client6_request_flag & CLIENT6_REQUEST_ADDR)) {
+			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
+					sizeof(optinfo.iaidinfo));
+			if (ifp->send_flags & DHCIFF_PREFIX_DELEGATION)
+				optinfo.type = IAPD;
+			else if (ifp->send_flags & DHCIFF_TEMP_ADDRS)
+				optinfo.type = IATA;
+			else
+				optinfo.type = IANA;
 		}
+		/* support for client preferred ipv6 address */
+		if (client6_request_flag & CLIENT6_REQUEST_ADDR) {
+			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
+				goto end;
+		}
+		break;
+	case DHCP6S_REQUEST:
 		if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
 			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
 					sizeof(optinfo.iaidinfo));
 			dprintf(LOG_DEBUG, "%s IAID is %d", FNAME, optinfo.iaidinfo.iaid);
 			if (ifp->send_flags & DHCIFF_TEMP_ADDRS) 
-				optinfo.flags |= DHCIFF_TEMP_ADDRS;
+				optinfo.type = IATA;
+			else if (ifp->send_flags & DHCIFF_PREFIX_DELEGATION)
+				optinfo.type = IAPD;
+			else
+				optinfo.type = IANA;
 		}
-	}
-
-	switch(ev->state) {
-	struct dhcp6_eventdata *evd;
+		break;
 	case DHCP6S_RENEW:
 	case DHCP6S_REBIND:
-		for (evd = TAILQ_FIRST(&ev->data_list); evd;
-	     		evd = TAILQ_NEXT(evd, link)) {
-			switch(evd->type) {
-			case DHCP6_DATA_PREFIX:
-				if (dhcp6_add_listval(&optinfo.prefix_list,
-			    	&((struct dhcp6_siteprefix *)evd->data)->prefix,
-			    	DHCP6_LISTVAL_PREFIX6) == NULL) {
-					dprintf(LOG_ERR, "%s" 
-						"failed to add a prefix", FNAME);
-					exit(1);
-				}
-				break;
-			default:
-				dprintf(LOG_ERR, FNAME "unexpected event data (%d)",
-			    		evd->type);
-				exit(1);
-			}
-		}
 	case DHCP6S_RELEASE:
 	case DHCP6S_CONFIRM:
 	case DHCP6S_DECLINE:
+		if (ifp->send_flags & DHCIFF_PREFIX_DELEGATION)
+			optinfo.type = IAPD;
+		else if (ifp->send_flags & DHCIFF_TEMP_ADDRS)
+			optinfo.type = IATA;
+		else
+			optinfo.type = IANA;
 		if (!TAILQ_EMPTY(&request_list)) {
 			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
 				sizeof(optinfo.iaidinfo));
+			/* XXX: ToDo: seperate to prefix list and address list */
 			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
 				goto end;
 			if (ev->state == DHCP6S_CONFIRM) {
@@ -1108,7 +1118,9 @@ client6_recvadvert(ifp, dh6, len, optinfo0)
 
 		dhcp6_set_timer(&timo, ev->timer);
 	}
-	
+	/* if the client send preferred addresses reqeust in SOLICIT */
+	if (!TAILQ_EMPTY(&optinfo0->addr_list))
+		dhcp6_add_iaidaddr(optinfo0);
 	return 0;
 }
 
@@ -1300,10 +1312,6 @@ client6_recvreply(ifp, dh6, len, optinfo)
 	case DHCP6S_REQUEST:
 		/* NotOnLink: 1. SOLICIT 
 		 * NoAddrAvail: Information Request */
-		for (lv = TAILQ_FIRST(&optinfo->prefix_list); lv;
-		     lv = TAILQ_NEXT(lv, link)) {
-			prefix6_add(ifp, &lv->val_prefix6, &optinfo->serverID);
-		}
 		switch(addr_status_code) {
 		case DH6OPT_STCODE_NOTONLINK:
 			dprintf(LOG_DEBUG, "%s" 
@@ -1348,7 +1356,6 @@ client6_recvreply(ifp, dh6, len, optinfo)
 			dhcp6_remove_iaidaddr(&client6_iaidaddr);
 			break;
 		case DH6OPT_STCODE_SUCCESS:
-			prefix6_update(ev, &optinfo->prefix_list, &optinfo->serverID);
 			dhcp6_update_iaidaddr(optinfo, ADDR_UPDATE);
 			break;
 		default:

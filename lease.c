@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.1 2003/02/10 23:47:09 shirleyma Exp $	*/
+/*	$Id: lease.c,v 1.2 2003/02/25 00:31:52 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -72,12 +72,12 @@ write_lease(lease_ptr, file)
 		return (-1);
 	}
 	gmtime_r(&lease_ptr->start_date, &brokendown_time);
-	fprintf(file, "lease %s/%d { \n", addr_str,
-			lease_ptr->lease_addr.plen);
+	fprintf(file, "lease %s/%d { \n", addr_str, lease_ptr->lease_addr.plen);
+
 	fprintf(file, "\t DUID: %s;\n", 
 				duidstr(&lease_ptr->iaidaddr->client6_info.clientid));
 	fprintf(file, "\t IAID: %d ", lease_ptr->iaidaddr->client6_info.iaidinfo.iaid);
-	fprintf(file, "\t type: %d;\n", lease_ptr->iaidaddr->client6_info.IAtype);
+	fprintf(file, "\t type: %d;\n", lease_ptr->iaidaddr->client6_info.type);
 	fprintf(file, "\t RenewTime: %ld;\n", 
 			lease_ptr->iaidaddr->client6_info.iaidinfo.renewtime);
 	fprintf(file, "\t RebindTime: %ld;\n",
@@ -252,7 +252,7 @@ unsigned int
 addr_hash(key)
 	void *key;
 {
-	struct in6_addr *addrkey = (struct in6_addr *)key;
+	struct in6_addr *addrkey = (struct in6_addr *)&(((struct dhcp6_addr *)key)->addr);
 	unsigned int index;
 	index = do_hash((void *)addrkey, sizeof(*addrkey));
 	return index;
@@ -263,7 +263,7 @@ lease_findkey(data)
 	void *data;
 {
         struct dhcp6_lease *lease = (struct dhcp6_lease *)data;
-	return (void *)(&(lease->lease_addr.addr));
+	return (void *)(&(lease->lease_addr));
 }
 
 int 
@@ -272,9 +272,11 @@ lease_key_compare(data, key)
 	void *key;
 { 	
 	int i;
-	struct in6_addr *lease_address = 
-		(struct in6_addr *) &(((struct dhcp6_lease *)data)->lease_addr.addr);
-	if (IN6_ARE_ADDR_EQUAL(lease_address, key))
+	struct dhcp6_addr *lease_address = 
+		(struct dhcp6_addr *) &(((struct dhcp6_lease *)data)->lease_addr);
+	struct dhcp6_addr *addr6 = (struct dhcp6_addr *)key;
+	if (IN6_ARE_ADDR_EQUAL(&lease_address->addr, &addr6->addr) 
+	    && lease_address->plen == addr6->plen)
 		return MATCH;
 	return MISCOMPARE;
 }

@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.4 2003/02/10 23:47:07 shirleyma Exp $	*/
+/*	$Id: config.h,v 1.5 2003/02/25 00:31:52 shirleyma Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -69,7 +69,8 @@ struct dhcp6_if {
 #define DHCIFF_INFO_ONLY 0x1
 #define DHCIFF_RAPID_COMMIT 0x2
 #define DHCIFF_TEMP_ADDRS 0x4
-#define DHCIFF_UNICAST 0x8
+#define DHCIFF_PREFIX_DELEGATION 0x8
+#define DHCIFF_UNICAST 0x01
 
 
 
@@ -255,14 +256,14 @@ typedef enum {DHCP6_MODE_SERVER, DHCP6_MODE_CLIENT, DHCP6_MODE_RELAY }
 dhcp6_mode_t;
 
 extern const dhcp6_mode_t dhcp6_mode;
+extern struct cf_list *cf_dns_list;
+extern char *configfilename;
 
 extern struct dhcp6_if *dhcp6_if;
 extern struct dhcp6_ifconf *dhcp6_iflist;
 extern struct prefix_ifconf *prefix_ifconflist;
 extern struct dhcp6_list dnslist;
 
-extern void ifinit __P((char *));
-extern int configure_duid __P((char *, struct duid *));
 extern int configure_interface __P((struct cf_namelist *));
 extern int configure_prefix_interface __P((struct cf_namelist *));
 extern int configure_host __P((struct cf_namelist *));
@@ -270,9 +271,3 @@ extern int configure_global_option __P((void));
 extern void configure_cleanup __P((void));
 extern void configure_commit __P((void));
 extern int cfparse __P((char *));
-extern struct dhcp6_if *find_ifconfbyname __P((char *));
-extern struct dhcp6_if *find_ifconfbyid __P((unsigned int));
-extern struct prefix_ifconf *find_prefixifconf __P((char *));
-extern struct host_conf *find_hostconf __P((struct duid *));
-extern struct dhcp6_prefix *find_prefix6 __P((struct dhcp6_list *,
-					      struct dhcp6_prefix *));

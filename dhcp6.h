@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.4 2003/02/10 23:47:07 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.5 2003/02/25 00:31:52 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -93,6 +93,7 @@
 
 #define DHCP6_DURATITION_INFINITE 0xffffffff
 
+typedef enum { IANA, IATA, IAPD} iatype_t;
 /* Internal data structure */
 
 struct duid {
@@ -113,17 +114,10 @@ struct dhcp6_addr {
 	u_int32_t preferlifetime;
 	struct in6_addr addr;
 	u_int8_t plen;
+	iatype_t type;
 	u_int16_t status_code;
+	char *status_msg;
 };
-
-/* option information */
-struct dhcp6_prefix {		/* delegated prefix information */
-	struct in6_addr addr;
-	int plen;
-	u_int32_t duration;
-};
-
-
 
 struct dhcp6_listval {
 	TAILQ_ENTRY(dhcp6_listval) link;
@@ -132,33 +126,29 @@ struct dhcp6_listval {
 		int uv_num;
 		struct in6_addr uv_addr6;
 		struct dhcp6_addr uv_dhcp6_addr;
-		struct dhcp6_prefix uv_prefix6;
 	} uv;
 };
 
 #define val_num uv.uv_num
 #define val_addr6 uv.uv_addr6
 #define val_dhcp6addr uv.uv_dhcp6_addr
-#define val_prefix6 uv.uv_prefix6
 
 TAILQ_HEAD(dhcp6_list, dhcp6_listval);
 
 typedef enum { DHCP6_LISTVAL_NUM, DHCP6_LISTVAL_ADDR6,
-	       DHCP6_LISTVAL_DHCP6ADDR, DHCP6_LISTVAL_PREFIX6,
-	     } dhcp6_listval_type_t;
+	       DHCP6_LISTVAL_DHCP6ADDR } dhcp6_listval_type_t;
 
 struct dhcp6_optinfo {
 	struct duid clientID;	/* DUID */
 	struct duid serverID;	/* DUID */
 	struct dhcp6_iaid_info iaidinfo;
+	iatype_t type;
 	u_int8_t flags;	/* flags for rapid commit, info_only, temp address */
 	int pref;		/* server preference */
-
 	struct dhcp6_list addr_list; /* assigned ipv6 address list */
 	struct dhcp6_list reqopt_list; /*  options in option request */
 	struct dhcp6_list stcode_list; /* status code */
 	struct dhcp6_list dns_list; /* DNS server list */
-	struct dhcp6_list prefix_list; /* prefix list */
 };
 
 /* DHCP6 base packet format */
@@ -202,6 +192,8 @@ struct dhcp6 {
 #  define DH6OPT_STCODE_ADDRUNAVAIL 7
 #  define DH6OPT_STCODE_CONFNOMATCH 8
 
+#  define DH6OPT_STCODE_NOPREFIXAVAIL 10
+
 #  define DH6OPT_STCODE_UNDEFINE 0xffff
 
 #define DH6OPT_RAPID_COMMIT 14
@@ -222,9 +214,12 @@ struct dhcp6 {
  * assigned.
  */
 #define DH6OPT_DNS CONF_DH6OPT_DNS
-#define DH6OPT_PREFIX_DELEGATION CONF_DH6OPT_PREFIX_DELEGATION
-#define DH6OPT_PREFIX_INFORMATION CONF_DH6OPT_PREFIX_INFORMATION
-#define DH6OPT_PREFIX_REQUEST CONF_DH6OPT_PREFIX_REQUEST
+
+/*
+ * define PD option according IPv6 Prefix Options for DHCPv6 draft 02
+ */
+#define DH6OPT_IA_PD CONF_DH6OPT_IA_PD
+#define DH6OPT_IAPREFIX CONF_DH6OPT_IAPREFIX
 
 struct dhcp6opt {
 	u_int16_t dh6opt_type;
@@ -244,9 +239,10 @@ struct dhcp6_duid_type1 {
 struct dhcp6_prefix_info {
 	u_int16_t dh6_pi_type;
 	u_int16_t dh6_pi_len;
-	u_int32_t dh6_pi_duration;
-	u_int8_t dh6_pi_plen;
-	struct in6_addr dh6_pi_paddr;
+	u_int32_t preferlifetime;
+	u_int32_t validlifetime;
+	u_int8_t plen;
+	struct in6_addr prefix;
 } __attribute__ ((__packed__));
 
 /* status code info */
@@ -254,7 +250,6 @@ struct dhcp6_status_info {
 	u_int16_t dh6_status_type;
 	u_int16_t dh6_status_len;
 	u_int16_t dh6_status_code;
-	u_int16_t pad;
 } __attribute__ ((__packed__));
 
 /* IPv6 address info */

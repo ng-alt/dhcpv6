@@ -1,4 +1,4 @@
-/*	$Id: common.h,v 1.4 2003/02/10 23:47:07 shirleyma Exp $	*/
+/*	$Id: common.h,v 1.5 2003/02/25 00:31:52 shirleyma Exp $	*/
 /*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*
@@ -90,6 +90,12 @@ extern char *duidstr __P((struct duid *));
 extern int duidcpy __P((struct duid *, struct duid *));
 extern int duidcmp __P((struct duid *, struct duid *));
 extern void duidfree __P((struct duid *));
+extern void ifinit __P((char *));
+extern int configure_duid __P((char *, struct duid *));
+extern struct dhcp6_if *find_ifconfbyname __P((char *));
+extern struct dhcp6_if *find_ifconfbyid __P((unsigned int));
+extern struct prefix_ifconf *find_prefixifconf __P((char *));
+extern struct host_conf *find_hostconf __P((struct duid *));
 
 /* missing */
 #ifndef HAVE_STRLCAT

@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.h,v 1.3 2003/02/11 20:38:19 shirleyma Exp $	*/
+/*	$Id: server6_conf.h,v 1.4 2003/02/25 00:31:53 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -42,11 +42,11 @@ struct rootgroup *globalgroup;
 
 /* provide common paramters within scopes */
 struct scope {
-	u_int32_t prefer_life_time;
-	u_int32_t valid_life_time;
-	u_int32_t renew_time;
-	u_int32_t rebind_time;
-	u_int8_t server_pref;
+	int32_t prefer_life_time;
+	int32_t valid_life_time;
+	int32_t renew_time;
+	int32_t rebind_time;
+	int8_t server_pref;
 	u_int8_t send_flags;
 	u_int8_t allow_flags;
 };
@@ -91,6 +91,7 @@ struct link_decl {
 	char name[IFNAMSIZ];
 	struct v6addrlist *relaylist;
 	struct v6addrseg *seglist;
+	struct v6prefix *prefixlist;
 	struct pool_decl *poollist;
 	struct interface *network;
 	struct scope linkscope;
@@ -105,11 +106,20 @@ struct v6addrseg {
 	struct pool_decl *pool;
 	struct in6_addr min;
 	struct in6_addr max;
-	struct v6addr prefix;
 	struct in6_addr free;
+	struct v6addr prefix;
 	struct lease *active;
 	struct lease *expired;
 	struct lease *abandoned;
+	struct scope parainfo;
+};
+
+struct v6prefix {
+	struct v6prefix *next;
+	struct v6prefix *prev;
+	struct link_decl *link;
+	struct pool_decl *pool;
+	struct v6addr prefix;
 	struct scope parainfo;
 };
 
@@ -124,6 +134,10 @@ struct pool_decl {
 	struct scope *group;
 };
 
+struct dhcp6_addrlist {
+	struct dhcp6_addrlist *next;
+	struct dhcp6_addr v6addr;
+};
 
 struct v6addrlist {
 	struct v6addrlist *next;
@@ -136,13 +150,10 @@ struct host_decl {
 	struct host_decl *next;
 	char name[IFNAMSIZ];
 	struct duid cid;
-	u_int32_t iaid;
-	struct hardware hwaddr;
-	struct in6_addr linklocal;
-	struct v6addrlist *addrlist;
-	struct dhcp6_list addr_list;
+	struct dhcp6_iaid_info iaidinfo;
+	struct dhcp6_addrlist *addrlist;
+	struct dhcp6_addrlist *prefixlist;
 	struct interface *network;
-	struct v6addrlist *prefixlist;
 	struct scope hostscope;
 	struct scope *group;
 };

@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.3 2003/02/10 23:47:07 shirleyma Exp $	*/
+/*	$Id: config.c,v 1.4 2003/02/25 00:31:52 shirleyma Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -50,75 +50,17 @@
 
 extern int errno;
 
-struct dhcp6_if *dhcp6_if;
-struct prefix_ifconf *prefix_ifconflist;
-struct dhcp6_list dnslist;
-
 static struct dhcp6_ifconf *dhcp6_ifconflist;
-static struct prefix_ifconf *prefix_ifconflist0;
 static struct host_conf *host_conflist0, *host_conflist;
 static struct dhcp6_list dnslist0; 
 
 enum { DHCPOPTCODE_SEND, DHCPOPTCODE_REQUEST, DHCPOPTCODE_ALLOW };
 
-extern struct cf_list *cf_dns_list;
-extern char *configfilename;
-
 static int add_options __P((int, struct dhcp6_ifconf *, struct cf_list *));
-static int add_prefix __P((struct host_conf *, struct dhcp6_prefix *));
 static int add_address __P((struct dhcp6_list *, struct dhcp6_addr *));
 static void clear_ifconf __P((struct dhcp6_ifconf *));
-static void clear_prefixifconf __P((struct prefix_ifconf *));
 static void clear_hostconf __P((struct host_conf *));
 static void clear_options __P((struct dhcp6_optconf *));
-static int get_default_ifid __P((struct prefix_ifconf *));
-
-void
-ifinit(ifname)
-	char *ifname;
-{
-	struct dhcp6_if *ifp;
-
-	if ((ifp = find_ifconfbyname(ifname)) != NULL) {
-		dprintf(LOG_NOTICE, "%s" "duplicated interface: %s",
-			FNAME, ifname);
-		return;
-	}
-
-	if ((ifp = malloc(sizeof(*ifp))) == NULL) {
-		dprintf(LOG_ERR, "%s" "malloc failed", FNAME);
-		goto die;
-	}
-	memset(ifp, 0, sizeof(*ifp));
-
-	TAILQ_INIT(&ifp->event_list);
-
-	if ((ifp->ifname = strdup(ifname)) == NULL) {
-		dprintf(LOG_ERR, "%s" "failed to copy ifname", FNAME);
-		goto die;
-	}
-
-	if ((ifp->ifid = if_nametoindex(ifname)) == 0) {
-		dprintf(LOG_ERR, "%s" "invalid interface(%s): %s", FNAME,
-			ifname, strerror(errno));
-		goto die;
-	}
-#ifdef HAVE_SCOPELIB
-	if (inet_zoneid(AF_INET6, 2, ifname, &ifp->linkid)) {
-		dprintf(LOG_ERR, "%s" "failed to get link ID for %s",
-			FNAME, ifname);
-		goto die;
-	}
-#else
-	ifp->linkid = ifp->ifid; /* XXX */
-#endif
-	ifp->next = dhcp6_if;
-	dhcp6_if = ifp;
-	return;
-
-  die:
-	exit(1);
-}
 
 int
 configure_interface(iflist)
@@ -264,76 +206,6 @@ configure_interface(iflist)
 }
 
 int
-configure_prefix_interface(iflist)
-	struct cf_namelist *iflist;
-{
-	struct cf_namelist *ifp;
-	struct prefix_ifconf *pif;
-
-	for (ifp = iflist; ifp; ifp = ifp->next) {
-		struct cf_list *cfl;
-
-		if ((pif = malloc(sizeof(*pif))) == NULL) {
-			dprintf(LOG_ERR, "%s"
-				"memory allocation for %s failed", FNAME,
-				ifp->name);
-			goto bad;
-		}
-		memset(pif, 0, sizeof(*pif));
-		pif->next = prefix_ifconflist0;
-		prefix_ifconflist0 = pif;
-
-		/* validate and copy ifname */
-		if (if_nametoindex(ifp->name) == 0) {
-			dprintf(LOG_ERR, "%s" "invalid interface (%s): %s",
-				FNAME, ifp->name, strerror(errno));
-			goto bad;
-		}
-		if ((pif->ifname = strdup(ifp->name)) == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to copy ifname", FNAME);
-			goto bad;
-		}
-
-		pif->ifid_len = IFID_LEN_DEFAULT;
-		pif->sla_len = SLA_LEN_DEFAULT;
-		if (get_default_ifid(pif)) {
-			dprintf(LOG_NOTICE, "%s"
-				"failed to get default IF ID for %s",
-				FNAME, pif->ifname);
-			goto bad;
-		}
-
-		for (cfl = ifp->params; cfl; cfl = cfl->next) {
-			switch(cfl->type) {
-			case IFPARAM_SLA_ID:
-				pif->sla_id = (u_int32_t)cfl->num;
-				break;
-			case IFPARAM_SLA_LEN:
-				pif->sla_len = (int)cfl->num;
-				if (pif->sla_len < 0 || pif->sla_len > 128) {
-					dprintf(LOG_ERR, "%s"
-					    "invalid SLA length: %d", FNAME,
-					    pif->sla_len);
-					goto bad;
-				}
-				break;
-			default:
-				dprintf(LOG_ERR, "%s" "%s:%d "
-					"invalid configuration", FNAME,
-					configfilename, cfl->line);
-				goto bad;
-			}
-		}
-	}
-	
-	return (0);
-
-  bad:
-	/* there is currently nothing special to recover the error */
-	return (-1);
-}
-
-int
 configure_host(hostlist)
 	struct cf_namelist *hostlist;
 {
@@ -387,7 +259,7 @@ configure_host(hostlist)
 					host->name, duidstr(&hconf->duid));
 				break;
 			case DECL_PREFIX:
-				if (add_prefix(hconf, cfl->ptr)) {
+				if (add_address(&hconf->prefix_list, cfl->ptr)) {
 					dprintf(LOG_ERR, "%s" "failed "
 						"to configure prefix for %s",
 						FNAME, host->name);
@@ -495,59 +367,6 @@ configure_global_option()
 	return -1;
 }
 
-int
-configure_duid(str, duid)
-	char *str;		/* this is a valid DUID string */
-	struct duid *duid;
-{
-	char *cp, *bp;
-	char *idbuf = NULL;
-	int duidlen, slen;
-	unsigned int x;
-
-	/* calculate DUID len */
-	slen = strlen(str);
-	if (slen < 2)
-		goto bad;
-	duidlen = 1;
-	slen -= 2;
-	if ((slen % 3) != 0)
-		goto bad;
-	duidlen += (slen / 3);
-	if (duidlen > 256) {
-		dprintf(LOG_ERR, "%s" "too long DUID (%d)", FNAME, duidlen);
-		return (-1);
-	}
-
-	if ((idbuf = (char *)malloc(duidlen)) == NULL) {
-		dprintf(LOG_ERR, "%s" "memory allocation failed", FNAME);
-		return (-1);
-	}
-
-	for (cp = str, bp = idbuf; *cp;) {
-		if (*cp == ':') {
-			cp++;
-			continue;
-		}
-
-		if (sscanf(cp, "%02x", &x) != 1)
-			goto bad;
-		*bp = x;
-		cp += 2;
-		bp++;
-	}
-
-	duid->duid_len = duidlen;
-	duid->duid_id = idbuf;
-	dprintf(LOG_DEBUG, "configure duid is %s", duidstr(duid));
-	return (0);
-
-  bad:
-	if (idbuf)
-		free(idbuf);
-	dprintf(LOG_ERR, "%s" "assumption failure (bad string)", FNAME);
-	return (-1);
-}
 
 /* we currently only construct EUI-64 based interface ID */
 static int
@@ -617,8 +436,6 @@ configure_cleanup()
 {
 	clear_ifconf(dhcp6_ifconflist);
 	dhcp6_ifconflist = NULL;
-	clear_prefixifconf(prefix_ifconflist0);
-	prefix_ifconflist0 = NULL;
 	clear_hostconf(host_conflist0);
 	host_conflist0 = NULL;
 	dhcp6_clear_list(&dnslist0);
@@ -663,14 +480,6 @@ configure_commit()
 	clear_ifconf(dhcp6_ifconflist);
 
 	/* commit prefix configuration */
-	if (prefix_ifconflist) {
-		/* clear previous configuration. (need more work?) */
-		clear_prefixifconf(prefix_ifconflist);
-	}
-	prefix_ifconflist = prefix_ifconflist0;
-	prefix_ifconflist0 = NULL;
-
-	/* commit prefix configuration */
 	if (host_conflist) {
 		/* clear previous configuration. (need more work?) */
 		clear_hostconf(host_conflist);
@@ -700,20 +509,6 @@ clear_ifconf(iflist)
 		dhcp6_clear_list(&ifc->reqopt_list);
 
 		free(ifc);
-	}
-}
-
-static void
-clear_prefixifconf(iflist)
-	struct prefix_ifconf *iflist;
-{
-	struct prefix_ifconf *pif, *pif_next;
-
-	for (pif = iflist; pif; pif = pif_next) {
-		pif_next = pif->next;
-
-		free(pif->ifname);
-		free(pif);
 	}
 }
 
@@ -795,21 +590,16 @@ add_options(opcode, ifc, cfl0)
 		case DHCPOPT_PREFIX_DELEGATION:
 			switch(opcode) {
 			case DHCPOPTCODE_REQUEST:
-				opttype = DH6OPT_PREFIX_DELEGATION;
-				if (dhcp6_add_listval(&ifc->reqopt_list,
-				    &opttype, DHCP6_LISTVAL_NUM) == NULL) {
-					dprintf(LOG_ERR, "%s" "failed to "
-					    "configure an option", FNAME);
-					return (-1);
-				}
+				ifc->send_flags |= DHCIFF_PREFIX_DELEGATION;
 				break;
 			default:
 				dprintf(LOG_ERR, "%s" "invalid operation (%d) "
 					"for option type (%d)",
 					FNAME, opcode, cfl->type);
-				break;
+				return (-1);
 			}
 			break;
+
 		case DHCPOPT_DNS:
 			switch(opcode) {
 			case DHCPOPTCODE_REQUEST:
@@ -836,68 +626,6 @@ add_options(opcode, ifc, cfl0)
 
 	  next:
 	}
-
-	return (0);
-}
-
-static int
-add_prefix(hconf, prefix0)
-	struct host_conf *hconf;
-	struct dhcp6_prefix *prefix0;
-{
-	struct dhcp6_prefix oprefix;
-	struct dhcp6_listval *p, *pent;
-
-	oprefix = *prefix0;
-
-	/* additional validation of parameters */
-	if (oprefix.plen < 0 || oprefix.plen > 128) {
-		dprintf(LOG_ERR, "%s" "invalid prefix: %d",
-			FNAME, oprefix.plen);
-		return (-1);
-	}
-	/* clear trailing bits */
-	prefix6_mask(&oprefix.addr, oprefix.plen);
-	if (!IN6_ARE_ADDR_EQUAL(&prefix0->addr, &oprefix.addr)) {
-		dprintf(LOG_WARNING, "%s" "prefix %s/%d for %s "
-			"has a trailing garbage.  It should be %s/%d",
-			FNAME, in6addr2str(&prefix0->addr, 0), prefix0->plen,
-			hconf->name,
-			in6addr2str(&oprefix.addr, 0), oprefix.plen);
-		/* ignore the error */
-	}
-
-	/* avoid invalid prefix addresses */
-	if (IN6_IS_ADDR_MULTICAST(&oprefix.addr) ||
-	    IN6_IS_ADDR_LINKLOCAL(&oprefix.addr) ||
-	    IN6_IS_ADDR_SITELOCAL(&oprefix.addr)) {
-		dprintf(LOG_ERR, "%s" "invalid prefix address: %s",
-			FNAME, in6addr2str(&oprefix.addr, 0));
-		return (-1);
-	}
-
-	/* prefix duplication check */
-	for (p = TAILQ_FIRST(&hconf->prefix_list); p;
-	     p = TAILQ_NEXT(p, link)) {
-		if (IN6_ARE_ADDR_EQUAL(&p->val_prefix6.addr, &oprefix.addr) &&
-		    p->val_prefix6.plen == oprefix.plen) {
-			dprintf(LOG_ERR, "%s"
-				"duplicated prefix: %s/%d for %s", FNAME,
-				in6addr2str(&oprefix.addr, 0), oprefix.plen,
-				hconf->name);
-			return (-1);
-		}
-	}
-
-	/* allocate memory for the new prefix and insert it to the chain */
-	if ((pent = malloc(sizeof(*pent))) == NULL) {
-		dprintf(LOG_ERR, "%s" "memory allocation failed for %s",
-			FNAME, hconf->name);
-		return (-1);
-	}
-	memset(pent, 0, sizeof(*pent));
-	pent->val_prefix6 = oprefix;
-	TAILQ_INSERT_TAIL(&hconf->prefix_list, pent, link);
 
 	return (0);
 }
@@ -937,77 +665,3 @@ add_address(addr_list, v6addr)
 	return (0);
 }
 
-struct dhcp6_if *
-find_ifconfbyname(ifname)
-	char *ifname;
-{
-	struct dhcp6_if *ifp;
-
-	for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
-		if (strcmp(ifp->ifname, ifname) == 0)
-			return (ifp);
-	}
-
-	return (NULL);
-}
-
-struct dhcp6_if *
-find_ifconfbyid(id)
-	unsigned int id;
-{
-	struct dhcp6_if *ifp;
-
-	for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
-		if (ifp->ifid == id)
-			return (ifp);
-	}
-
-	return (NULL);
-}
-
-struct prefix_ifconf *
-find_prefixifconf(ifname)
-	char *ifname;
-{
-	struct prefix_ifconf *ifp;
-
-	for (ifp = prefix_ifconflist; ifp; ifp = ifp->next) {
-		if (strcmp(ifp->ifname, ifname) == NULL)
-			return (ifp);
-	}
-
-	return (NULL);
-}
-
-struct host_conf *
-find_hostconf(duid)
-	struct duid *duid;
-{
-	struct host_conf *host;
-
-	for (host = host_conflist; host; host = host->next) {
-		if (host->duid.duid_len == duid->duid_len &&
-		    memcmp(host->duid.duid_id, duid->duid_id,
-			   host->duid.duid_len) == 0) {
-			return (host);
-		}
-	}
-
-	return (NULL);
-}
-
-struct dhcp6_prefix *
-find_prefix6(list, prefix)
-	struct dhcp6_list *list;
-	struct dhcp6_prefix *prefix;
-{
-	struct dhcp6_listval *v;
-
-	for (v = TAILQ_FIRST(list); v; v = TAILQ_NEXT(v, link)) {
-		if (v->val_prefix6.plen == prefix->plen &&
-		    IN6_ARE_ADDR_EQUAL(&v->val_prefix6.addr, &prefix->addr)) {
-			return (&v->val_prefix6);
-		}
-	}
-	return (NULL);
-}

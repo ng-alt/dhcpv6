@@ -1,4 +1,4 @@
-/*	$Id: server6_addr_token.l,v 1.2 2003/02/10 23:47:09 shirleyma Exp $	*/
+/*	$Id: server6_addr_token.l,v 1.3 2003/02/25 00:31:53 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -57,59 +57,70 @@ extern struct rootgroup *globalgroup;
 
 %}
 
+whitespace	([ \t])+
 digit		[0-9]
 number		({digit})+
 snum		-?({digit})+
 decimal		({number}"."{number})
 hexdigit	([a-f]|[A-F]|[0-9])
 hexpair		{hexdigit}{hexdigit}
-iaid_id		{hexpair}{4}
+duid_id		{hexpair}(":"{hexpair})*
 ipv4addr        ({digit}{1,3}"."{digit}{1,3}"."{digit}{1,3})
 addr_head       ("::"|{hexdigit}{1,4}(":"|"::"))
-addr_tail       ({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})
+addr_tail       ({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})?
 addr_body       ({hexdigit}{1,4}(":"|"::"))*
 ipv6addr        {addr_head}{addr_body}{addr_tail}
-whitespace	([ \t])+
-duid_id		{hexpair}(:{hexpair})*
 string		[a-zA-Z]([a-zA-Z]|{digit})*(":"{digit}+)?
+ifname		[a-zA-Z]+[0-9]+
+
+%s S_IFACE
+%s S_DUID
+%s S_OPTION
 
 %%
+
+group		{ return GROUP; }
+
+interface	{ BEGIN S_IFACE; return INTERFACE; }
+<S_IFACE>{ifname} 	{ BEGIN INITIAL; sfyylval.str = strdup(sfyytext); return IFNAME;}
+
+link		{ return LINK; }
+relay		{ return RELAY; }
+host		{ return HOST; }
+
+pool		{ return POOL; }
+range		{ return RANGE; }
+
+iaid		{ return IAID; }
+iaidinfo 	{ return IAIDINFO; }
+
+duid		{ BEGIN S_DUID; return DUID; }
+<S_DUID>{duid_id} { BEGIN INITIAL; sfyylval.str = strdup(sfyytext); return DUID_ID; } 
+
+prefix		{ return PREFIX; }
+address		{ return ADDRESS;}
+
+allow		{ BEGIN S_OPTION; return ALLOW; }
+option		{ BEGIN S_OPTION; return OPTION; }
+
+<S_OPTION>unicast	{ BEGIN INITIAL; return UNICAST; }
+<S_OPTION>rapid-commit	{ BEGIN INITIAL; return RAPIDCOMMIT; }
+<S_OPTION>temp-address	{ BEGIN INITIAL; return TEMPIPV6ADDR; }
+<S_OPTION>server-preference	{ BEGIN INITIAL; return PREFERENCE; }
+<S_OPTION>information-only	{ BEGIN INITIAL; return INFO_ONLY; }
+
+renew-time	{ return RENEWTIME; }
+rebind-time	{ return REBINDTIME; }
+valid-life-time	 { return VALIDLIFETIME; }
+prefer-life-time { return PREFERLIFETIME; }
+
+to	{ return TO; }
+infinity	{ return INFINITY; }
 
 #.*$			{/* ignore comments */}
 \n			{num_lines++;}
 {whitespace}		{}
-
-interface		{ return INTERFACE; }
-link			{ return LINK; }
-relay			{ return RELAY; }
-prefix			{ return PREFIX; }
-host			{ return HOST; }
-pool			{ return POOL; }
-range			{ return RANGE; }
-group			{ return GROUP; }
-allow			{ return ALLOW; }
-option			{ return OPTION; }
-linklocal		{ return LINKLOCAL; }
-duid			{ return DUID; }
-iaid			{ return IAID; }
-
-unicast			{ return UNICAST; }
-preference		{ return PREFERENCE; }
-info_only		{ return INFO_ONLY; }
-
-RenewTime		{ return RENEWTIME; }
-RebindTime		{ return REBINDTIME; }
-RapidCommit		{ return RAPIDCOMMIT; }
-
-TempIPv6Addr		{ return TEMPIPV6ADDR; }
-
-FixedIPv6Addr		{ return FIXEDIPV6ADDR; }
-ValidLifeTime		{ return VALIDLIFETIME; }
-PreferredLifeTime	{ return PREFERLIFETIME; }
-
-to			{ return TO; }
-
-{ipv6addr}	{
+{ipv6addr} {
 			struct in6_addr addr;
 			int i;
 				
@@ -124,19 +135,8 @@ to			{ return TO; }
 		}
 
 {number}	{ sfyylval.num = atoi(sfyytext); return NUMBER; }
-
-{snum}		{ sfyylval.snum = atoi(sfyytext); return SIGNEDNUMBER; }
-
-{decimal}	{ sfyylval.dec = atof(sfyytext); return DECIMAL; }
-
-{duid_id}	{ sfyylval.str = strdup(sfyytext); return DUID_ID; } 
-
-infinity	{ return INFINITY; }
-
-on		{ sfyylval.bool = 1; return BOOLEAN; }
-
-off		{ sfyylval.bool = 0; return BOOLEAN; }
-
+{snum}	{ sfyylval.snum = atoi(sfyytext); return SIGNEDNUMBER; }
+{decimal} { sfyylval.dec = atof(sfyytext); return DECIMAL; }
 {string}	{
 			static char name[IFNAMSIZ];
 			strncpy(name, sfyytext, IFNAMSIZ-1);
@@ -144,9 +144,7 @@ off		{ sfyylval.bool = 0; return BOOLEAN; }
 			sfyylval.str = name;
 			return STRING;
 		}
-
 "{"|"}"|";"|"/"	{ return *sfyytext; }
-
 .		{ return BAD_TOKEN; }
 
 %%

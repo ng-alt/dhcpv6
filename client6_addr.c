@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.6 2003/02/12 20:53:00 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.7 2003/02/25 00:31:52 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -95,6 +95,7 @@ dhcp6_add_iaidaddr(optinfo)
 	
 	memcpy(&client6_iaidaddr.client6_info.iaidinfo, &optinfo->iaidinfo, 
 			sizeof(client6_iaidaddr.client6_info.iaidinfo));
+	client6_iaidaddr.client6_info.type = optinfo->type;
 	duidcpy(&client6_iaidaddr.client6_info.clientid, &optinfo->clientID);
 	if (duidcpy(&client6_iaidaddr.client6_info.serverid, &optinfo->serverID)) {
 		dprintf(LOG_ERR, "%s" "failed to copy server ID %s", 
@@ -125,11 +126,16 @@ dhcp6_add_iaidaddr(optinfo)
 	/* Should we process IA_TA, IA_NA differently */
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
 		client6_iaidaddr.client6_info.iaidinfo.renewtime 
-			= get_min_preferlifetime(&client6_iaidaddr)/2;
+			= get_min_preferlifetime(&client6_iaidaddr) / 2;
 	}
 	if (client6_iaidaddr.client6_info.iaidinfo.rebindtime == 0) {
 		client6_iaidaddr.client6_info.iaidinfo.rebindtime 
 			= (get_min_preferlifetime(&client6_iaidaddr) * 4) / 5;
+	}
+	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list) || 
+	    client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
+		dhcp6_remove_timer(client6_iaidaddr.timer);
+		return 0;
 	}
 	/* set up start date, and renew timer */
 	time(&client6_iaidaddr.start_date);
@@ -186,6 +192,7 @@ dhcp6_add_lease(addr)
 	sp->iaidaddr = &client6_iaidaddr;
 	time(&sp->start_date);
 	sp->state = ACTIVE;
+	sp->addr_type = sp->iaidaddr->client6_info.type;
 	d = sp->lease_addr.preferlifetime;
 	timo.tv_sec = (long)d;
 	timo.tv_usec = 0;
@@ -198,7 +205,11 @@ dhcp6_add_lease(addr)
 		free(sp);
 		return (-1);
 	}
-	if (client6_ifaddrconf(IFADDRCONF_ADD, addr) != 0) {
+	/* XXX: ToDo: prefix delegation for client */
+	if (sp->addr_type == IAPD) {
+		dprintf(LOG_INFO, "request prefix is %s/%d", 
+			in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen);
+	} else if (client6_ifaddrconf(IFADDRCONF_ADD, addr) != 0) {
 		dprintf(LOG_ERR, "%s" "adding address failed: %s",
 		    FNAME, in6addr2str(&addr->addr, 0));
 		if (sp->timer)
@@ -242,9 +253,13 @@ dhcp6_remove_lease(sp)
 			FNAME, in6addr2str(&sp->lease_addr.addr, 0));
 		return (-1);
 	}
-	if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
-		dprintf(LOG_INFO, "%s" "removing address %s failed",
-		    FNAME, in6addr2str(&sp->lease_addr.addr, 0));
+	/* XXX: ToDo: prefix delegation for client */
+	if (sp->addr_type == IAPD) {
+		dprintf(LOG_INFO, "request prefix is %s/%d", 
+			in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen);
+	} else if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
+			dprintf(LOG_INFO, "%s" "removing address %s failed",
+		    		FNAME, in6addr2str(&sp->lease_addr.addr, 0));
 	}
 	/* remove expired timer for this lease. */
 	if (sp->timer)
@@ -312,13 +327,17 @@ dhcp6_update_iaidaddr(optinfo, flag)
 		}
 	}
 	if (client6_iaidaddr.timer == NULL) {
-		    if ((client6_iaidaddr.timer = 
-				dhcp6_add_timer(dhcp6_iaidaddr_timo, &client6_iaidaddr)) 
-				    == NULL) {
+		if ((client6_iaidaddr.timer = 
+		     dhcp6_add_timer(dhcp6_iaidaddr_timo, &client6_iaidaddr)) == NULL) {
 	 		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %d",
 				FNAME, client6_iaidaddr.client6_info.iaidinfo.iaid);
 	 		return (-1);
 	    	}
+	}
+	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list) || 
+	    client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
+		dhcp6_remove_timer(client6_iaidaddr.timer);
+		return 0;
 	}
 	/* update the start date and timer */
 	time(&client6_iaidaddr.start_date);
@@ -403,11 +422,12 @@ dhcp6_find_lease(iaidaddr, ifaddr)
 	for (sp = TAILQ_FIRST(&iaidaddr->lease_list); sp;
 	     sp = TAILQ_NEXT(sp, link)) {
 		/* sp->lease_addr.plen == ifaddr->plen */
-		dprintf(LOG_DEBUG, "%s" "get address is %s ", FNAME,
-			in6addr2str(&ifaddr->addr, 0));
-		dprintf(LOG_DEBUG, "%s" "lease address is %s ", FNAME,
-			in6addr2str(&sp->lease_addr.addr, 0));
-		if (IN6_ARE_ADDR_EQUAL(&sp->lease_addr.addr, &ifaddr->addr)) {
+		dprintf(LOG_DEBUG, "%s" "get address is %s/%d ", FNAME,
+			in6addr2str(&ifaddr->addr, 0), ifaddr->plen);
+		dprintf(LOG_DEBUG, "%s" "lease address is %s/%d ", FNAME,
+			in6addr2str(&sp->lease_addr.addr, 0), ifaddr->plen);
+		if (IN6_ARE_ADDR_EQUAL(&sp->lease_addr.addr, &ifaddr->addr) &&
+		    sp->lease_addr.plen == ifaddr->plen) {
 			return (sp);
 		}
 	}

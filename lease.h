@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.2 2003/02/12 19:43:28 shirleyma Exp $	*/
+/*	$Id: lease.h,v 1.3 2003/02/25 00:31:52 shirleyma Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -49,7 +49,7 @@ typedef enum { ACTIVE, RENEW,
 	       INVALID } state_t;
 
 typedef enum { IFADDRCONF_ADD, IFADDRCONF_REMOVE } ifaddrconf_cmd_t;
-/* DUID: DHCP unique Identifier */
+
 enum hash_type{HT_IPV6ADDR = 0, HT_IAIDADDR};
 
 struct dhcp6_iaidaddr client6_iaidaddr;
@@ -60,7 +60,7 @@ FILE *sync_file;
 struct hash_table **hash_anchors;
 
 struct client6_if {
-	u_int8_t IAtype;
+	iatype_t type;
 	struct dhcp6_iaid_info iaidinfo;
 	struct duid clientid;
 	struct duid serverid;
@@ -82,7 +82,7 @@ struct dhcp6_lease {
 	char hostname[1024];
 	struct in6_addr linklocal;
 	struct dhcp6_addr lease_addr;
-	u_int8_t addr_type;
+	iatype_t addr_type;
 	state_t state;
 	struct dhcp6_iaidaddr *iaidaddr;
 	time_t start_date;

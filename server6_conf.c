@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.c,v 1.5 2003/02/12 20:51:40 shirleyma Exp $	*/
+/*    $Id: server6_conf.c,v 1.6 2003/02/25 00:31:53 shirleyma Exp $   */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -209,12 +209,14 @@ post_config(root)
 	struct link_decl *link;
 	struct host_decl *host;
 	struct v6addrseg *seg;
+	struct v6prefix *prefix6;
 	struct scope *current;
 	struct scope *up;
 	
 	if (root->group)
 		download_scope(root->group, &root->scope);
 	up = &root->scope;
+	/* XXX: check the physical interfaces for the server */
 	for (ifnetwork = root->iflist; ifnetwork; ifnetwork = ifnetwork->next) {
 		if (ifnetwork->group)
 			download_scope(ifnetwork->group, &ifnetwork->ifscope);
@@ -235,6 +237,7 @@ post_config(root)
 		current = &ifnetwork->ifscope;
 		download_scope(up, current);
 		up = &ifnetwork->ifscope;
+		/* XXX: check host */
 		for (link = ifnetwork->linklist; link; link = link->next) {
 				if (link->group)
 					download_scope(link->group, &link->linkscope);
@@ -244,27 +247,48 @@ post_config(root)
 				for (seg = link->seglist; seg; seg = seg->next) {
 					if (seg->pool) {
 						if (seg->pool->group)
-							download_scope(seg->pool->group, &seg->pool->poolscope);
+							download_scope(seg->pool->group, 
+									&seg->pool->poolscope);
 						current = &seg->pool->poolscope;
 						download_scope(up, current);
 						if (current->prefer_life_time != 0 && 
 						    current->valid_life_time != 0 &&
-						    current->prefer_life_time >= current->valid_life_time) {
+						    current->prefer_life_time >
+						    current->valid_life_time) {
 							dprintf(LOG_ERR, "%s" 
-							    "preferlife time is greater than validlife time",
+					"preferlife time is greater than validlife time",
 							    FNAME);
 							exit (1);
 						}
-						if (current->renew_time != 0 &&
-						    current->renew_time >= current->rebind_time) { 
-							dprintf(LOG_ERR, "%s" 
-							     "rebind time must be greater than renew time",
-							     FNAME);
-							exit(1);
-						}
-						memcpy(&seg->parainfo, current, sizeof(seg->parainfo));
+						memcpy(&seg->parainfo, current, 
+								sizeof(seg->parainfo));
 					} else {
-						memcpy(&seg->parainfo, up, sizeof(seg->parainfo));
+						memcpy(&seg->parainfo, up, 
+								sizeof(seg->parainfo));
+					}
+				}
+				for (prefix6 = link->prefixlist; prefix6; 
+						prefix6 = prefix6->next) {
+					if (prefix6->pool) {
+						if (prefix6->pool->group)
+							download_scope(prefix6->pool->group, 
+								&prefix6->pool->poolscope);
+						current = &prefix6->pool->poolscope;
+						download_scope(up, current);
+						if (current->prefer_life_time != 0 && 
+						    current->valid_life_time != 0 &&
+						    current->prefer_life_time >
+						    current->valid_life_time) {
+							dprintf(LOG_ERR, "%s" 
+					"preferlife time is greater than validlife time",
+							    FNAME);
+							exit (1);
+						}
+						memcpy(&prefix6->parainfo, current, 
+								sizeof(prefix6->parainfo));
+					} else {
+						memcpy(&prefix6->parainfo, up, 
+								sizeof(prefix6->parainfo));
 					}
 				}
 			}
@@ -285,8 +309,12 @@ download_scope(up, current)
 		current->renew_time = up->renew_time;
 	if (current->rebind_time == 0 && up->rebind_time != 0)
 		current->rebind_time = up->rebind_time;
-	if (current->server_pref == 0 && up->server_pref != 0)
-		current->server_pref = up->server_pref;
+	if (current->server_pref == 0) {
+		if (up->server_pref != 0)
+			current->server_pref = up->server_pref;
+		else
+			current->server_pref = DH6OPT_PREF_UNDEF;
+	}
 	current->allow_flags |= up->allow_flags;
 	current->send_flags |= up->send_flags;
 	return;

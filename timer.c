@@ -1,4 +1,4 @@
-/*	$Id: timer.c,v 1.3 2003/02/10 23:47:09 shirleyma Exp $	*/
+/*	$Id: timer.c,v 1.4 2003/02/25 00:31:53 shirleyma Exp $	*/
 /*	ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp	*/
 
 /*
@@ -88,7 +88,6 @@ dhcp6_add_timer(timeout, timeodata)
 
 	LIST_INSERT_HEAD(&timer_head, newtimer, link);
 
-	dprintf(LOG_DEBUG, "%s" " add a timer %x", FNAME, newtimer);
 	return (newtimer);
 }
 
@@ -96,7 +95,6 @@ void
 dhcp6_remove_timer(timer)
 	struct dhcp6_timer *timer;
 {
-	dprintf(LOG_DEBUG, "%s" " mark REMOVE for a timer %x", FNAME, *timer);
 	timer->flag |= MARK_REMOVE;
 }
 
@@ -140,12 +138,10 @@ dhcp6_check_timer()
 		tm_next = LIST_NEXT(tm, link);
 		if (tm->flag & MARK_REMOVE) {
 			LIST_REMOVE(tm, link);
-		dprintf(LOG_DEBUG, "%s" " remove a timer %x", FNAME, tm);
 			free(tm);
 			tm = NULL;
 			continue;
 		}
-		dprintf(LOG_DEBUG, "%s" " timer is %x, next is %x", FNAME, tm, tm_next);
 		if (TIMEVAL_LEQ(tm->tm, now)) {
 			if ((*tm->expire)(tm->expire_data) == NULL)
 				continue; /* timer has been freed */

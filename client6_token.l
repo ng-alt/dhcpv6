@@ -1,4 +1,4 @@
-/*	$Id: client6_token.l,v 1.2 2003/02/10 23:47:07 shirleyma Exp $	*/
+/*	$Id: client6_token.l,v 1.3 2003/02/25 00:31:52 shirleyma Exp $	*/
 /*	ported from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -121,6 +121,7 @@ ecl		\}
 
 <S_CNF>address { DECHO; BEGIN S_ADDR; return (ADDRESS); }
 
+<S_CNF>prefix { DECHO; BEGIN S_ADDR; return (PREFIX); }
 <S_ADDR>{ipv6addr} {
 	struct in6_addr addr;
 	DECHO;
@@ -146,8 +147,6 @@ ecl		\}
 <S_CNF>option { DECHO; return (OPTION); }
 
 <S_CNF>rapid-commit { DECHO; return (RAPID_COMMIT); }
-<S_CNF>prefix-info { DECHO; return (PREFIX_INFO); }
-<S_CNF>prefix-request { DECHO; return (PREFIX_REQ); }
 <S_CNF>prefix-delegation { DECHO; return (PREFIX_DELEGATION); }
 <S_CNF>domain-name-servers { DECHO; return (DNS_SERVERS); }
 	/* generic options */

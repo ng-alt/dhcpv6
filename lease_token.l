@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.1 2003/02/10 23:47:09 shirleyma Exp $	*/
+/*	$Id: lease_token.l,v 1.2 2003/02/25 00:31:53 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -102,7 +102,7 @@ hexdigit        ([a-f]|[A-F]|[0-9])
 hexpair		({hexdigit}{hexdigit})
 ipv4addr	({digit}{1,3}"."{digit}{1,3}"."{digit}{1,3})
 addr_head	("::"|{hexdigit}{1,4}(":"|"::"))
-addr_tail	({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})
+addr_tail	({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})?
 addr_body	({hexdigit}{1,4}(":"|"::"))*
 ipv6addr	{addr_head}{addr_body}{addr_tail}
 duid_id 	{hexpair}(:{hexpair})*
@@ -202,7 +202,8 @@ comment		\#.*
 		lease_flags |= LEASE_IAID_FLAG;}
 <S_IAID>"type:" {BEGIN S_IATYPE;}
 <S_IAID>. {ABORT;}
-<S_IATYPE>{number} {lease_rec->addr_type = (u_int8_t)atoi(yytext);}
+<S_IATYPE>{number} {lease_rec->addr_type = (u_int8_t)atoi(yytext);
+		client6_info.type = (u_int8_t)atoi(yytext);}
 <S_IATYPE>. {ABORT;}
 <S_RNTIME>{number} {client6_info.iaidinfo.renewtime = (u_int32_t)strtoul(yytext, NULL, 10);
 		lease_flags |= LEASE_RNTIME_FLAG;}
