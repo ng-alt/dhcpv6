@@ -1,4 +1,4 @@
-/*	$Id: resolv_token.l,v 1.5 2003/05/22 23:00:30 shirleyma Exp $	*/
+/*	$Id: resolv_token.l,v 1.6 2003/06/23 17:24:48 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -235,11 +235,15 @@ update_resolver(struct dns_list *dns_list)
 		if (!TAILQ_EMPTY(&dns_list->addrlist)) {
 			fprintf(dhcp6_resolv_file, "nameserver ");
 			for (d = TAILQ_FIRST(&dns_list->addrlist); d;
-				d = TAILQ_NEXT(d, link), i++) {
-				fprintf(dhcp6_resolv_file, "%s ", 
+				d = d_next, i++) {
+				d_next = TAILQ_NEXT(d, link);
+				fprintf(dhcp6_resolv_file, "%s", 
 					in6addr2str(&d->val_addr6, 0));
+				if (d_next != NULL)
+					fprintf(dhcp6_resolv_file, " ");
+				else
+					fprintf(dhcp6_resolv_file, "\n");
 			}
-			fprintf(dhcp6_resolv_file, "\n");
 		}
 	}
 			
@@ -278,9 +282,12 @@ update_resolver(struct dns_list *dns_list)
 			for (dlist = dns_list->domainlist; dlist; dlist = dlist->next) {
 				dprintf(LOG_DEBUG, "%s" "domain name %s added in resolv.conf", 
 					FNAME, dlist->name);
-				fprintf(dhcp6_resolv_file, "%s ", dlist->name);
+				fprintf(dhcp6_resolv_file, "%s", dlist->name);
+				if (dlist->next != NULL)
+					fprintf(dhcp6_resolv_file, " ");
+				else
+					fprintf(dhcp6_resolv_file, "\n");
 			}
-			fprintf(dhcp6_resolv_file, "\n");
 		}
 	}
 	if (fflush(dhcp6_resolv_file) == EOF) {
