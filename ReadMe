@@ -58,8 +58,9 @@ INSTALLATTION:
 	2. ./configure
 	3. make
 	4. insmod ipv6 (if ipv6 is not compiled in the kernel)
-	5. cp dhcp6c.conf /etc/dhcp6c.conf (copy client configuration file)
-	6. cp dhcp6s.conf /etc/dhcp6s.conf (copy server configuration file)
-	7. ./dhcp6s -dDf eth0 (start server, turn on debug)
-	8. ./dhcp6c -dDf eth0 (start client, turn on debug)
+	5. mkdir /var/db/dhcpv6 (create dhcpv6 database directory)
+	6. cp dhcp6c.conf /etc/dhcp6c.conf (copy client configuration file)
+	7. cp dhcp6s.conf /etc/dhcp6s.conf (copy server configuration file)
+	8. ./dhcp6s -dDf eth0 (start server, turn on debug)
+	9. ./dhcp6c -dDf eth0 (start client, turn on debug)
 	
