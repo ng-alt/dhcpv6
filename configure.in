@@ -61,7 +61,7 @@ AC_MSG_RESULT($result)
 case $result in
 kame)	AC_DEFINE(INET6)
 	o_LIBS="$LIBS"
-	LIBS="$LIBS -L/usr/local/v6/lib"
+	LIBS="$LIBS -L/usr/local/v6/lib -L/usr/lib"
 	AC_CHECK_LIB(inet6, getaddrinfo, [], [LIBS="$o_LIBS"])
 	;;
 *)	;;
@@ -69,9 +69,7 @@ esac
 
 AC_REPLACE_FUNCS(getaddrinfo)
 AC_REPLACE_FUNCS(getnameinfo)
-AC_CHECK_FUNC(getifaddrs, AC_DEFINE(HAVE_GETIFADDRS), [dnl
-	echo FATAL: getifaddrs is required
-	exit 1])
+AC_REPLACE_FUNCS(ifaddrs)
 AC_CHECK_FUNCS(if_nametoindex)
 AC_REPLACE_FUNCS(strlcpy strlcat)
 
@@ -147,14 +145,14 @@ dnl DHCP option type values not officially defined
 AC_MSG_CHECKING(for DHCP DNS option)
 AC_ARG_WITH(opt-dns,
 [  --with-opt-dns=VALUE    specify DHCP option value for DNS],
-    dhcpopt_dns="$withval", dhcpopt_dns=0)
-if test $dhcpopt_dns = 0 ; then
-	dhcpopt_dns=25
-	AC_MSG_RESULT(unspecified and using $dhcpopt_dns)
+    dhcpopt_dns_resolvers="$withval", dhcpopt_dns_resolvers=0)
+if test $dhcpopt_dns_resolvers = 0 ; then
+	dhcpopt_dns_resolvers=25
+	AC_MSG_RESULT(unspecified and using $dhcpopt_dns_resolvers)
 else
-	AC_MSG_RESULT(using $dhcpopt_dns)
+	AC_MSG_RESULT(using $dhcpopt_dns_resolvers)
 fi
-AC_SUBST(dhcpopt_dns)
+AC_SUBST(dhcpopt_dns_resolvers)
 
 AC_MSG_CHECKING(for DHCP prefix delegation option)
 AC_ARG_WITH(opt-pdel,
