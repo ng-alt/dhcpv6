@@ -1,4 +1,4 @@
-/*	$Id: ra_token.l,v 1.5 2003/05/16 21:40:46 shirleyma Exp $	*/
+/*	$Id: ra_token.l,v 1.6 2003/05/16 22:17:27 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -171,8 +171,9 @@ int
 ra_parse(const char *raname)
 {
 	if ((rayyin = fopen(raname, "r")) == NULL) {
-		if (errno == ENOENT)
-			return (0);
+		if (errno == ENOENT) {
+			return (1);
+		}
 		dprintf(LOG_ERR, "ra_parse: fopen(%s): %s",
 			raname, strerror(errno));
 		return (-1);

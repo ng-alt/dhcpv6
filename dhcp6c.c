@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.23 2003/05/16 21:40:46 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.24 2003/05/16 22:17:27 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -93,6 +93,7 @@ static int num_device = 0;
 static struct iaid_table iaidtab[100];
 static u_int8_t client6_request_flag = 0;
 static	char leasename[100];
+static int rapatch = 0;
 
 #define CLIENT6_RELEASE_ADDR	0x1
 #define CLIENT6_CONFIRM_ADDR	0x2
@@ -525,7 +526,8 @@ client6_ifinit(char *device)
 	}
 	setup_interface(ifp->ifname);
 	ifp->link_flag |= IFF_RUNNING;
-	ra_parse(raproc_file);
+	if (ra_parse(raproc_file) != 1)
+		rapatch = 1;
 	/* set up check link timer and sync file timer */	
 	if ((ifp->link_timer =
 	    dhcp6_add_timer(check_link_timo, ifp)) < 0) {
@@ -638,7 +640,7 @@ client6_timo(arg)
 	struct dhcp6_if *ifp;
 	struct timeval now;
 	struct ra_info *rainfo;
-	int mbitset = 1;
+	int mbitset = 0;
 	
 	ifp = ev->ifp;
 	ev->timeouts++;
@@ -662,12 +664,15 @@ client6_timo(arg)
 		 */
 		ev->timeouts = 0; /* indicate to generate a new XID. */
 		/* check RA flags M bits */
-		for (rainfo = ifp->ralist; rainfo; rainfo = rainfo->next) {
-			if (rainfo->flags & RA_MBIT_SET) {
-				mbitset = 1;
-				break;
+		if (rapatch) {
+			for (rainfo = ifp->ralist; rainfo; rainfo = rainfo->next) {
+				if (rainfo->flags & RA_MBIT_SET) {
+					mbitset = 1;
+					break;
+				}
 			}
-		}
+		} else
+			mbitset = 1;
 		if ((ifp->send_flags & DHCIFF_INFO_ONLY) || 
 		    (client6_request_flag & CLIENT6_INFO_REQ) || mbitset == 0)
 			ev->state = DHCP6S_INFOREQ;
