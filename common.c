@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.16 2003/04/30 19:04:06 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.17 2003/06/23 17:33:48 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -1029,7 +1029,7 @@ dhcp6_get_options(p, ep, optinfo)
 			/* check iaid */
 			optinfo->flags |= DHCIFF_TEMP_ADDRS;
 			optinfo->type = IATA;
-			dprintf(LOG_DEBUG, "%s" "get option iaid is %d", 
+			dprintf(LOG_DEBUG, "%s" "get option iaid is %u", 
 				FNAME, optinfo->iaidinfo.iaid);
 			optinfo->iaidinfo.iaid = ntohl(*(u_int32_t *)cp);
 			if (get_assigned_ipv6addrs(cp + 4, cp + optlen, optinfo))
@@ -1049,8 +1049,8 @@ dhcp6_get_options(p, ep, optinfo)
 				ntohl(*(u_int32_t *)(cp + sizeof(u_int32_t)));
 			optinfo->iaidinfo.rebindtime = 
 				ntohl(*(u_int32_t *)(cp + 2 * sizeof(u_int32_t)));
-			dprintf(LOG_DEBUG, "get option iaid is %d, renewtime %d, "
-				"rebindtime %d", optinfo->iaidinfo.iaid,
+			dprintf(LOG_DEBUG, "get option iaid is %u, renewtime %u, "
+				"rebindtime %u", optinfo->iaidinfo.iaid,
 				optinfo->iaidinfo.renewtime, optinfo->iaidinfo.rebindtime);
 			if (get_assigned_ipv6addrs(cp + 3 * sizeof(u_int32_t), 
 						cp + optlen, optinfo))
@@ -1376,7 +1376,7 @@ dhcp6_set_options(bp, ep, optinfo)
 		} else if (optinfo->type == IANA) {
 			optlen = sizeof(opt_iana);
 			dprintf(LOG_DEBUG, "set IA_NA iaidinfo: "
-		   		"iaid %d renewtime %d rebindtime %d", 
+		   		"iaid %u renewtime %u rebindtime %u", 
 		   		optinfo->iaidinfo.iaid, optinfo->iaidinfo.renewtime, 
 		   		optinfo->iaidinfo.rebindtime);
 			opt_iana.iaid = htonl(optinfo->iaidinfo.iaid);
@@ -1459,7 +1459,7 @@ dhcp6_set_options(bp, ep, optinfo)
 			break;
 		optlen = sizeof(opt_iapd);
 		dprintf(LOG_DEBUG, "set IA_PD iaidinfo: "
-		 	"iaid %d renewtime %d rebindtime %d", 
+		 	"iaid %u renewtime %u rebindtime %u", 
 		  	optinfo->iaidinfo.iaid, optinfo->iaidinfo.renewtime, 
 		   	optinfo->iaidinfo.rebindtime);
 		opt_iapd.iaid = htonl(optinfo->iaidinfo.iaid);

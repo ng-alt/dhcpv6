@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.10 2003/06/03 19:12:00 shirleyma Exp $	*/
+/*	$Id: lease.c,v 1.11 2003/06/23 17:33:53 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -82,11 +82,11 @@ write_lease(const struct dhcp6_lease *lease_ptr,
 	if (dhcp6_mode == DHCP6_MODE_CLIENT) 
 		fprintf(file, "\t SDUID: %s;\n", 
 			duidstr(&lease_ptr->iaidaddr->client6_info.serverid));
-	fprintf(file, "\t IAID: %d ", lease_ptr->iaidaddr->client6_info.iaidinfo.iaid);
+	fprintf(file, "\t IAID: %u ", lease_ptr->iaidaddr->client6_info.iaidinfo.iaid);
 	fprintf(file, "\t type: %d;\n", lease_ptr->iaidaddr->client6_info.type);
-	fprintf(file, "\t RenewTime: %d;\n", 
+	fprintf(file, "\t RenewTime: %u;\n", 
 		lease_ptr->iaidaddr->client6_info.iaidinfo.renewtime);
-	fprintf(file, "\t RebindTime: %d;\n",
+	fprintf(file, "\t RebindTime: %u;\n",
 		lease_ptr->iaidaddr->client6_info.iaidinfo.rebindtime);
 	if (!IN6_IS_ADDR_UNSPECIFIED(&lease_ptr->linklocal)) {
 		if ((inet_ntop(AF_INET6, &lease_ptr->linklocal, addr_str, 
@@ -107,10 +107,10 @@ write_lease(const struct dhcp6_lease *lease_ptr,
 		     brokendown_time.tm_hour,
 		     brokendown_time.tm_min,
 		     brokendown_time.tm_sec);
-	fprintf(file, "\t start date: %ld;\n", lease_ptr->start_date);
-	fprintf(file, "\t PreferredLifeTime: %d;\n",
+	fprintf(file, "\t start date: %lu;\n", lease_ptr->start_date);
+	fprintf(file, "\t PreferredLifeTime: %u;\n",
                              lease_ptr->lease_addr.preferlifetime);
-	fprintf(file, "\t ValidLifeTime: %d;\n",
+	fprintf(file, "\t ValidLifeTime: %u;\n",
                              lease_ptr->lease_addr.validlifetime);
 	fprintf(file, "}\n");
 	if (fflush(file) == EOF) {

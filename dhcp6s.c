@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.17 2003/05/27 20:56:41 shemminger Exp $	*/
+/*	$Id: dhcp6s.c,v 1.18 2003/06/23 17:33:53 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -780,7 +780,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 				if (dh6->dh6_msgtype == DH6_REBIND)
 					goto fail;
 				num = DH6OPT_STCODE_NOBINDING;
-				dprintf(LOG_INFO, "%s" "Nobinding for client %s iaid %d",
+				dprintf(LOG_INFO, "%s" "Nobinding for client %s iaid %u",
 					FNAME, duidstr(&optinfo->clientID), 
 						optinfo->iaidinfo.iaid);
 				break;
@@ -804,7 +804,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 				if (TAILQ_EMPTY(&roptinfo.addr_list)) {
 					num = DH6OPT_STCODE_NOBINDING;
 					dprintf(LOG_INFO, "%s" 
-					    "Bindings are not on link for client %s iaid %d",
+					    "Bindings are not on link for client %s iaid %u",
 						FNAME, duidstr(&optinfo->clientID), 
 						roptinfo.iaidinfo.iaid);
 					break;
@@ -819,7 +819,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 				if (dhcp6_update_iaidaddr(&roptinfo, addr_flag) 
 						!= 0) {
 					dprintf(LOG_INFO, "%s" 
-						"bindings failed for client %s iaid %d",
+						"bindings failed for client %s iaid %u",
 						FNAME, duidstr(&optinfo->clientID), 
 							roptinfo.iaidinfo.iaid);
 					num = DH6OPT_STCODE_UNSPECFAIL;
@@ -871,7 +871,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			if (found_binding) {
 			       if (dhcp6_update_iaidaddr(&roptinfo, addr_flag) != 0) {
 					dprintf(LOG_ERR,
-					"assigned ipv6address for client iaid %d failed",
+					"assigned ipv6address for client iaid %u failed",
 						roptinfo.iaidinfo.iaid);
 					num = DH6OPT_STCODE_UNSPECFAIL;
 			       } else
@@ -879,7 +879,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			} else {
 			       	if (dhcp6_add_iaidaddr(&roptinfo) != 0) {
 					dprintf(LOG_ERR, 
-					"assigned ipv6address for client iaid %d failed",
+					"assigned ipv6address for client iaid %u failed",
 						roptinfo.iaidinfo.iaid);
 					num = DH6OPT_STCODE_UNSPECFAIL;
 				} else

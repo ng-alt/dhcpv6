@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.10 2003/06/03 19:51:13 shirleyma Exp $	*/
+/*	$Id: lease_token.l,v 1.11 2003/06/23 17:33:53 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -203,7 +203,7 @@ comment		\#.*
 <S_DUID>. {ABORT;}
 <S_SDUID>{duid_id} {configure_duid(yytext, &client6_info.serverid);}
 <S_SDUID>. {ABORT;}
-<S_IAID>{number} {client6_info.iaidinfo.iaid = atoi(yytext);
+<S_IAID>{number} {client6_info.iaidinfo.iaid = atoll(yytext);
 		lease_flags |= LEASE_IAID_FLAG;}
 <S_IAID>"type:" {BEGIN S_IATYPE;}
 <S_IAID>. {ABORT;}
@@ -281,7 +281,7 @@ do_iaidaddr_hash(lease_rec, key)
 			memcpy(&client6_iaidaddr.client6_info, &client6_info, 
 				sizeof(client6_iaidaddr.client6_info));
 			dprintf(LOG_DEBUG, "hash add client iaidaddr type %d for "
-				" duid %s for iaid %d",
+				" duid %s for iaid %u",
 				client6_iaidaddr.client6_info.type, 
 				duidstr(&client6_iaidaddr.client6_info.clientid), 
 				client6_iaidaddr.client6_info.iaidinfo.iaid);
@@ -344,14 +344,14 @@ do_iaidaddr_hash(lease_rec, key)
 			free(iaidaddr);
 			return (-1);
 		}
-		dprintf(LOG_DEBUG, "hash add client iaidaddr type %d for duid %s for iaid %d",
+		dprintf(LOG_DEBUG, "hash add client iaidaddr type %d for duid %s for iaid %u",
 			iaidaddr->client6_info.type, 
 			duidstr(&iaidaddr->client6_info.clientid), 
 			iaidaddr->client6_info.iaidinfo.iaid);
 		/* update the start date and timer */
 		if ((iaidaddr->timer = 
 		     dhcp6_add_timer(dhcp6_iaidaddr_timo, iaidaddr)) == NULL) {
-	 		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %d",
+	 		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %u",
 				FNAME, iaidaddr->client6_info.iaidinfo.iaid);
 	 		return (-1);
 	    	}
@@ -470,7 +470,7 @@ add_lease(iaidaddr, lease)
 	lease_rec->iaidaddr = iaidaddr;
 	lease_rec->lease_addr.status_code = DH6OPT_STCODE_UNDEFINE;
 	TAILQ_INSERT_TAIL(&iaidaddr->lease_list, lease_rec, link);
-	dprintf(LOG_INFO, "%s" "add lease addr %s/%d type %d to %d", 
+	dprintf(LOG_INFO, "%s" "add lease addr %s/%d type %d to %u", 
 		FNAME, in6addr2str(&lease_rec->lease_addr.addr, 0), lease_rec->lease_addr.plen,
 		lease_rec->lease_addr.type, lease_rec->iaidaddr->client6_info.iaidinfo.iaid);
 	return (0);

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.32 2003/06/05 22:51:00 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.33 2003/06/23 17:33:52 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -478,7 +478,7 @@ client6_ifinit(char *device)
 				FNAME, ifp->ifname);
 			exit(1);
 		}
-		dprintf(LOG_DEBUG, "%s" "interface %s iaid is %d", 
+		dprintf(LOG_DEBUG, "%s" "interface %s iaid is %u", 
 			FNAME, ifp->ifname, ifp->iaidinfo.iaid);
 	}
 	client6_iaidaddr.ifp = ifp;
@@ -487,7 +487,7 @@ client6_ifinit(char *device)
 	duidcpy(&client6_iaidaddr.client6_info.clientid, &client_duid);
 	/* parse the lease file */
 	strcpy(leasename, PATH_CLIENT6_LEASE);
-	sprintf(iaidstr, "%d", ifp->iaidinfo.iaid);
+	sprintf(iaidstr, "%u", ifp->iaidinfo.iaid);
 	strcat(leasename, iaidstr);
 	if ((client6_lease_file = 
 		init_leases(leasename)) == NULL) {
@@ -954,7 +954,7 @@ client6_send(ev)
 		if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
 			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
 					sizeof(optinfo.iaidinfo));
-			dprintf(LOG_DEBUG, "%s IAID is %d", FNAME, optinfo.iaidinfo.iaid);
+			dprintf(LOG_DEBUG, "%s IAID is %u", FNAME, optinfo.iaidinfo.iaid);
 			if (ifp->send_flags & DHCIFF_TEMP_ADDRS) 
 				optinfo.type = IATA;
 			else if (ifp->send_flags & DHCIFF_PREFIX_DELEGATION)
@@ -1529,7 +1529,7 @@ rebind_confirm:	client6_request_flag &= ~CLIENT6_CONFIRM_ADDR;
 			client6_iaidaddr.state = ACTIVE;
 			if ((client6_iaidaddr.timer = dhcp6_add_timer(dhcp6_iaidaddr_timo, 
 						&client6_iaidaddr)) == NULL) {
-		 		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %d",
+		 		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %u",
 					FNAME, client6_iaidaddr.client6_info.iaidinfo.iaid);
 		 		return (-1);
 			}

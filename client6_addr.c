@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.20 2003/06/03 19:12:00 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.21 2003/06/23 17:33:46 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -163,7 +163,7 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	/* set up start date, and renew timer */
 	if ((client6_iaidaddr.timer = 
 	    dhcp6_add_timer(dhcp6_iaidaddr_timo, &client6_iaidaddr)) == NULL) {
-		 dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %d",
+		 dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %u",
 			FNAME, client6_iaidaddr.client6_info.iaidinfo.iaid);
 		 return (-1);
 	}
@@ -404,7 +404,7 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	if (client6_iaidaddr.timer == NULL) {
 		if ((client6_iaidaddr.timer = 
 		     dhcp6_add_timer(dhcp6_iaidaddr_timo, &client6_iaidaddr)) == NULL) {
-	 		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %d",
+	 		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %u",
 				FNAME, client6_iaidaddr.client6_info.iaidinfo.iaid);
 	 		return (-1);
 	    	}
@@ -633,7 +633,7 @@ client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr)
 	struct dhcp6_if *ifp = client6_iaidaddr.ifp;
 	unsigned long ioctl_cmd;
 	char *cmdstr;
-	int s;
+	int s, errno;
 
 	switch(cmd) {
 	case IFADDRCONF_ADD:
@@ -659,7 +659,7 @@ client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr)
 	
 	req.ifr6_prefixlen = ifaddr->plen;
 
-	if (ioctl(s, ioctl_cmd, &req)) {
+	if (ioctl(s, ioctl_cmd, &req) && errno != EEXIST) {
 		dprintf(LOG_NOTICE, "%s" "failed to %s an address on %s: %s",
 		    FNAME, cmdstr, ifp->ifname, strerror(errno));
 		close(s);
@@ -668,7 +668,6 @@ client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr)
 
 	dprintf(LOG_DEBUG, "%s" "%s an address %s on %s", FNAME, cmdstr,
 	    in6addr2str(&ifaddr->addr, 0), ifp->ifname);
-	/* ToDo: netlink to DAD */
 	close(s); 
 	return (0);
 }
@@ -684,7 +683,7 @@ get_iaid(const char *ifname, const struct iaid_table *iaidtab, int num_device)
 	for (i = 0; i < num_device; i++, temp++) {
 		if (!memcmp(temp->hwaddr.data, hdaddr.data, temp->hwaddr.len)
 		    && hdaddr.len == temp->hwaddr.len && hdaddr.type == temp->hwaddr.type) {
-			dprintf(LOG_DEBUG, "%s"" found interface %s iaid %d", 
+			dprintf(LOG_DEBUG, "%s"" found interface %s iaid %u", 
 				FNAME, ifname, temp->iaid);
 			return temp->iaid;
 		} else 
@@ -728,7 +727,7 @@ create_iaid(struct iaid_table *iaidtab, int num_device)
 				sizeof(temp->iaid));
 			temp->hwaddr.type = if_hwaddr.ifr_hwaddr.sa_family;	
 		}
-		dprintf(LOG_DEBUG, "%s"" create iaid %d for interface %s", 
+		dprintf(LOG_DEBUG, "%s"" create iaid %u for interface %s", 
 				FNAME, temp->iaid, ifr->ifr_name);
 		temp++;
 	}

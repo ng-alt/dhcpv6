@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.17 2003/06/03 19:53:29 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.18 2003/06/23 17:33:53 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -127,7 +127,7 @@ dhcp6_add_iaidaddr(optinfo)
 	}
 	/* it's meaningless to have an iaid without any leases */	
 	if (TAILQ_EMPTY(&iaidaddr->lease_list)) {
-		dprintf(LOG_INFO, "%s" "no leases are added for duid %s iaid %d", 
+		dprintf(LOG_INFO, "%s" "no leases are added for duid %s iaid %u", 
 			FNAME, duidstr(&iaidaddr->client6_info.clientid), 
 				iaidaddr->client6_info.iaidinfo.iaid);
 		return (0);
@@ -145,7 +145,7 @@ dhcp6_add_iaidaddr(optinfo)
 	/* set up timer for iaidaddr */
 	if ((iaidaddr->timer =
 	    dhcp6_add_timer(dhcp6_iaidaddr_timo, iaidaddr)) == NULL) {
-		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %d",
+		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %u",
 			FNAME, iaidaddr->client6_info.iaidinfo.iaid);
 		dhcp6_remove_iaidaddr(iaidaddr);
 		return (-1);
@@ -171,14 +171,14 @@ dhcp6_remove_iaidaddr(iaidaddr)
 		lv_next = TAILQ_NEXT(lv, link);
 		if ((lease = hash_search(lease_hash_table, (void *)&lv->lease_addr)) != NULL) {
 			if (dhcp6_remove_lease(lv)) {
-				dprintf(LOG_ERR, "%s" "failed to remove an iaid %d", FNAME,
+				dprintf(LOG_ERR, "%s" "failed to remove an iaid %u", FNAME,
 					 iaidaddr->client6_info.iaidinfo.iaid);
 				return (-1);
 			}
 		}
 	}
 	if (hash_delete(server6_hash_table, &iaidaddr->client6_info) != 0) {
-		dprintf(LOG_ERR, "%s" "failed to remove an iaid %d from hash",
+		dprintf(LOG_ERR, "%s" "failed to remove an iaid %u from hash",
 			FNAME, iaidaddr->client6_info.iaidinfo.iaid);
 		return (-1);
 	}
@@ -200,7 +200,7 @@ struct dhcp6_iaidaddr
 	client6_info.iaidinfo.iaid = optinfo->iaidinfo.iaid;
 	client6_info.type = optinfo->type;
 	if ((iaidaddr = hash_search(server6_hash_table, (void *)&client6_info)) == NULL) {
-		dprintf(LOG_DEBUG, "%s" "iaid %d iaidaddr for client duid %s doesn't exists", 
+		dprintf(LOG_DEBUG, "%s" "iaid %u iaidaddr for client duid %s doesn't exists", 
 			FNAME, client6_info.iaidinfo.iaid, 
 			duidstr(&client6_info.clientid));
 	}
@@ -269,7 +269,7 @@ dhcp6_update_iaidaddr(optinfo, flag)
 				dhcp6_remove_lease(lease);
 			}
 		}
-		dprintf(LOG_DEBUG, "%s" "update iaidaddr for iaid %d", FNAME, 
+		dprintf(LOG_DEBUG, "%s" "update iaidaddr for iaid %u", FNAME, 
 			iaidaddr->client6_info.iaidinfo.iaid);
 	} else {
 		/* remove leases */
@@ -292,7 +292,7 @@ dhcp6_update_iaidaddr(optinfo, flag)
 	}
 	/* it's meaningless to have an iaid without any leases */	
 	if (TAILQ_EMPTY(&iaidaddr->lease_list)) {
-		dprintf(LOG_INFO, "%s" "no leases are added for duid %s iaid %d", 
+		dprintf(LOG_INFO, "%s" "no leases are added for duid %s iaid %u", 
 			FNAME, duidstr(&iaidaddr->client6_info.clientid), 
 				iaidaddr->client6_info.iaidinfo.iaid);
 		dhcp6_remove_iaidaddr(iaidaddr);
@@ -302,7 +302,7 @@ dhcp6_update_iaidaddr(optinfo, flag)
 	if (iaidaddr->timer == NULL) {
 		if ((iaidaddr->timer = 
 		     dhcp6_add_timer(dhcp6_iaidaddr_timo, iaidaddr)) == NULL) {
-	 		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %d",
+	 		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %u",
 				FNAME, iaidaddr->client6_info.iaidinfo.iaid);
 	 		return (-1);
 	    	}
@@ -403,7 +403,7 @@ dhcp6_add_lease(iaidaddr, addr)
 	timo.tv_sec = (long)d;
 	timo.tv_usec = 0;
 	dhcp6_set_timer(&timo, sp->timer);
-	dprintf(LOG_DEBUG, "%s" "add lease for %s/%d iaid %d with preferlifetime %d"
+	dprintf(LOG_DEBUG, "%s" "add lease for %s/%d iaid %u with preferlifetime %d"
 			" with validlifetime %d", FNAME,
 		in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen, 
 		sp->iaidaddr->client6_info.iaidinfo.iaid,
