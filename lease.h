@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.11 2003/05/27 20:56:41 shemminger Exp $	*/
+/*	$Id: lease.h,v 1.12 2003/05/28 21:12:16 shirleyma Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -51,9 +51,6 @@ extern struct hash_table **hash_anchors;
 #define PREFIX_LEN_NOTINRA 64 
 #define MAX_FILE_SIZE 512*1024
 
-typedef enum { ACTIVE, RENEW,
-	       REBIND, EXPIRED,
-	       INVALID } state_t;
 
 typedef enum { IFADDRCONF_ADD, IFADDRCONF_REMOVE } ifaddrconf_cmd_t;
 
@@ -81,20 +78,7 @@ struct dhcp6_iaidaddr {
 	struct dhcp6_if *ifp;
 	struct dhcp6_timer *timer;
 	/* list of client leases */
-	TAILQ_HEAD(, dhcp6_lease) lease_list;
-};
-
-struct dhcp6_lease {
-	TAILQ_ENTRY(dhcp6_lease) link;
-	char hostname[1024];
-	struct in6_addr linklocal;
-	struct dhcp6_addr lease_addr;
-	iatype_t addr_type;
-	state_t state;
-	struct dhcp6_iaidaddr *iaidaddr;
-	time_t start_date;
-	/* address assigned on the interface */
-	struct dhcp6_timer *timer;
+	TAILQ_HEAD(,dhcp6_lease) lease_list;
 };
 
 int get_linklocal __P((const char *, struct in6_addr *));
