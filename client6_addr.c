@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.17 2003/05/23 19:00:35 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.18 2003/06/02 20:37:32 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -133,7 +133,6 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	}
 	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list) || 
 	    client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
-		dhcp6_remove_timer(client6_iaidaddr.timer);
 		return 0;
 	}
 	/* set up renew T1, rebind T2 timer renew/rebind based on iaid */
@@ -394,7 +393,8 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list) ||
 	    client6_iaidaddr.client6_info.iaidinfo.renewtime == DHCP6_DURATITION_INFINITE) {
 		client6_iaidaddr.client6_info.iaidinfo.rebindtime == DHCP6_DURATITION_INFINITE;
-		dhcp6_remove_timer(client6_iaidaddr.timer);
+		if (client6_iaidaddr.timer)
+			dhcp6_remove_timer(client6_iaidaddr.timer);
 		return (0);
 	}
 	/* update the start date and timer */
