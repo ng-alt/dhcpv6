@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.14 2003/04/30 19:04:10 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.15 2003/05/16 21:40:46 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -31,6 +31,7 @@
  */
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <linux/sockios.h>
 #include <sys/ioctl.h>
@@ -95,7 +96,7 @@ const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_SERVER;
 int insock;	/* inbound udp port */
 int outsock;	/* outbound udp port */
 extern FILE *server6_lease_file;
-char server6_lease_temp[256] = "/var/db/dhcpv6/server6.leasesXXXXXX";
+char server6_lease_temp[100];
 
 static const struct sockaddr_in6 *sa6_any_downstream;
 static struct msghdr rmh;
@@ -104,6 +105,8 @@ static int rmsgctllen;
 static char *rmsgctlbuf;
 static struct duid server_duid;
 static struct dns_list arg_dnslist;
+static struct dhcp6_timer *sync_lease_timer;
+
 struct link_decl *subnet = NULL;
 struct host_decl *host = NULL;
 struct rootgroup *globalgroup = NULL;
@@ -128,6 +131,7 @@ static int server6_send __P((int, struct dhcp6_if *, struct dhcp6 *,
 			     struct dhcp6_optinfo *,
 			     struct sockaddr *, int,
 			     struct dhcp6_optinfo *));
+static struct dhcp6_timer *check_lease_file_timo __P((void *arg));
 extern struct link_decl *dhcp6_allocate_link __P((struct dhcp6_if *, struct rootgroup *, 
 			struct in6_addr *));
 extern struct host_decl *dhcp6_allocate_host __P((struct dhcp6_if *, struct rootgroup *, 
@@ -204,8 +208,12 @@ main(argc, argv)
 			FNAME);
 		exit(1);
 	}
+	strcpy(server6_lease_temp, PATH_SERVER6_LEASE);
+	strcat(server6_lease_temp, "XXXXXX");
 	server6_lease_file = 
 		sync_leases(server6_lease_file, PATH_SERVER6_LEASE, server6_lease_temp);	
+	if (server6_lease_file == NULL)
+		exit(1);
 	globalgroup = (struct rootgroup *)malloc(sizeof(struct rootgroup));
 	if (globalgroup == NULL) {
 		dprintf(LOG_ERR, "failed to allocate memory %s", strerror(errno));
@@ -246,6 +254,8 @@ server6_init()
 	char buff[1024];
 	struct ifconf ifc;
 	struct ifreq *ifr;
+	double d;
+	struct timeval timo;
 	/* initialize inbound socket */
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_INET6;
@@ -426,6 +436,13 @@ server6_init()
 			exit(1);
 		}
 	}
+	/* set up sync lease file timer */
+	sync_lease_timer = dhcp6_add_timer(check_lease_file_timo, NULL);
+	d = DHCP6_SYNCFILE_TIME;
+	timo.tv_sec = (long)d;
+	timo.tv_usec = 0;
+	dprintf(LOG_DEBUG, "set timer for syncing file ...");
+	dhcp6_set_timer(&timo, sync_lease_timer);
 	return;
 }
 
@@ -735,19 +752,21 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	case DH6_RELEASE:
 	case DH6_CONFIRM:
 		roptinfo.type = optinfo->type;
+		/* XXX: how server knows the difference between rebind_confirm and rebind 
+		 * for prefix delegation ?*/
 		if (dh6->dh6_msgtype == DH6_RENEW || dh6->dh6_msgtype == DH6_REBIND)
 			addr_flag = ADDR_UPDATE;
 		if (dh6->dh6_msgtype == DH6_RELEASE)
 			addr_flag = ADDR_REMOVE;
 		if (dh6->dh6_msgtype == DH6_CONFIRM) {
 			/* DNS server */
+			addr_flag = ADDR_VALIDATE;
 			if (dhcp6_copy_list(&roptinfo.dns_list.addrlist, &dnslist.addrlist)) {
 				dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
 				goto fail;
 			}
+			roptinfo.dns_list.domainlist = dnslist.domainlist;
 		}
-		roptinfo.dns_list.domainlist = dnslist.domainlist;
-			addr_flag = ADDR_VALIDATE;
 		if (dh6->dh6_msgtype == DH6_DECLINE)
 			addr_flag = ADDR_ABANDON;
 	if (optinfo->iaidinfo.iaid != 0) {
@@ -949,3 +968,24 @@ server6_send(type, ifp, origmsg, optinfo, from, fromlen, roptinfo)
 	return 0;
 }
 
+static struct dhcp6_timer
+*check_lease_file_timo(void *arg)
+{
+	double d;
+	struct timeval timo;
+	struct stat buf;
+	FILE *file;
+	stat(PATH_SERVER6_LEASE, &buf);
+	strcpy(server6_lease_temp, PATH_SERVER6_LEASE);
+	strcat(server6_lease_temp, "XXXXXX");	
+	if (buf.st_size > MAX_FILE_SIZE) {
+		file = sync_leases(server6_lease_file, PATH_SERVER6_LEASE, server6_lease_temp);
+		if (file != NULL)
+			server6_lease_file = file;
+	}
+	d = DHCP6_SYNCFILE_TIME;
+	timo.tv_sec = (long)d;
+	timo.tv_usec = 0;
+	dhcp6_set_timer(&timo, sync_lease_timer);
+	return sync_lease_timer;
+}

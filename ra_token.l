@@ -1,4 +1,4 @@
-/*	$Id: ra_token.l,v 1.4 2003/04/30 19:04:12 shirleyma Exp $	*/
+/*	$Id: ra_token.l,v 1.5 2003/05/16 21:40:46 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -28,6 +28,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  */
 
+/* Author Shirley Ma xma@us.ibm.com */
+
 %option noyywrap
 
 %{
@@ -48,41 +50,40 @@
 #include "common.h"
 
 #define YYABORT(msg) dprintf(LOG_ERR, msg " %s lineno %d.", \
-	yytext, num_lines)
+	rayytext, num_lines)
 
 #define ABORT   do {    \
-	YYABORT("lease parse error");   \
+	YYABORT("/proc/net/ra6 file parse error");   \
 	exit(1);        \
 } while (0)
 
+#define PROC_RA_FILE "/proc/net/ra6"
+
+const char *raproc_file = "/proc/net/ra6";
 extern struct dhcp6_if *dhcp6_if;
-const char *rafile = "/proc/net/ra_inet6";
 
 static struct ra_info *rainfo;
-static int num_lines = 0;
+static int num_lines = 1;
 
 %}
 
 digit           [0-9]
 number          ({digit})+
 hexdigit        ([a-f]|[A-F]|[0-9])
-ipv4addr        ({digit}{1,3}"."{digit}{1,3}"."{digit}{1,3}"."{digit}{1,3})
-addr_head       ("::"|{hexdigit}{1,4}(":"|"::"))
-addr_tail       ({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})?
-addr_body       ({hexdigit}{1,4}(":"|"::"))*
-ipv6addr        {addr_head}{addr_body}{addr_tail}
+hexdigits	({hexdigit}{1,32})
 whitespace      ([ \t])+
 ifname          [a-zA-Z]+[0-9]+
-flags		[a-zA-Z]+
+flags		[a-zA-Z\-]+
 nl              \n
 
 
-%s S_CNF S_INDEX S_PLEN S_FLAGS S_PREFIX
+%s S_CNF S_INDEX S_PLEN S_FLAGS S_PREFIX S_RLINK
 
 %%
 
-{nl}            {num_lines++; BEGIN INITIAL;}
-{whitespace}    {;}
+%{
+	BEGIN S_CNF;
+%}
 
 <S_CNF>{ifname} {if (strcmp(rayytext, dhcp6_if->ifname))
 			BEGIN S_CNF;
@@ -90,53 +91,79 @@ nl              \n
 			rainfo = (struct ra_info *)malloc(sizeof(*rainfo));
 			if (rainfo == NULL)
 				ABORT;
-			else 
-				BEGIN S_INDEX;}
+			dprintf(LOG_DEBUG, "if name is %s", dhcp6_if->ifname);
+			BEGIN S_INDEX;}
 		}
-<S_CNF>. {ABORT;}
 <S_INDEX>{number} {if (atoi(rayytext) != dhcp6_if->ifid)
 			ABORT;
-		else   
-			BEGIN S_PLEN;}
-<S_INDEX>. {ABORT;}
-<S_PLEN>{number} {rainfo->plen = atoi(rayytext); BEGIN S_FLAGS;}
-<S_PLEN>. {ABORT;}
+		dprintf(LOG_DEBUG, "if index is %d", dhcp6_if->ifid);
+		BEGIN S_PLEN;}
+<S_PLEN>{number} {rainfo->plen = atoi(rayytext); 
+		dprintf(LOG_DEBUG, "plen is %d", rainfo->plen);
+		BEGIN S_FLAGS;}
 <S_FLAGS>{flags} {if (strchr(rayytext, 'M') != NULL)
 			rainfo->flags |= RA_MBIT_SET;
-		else if (strchr(rayytext, 'O') != NULL)
+		else 
 			rainfo->flags |= RA_OBIT_SET;
+		dprintf(LOG_DEBUG, "flag is %d", rainfo->flags);
 		BEGIN S_PREFIX;}
-<S_FLAGS>. {ABORT;}
-<S_PREFIX>{ipv6addr} {struct in6_addr addr;
+<S_PREFIX>{hexdigits} {struct in6_addr addr;
 		struct ra_info *ri, *ri_prev;
-		if (inet_pton(AF_INET6, rayytext, &addr) < 1) 
+		char buff[128];
+		int i, len = 0;
+		dprintf(LOG_DEBUG, "test prefix");
+		for (i = 0; i < rainfo->plen/4; i ++) {
+			strncpy(buff+len, &rayytext[i*4], 4);
+			len += 4;
+			if (i < 7) {
+				strcpy(buff+len, ":");
+				len += 1;
+			}
+		}
+		if (rainfo->plen < 128) {
+			strcat(buff, ":0");
+			len += 2;
+		} 
+		strcat(buff, "\0");
+		dprintf(LOG_DEBUG, "parse RA prefix %s/%d", buff, rainfo->plen);
+		if (inet_pton(AF_INET6, buff, &addr) < 1) 
 			ABORT;
-		else {
-			memcpy(&rainfo->prefix, &addr, sizeof(rainfo->prefix));
-			if (dhcp6_if->ralist == NULL) {
-				dhcp6_if->ralist = rainfo;
-				rainfo->next = NULL;
-			} else {
-				ri_prev = dhcp6_if->ralist;
-				for (ri = dhcp6_if->ralist; ri; ri = ri->next) {
-					if (rainfo->plen < ri->plen) {
-						if (ri->next == NULL) {
-							ri->next = rainfo;
-							rainfo->next = NULL;
-							break;
-						}
+		memcpy(&rainfo->prefix, &addr, sizeof(rainfo->prefix));
+		if (dhcp6_if->ralist == NULL) {
+			dhcp6_if->ralist = rainfo;
+			rainfo->next = NULL;
+		} else {
+			ri_prev = dhcp6_if->ralist;
+			for (ri = dhcp6_if->ralist; ri; ri = ri->next) {
+				if (rainfo->plen >= ri->plen) {
+					if (ri_prev == ri) {
+						dhcp6_if->ralist = rainfo;
+						rainfo->next = ri;
 					} else {
 						ri_prev->next = rainfo;
 						rainfo->next = ri;
-						break;
 					}
-					ri_prev = ri->next;	
-					continue;
+					break;
+				} else {
+					if (ri->next == NULL) {
+						ri->next = rainfo;
+						rainfo->next = NULL;
+						break;
+					} else {
+						ri_prev = ri;
+						continue;
+					}
 				}
 			}
-			BEGIN S_CNF;}
 		}
-<S_PREFIX>. {ABORT;}
+		BEGIN S_RLINK;}
+<S_RLINK>{hexdigits} {dprintf(LOG_DEBUG, "RA linklocal is %s", rayytext);
+		BEGIN S_CNF;}
+
+{nl}            {num_lines++;}
+{whitespace}    {;}
+
+. {ABORT;}
 
 %%
 
@@ -147,7 +174,7 @@ ra_parse(const char *raname)
 		if (errno == ENOENT)
 			return (0);
 		dprintf(LOG_ERR, "ra_parse: fopen(%s): %s",
-			configfilename, strerror(errno));
+			raname, strerror(errno));
 		return (-1);
 	}
 	yylex();

@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.8 2003/04/30 19:04:12 shirleyma Exp $	*/
+/*	$Id: lease.h,v 1.9 2003/05/16 21:40:46 shirleyma Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -49,7 +49,7 @@ extern struct hash_table **hash_anchors;
 #define lease_hash_table hash_anchors[HT_IPV6LEASE]
 #define host_addr_hash_table hash_anchors[HT_IPV6ADDR]
 #define PREFIX_LEN_NOTINRA 64 
-
+#define MAX_FILE_SIZE 512*1024
 
 typedef enum { ACTIVE, RENEW,
 	       REBIND, EXPIRED,

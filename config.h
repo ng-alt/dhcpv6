@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.12 2003/04/30 19:04:08 shirleyma Exp $	*/
+/*	$Id: config.h,v 1.13 2003/05/16 21:40:46 shirleyma Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -58,9 +58,13 @@ struct dhcp6_if {
 	int outsock;
 
 	/* timer for the interface to sync file every 5 mins*/
-	struct dhcp6_timer *timer;
-#define DHCP6_SYNCFILE_TIME	300000
-	
+	struct dhcp6_timer *sync_timer;
+#define DHCP6_SYNCFILE_TIME	60
+	/* timer to check interface off->on link to send confirm message*/
+	struct dhcp6_timer *link_timer;	
+#define DHCP6_CHECKLINK_TIME	5	
+	struct dhcp6_timer *dad_timer;
+#define DHCP6_CHECKDAD_TIME	5	
 	/* event queue */
 	TAILQ_HEAD(, dhcp6_event) event_list;	
 
@@ -71,7 +75,8 @@ struct dhcp6_if {
 	struct dns_list dnslist;
 	u_int32_t linkid;	/* to send link-local packets */
 	struct dhcp6_iaid_info iaidinfo;	
-	
+
+	u_int16_t link_flag;	
 	/* configuration parameters */
 	u_long send_flags;
 	u_long allow_flags;

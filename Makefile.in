@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.8 2003/04/12 00:25:32 shirleyma Exp $
+# $Id: Makefile.in,v 1.9 2003/05/16 21:40:45 shirleyma Exp $
 #
 
 srcdir=	@srcdir@
@@ -31,7 +31,7 @@ CFLAGS+= -DCONF_DH6OPT_DNS_RESOLVERS=@dhcpopt_dns_resolvers@ \
 	-DCONF_DH6OPT_IAPREFIX=@dhcpopt_pinfo@ 
 
 COMMONGENSRCS=lease_token.c
-CLIENTGENSRCS=client6_parse.c client6_token.c ra_token.c resolv_token.c
+CLIENTGENSRCS=client6_parse.c client6_token.c dad_token.c ra_token.c resolv_token.c
 SERVERGENSRCS=server6_parse.c server6_token.c 
 CLIENTOBJS=	dhcp6c.o common.o config.o timer.o client6_addr.o \
 		hash.o lease.o \
@@ -40,7 +40,7 @@ SERVOBJS=	dhcp6s.o common.o timer.o hash.o lease.o \
 		server6_conf.o server6_addr.o \
 	$(SERVERGENSRCS:%.c=%.o) $(COMMONGENSRCS:%.c=%.o)
 
-CLEANFILES=cf.tab.h cp.tab.h sf.tab.h ra_token.c client6_token.c client6_parse.c \
+CLEANFILES=cf.tab.h cp.tab.h sf.tab.h dad_token.c ra_token.c client6_token.c client6_parse.c \
 		server6_parse.c server6_token.c lease_token.c resolv_token.c
 
 all:	$(TARGET) 
@@ -48,6 +48,10 @@ dhcp6c:	$(CLIENTOBJS) $(LIBOBJS)
 	$(CC) $(LDFLAGS) -o dhcp6c $(CLIENTOBJS) $(LIBOBJS) $(LIBS) 
 dhcp6s:	$(SERVOBJS) $(LIBOBJS)
 	$(CC) $(LDFLAGS) -o dhcp6s $(SERVOBJS) $(LIBOBJS) $(LIBS) 
+
+dad_token.c: dad_token.l
+	$(LEX) -Pifyy dad_token.l
+	mv lex.ifyy.c $@
 
 ra_token.c: ra_token.l
 	$(LEX) -Prayy ra_token.l

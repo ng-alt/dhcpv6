@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.14 2003/04/30 19:04:05 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.15 2003/05/16 21:40:45 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -73,6 +73,7 @@ extern void client6_send __P((struct dhcp6_event *));
 extern void free_servers __P((struct dhcp6_if *));
 extern ssize_t gethwid __P((char *, int, const char *, u_int16_t *));
 
+extern int nlsock;
 extern FILE *client6_lease_file;
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern struct dhcp6_list request_list;
@@ -687,13 +688,11 @@ create_iaid(struct iaid_table *iaidtab, int num_device)
 	char buff[1024];
 	struct ifconf ifc;
 	struct ifreq *ifr, if_hwaddr;
-	int sock, i;
-	if ((sock = socket(AF_INET, SOCK_DGRAM, 0 )) < 0) 
-		return -1;
+	int i;
 	
 	ifc.ifc_len = sizeof(buff);
 	ifc.ifc_buf = buff;
-	if (ioctl(sock, SIOCGIFCONF, &ifc) < 0) {
+	if (ioctl(nlsock, SIOCGIFCONF, &ifc) < 0) {
 		dprintf(LOG_ERR, "%s" "ioctl SIOCGIFCONF", FNAME);
 		return -1;
 	}
@@ -703,7 +702,7 @@ create_iaid(struct iaid_table *iaidtab, int num_device)
 	     ifr++, num_device++) {
 		if (!strcmp(ifr->ifr_name, "lo")) continue;
 		strcpy(if_hwaddr.ifr_name, ifr->ifr_name);
-		if (ioctl(sock, SIOCGIFHWADDR, &if_hwaddr) < 0) {
+		if (ioctl(nlsock, SIOCGIFHWADDR, &if_hwaddr) < 0) {
 			dprintf(LOG_ERR, "%s" "ioctl SIOCGIFHWADDR",
 				FNAME, ifr->ifr_name);
 			return -1;

@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.11 2003/04/30 19:04:13 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.12 2003/05/16 21:40:46 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -272,13 +272,13 @@ dhcp6_update_iaidaddr(optinfo, flag)
 			lv_next = TAILQ_NEXT(lv, link);
 			lease = dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr);
 			if (lease) {
-				dhcp6_remove_lease(lease);
 				if (flag == ADDR_ABANDON) {
 					/* XXX: preallocate a abandoned duid 
 					 * for maintain abandoned list with
 					 * preferlifetime xxx, validlifetime xxx
 					 */
 				}
+				dhcp6_remove_lease(lease);
 			} else {
 				dprintf(LOG_INFO, "%s" "address is not on the iaid", FNAME);
 			}

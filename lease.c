@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.7 2003/04/30 19:04:11 shirleyma Exp $	*/
+/*	$Id: lease.c,v 1.8 2003/05/16 21:40:46 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -133,8 +133,8 @@ sync_leases (FILE *file, const char *original, char *template)
 	int i, fd;
 	struct hashlist_element *element;
 	fd = mkstemp(template);
-        if ((sync_file = fdopen(fd, "w")) == NULL) {
-                dprintf(LOG_ERR, "%s" "could not open sync file", FNAME);
+        if (fd < 0 || (sync_file = fdopen(fd, "w")) == NULL) {
+		dprintf(LOG_ERR, "%s" "could not open sync file", FNAME);
                 return (NULL);
         }
 	if (dhcp6_mode == DHCP6_MODE_SERVER) {
