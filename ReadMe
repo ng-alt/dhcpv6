@@ -33,13 +33,16 @@ A. Validated Features:
 	 info. 
       3. Client IPv6 address assignment and temporary IPv6 address assignment support 
 	 on the same link. 
-      4. Supported Options: Rapid commit, Server Preference, Information Request, 
-	 ClientID, ServerID , IA_NA , IA_TA , IA_ADDR , IA_PD, Status support. 
+      4. Supported Options: Rapid commit, Server Preference, Information Request, Unicast,
+	 Elapsed Time, ClientID, ServerID , IA_NA , IA_TA , IA_ADDR , IA_PD, Status support. 
       5. Solicit/Request/Advertise/Reply/Infomation-request messages/Renew/Rebind
       	 /Release/Confirm/ messages support for IPv6 address binding. 
       8. Client configuration file support for IPv6 address assignment. 
       9. Client lease file support for saving individual client ipv6address binding info. 
       10. DNS server update support according to draft-ietf-dhc-dhcpv6-opt-dnsconfig-03.txt.
+      11. Prefix delegation support according to 
+	  draft-ietf-dhc-dhcpv6-opt-prefix-delegation-03.txt
+      12. radvd.conf update and radvd reload for prefix delegation	
 
 B. Support available but not validated yet 
 
@@ -47,7 +50,7 @@ B. Support available but not validated yet
 
 C. ToDo List: 
 
-      1. Unicast/Authentication/User class/Vendor class/Interface-ID option 
+      1. Authentication/User class/Vendor class/Interface-ID option 
          support 
       2. Relay agent support. 
       3. Reconfig/Relay messages support. 
@@ -58,9 +61,9 @@ D. INSTALLATTION:
 	2. ./configure
 	3. make
 	4. insmod ipv6 (if ipv6 is not compiled in the kernel)
-	5. mkdir /var/lib/dhcpv6 (create dhcpv6 database directory)
+	5. mkdir /var/db/dhcpv6 (create dhcpv6 database directory)
 	6. cp dhcp6c.conf /etc/dhcp6c.conf (copy client configuration file)
 	7. cp dhcp6s.conf /etc/dhcp6s.conf (copy server configuration file)
-	8. ./dhcp6s -dDf eth0 (start server, turn on debug)
+	8. ./dhcp6s -dDf [eth0 eth1 ...] (start server, turn on debug)
 	9. ./dhcp6c -dDf eth0 (start client, turn on debug)
 	
