@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.5 2003/02/11 19:12:28 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.6 2003/02/11 19:51:00 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -993,7 +993,8 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 
 		switch(opt) {
 		case DH6OPT_IADDR:
-			if (optlen < sizeof(ai) - sizeof(u_int32_t))
+			if (optlen != sizeof(ai) - sizeof(u_int32_t) || 
+					optlen != sizeof(ai) - sizeof(u_int32_t) + sizeof(si))
 				goto malformed;
 			memcpy(&ai, p, sizeof(ai));
 			/* copy the information into internal format */
@@ -1182,100 +1183,44 @@ dhcp6_set_options(bp, ep, optinfo)
 	if (optinfo->flags & DHCIFF_RAPID_COMMIT)
 		COPY_OPTION(DH6OPT_RAPID_COMMIT, 0, NULL, p);
 	
-	if ((optinfo->flags & DHCIFF_TEMP_ADDRS) && optinfo->iaidinfo.iaid != 0) {
+	if (optinfo->iaidinfo.iaid != 0) { 
+		int buflen;
 		char *tp;
 		u_int32_t iaid;
-		struct dhcp6_listval *dp;
-		struct dhcp6_addr_info ai;
-		int num, buflen;
-		optlen = sizeof(u_int32_t);
-		buflen = sizeof(u_int32_t) + dhcp6_count_list(&optinfo->addr_list) *
-			(sizeof(struct dhcp6_addr_info) + sizeof(struct dhcp6_status_info));
-		tmpbuf = NULL;
-		if ((tmpbuf = malloc(buflen)) == NULL) {
-			dprintf(LOG_ERR, "%s"
-				"memory allocation failed for options", FNAME);
-			goto fail;
-		}
-		optlen += dhcp6_count_list(&optinfo->addr_list) *
-			(sizeof(struct dhcp6_addr_info));
-		dprintf(LOG_DEBUG, "%s" "set IA_TA iaid information: %d", FNAME,
-				optinfo->iaidinfo.iaid);
-		iaid = htonl(optinfo->iaidinfo.iaid); 
-		memcpy(tmpbuf, &iaid, sizeof(u_int32_t));
-		if (!TAILQ_EMPTY(&optinfo->addr_list)) {
-			for (dp = TAILQ_FIRST(&optinfo->addr_list), 
-			    tp = tmpbuf + sizeof(u_int32_t); dp;
-		     	        dp = TAILQ_NEXT(dp, link)) {
-				memset(&ai, 0, sizeof(ai));
-				ai.dh6_ai_type = htons(DH6OPT_IADDR);
-				ai.dh6_ai_len = htons(sizeof(struct dhcp6_addr_info) 
-						- sizeof(u_int32_t));
-				ai.preferlifetime = htonl(dp->val_dhcp6addr.preferlifetime);
-				ai.validlifetime = htonl(dp->val_dhcp6addr.validlifetime);
-				memcpy(&ai.addr, &dp->val_dhcp6addr.addr,
-			       		sizeof(ai.addr));
-				memcpy(tp, &ai, sizeof(ai));
-				tp +=sizeof(ai);
-			dprintf(LOG_DEBUG, "%s" "set IAADDR address information: "
-			    "%s preferlifetime %ld validlifetime %ld", FNAME,
-			    in6addr2str(&ai.addr, 0),
-			    ntohl(ai.preferlifetime), ntohl(ai.validlifetime));
-			/* XXX: set up address status code if any */
-				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
-		       			struct dhcp6_status_info status;
-					status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
-					status.dh6_status_len = htons(sizeof(u_int32_t));
-					status.dh6_status_code = 
-						htons(dp->val_dhcp6addr.status_code);
-					memcpy(tp, &status, sizeof(status));
-					optlen += sizeof(status);
-					tp += sizeof(status);
-				}
-			}
-		} else if (dhcp6_mode == DHCP6_MODE_SERVER) {
-			int num;
-			num = DH6OPT_STCODE_NOADDRAVAIL;
-			dprintf(LOG_DEBUG, "  status code: %s",
-			    dhcp6_stcodestr(num));
-
-			/* need to check duplication? */
-
-			if (dhcp6_add_listval(&optinfo->stcode_list,
-			    &num, DHCP6_LISTVAL_NUM) == NULL) {
-				dprintf(LOG_ERR, "%s" "failed to copy "
-				    "status code", FNAME);
-				goto fail;
-			}
-		}
-		COPY_OPTION(DH6OPT_IA_TA, optlen, tmpbuf, p);
-		free(tmpbuf);
-	}
-	if (optinfo->iaidinfo.iaid != 0) { 
-		char *tp;
-		struct dhcp6_listval *dp;
-		struct dhcp6_addr_info ai;
 		struct dhcp6_iaid_info opt_iana;
-		int buflen;
-		optlen = sizeof(opt_iana);
+		struct dhcp6_addr_info ai;
+		struct dhcp6_status_info status;
+		struct dhcp6_listval *dp;
+		if (optinfo->flags & DHCIFF_TEMP_ADDRS) {
+			optlen = sizeof(iaid);
+			dprintf(LOG_DEBUG, "%s" "set IA_TA iaid information: %d", FNAME,
+				optinfo->iaidinfo.iaid);
+			iaid = htonl(optinfo->iaidinfo.iaid); 
+			memcpy(tmpbuf, &iaid, sizeof(iaid));
+		} else {
+			optlen = sizeof(opt_iana);
+			dprintf(LOG_DEBUG, "%s" "set IA_NA iaidinfo: "
+		    			"iaid %d renewtime %ld rebindtime %ld", FNAME,
+		    			optinfo->iaidinfo.iaid, optinfo->iaidinfo.renewtime, 
+		    			optinfo->iaidinfo.rebindtime);
+			opt_iana.iaid = htonl(optinfo->iaidinfo.iaid);
+			opt_iana.renewtime = htonl(optinfo->iaidinfo.renewtime);
+			opt_iana.rebindtime = htonl(optinfo->iaidinfo.rebindtime);
+		}
 		buflen = optlen + dhcp6_count_list(&optinfo->addr_list) *
-			(sizeof(struct dhcp6_addr_info) + sizeof(struct dhcp6_status_info));
+			(sizeof(ai) + sizeof(status));
 		tmpbuf = NULL;
 		if ((tmpbuf = malloc(buflen)) == NULL) {
 			dprintf(LOG_ERR, "%s"
 				"memory allocation failed for options", FNAME);
 			goto fail;
 		}
-		optlen += dhcp6_count_list(&optinfo->addr_list) *
-			(sizeof(struct dhcp6_addr_info));
-		opt_iana.iaid = htonl(optinfo->iaidinfo.iaid);
-		opt_iana.renewtime = htonl(optinfo->iaidinfo.renewtime);
-		opt_iana.rebindtime = htonl(optinfo->iaidinfo.rebindtime);
-		dprintf(LOG_DEBUG, "%s" "set IA_NA iaidinfo: "
-		    "iaid %d renewtime %ld rebindtime %ld", FNAME,
-		    optinfo->iaidinfo.iaid, optinfo->iaidinfo.renewtime, 
-		    		optinfo->iaidinfo.rebindtime);
-		memcpy(tmpbuf, &opt_iana, sizeof(opt_iana));
+		if (optinfo->flags & DHCIFF_TEMP_ADDRS) 
+			memcpy(tmpbuf, &iaid, sizeof(iaid));
+		else
+			memcpy(tmpbuf, &opt_iana, sizeof(opt_iana));
+		optlen += dhcp6_count_list(&optinfo->addr_list) * 
+				(sizeof(struct dhcp6_addr_info));
 		if (!TAILQ_EMPTY(&optinfo->addr_list)) {
 			for (dp = TAILQ_FIRST(&optinfo->addr_list), 
 			    tp = tmpbuf + 3 * sizeof(u_int32_t); dp;
@@ -1289,13 +1234,12 @@ dhcp6_set_options(bp, ep, optinfo)
 			       		sizeof(ai.addr));
 				memcpy(tp, &ai, sizeof(ai));
 				tp += sizeof(ai);
-			dprintf(LOG_DEBUG, "%s" "set IAADDR address information: "
-			    "%s preferlifetime %ld validlifetime %ld", FNAME,
-			    in6addr2str(&ai.addr, 0), 
-			    ntohl(ai.preferlifetime), ntohl(ai.validlifetime));
-			/* XXX: set up address status code if any */
+				dprintf(LOG_DEBUG, "%s" "set IAADDR address information: "
+			    		"%s preferlifetime %ld validlifetime %ld", FNAME,
+			    		in6addr2str(&ai.addr, 0), 
+			    		ntohl(ai.preferlifetime), ntohl(ai.validlifetime));
+				/* set up address status code if any */
 				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
-		       			struct dhcp6_status_info status;
 					status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
 					status.dh6_status_len = htons(sizeof(u_int32_t));
 					status.dh6_status_code = 
@@ -1312,9 +1256,7 @@ dhcp6_set_options(bp, ep, optinfo)
 			num = DH6OPT_STCODE_NOADDRAVAIL;
 			dprintf(LOG_DEBUG, "  status code: %s",
 			    dhcp6_stcodestr(num));
-
-			/* need to check duplication? */
-
+			/* XXX: need to check duplication? */
 			if (dhcp6_add_listval(&optinfo->stcode_list,
 			    &num, DHCP6_LISTVAL_NUM) == NULL) {
 				dprintf(LOG_ERR, "%s" "failed to copy "
@@ -1322,7 +1264,10 @@ dhcp6_set_options(bp, ep, optinfo)
 				goto fail;
 			}
 		}
-		COPY_OPTION(DH6OPT_IA_NA, optlen, tmpbuf, p);
+		if (optinfo->flags & DHCIFF_TEMP_ADDRS)
+			COPY_OPTION(DH6OPT_IA_TA, optlen, tmpbuf, p);
+		else
+			COPY_OPTION(DH6OPT_IA_NA, optlen, tmpbuf, p);
 		free(tmpbuf);
 		
 	}
