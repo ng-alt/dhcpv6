@@ -1,9 +1,8 @@
-.\"	$Id: dhcp6s.8,v 1.1 2003/01/16 15:41:11 root Exp $
-.\"	from KAME: dhcp6s.8,v 1.21 2002/06/21 10:25:39 jinmei Exp
+.\" $Id: dhcp6s.8,v 1.2 2003/03/28 20:16:37 shirleyma Exp $
 .\"
-.\" Copyright (C) 1998 and 1999 WIDE Project.
+.\" Copyright (C) International Business Machines  Corp., 2003
 .\" All rights reserved.
-.\" 
+.\"
 .\" Redistribution and use in source and binary forms, with or without
 .\" modification, are permitted provided that the following conditions
 .\" are met:
@@ -15,7 +14,7 @@
 .\" 3. Neither the name of the project nor the names of its contributors
 .\"    may be used to endorse or promote products derived from this software
 .\"    without specific prior written permission.
-.\" 
+.\"
 .\" THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
 .\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 .\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -28,87 +27,91 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.Dd Sep 12, 1999
-.Dt DHCP6S 8
-.Os KAME
-.Sh NAME
-.Nm dhcp6s
-.Nd DHCPv6 server
-.\"
-.Sh SYNOPSIS
-.Nm
-.Op Fl c Ar configfile
-.Op Fl Ddf
-.Ar interface
-.\"
-.Sh DESCRIPTION
-.Nm
-replies to DHCPv6 client as DHCPv6 server.
-.Nm
-can give the following information to clients.
-.Bl -bullet -compact
-.It
-IPv6 prefixes for the requesting cite
-.El
-.Pp
-Command line options are as below:
-.Bl -tag -width indent
-.\"
-.It Fl c Ar configfile
-Use
-.Ar configfile
-as the configuration file.
-.It Fl d
-Print debugging messages.
-.It Fl D
-Even more debugging information is printed.
-.It Fl f
-Foreground mode (useful when debugging).
-Although
-.Nm
-usually prints warning, debugging, or error messages to
-.Xr syslog 8 ,
-it prints the messages to standard error if this option is
-specified.
-.El
-.\"
-.Sh FILES
-.Bl -tag -width /usr/local/v6/etc/dhcp6s.conf -compact
-.It Pa /usr/local/v6/etc/dhcp6s.conf
-is the default configuration file.
-.It Pa /etc/dhcp6s_duid
-is the default file to store the server's DUID.
-.El
-.\"
-.Sh SEE ALSO
-.Xr dhcp6s.conf 5 ,
-.Xr dhcp6c 8
-.Rs
-.%A Ralph Droms, Editor
-.%D 2002
-.%T Dynamic Host Configuration Protocol for IPv6 (DHCPv6)
-.%R internet draft
-.%N draft-ietf-dhc-dhcpv6-26.txt
-.%O work in progress material
-.Re
-.\"
-.Sh HISTORY
-The
-.Nm
-command first appeared in WIDE/KAME IPv6 protocol stack kit.
-.Pp
-The
-.Fl n Ar dnsserv
-command-line option was obsoleted by introducing a configuration file.
-.\"
-.Sh BUGS
-.Nm
-is incomplete and violates DHCPv6 protocol spec, in several aspects.
-To name a few:
-.Bl -enum
-.It
-it does not accept messages from DHCP relay agents,
-.It
-it does not assign IPv6 addresses
-.Pq nor will .
-.El
+.TH dhcp6s 8 "17 March 2003" "dhcp6s" "Linux System Manager's Manual"
+
+.SH NAME
+dhcp6s \- DHCPv6 server daemon
+
+.SH SYNOPSIS
+.in +.5i
+.ti -.5i
+dhcp6s
+\%[\-dDf]
+\%[\-n\ <DNS IPv6 address>]
+\%[\-c\ <configuration file>]
+interface
+.in -.5i
+
+.SH DESCRIPTION
+.B dhcp6s
+is an implementation of the DHCPv6 server.
+
+.B dhcp6s
+provides IPv6 addresses and prefix assginment administrative policy and
+configuration information for DHCPv6 clients. dhcp6s also manages those
+addresses and prefixes, such as IPv6 addresses, prefixes, DNS server
+addresses, or ntp server addresses.
+
+.SH OPTIONS
+.TP
+.BI \-c\ <configuration\ file>
+Specifies the configuration file for 
+.B dhcp6s
+
+.TP
+.BI \-d
+Enables
+.B dhcp6s
+to print debug messages.
+
+.TP
+.BI \-D
+Enables
+.B dhcp6s
+to print verbose debug messages.
+
+.TP
+.BI \-f
+Enables
+.B dhcp6s
+to work as a foreground application.
+This option is helpful for debugging.
+
+.TP
+.BI \-n\ <dns\ servers>
+Allows
+.B dhcp6s
+to parse DNS server addresses from command line.
+
+.SH FILES
+.TP
+.BI dhcp6s.conf
+Contains dhcp6s configurations, such as allow unicast, allow rapid-commit,
+specify valid-life-time, or specify preferred-life-time.
+
+.TP
+.BI dhcp6s_duid
+Contains the dhcp6s server's DUID.
+
+.TP
+.BI server6.leases
+Contains all dhcp6c clients' IPv6 address and prefix leasing information and
+states.
+
+.SH SEE ALSO
+Dynamic Host Configuration Protocol for IPv6 (DHCPv6), IPv6 Prefix Options
+for DHCPv6, dhcp6s.conf(5)
+
+.SH ERRORS
+Check /var/log/messages if there are errors.
+
+.SH BUGS
+.PD 0
+none
+
+.SH AUTHORS
+.LP
+Kazuo Hiekata <hiekata@yamato.ibm.com>
+.LP
+Shirley Ma <xma@us.ibm.com>
+
