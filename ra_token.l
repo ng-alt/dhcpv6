@@ -1,4 +1,4 @@
-/*	$Id: ra_token.l,v 1.6 2003/05/16 22:17:27 shirleyma Exp $	*/
+/*	$Id: ra_token.l,v 1.7 2003/06/02 20:38:15 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -91,27 +91,22 @@ nl              \n
 			rainfo = (struct ra_info *)malloc(sizeof(*rainfo));
 			if (rainfo == NULL)
 				ABORT;
-			dprintf(LOG_DEBUG, "if name is %s", dhcp6_if->ifname);
 			BEGIN S_INDEX;}
 		}
 <S_INDEX>{number} {if (atoi(rayytext) != dhcp6_if->ifid)
 			ABORT;
-		dprintf(LOG_DEBUG, "if index is %d", dhcp6_if->ifid);
 		BEGIN S_PLEN;}
 <S_PLEN>{number} {rainfo->plen = atoi(rayytext); 
-		dprintf(LOG_DEBUG, "plen is %d", rainfo->plen);
 		BEGIN S_FLAGS;}
 <S_FLAGS>{flags} {if (strchr(rayytext, 'M') != NULL)
 			rainfo->flags |= RA_MBIT_SET;
 		else 
 			rainfo->flags |= RA_OBIT_SET;
-		dprintf(LOG_DEBUG, "flag is %d", rainfo->flags);
 		BEGIN S_PREFIX;}
 <S_PREFIX>{hexdigits} {struct in6_addr addr;
 		struct ra_info *ri, *ri_prev;
 		char buff[128];
 		int i, len = 0;
-		dprintf(LOG_DEBUG, "test prefix");
 		for (i = 0; i < rainfo->plen/4; i ++) {
 			strncpy(buff+len, &rayytext[i*4], 4);
 			len += 4;
@@ -125,7 +120,6 @@ nl              \n
 			len += 2;
 		} 
 		strcat(buff, "\0");
-		dprintf(LOG_DEBUG, "parse RA prefix %s/%d", buff, rainfo->plen);
 		if (inet_pton(AF_INET6, buff, &addr) < 1) 
 			ABORT;
 		memcpy(&rainfo->prefix, &addr, sizeof(rainfo->prefix));
@@ -157,8 +151,7 @@ nl              \n
 			}
 		}
 		BEGIN S_RLINK;}
-<S_RLINK>{hexdigits} {dprintf(LOG_DEBUG, "RA linklocal is %s", rayytext);
-		BEGIN S_CNF;}
+<S_RLINK>{hexdigits} { BEGIN S_CNF;}
 
 {nl}            {num_lines++;}
 {whitespace}    {;}
