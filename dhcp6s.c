@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.18 2003/06/23 17:33:53 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.19 2004/03/15 22:03:21 shemminger Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -35,6 +35,7 @@
 #include <sys/socket.h>
 #include <linux/sockios.h>
 #include <sys/ioctl.h>
+#include <sys/file.h>
 
 #include <sys/uio.h>
 #if TIME_WITH_SYS_TIME
@@ -139,6 +140,25 @@ extern struct host_decl *dhcp6_allocate_host __P((struct dhcp6_if *, struct root
 
 extern int dhcp6_get_hostconf __P((struct dhcp6_optinfo *, struct dhcp6_optinfo *,
 			struct dhcp6_iaidaddr *, struct host_decl *)); 
+
+static void random_init(void) 
+{
+	int f, n;
+	unsigned int seed = time(NULL) & getpid();
+	char rand_state[256];
+
+	f = open("/dev/urandom", O_RDONLY);
+	if (f > 0) {
+		n = read(f, rand_state, sizeof(rand_state));
+		close(f);
+		if (n > 32) {
+			initstate(seed, rand_state, n);
+			return;
+		}
+	}
+	srandom(seed);
+}
+
 int
 main(argc, argv)
 	int argc;
@@ -156,7 +176,7 @@ main(argc, argv)
 
 	TAILQ_INIT(&arg_dnslist.addrlist);
 
-	srandom(time(NULL) & getpid());
+	random_init();
 	while ((ch = getopt(argc, argv, "c:dDfn:")) != -1) {
 		switch (ch) {
 		case 'c':
