@@ -39,11 +39,11 @@ A. Validated Features:
       	 /Release/Confirm/ messages support for IPv6 address binding. 
       8. Client configuration file support for IPv6 address assignment. 
       9. Client lease file support for saving individual client ipv6address binding info. 
+      10. DNS server update support according to draft-ietf-dhc-dhcpv6-opt-dnsconfig-03.txt.
 
 B. Support available but not validated yet 
 
-      1. DNS server option support 
-      2. Request option support 
+      1. Request option support 
 
 C. ToDo List: 
 

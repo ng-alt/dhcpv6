@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.9 2003/04/12 00:25:32 shirleyma Exp $	*/
+/*	$Id: config.h,v 1.10 2003/04/18 00:19:59 shirleyma Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -295,4 +295,4 @@ extern int configure_global_option (void);
 extern void configure_cleanup (void);
 extern void configure_commit (void);
 extern int cfparse (const char *);
-extern int resolv_parse (const char *);
+extern int resolv_parse (struct dns_list *);
