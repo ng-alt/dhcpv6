@@ -1,4 +1,4 @@
-/*	$Id: hash.h,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: hash.h,v 1.2 2003/02/10 23:47:08 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -56,14 +56,14 @@ struct hash_table {
 };
 
  
-int init_hashes(void);
-struct hash_table * hash_table_create(unsigned int hash_size,
+extern int init_hashes(void);
+extern struct hash_table * hash_table_create(unsigned int hash_size,
 	unsigned int (*hash_function)(void *hash_key),
 	void * (*find_hashkey)(void *data),
 	int (*compare_hashkey)(void *data, void *hashkey));
-int  hash_add(struct hash_table *table, void *key, void *data);
-int hash_delete(struct hash_table *table, void *key);
-void * hash_search(struct hash_table *table, void *key);
-int hash_full(struct hash_table *table);
-int grow_hash(struct hash_table *table);
+extern int  hash_add(struct hash_table *table, void *key, void *data);
+extern int hash_delete(struct hash_table *table, void *key);
+extern void * hash_search(struct hash_table *table, void *key);
+extern int hash_full(struct hash_table *table);
+extern int grow_hash(struct hash_table *table);
 #endif

@@ -1,4 +1,4 @@
-/*	$Id: server6_addr_token.l,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: server6_addr_token.l,v 1.2 2003/02/10 23:47:09 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -41,6 +41,11 @@
 #include <sys/socket.h>
 #include <linux/in6.h>
 #include <net/if.h>
+#include <linux/ipv6.h>
+#include "queue.h"
+#include "dhcp6.h"
+#include "config.h"
+#include "common.h"
 #include <server6_conf.h>
 #include "sf.tab.h"
 
@@ -59,10 +64,11 @@ decimal		({number}"."{number})
 hexdigit	([a-f]|[A-F]|[0-9])
 hexpair		{hexdigit}{hexdigit}
 iaid_id		{hexpair}{4}
-addr1		{hexdigit}{1,4}":"({hexdigit}{1,4}":")*(":"{hexdigit}{1,4})+
-addr2		{hexdigit}{1,4}(":"{hexdigit}{1,4})*"::"
-addr3		({hexdigit}{1,4}":"){7}{hexdigit}{1,4}
-addr		({addr1}|{addr2}|{addr3})
+ipv4addr        ({digit}{1,3}"."{digit}{1,3}"."{digit}{1,3})
+addr_head       ("::"|{hexdigit}{1,4}(":"|"::"))
+addr_tail       ({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})
+addr_body       ({hexdigit}{1,4}(":"|"::"))*
+ipv6addr        {addr_head}{addr_body}{addr_tail}
 whitespace	([ \t])+
 duid_id		{hexpair}(:{hexpair})*
 string		[a-zA-Z]([a-zA-Z]|{digit})*(":"{digit}+)?
@@ -103,7 +109,7 @@ PreferredLifeTime	{ return PREFERLIFETIME; }
 
 to			{ return TO; }
 
-{addr}		{
+{ipv6addr}	{
 			struct in6_addr addr;
 			int i;
 				

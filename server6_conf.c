@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.c,v 1.3 2003/01/23 18:44:35 shirleyma Exp $	*/
+/*	$Id: server6_conf.c,v 1.4 2003/02/10 23:47:09 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -40,6 +40,10 @@
 #include <net/if.h>
 #include <openssl/md5.h>
 #include <ifaddrs.h>
+#include "queue.h"
+#include "dhcp6.h"
+#include "config.h"
+#include "common.h"
 #include "server6_conf.h"
 
 #define NMASK(n) htonl((1<<(n))-1)

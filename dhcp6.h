@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.3 2003/01/23 18:44:32 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.4 2003/02/10 23:47:07 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -95,9 +95,8 @@
 
 /* Internal data structure */
 
-/* DUID: DHCP unique Identifier */
 struct duid {
-	u_int8_t duid_len;		/* length */
+	u_int8_t duid_len;	/* length */
 	char *duid_id;		/* variable length ID value (must be opaque) */
 };
 
@@ -124,6 +123,8 @@ struct dhcp6_prefix {		/* delegated prefix information */
 	u_int32_t duration;
 };
 
+
+
 struct dhcp6_listval {
 	TAILQ_ENTRY(dhcp6_listval) link;
 
@@ -134,14 +135,17 @@ struct dhcp6_listval {
 		struct dhcp6_prefix uv_prefix6;
 	} uv;
 };
+
 #define val_num uv.uv_num
 #define val_addr6 uv.uv_addr6
 #define val_dhcp6addr uv.uv_dhcp6_addr
 #define val_prefix6 uv.uv_prefix6
+
 TAILQ_HEAD(dhcp6_list, dhcp6_listval);
 
 typedef enum { DHCP6_LISTVAL_NUM, DHCP6_LISTVAL_ADDR6,
-	       DHCP6_LISTVAL_DHCP6ADDR, DHCP6_LISTVAL_PREFIX6 } dhcp6_listval_type_t;
+	       DHCP6_LISTVAL_DHCP6ADDR, DHCP6_LISTVAL_PREFIX6,
+	     } dhcp6_listval_type_t;
 
 struct dhcp6_optinfo {
 	struct duid clientID;	/* DUID */
@@ -185,6 +189,8 @@ struct dhcp6 {
 #define DH6OPT_AUTH 11
 #define DH6OPT_UNICAST 12
 #define DH6OPT_STATUS_CODE 13
+
+
 #  define DH6OPT_STCODE_SUCCESS 0
 #  define DH6OPT_STCODE_UNSPECFAIL 1
 #  define DH6OPT_STCODE_NOADDRAVAIL 2
@@ -195,6 +201,8 @@ struct dhcp6 {
 #  define DH6OPT_STCODE_AUTHFAILED 6
 #  define DH6OPT_STCODE_ADDRUNAVAIL 7
 #  define DH6OPT_STCODE_CONFNOMATCH 8
+
+#  define DH6OPT_STCODE_UNDEFINE 0xffff
 
 #define DH6OPT_RAPID_COMMIT 14
 #define DH6OPT_USER_CLASS 15
@@ -256,8 +264,9 @@ struct dhcp6_addr_info {
 	struct in6_addr addr;
 	u_int32_t preferlifetime;
 	u_int32_t validlifetime;
-/*	u_int8_t plen;	*/
+/*	u_int8_t plen;	
 	struct dhcp6_status_info status;
+*/
 } __attribute__ ((__packed__));
 
 #endif /*__DHCP6_H_DEFINED*/

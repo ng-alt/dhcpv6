@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.3 2003/01/23 18:44:31 shirleyma Exp $	*/
+/*	$Id: config.h,v 1.4 2003/02/10 23:47:07 shirleyma Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -48,9 +48,10 @@ struct dhcp6_if {
 
 	int outsock;
 
-	/* timer for the interface */
+	/* timer for the interface to sync file every 5 mins*/
 	struct dhcp6_timer *timer;
-
+#define DHCP6_SYNCFILE_TIME	300000
+	
 	/* event queue */
 	TAILQ_HEAD(, dhcp6_event) event_list;	
 
@@ -58,7 +59,7 @@ struct dhcp6_if {
 	char *ifname;
 	unsigned int ifid;
 	u_int32_t linkid;	/* to send link-local packets */
-	
+	struct dhcp6_iaid_info iaidinfo;	
 	u_int32_t iaid;
 	
 	/* configuration parameters */
@@ -69,14 +70,16 @@ struct dhcp6_if {
 #define DHCIFF_RAPID_COMMIT 0x2
 #define DHCIFF_TEMP_ADDRS 0x4
 #define DHCIFF_UNICAST 0x8
-#define DHCIFF_RELEASE 0x10
-#define DHCIFF_CONFIRM 0x20
+
+
 
 	int server_pref;	/* server preference (server only) */
 
 	struct dhcp6_optconf *send_options;
 	struct dhcp6_list reqopt_list;
-
+	/* request specific addresses list from client */
+	struct dhcp6_list addr_list;
+	struct dhcp6_list prefix_list;
 	struct dhcp6_serverinfo *current_server;
 	struct dhcp6_serverinfo *servers;
 };
@@ -140,9 +143,12 @@ struct dhcp6_ifconf {
 
 	int server_pref;	/* server preference (server only) */
 
+	struct dhcp6_iaid_info iaidinfo;
 	struct dhcp6_optconf *send_options;
 	struct dhcp6_optconf *allow_options;
 
+	struct dhcp6_list prefix_list;
+	struct dhcp6_list addr_list;
 	struct dhcp6_list reqopt_list;
 };
 
@@ -165,12 +171,14 @@ struct host_conf {
 
 	char *name;		/* host name to identify the host */
 	struct duid duid;	/* DUID for the host */
-	u_int32_t iaid;
+	struct dhcp6_iaid_info iaidinfo;
+	struct in6_addr linklocal;
 	/* delegated prefixes for the host: */
 	struct dhcp6_list prefix_list;
 
 	/* bindings of delegated prefixes */
 	struct dhcp6_list prefix_binding_list;
+
 	struct dhcp6_list addr_list;
 	struct dhcp6_list addr_binding_list;
 };
@@ -236,11 +244,12 @@ struct cf_list {
 	|| IN6_IS_ADDR_UNSPECIFIED(a)			
 /* ANYCAST later */
 
-enum {DECL_SEND, DECL_ALLOW, DECL_INFO_ONLY, DECL_REQUEST, DECL_DUID,
-      DECL_PREFIX, DECL_PREFERENCE,
-      IFPARAM_SLA_ID, IFPARAM_SLA_LEN,
-      DHCPOPT_RAPID_COMMIT, DHCPOPT_PREFIX_DELEGATION, DHCPOPT_DNS,
-      ADDRESS_LIST_ENT };
+enum {DECL_SEND, DECL_ALLOW, DECL_INFO_ONLY, DECL_TEMP_ADDR, DECL_REQUEST, DECL_DUID,
+      DECL_PREFIX, DECL_PREFERENCE, DECL_IAID, DECL_RENEWTIME, DECL_REBINDTIME,
+      DECL_ADDRESS, DECL_LINKLOCAL, DECL_PREFIX_INFO, DECL_PREFIX_REQ,
+      DHCPOPT_PREFIX_DELEGATION, IFPARAM_SLA_ID, IFPARAM_SLA_LEN,
+      DHCPOPT_RAPID_COMMIT, 
+      DHCPOPT_DNS, ADDRESS_LIST_ENT };
 
 typedef enum {DHCP6_MODE_SERVER, DHCP6_MODE_CLIENT, DHCP6_MODE_RELAY }
 dhcp6_mode_t;

@@ -1,4 +1,4 @@
-/*	$Id: common.h,v 1.3 2003/01/23 18:44:31 shirleyma Exp $	*/
+/*	$Id: common.h,v 1.4 2003/02/10 23:47:07 shirleyma Exp $	*/
 /*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*
@@ -59,7 +59,6 @@ extern struct dhcp6_listval *dhcp6_add_listval __P((struct dhcp6_list *,
 						       dhcp6_listval_type_t));
 extern struct dhcp6_event *dhcp6_create_event __P((struct dhcp6_if *, int));
 extern void dhcp6_remove_event __P((struct dhcp6_event *));
-extern void dhcp6_remove_evdata __P((struct dhcp6_event *));
 extern int getifaddr __P((struct in6_addr *, char *, struct in6_addr *,
 			  int, int, int));
 extern int transmit_sa __P((int, struct sockaddr_in6 *, char *, size_t));
@@ -74,8 +73,6 @@ extern int in6_scope __P((struct in6_addr *));
 extern void setloglevel __P((int));
 extern void dprintf __P((int, const char *, ...));
 extern int get_duid __P((char *, struct duid *));
-extern int get_iaid __P((char *, struct iaid_table *));
-extern int create_iaid __P((struct iaid_table *));
 extern void dhcp6_init_options __P((struct dhcp6_optinfo *));
 extern void dhcp6_clear_options __P((struct dhcp6_optinfo *));
 extern int dhcp6_copy_options __P((struct dhcp6_optinfo *,

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.3 2003/01/23 18:44:31 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.4 2003/02/10 23:47:08 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -37,6 +37,7 @@
 #include <errno.h>
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
+# include <sys/timeb.h>
 # include <time.h>
 #else
 # if HAVE_SYS_TIME_H
@@ -49,8 +50,6 @@
 #if defined(__FreeBSD__) && __FreeBSD__ >= 3
 #include <net/if_var.h>
 #endif
-
-#include <netinet/in.h>
 
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -71,7 +70,7 @@
 #include <timer.h>
 #include <prefixconf.h>
 #include <queue.h>
-#include <client6_addr.h>
+#include "lease.h"
 
 static int debug = 0;
 static u_long sig_flags = 0;
@@ -87,8 +86,11 @@ const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_CLIENT;
 
 char *device = NULL;
 static struct iaid_table iaidtab[50];
-static int release_mode = 0;
-static struct dhcp6_list release_addr;
+static u_int8_t client6_request_flag = 0;
+
+#define CLIENT6_RELEASE_ADDR	0x1
+#define CLIENT6_CONFIRM_ADDR	0x2
+#define CLIENT6_REQUEST_ADDR	0x4
 
 static struct dhcp6_list stcode_list;
 
@@ -96,11 +98,15 @@ int insock;	/* inbound udp port */
 int outsock;	/* outbound udp port */
 int rtsock;	/* routing socket */
 
+
+extern FILE *client6_lease_file;
+extern struct dhcp6_iaidaddr client6_iaidaddr;
+
 static const struct sockaddr_in6 *sa6_allagent;
 static struct duid client_duid;
 
 static void usage __P((void));
-static void client6_init __P((void));
+static void client6_init __P((char *));
 static void client6_ifinit __P((void));
 void free_servers __P((struct dhcp6_if *));
 static void free_resources __P((void));
@@ -123,8 +129,10 @@ static struct dhcp6_event *find_event_withid __P((struct dhcp6_if *,
 struct dhcp6_timer *client6_timo __P((void *));
 
 #define DHCP6C_CONF "/etc/dhcp6c.conf"
-#define DHCP6C_PIDFILE "/var/run/dhcp6c.pid"
-#define DUID_FILE "/var/db/dhcp6c_duid"
+#define DHCP6C_PIDFILE "/var/run/dhcpv6/dhcp6c.pid"
+#define DUID_FILE "/var/db/dhcpv6/dhcp6c_duid"
+char client6_lease_temp[256];
+struct dhcp6_list request_list;
 
 int
 main(argc, argv)
@@ -134,6 +142,8 @@ main(argc, argv)
 	int ch, pid;
 	char *progname, *conffile = DHCP6C_CONF;
 	FILE *pidfp;
+	struct dhcp6_lease *lease;
+	char *addr;
 
 	srandom(time(NULL) & getpid());
 
@@ -142,10 +152,58 @@ main(argc, argv)
 	else
 		progname++;
 
-	while ((ch = getopt(argc, argv, "c:r:dDf")) != -1) {
+	TAILQ_INIT(&request_list);
+	while ((ch = getopt(argc, argv, "c:r:R:dDf")) != -1) {
 		switch (ch) {
 		case 'c':
 			conffile = optarg;
+			break;
+		case 'R':
+			client6_request_flag |= CLIENT6_REQUEST_ADDR;
+			for (addr = strtok(optarg, " "); addr; 
+					addr = strtok(NULL, " ")) {
+				struct dhcp6_listval *lv;
+				if ((lv = 
+					(struct dhcp6_listval *)malloc(sizeof(*lv)))
+						== NULL) {
+					dprintf(LOG_ERR, "failed to allocate memory");
+					exit(1);
+				}
+				memset(lv, 0, sizeof(*lv));
+				if (inet_pton(AF_INET6, addr, 
+						&lv->val_dhcp6addr.addr) < 1) {
+					dprintf(LOG_ERR, 
+						"invalid ipv6address for release");
+					usage();
+					exit(1);
+				}
+				lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
+				TAILQ_INSERT_TAIL(&request_list, lv, link);
+			} 
+			break;
+		case 'r':
+			client6_request_flag |= CLIENT6_RELEASE_ADDR;
+			if (strcmp(optarg, "all")) {
+				for (addr = strtok(optarg, " "); addr; 
+						addr = strtok(NULL, " ")) {
+					struct dhcp6_listval *lv;
+					if ((lv = 
+						(struct dhcp6_listval *)malloc(sizeof(*lv)))
+							== NULL) {
+						dprintf(LOG_ERR, "failed to allocate memory");
+						exit(1);
+					}
+					memset(lv, 0, sizeof(*lv));
+					if (inet_pton(AF_INET6, addr, 
+							&lv->val_dhcp6addr.addr) < 1) {
+						dprintf(LOG_ERR, 
+							"invalid ipv6address for release");
+						usage();
+						exit(1);
+					}
+					TAILQ_INSERT_TAIL(&request_list, lv, link);
+				}
+			} 
 			break;
 		case 'd':
 			debug = 1;
@@ -155,17 +213,6 @@ main(argc, argv)
 			break;
 		case 'f':
 			foreground++;
-			break;
-		case 'r':
-			release_mode = 1;
-			/*
-			if (!strcmp(optarg, "all"))
-			else {
-				parse address list 
-				inet_pton(optarg)
-				 address parsed
-			*/
-			client6_do_release(&release_addr);
 			break;
 		default:
 			usage();
@@ -202,11 +249,8 @@ main(argc, argv)
 			FNAME);
 		exit(1);
 	}
-
-	/* ToDo read client lease file */
-	client6_init();
+	client6_init(device);
 	client6_ifinit();
-
 	client6_mainloop();
 	exit(0);
 }
@@ -215,13 +259,15 @@ static void
 usage()
 {
 
-	fprintf(stderr, "usage: dhcpc [-c configfile] [-dDf] intface\n");
+	fprintf(stderr, "usage: dhcpc [-c configfile] [-r all or (ipv6address ipv6address...)] 
+		[-R (ipv6 address ipv6address...) [-dDf] interface\n");
 }
 
 /*------------------------------------------------------------*/
 
 void
-client6_init()
+client6_init(device)
+	char *device;
 {
 	struct addrinfo hints, *res;
 	static struct sockaddr_in6 sa6_allagent_storage;
@@ -342,7 +388,6 @@ client6_init()
 
 	prefix6_init();
 
-	client6_init_iaidaddr();
 
 	if (signal(SIGHUP, client6_signal) == SIG_ERR) {
 		dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
@@ -361,15 +406,77 @@ client6_ifinit()
 {
 	struct dhcp6_if *ifp;
 	struct dhcp6_event *ev;
-
+	char iaidstr[20];
+	char leasename[50];
+	struct timeval timo;
+	struct timeb now;
+	time_t offset;
 	for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
+		dhcp6_init_iaidaddr();
 		/* get iaid for each interface */
-		if (ifp->iaid = get_iaid(ifp->ifname, iaidtab) == 0) {
+		if (ifp->iaidinfo.iaid = get_iaid(ifp->ifname, iaidtab) == 0) {
 			create_iaid(iaidtab);
-			ifp->iaid = get_iaid(ifp->ifname, iaidtab);
+			ifp->iaidinfo.iaid = get_iaid(ifp->ifname, iaidtab);
 			dprintf(LOG_DEBUG, "%s" "interface %s iaid is %d", 
-				FNAME, ifp->ifname, ifp->iaid);
+				FNAME, ifp->ifname, ifp->iaidinfo.iaid);
 		}
+		client6_iaidaddr.ifp = ifp;
+		memcpy(&client6_iaidaddr.client6_info.iaidinfo, &ifp->iaidinfo, 
+				sizeof(client6_iaidaddr.client6_info.iaidinfo));
+		duidcpy(&client6_iaidaddr.client6_info.clientid, &client_duid);
+		/* parse the lease file */
+		strcpy(leasename, PATH_CLIENT6_LEASE);
+		sprintf(iaidstr, "%d", ifp->iaidinfo.iaid);
+		strcat(leasename, iaidstr);
+		if ((client6_lease_file = 
+			init_leases(leasename)) == NULL) {
+				dprintf(LOG_ERR, "%s" "failed to parse lease file", FNAME);
+			exit(1);
+		}
+		strcpy(client6_lease_temp, leasename);
+		strcat(client6_lease_temp, "XXXXXX");
+		client6_lease_file = 
+			sync_leases(client6_lease_file, leasename, client6_lease_temp);
+
+		if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
+			struct dhcp6_lease *cl;
+			struct dhcp6_listval *lv;
+			if (!(client6_request_flag & CLIENT6_REQUEST_ADDR) && 
+					!(client6_request_flag & CLIENT6_RELEASE_ADDR))
+				client6_request_flag |= CLIENT6_CONFIRM_ADDR;
+			if (TAILQ_EMPTY(&request_list)) {
+				/* create an address list for release all/confirm */
+				for (cl = TAILQ_FIRST(&client6_iaidaddr.lease_list); cl; 
+					cl = TAILQ_NEXT(cl, link)) {
+					/* IA_NA address */
+					if ((lv = malloc(sizeof(*lv))) == NULL) {
+						dprintf(LOG_ERR, "%s" 
+					"failed to allocate memory for an ipv6 addr", FNAME);
+			 			exit(1);
+					}
+					memcpy(&lv->val_dhcp6addr, &cl->lease_addr, 
+						sizeof(lv->val_dhcp6addr));
+					lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
+					TAILQ_INSERT_TAIL(&request_list, lv, link);
+					
+				}
+			} else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
+				for (lv = TAILQ_FIRST(&request_list); lv; 
+						lv = TAILQ_NEXT(lv, link)) {
+					if (dhcp6_find_lease(&client6_iaidaddr, 
+							&lv->val_dhcp6addr) == NULL) {
+						dprintf(LOG_INFO, "this address %s is not"
+							" leased by this client", 
+						    in6addr2str(&lv->val_dhcp6addr.addr,0));
+						exit(0);
+					}
+				}
+			}	
+		} else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
+			dprintf(LOG_INFO, "no ipv6 addresses are leased by client");
+			exit(0);
+		}
+		
 		/* create an event for the initial delay */
 		if ((ev = dhcp6_create_event(ifp, DHCP6S_INIT)) == NULL) {
 			dprintf(LOG_ERR, "%s" "failed to create an event",
@@ -392,16 +499,13 @@ static void
 free_resources()
 {
 	struct dhcp6_if *ifp;
-
-	client6_remove_iaidaddr();
-	/* ToDo: send DHCPv6 RELEASE message to server */
 	
 	/* release delegated prefixes (should send DHCPv6 release?) */
 	prefix6_remove_all();
 
 	for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
 		struct dhcp6_event *ev, *ev_next;
-
+		dprintf(LOG_DEBUG, "%s" " remove all events on interface", FNAME);
 		/* cancel all outstanding events for each interface */
 		for (ev = TAILQ_FIRST(&ifp->event_list); ev; ev = ev_next) {
 			ev_next = TAILQ_NEXT(ev, link);
@@ -439,14 +543,13 @@ client6_mainloop()
 	while(1) {
 		if (sig_flags)
 			process_signals();
-
+		dprintf(LOG_DEBUG, "%s" " called", FNAME);
 		w = dhcp6_check_timer();
 
 		FD_ZERO(&r);
 		FD_SET(insock, &r);
 
 		ret = select(insock + 1, &r, NULL, NULL, w);
-
 		switch (ret) {
 		case -1:
 			if (errno != EINTR) {
@@ -487,44 +590,23 @@ client6_timo(arg)
 		 * go to SOLICIT state if the client requests addresses;
 		 */
 		ev->timeouts = 0; /* indicate to generate a new XID. */
-#ifdef TEST 
-		if (release_mode) {
-			if ((evd = malloc(sizeof(*evd))) == NULL) {
-				dprintf(LOG_ERR, "%s" "failed to create a new event "
-					"data", FNAME);
-				dhcp6_remove_event(ev);
-				return (NULL);
-			}
-			ev->state = DHCP6S_RELEASE;
-			ToDo: create iaid address list to be released
-		}
-		/* create CONFIRM event data for reboot */
-		if (!TAILQ_EMPTY(&iaidaddr.ifaddr_list)) {
-			if ((evd = malloc(sizeof(*evd))) == NULL) {
-				dprintf(LOG_ERR, "%s" "failed to create a new event "
-					"data", FNAME);
-				dhcp6_remove_event(ev);
-				return (NULL);
-			}
-			ev->state = DHCP6S_CONFIRM;
-			create event data_list 
-			evd->data = &iaidaddr;
-			evd->type = DHCP6_DATA_ADDR;
-			evd->event = ev;
-			TAILQ_INSERT_TAIL(&ev->data_list, evd, link);
-			TAILQ_INSERT_TAIL(&iaidaddr.ifp->event_list, ev, link);
-			iaidaddr.evdata = evd;
-		} else 
-#endif
-		if (ifp->send_flags & DHCIFF_INFO_ONLY)
+		if (ifp->send_flags & DHCIFF_INFO_ONLY) 
 			ev->state = DHCP6S_INFOREQ;
-		else
+		else if (client6_request_flag & CLIENT6_RELEASE_ADDR) 
+				/* do release */
+				ev->state = DHCP6S_RELEASE;
+		else if (client6_request_flag & CLIENT6_CONFIRM_ADDR) {
+			struct dhcp6_listval *lv;
+			/* do confirm for reboot */
+			ev->state = DHCP6S_CONFIRM;
+			for (lv = TAILQ_FIRST(&request_list); lv; 
+					lv = TAILQ_NEXT(lv, link)) {
+				lv->val_dhcp6addr.preferlifetime = 0;
+				lv->val_dhcp6addr.validlifetime = 0;
+			}
+		} else
 			ev->state = DHCP6S_SOLICIT;
 		dhcp6_set_timeoparam(ev);
-	case DHCP6S_INFOREQ:
-	case DHCP6S_REQUEST:
-		client6_send(ev);
-		break;
 	case DHCP6S_SOLICIT:
 		if (ifp->servers) {
 			ifp->current_server = select_server(ifp);
@@ -538,42 +620,26 @@ client6_timo(arg)
 			ev->state = DHCP6S_REQUEST;
 			dhcp6_set_timeoparam(ev);
 		}
+	case DHCP6S_INFOREQ:
+	case DHCP6S_REQUEST:
 		client6_send(ev);
 		break;
+	case DHCP6S_RELEASE:
+	case DHCP6S_DECLINE:
+	case DHCP6S_CONFIRM:
 	case DHCP6S_RENEW:
 	case DHCP6S_REBIND:
-	case DHCP6S_CONFIRM:
-	case DHCP6S_DECLINE:
-	case DHCP6S_RELEASE:
-	{
-		int is_addr_empty = 1;
-		int is_prefix = 1;
-		/* ToDo: check the address list also for empty*/
-		if (!TAILQ_EMPTY(&ev->data_list)) {
-			struct dhcp6_eventdata *evd, *evd_next;
-			for (evd = TAILQ_FIRST(&ev->data_list); evd; evd = evd_next) {
-				struct client6_iaidaddr *iaidaddr;
-				iaidaddr = (struct client6_iaidaddr *)evd->data;
-				evd_next = TAILQ_NEXT(evd, link);
-				if (evd->type != DHCP6_DATA_ADDR)
-					continue;
-				is_prefix = 0;
-				if (TAILQ_EMPTY(&iaidaddr->ifaddr_list))
-					continue;
-				else
-					is_addr_empty = 0;
-			}
-			if (!is_addr_empty || is_prefix) {
-				client6_send(ev);
-			}
-		} else if (is_addr_empty) {
+		if (!TAILQ_EMPTY(&ev->data_list) || !TAILQ_EMPTY(&request_list))
+			client6_send(ev);
+		else {
 			dprintf(LOG_INFO, "%s"
 		    		"all information to be updated were canceled",
-		    	FNAME);
+		    		FNAME);
 			dhcp6_remove_event(ev);
 			return (NULL);
 		}
-	}
+		client6_send(ev);
+		break;
 	default:
 		break;
 	}
@@ -581,8 +647,8 @@ client6_timo(arg)
 	return (ev->timer);
 }
 
-static struct dhcp6_serverinfo 
-*select_server(ifp)
+static struct dhcp6_serverinfo *
+select_server(ifp)
 	struct dhcp6_if *ifp;
 {
 	struct dhcp6_serverinfo *s;
@@ -727,11 +793,12 @@ client6_send(ev)
 	    (ifp->send_flags & DHCIFF_RAPID_COMMIT)) {
 		optinfo.flags |= DHCIFF_RAPID_COMMIT;
 		if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
-			optinfo.iaidinfo.iaid = ifp->iaid;
+			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
+					sizeof(optinfo.iaidinfo));
 		     	if (ifp->send_flags & DHCIFF_TEMP_ADDRS)
 				optinfo.flags |= DHCIFF_TEMP_ADDRS;
 		}
-	}
+	}  
 
 	/* option request options */
 	if (dhcp6_copy_list(&optinfo.reqopt_list, &ifp->reqopt_list)) {
@@ -739,7 +806,7 @@ client6_send(ev)
 		    FNAME);
 		goto end;
 	}
-
+	
 	/* configuration information provided by the server */
 	if (ev->state == DHCP6S_REQUEST) {
 		/* do we have to check if we wanted prefixes? */
@@ -749,21 +816,22 @@ client6_send(ev)
 			    FNAME);
 			goto end;
 		}
-		/* ToDo support client perfer addresses */
 		if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
-			optinfo.iaidinfo.iaid = ifp->iaid;
+			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
+					sizeof(optinfo.iaidinfo));
+			dprintf(LOG_DEBUG, "%s IAID is %d", FNAME, optinfo.iaidinfo.iaid);
 			if (ifp->send_flags & DHCIFF_TEMP_ADDRS) 
 				optinfo.flags |= DHCIFF_TEMP_ADDRS;
 		}
+		if (client6_request_flag & CLIENT6_REQUEST_ADDR) 
+			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
+				goto end;
 	}
 
 	switch(ev->state) {
 	struct dhcp6_eventdata *evd;
 	case DHCP6S_RENEW:
 	case DHCP6S_REBIND:
-	case DHCP6S_DECLINE:
-	case DHCP6S_CONFIRM:
-	case DHCP6S_RELEASE:
 		for (evd = TAILQ_FIRST(&ev->data_list); evd;
 	     		evd = TAILQ_NEXT(evd, link)) {
 			switch(evd->type) {
@@ -771,57 +839,44 @@ client6_send(ev)
 				if (dhcp6_add_listval(&optinfo.prefix_list,
 			    	&((struct dhcp6_siteprefix *)evd->data)->prefix,
 			    	DHCP6_LISTVAL_PREFIX6) == NULL) {
-					dprintf(LOG_ERR, "%s" "failed to add a "
-				    	"prefix", FNAME);
-					goto end;
-				}
-				break;
-			case DHCP6_DATA_ADDR:
-			{
-				struct dhcp6_addr *addr6;
-				struct client6_lease *cl;
-				struct client6_iaidaddr *iaidaddr;
-				iaidaddr = (struct client6_iaidaddr *)evd->data;
-			for (cl = TAILQ_FIRST(&iaidaddr->ifaddr_list); cl; 
-					cl = TAILQ_NEXT(cl, link)) {
-				/* IA_NA address */
-				if ((addr6 = malloc(sizeof(*addr6))) == NULL) {
 					dprintf(LOG_ERR, "%s" 
-					"failed to allocate memory for an ipv6 addr", FNAME);
-				 	exit(1);
-				}
-				memcpy(addr6, &cl->dhcp6addr, sizeof(*addr6));
-				if (dhcp6_add_listval(&optinfo.addr_list,
-			    			addr6, DHCP6_LISTVAL_DHCP6ADDR) == NULL) {
-					dprintf(LOG_ERR, "%s" "failed to add an "
-				    		"ipv6 address", FNAME);
-					goto end;
-				}
-			}
-				/* set up iaid, T1, T2 
-				 * for CONFIRM, set T1, T2, preferlifetime, validlifetime 0
-				 */
-				memcpy(&optinfo.iaidinfo, 
-					&((struct client6_iaidaddr *)evd->data)->iaidinfo, 
-						sizeof(optinfo.iaidinfo));
-				if (ev->state == DHCP6S_CONFIRM) {
-					struct dhcp6_listval *lv;
-					for (lv = TAILQ_FIRST(&optinfo.addr_list); lv; 
-							lv = TAILQ_NEXT(lv, link)) {
-						lv->val_dhcp6addr.preferlifetime = 0;
-						lv->val_dhcp6addr.validlifetime = 0;
-					}
-					optinfo.iaidinfo.renewtime = 0;
-					optinfo.iaidinfo.rebindtime = 0;
+						"failed to add a prefix", FNAME);
+					exit(1);
 				}
 				break;
-			}
 			default:
 				dprintf(LOG_ERR, FNAME "unexpected event data (%d)",
 			    		evd->type);
 				exit(1);
 			}
 		}
+	case DHCP6S_RELEASE:
+	case DHCP6S_CONFIRM:
+	case DHCP6S_DECLINE:
+		if (!TAILQ_EMPTY(&request_list)) {
+			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
+				sizeof(optinfo.iaidinfo));
+			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
+				goto end;
+			if (ev->state == DHCP6S_CONFIRM) {
+				optinfo.iaidinfo.renewtime = 0;
+				optinfo.iaidinfo.rebindtime = 0;
+			}
+		} else {
+			if (ev->state == DHCP6S_RELEASE) {
+				dprintf(LOG_INFO, "release empty address list");
+				exit(1);
+			}
+			/* XXX: allow the other emtpy list ?? */
+		}
+		if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
+			if (dhcp6_update_iaidaddr(&optinfo, ADDR_REMOVE)) {
+				dprintf(LOG_INFO, "client release failed");
+				exit(1);
+			}
+		}
+		break;
+	default:
 		break;
 	}
 	/* set options in the message */
@@ -901,7 +956,7 @@ client6_recv()
 		dprintf(LOG_NOTICE, "%s" "failed to get packet info", FNAME);
 		return;
 	}
-	if ((ifp = find_ifconfbyid((unsigned int)pi->ipi6_ifindex)) == NULL) {
+	if ((ifp = find_ifconfbyname(device)) == NULL) {
 		dprintf(LOG_INFO, "%s" "unexpected interface (%d)", FNAME,
 			(unsigned int)pi->ipi6_ifindex);
 		return;
@@ -1143,6 +1198,8 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		return -1;
 	}
 
+	dhcp6_clear_list(&request_list);
+
 	/* A Reply message must contain a Server ID option */
 	if (optinfo->serverID.duid_len == 0) {
 		dprintf(LOG_INFO, "%s" "no server ID option", FNAME);
@@ -1150,7 +1207,21 @@ client6_recvreply(ifp, dh6, len, optinfo)
 	}
 	dprintf(LOG_DEBUG, "%s" "serverID is %s len is %d", FNAME,
 		duidstr(&optinfo->serverID), optinfo->serverID.duid_len); 
-
+	/* get current server */
+	switch (ev->state) {
+	case DHCP6S_SOLICIT:
+	case DHCP6S_CONFIRM:
+	case DHCP6S_REBIND:
+		newserver = allocate_newserver(ifp, optinfo);
+		if (newserver == NULL)
+			return (-1);
+		ifp->current_server = newserver;
+		duidcpy(&client6_iaidaddr.client6_info.serverid, 
+			&ifp->current_server->optinfo.serverID);
+		break;
+	default:
+		break;
+	}
 	/*
 	 * DUID in the Client ID option (which must be contained for our
 	 * client implementation) must match ours.
@@ -1205,15 +1276,13 @@ client6_recvreply(ifp, dh6, len, optinfo)
 	}
 	
 #endif
-	/* ToDo: check the status code for address assignment 
+	/*
+	 * Update configuration information to be renewed or rebound
+	 * declined, confirmed, released.
+	 * Note that the returned list may be empty, in which case
+	 * the waiting information should be removed.
 	 */
 	switch (ev->state) {
-	case DHCP6S_SOLICIT:
-		/* get current server */
-		newserver = allocate_newserver(ifp, optinfo);
-		if (newserver == NULL)
-			return (-1);
-		ifp->current_server = newserver;
 	case DHCP6S_REQUEST:
 		/* NotOnLink: 1. SOLICIT 
 		 * NoAddrAvail: Information Request */
@@ -1224,17 +1293,19 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		switch(addr_status_code) {
 		case DH6OPT_STCODE_NOTONLINK:
 			dprintf(LOG_DEBUG, "%s" 
-			    "got a NotOnLink reply for request/rapid commit, sending solicit.", FNAME);
+			    "got a NotOnLink reply for request/rapid commit,"
+			    " sending solicit.", FNAME);
 			newstate = DHCP6S_SOLICIT;
 			break;
 		case DH6OPT_STCODE_NOADDRAVAIL:
 			dprintf(LOG_DEBUG, "%s" 
-			    "got a NoAddrAvail reply for request/rapid commit, sending inforeq.", FNAME);
+			    "got a NoAddrAvail reply for request/rapid commit,"
+			    " sending inforeq.", FNAME);
 			newstate = DHCP6S_INFOREQ;
 			break;
 		case DH6OPT_STCODE_SUCCESS:
 			if (!TAILQ_EMPTY(&optinfo->addr_list))
-				client6_add_iaidaddr(ifp, optinfo, &optinfo->serverID);
+				dhcp6_add_iaidaddr(optinfo);
 			break;
 		default:
 			break;
@@ -1250,7 +1321,7 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		case DH6OPT_STCODE_UNSPECFAIL:
 			if (ev->state == DHCP6S_REBIND) {
 				dprintf(LOG_DEBUG, "%s" 
-			    	    "got a NoBinding reply for rebind, sending solicit.", FNAME);
+			    	  "got a NoBinding reply for rebind, sending solicit.", FNAME);
 				newstate = DHCP6S_SOLICIT;
 				free_servers(ifp);
 			}
@@ -1258,14 +1329,13 @@ client6_recvreply(ifp, dh6, len, optinfo)
 				newstate = DHCP6S_REQUEST;
 				/* remove event data list */
 				dprintf(LOG_DEBUG, "%s" 
-			    	    "got a NoBinding reply for renew, sending request.", FNAME);
+			    	  "got a NoBinding reply for renew, sending request.", FNAME);
 			}
-			dhcp6_remove_evdata(ev);
-			client6_remove_iaidaddr();
+			dhcp6_remove_iaidaddr(&client6_iaidaddr);
 			break;
 		case DH6OPT_STCODE_SUCCESS:
 			prefix6_update(ev, &optinfo->prefix_list, &optinfo->serverID);
-			client6_update_iaidaddr(ev, optinfo, &optinfo->serverID);
+			dhcp6_update_iaidaddr(optinfo, ADDR_UPDATE);
 			break;
 		default:
 			break;
@@ -1273,25 +1343,46 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		break;
 	case DHCP6S_CONFIRM:
 		/* NOtOnLink for a Confirm, send SOLICIT message */
-		/*
-		 * Update configuration information to be renewed or rebound
-		 * declined, confirmed, released.
-		 * Note that the returned list may be empty, in which case
-		 * the waiting information should be removed.
-		 */
 		switch(addr_status_code) {
 		case DH6OPT_STCODE_NOTONLINK:
 			dprintf(LOG_DEBUG, "%s" 
 				"got a NotOnLink reply for confirm, sending solicit.", FNAME);
 			/* remove event data list */
 			free_servers(ifp);
-			dhcp6_remove_evdata(ev);
 			newstate = DHCP6S_SOLICIT;
 			break;
 		case DH6OPT_STCODE_SUCCESS:
-			prefix6_update(ev, &optinfo->prefix_list, &optinfo->serverID);
-			client6_update_iaidaddr(ev, optinfo, &optinfo->serverID);
+		{
+			struct timeb now;
+			struct timeval timo;
+			time_t offset;
+			/* XXX: set up renew/rebind timer */
+			dprintf(LOG_DEBUG, "%s" "got an expected reply for confirm", FNAME);
+			ftime(&now);
+			client6_iaidaddr.state = ACTIVE;
+			if ((client6_iaidaddr.timer = dhcp6_add_timer(dhcp6_iaidaddr_timo, 
+						&client6_iaidaddr)) == NULL) {
+		 		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %d",
+					FNAME, client6_iaidaddr.client6_info.iaidinfo.iaid);
+		 		return (-1);
+			}
+			if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
+				client6_iaidaddr.client6_info.iaidinfo.renewtime 
+					= get_min_preferlifetime(&client6_iaidaddr)/2;
+			}
+			if (client6_iaidaddr.client6_info.iaidinfo.rebindtime == 0) {
+				client6_iaidaddr.client6_info.iaidinfo.rebindtime 
+					= get_min_preferlifetime(&client6_iaidaddr)/3;
+			}
+			offset = now.time - client6_iaidaddr.start_date;
+			if ( offset > client6_iaidaddr.client6_info.iaidinfo.renewtime) 
+				timo.tv_sec = 0;
+			else
+				timo.tv_sec = client6_iaidaddr.client6_info.iaidinfo.renewtime 						- offset; 
+			timo.tv_usec = 0;
+			dhcp6_set_timer(&timo, client6_iaidaddr.timer);
 			break;
+		}
 		default:
 			break;
 		}
@@ -1305,8 +1396,9 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		break;
 	case DHCP6S_RELEASE:
 		dprintf(LOG_INFO, "%s" "got an expected release, exit.", FNAME);
-		free_resources();	
+		dhcp6_remove_event(ev);
 		exit(0);
+		break;
 	default:
 		break;
 	}
@@ -1325,7 +1417,7 @@ client6_send_newstate(ifp, state)
 	int state;
 {
 	struct dhcp6_event *ev;
-	struct dhcp6_event *ev_debug;
+	struct dhcp6_event *ev_debug, *ev_debug_next;
 	if ((ev = dhcp6_create_event(ifp, state)) == NULL) {
 		dprintf(LOG_ERR, "%s" "failed to create an event",
 			FNAME);
@@ -1337,14 +1429,10 @@ client6_send_newstate(ifp, state)
 		free(ev);
 		return(-1);
 	}
-	for (ev_debug = TAILQ_FIRST(&ifp->event_list); ev_debug;
-	     ev_debug = TAILQ_NEXT(ev_debug, link)) {
-		dprintf(LOG_DEBUG, "%s" "ifp %x event %x id is %x", 
-				FNAME, ifp, ev_debug, ev_debug->xid);
-	}
 	TAILQ_INSERT_TAIL(&ifp->event_list, ev, link);
 	for (ev_debug = TAILQ_FIRST(&ifp->event_list); ev_debug;
-	     ev_debug = TAILQ_NEXT(ev_debug, link)) {
+			ev_debug = ev_debug_next) {
+	     ev_debug_next = TAILQ_NEXT(ev_debug, link);
 		dprintf(LOG_DEBUG, "%s" "ifp %x event %x id is %x", 
 				FNAME, ifp, ev_debug, ev_debug->xid);
 	}

@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.h,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: server6_conf.h,v 1.2 2003/02/10 23:47:09 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -37,10 +37,6 @@
 #define DEFAULT_PREFER_LIFE_TIME 360000
 #define DEFAULT_VALID_LIFE_TIME 720000
 
-#include "queue.h"
-#include "dhcp6.h"
-#include "config.h"
-#include "common.h"
 
 struct rootgroup *globalgroup;
 
@@ -110,7 +106,7 @@ struct v6addrseg {
 	struct in6_addr min;
 	struct in6_addr max;
 	struct v6addr prefix;
-	struct in6_addr *free;
+	struct in6_addr free;
 	struct lease *active;
 	struct lease *expired;
 	struct lease *abandoned;

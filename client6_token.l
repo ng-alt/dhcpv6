@@ -1,5 +1,5 @@
-/*	$Id: client6_token.l,v 1.1 2003/02/06 19:06:46 shemminger Exp $	*/
-/*	from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
+/*	$Id: client6_token.l,v 1.2 2003/02/10 23:47:07 shirleyma Exp $	*/
+/*	ported from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
  * Copyright (C) 2002 WIDE Project.
@@ -51,13 +51,13 @@
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
-#include "cf.tab.h"
+#include "cp.tab.h"
 
 char *configfilename;
 int lineno = 1;
 
-static int cfyy_first_time = 1;
-static int cfyyerrorcount = 0;
+static int cpyy_first_time = 1;
+static int cpyyerrorcount = 0;
 
  
 #ifndef NOCONFIG_DEBUG
@@ -70,8 +70,8 @@ int cfdebug = 0;
 
 static void cfdebug_print __P((char *, char *, int));
 
-#define DP(str) if (cfdebug) cfdebug_print(str, cfyytext, cfyyleng)
-#define DECHO if (cfdebug) cfdebug_print(NULL, cfyytext, cfyyleng);
+#define DP(str) if (cfdebug) cfdebug_print(str, cpyytext, cpyyleng)
+#define DECHO if (cfdebug) cfdebug_print(NULL, cpyytext, cpyyleng);
 %}
 
 /* abbreviations */
@@ -82,12 +82,16 @@ comment		\#.*
 semi		\;
 string		[a-zA-Z0-9:\._][a-zA-Z0-9:\._]*
 digit		[0-9]
-integer 	{digit}+
-number		{integer}|({digit}*\.{integer})
+number	 	{digit}+
 hexdigit	[0-9A-Fa-f]
 hexpair		{hexdigit}{hexdigit}
 hexstring	0[xX]{hexpair}+
 duid 		{hexpair}(:{hexpair})*
+ipv4addr        ({digit}{1,3}"."{digit}{1,3}"."{digit}{1,3})
+addr_head       ("::"|{hexdigit}{1,4}(":"|"::"))
+addr_tail       ({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})
+addr_body       ({hexdigit}{1,4}(":"|"::"))*
+ipv6addr        {addr_head}{addr_body}{addr_tail}
 ifname		[a-zA-Z]+[0-9]+
 slash		\/
 bcl		\{
@@ -95,70 +99,60 @@ ecl		\}
 
 %s S_CNF
 %s S_IFACE
-%s S_PREF
-%s S_HOST
-%s S_DUID
+%s S_ADDR
+%s S_RNT
+%s S_RBT
 
 %%
 %{
-	if (cfyy_first_time) {
+	if (cpyy_first_time) {
 		BEGIN S_CNF;
-		cfyy_first_time = 0;
+		cpyy_first_time = 0;
 	}
 %}
 	/* interface configuration */
 <S_CNF>interface { DECHO; BEGIN S_IFACE; return (INTERFACE); }
-<S_IFACE>{string} {
+<S_IFACE>{ifname} {
 	DECHO;
-	cfyylval.str = strdup(cfyytext);
+	cpyylval.str = strdup(cpyytext);
 	BEGIN S_CNF;
 	return (IFNAME);
 }
 
-	/* host configuration */
-<S_CNF>host { DECHO; BEGIN S_HOST; return (HOST); }
-<S_HOST>{string} {
+<S_CNF>address { DECHO; BEGIN S_ADDR; return (ADDRESS); }
+
+<S_ADDR>{ipv6addr} {
+	struct in6_addr addr;
 	DECHO;
-	cfyylval.str = strdup(cfyytext);
+	if (inet_pton(AF_INET6, cpyytext, &addr) < 1) {
+		dprintf(LOG_ERR, "invalid address in line %d", lineno);
+		return (-1);
+	}
+	cpyylval.addr = addr;
 	BEGIN S_CNF;
-	return (HOSTNAME);
+	return (IPV6ADDR);
 }
-
-<S_CNF>duid { DECHO; BEGIN S_DUID; return (DUID); }
-<S_DUID>{duid} {
-	DECHO;
-	cfyylval.str = strdup(cfyytext);
-	BEGIN S_CNF;
-	return (DUID_ID);
-}
-
-<S_CNF>prefix { DECHO; return (PREFIX); }
-
-<S_CNF>preference { DECHO; return (PREFERENCE); }
-
+<S_CNF>iaid { DECHO; return (IAID); }
+<S_CNF>valid-life-time { DECHO; return (V_TIME); }
+<S_CNF>prefer-life-time { DECHO; return (P_TIME); }
+<S_CNF>renew-time { DECHO; return (RENEW_TIME); }
+<S_CNF>rebind-time { DECHO; return (REBIND_TIME); }
 	/* request */
 <S_CNF>request { DECHO; return (REQUEST); }
 
 	/* send */
 <S_CNF>send { DECHO; return (SEND); }
-
 	/* DHCP options */
 <S_CNF>option { DECHO; return (OPTION); }
 
 <S_CNF>rapid-commit { DECHO; return (RAPID_COMMIT); }
+<S_CNF>prefix-info { DECHO; return (PREFIX_INFO); }
+<S_CNF>prefix-request { DECHO; return (PREFIX_REQ); }
 <S_CNF>prefix-delegation { DECHO; return (PREFIX_DELEGATION); }
 <S_CNF>domain-name-servers { DECHO; return (DNS_SERVERS); }
-
 	/* generic options */
 <S_CNF>information-only { DECHO; return (INFO_ONLY); }
-
-<S_CNF>allow { DECHO; return (ALLOW); }
-
-	/* interface parameters for delegated prefix configuration */
-<S_CNF>prefix-interface { DECHO; BEGIN S_IFACE; return (PREFIX_INTERFACE); }
-<S_CNF>sla-id { DECHO; return (SLA_ID); }
-<S_CNF>sla-len { DECHO; return (SLA_LEN); }
-
+<S_CNF>temp-address { DECHO; return (TEMP_ADDR); }
 	/* duration */
 <S_CNF>infinity { DECHO; return (INFINITY); }
 
@@ -168,7 +162,7 @@ ecl		\}
 {comment}	{ DP("comment"); }
 {number} 	{
 	DECHO;
-	cfyylval.num = strtoll(cfyytext, NULL, 10);
+	cpyylval.num = strtoll(cpyytext, NULL, 10);
 	return (NUMBER);
 }
 {slash} { DECHO; return (SLASH); }
@@ -180,7 +174,7 @@ ecl		\}
 	/* generic string */
 {string} {
 		DECHO;
-		cfyylval.str = strdup(cfyytext);
+		cpyylval.str = strdup(cpyytext);
 		return (STRING);
 	}
 
@@ -197,7 +191,7 @@ cfdebug_print(w, t, l)
 }
 
 static void
-cfyyerror0(int level, char *s, va_list ap)
+cpyyerror0(int level, char *s, va_list ap)
 {
 	char ebuf[BUFSIZ], *bp, *ep;
 
@@ -211,7 +205,7 @@ cfyyerror0(int level, char *s, va_list ap)
 }
 
 void
-cfyyerror(char *s, ...)
+cpyyerror(char *s, ...)
 {
 	va_list ap;
 #ifdef HAVE_STDARG_H
@@ -219,13 +213,13 @@ cfyyerror(char *s, ...)
 #else
 	va_start(ap);
 #endif
-	cfyyerror0(LOG_ERR, s, ap);
+	cpyyerror0(LOG_ERR, s, ap);
 	va_end(ap);
-	cfyyerrorcount++;
+	cpyyerrorcount++;
 }
 
 void
-cfyywarn(char *s, ...)
+cpyywarn(char *s, ...)
 {
 	va_list ap;
 #ifdef HAVE_STDARG_H
@@ -233,7 +227,7 @@ cfyywarn(char *s, ...)
 #else
 	va_start(ap);
 #endif
-	cfyyerror0(LOG_WARNING, s, ap);
+	cpyyerror0(LOG_WARNING, s, ap);
 	va_end(ap);
 }
 
@@ -242,7 +236,7 @@ cfparse(conf)
 	char *conf;
 {
 	configfilename = conf;
-	if ((cfyyin = fopen(configfilename, "r")) == NULL) {
+	if ((cpyyin = fopen(configfilename, "r")) == NULL) {
 		if (errno == ENOENT)
 			return (0);
 		dprintf(LOG_ERR, "cfparse: fopen(%s): %s",
@@ -250,12 +244,12 @@ cfparse(conf)
 		return (-1);
 	}
 
-	if (cfyyparse() || cfyyerrorcount) {
-		if (cfyyerrorcount) {
-			cfyyerror("fatal parse failure: exiting (%d errors)",
-				cfyyerrorcount);
+	if (cpyyparse() || cpyyerrorcount) {
+		if (cpyyerrorcount) {
+			cpyyerror("fatal parse failure: exiting (%d errors)",
+				cpyyerrorcount);
 		} else
-			cfyyerror("fatal parse failure: exiting");
+			cpyyerror("fatal parse failure: exiting");
 		return (-1);
 	}
 

@@ -1,4 +1,4 @@
-/*	$Id: timer.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
+/*	$Id: timer.c,v 1.3 2003/02/10 23:47:09 shirleyma Exp $	*/
 /*	ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp	*/
 
 /*
@@ -71,7 +71,6 @@ dhcp6_add_timer(timeout, timeodata)
 	void *timeodata;
 {
 	struct dhcp6_timer *newtimer;
-
 	if ((newtimer = malloc(sizeof(*newtimer))) == NULL) {
 		dprintf(LOG_ERR, "%s" "can't allocate memory", FNAME);
 		return (NULL);
@@ -89,16 +88,16 @@ dhcp6_add_timer(timeout, timeodata)
 
 	LIST_INSERT_HEAD(&timer_head, newtimer, link);
 
+	dprintf(LOG_DEBUG, "%s" " add a timer %x", FNAME, newtimer);
 	return (newtimer);
 }
 
 void
 dhcp6_remove_timer(timer)
-	struct dhcp6_timer **timer;
+	struct dhcp6_timer *timer;
 {
-	LIST_REMOVE(*timer, link);
-	free(*timer);
-	*timer = NULL;
+	dprintf(LOG_DEBUG, "%s" " mark REMOVE for a timer %x", FNAME, *timer);
+	timer->flag |= MARK_REMOVE;
 }
 
 void
@@ -107,7 +106,7 @@ dhcp6_set_timer(tm, timer)
 	struct dhcp6_timer *timer;
 {
 	struct timeval now;
-
+	timer->flag |= MARK_CLEAR;
 	/* reset the timer */
 	gettimeofday(&now, NULL);
 
@@ -116,7 +115,6 @@ dhcp6_set_timer(tm, timer)
 	/* update the next expiration time */
 	if (TIMEVAL_LT(timer->tm, tm_sentinel))
 		tm_sentinel = timer->tm;
-
 	return;
 }
 
@@ -135,9 +133,19 @@ dhcp6_check_timer()
 	gettimeofday(&now, NULL);
 
 	tm_sentinel = tm_max;
+
+	dprintf(LOG_DEBUG, "%s" " timer head is %x", FNAME, &timer_head);
+
 	for (tm = LIST_FIRST(&timer_head); tm; tm = tm_next) {
 		tm_next = LIST_NEXT(tm, link);
-		
+		if (tm->flag & MARK_REMOVE) {
+			LIST_REMOVE(tm, link);
+		dprintf(LOG_DEBUG, "%s" " remove a timer %x", FNAME, tm);
+			free(tm);
+			tm = NULL;
+			continue;
+		}
+		dprintf(LOG_DEBUG, "%s" " timer is %x, next is %x", FNAME, tm, tm_next);
 		if (TIMEVAL_LEQ(tm->tm, now)) {
 			if ((*tm->expire)(tm->expire_data) == NULL)
 				continue; /* timer has been freed */

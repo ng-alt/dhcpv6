@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
+/*	$Id: config.c,v 1.3 2003/02/10 23:47:07 shirleyma Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -66,6 +66,7 @@ extern char *configfilename;
 
 static int add_options __P((int, struct dhcp6_ifconf *, struct cf_list *));
 static int add_prefix __P((struct host_conf *, struct dhcp6_prefix *));
+static int add_address __P((struct dhcp6_list *, struct dhcp6_addr *));
 static void clear_ifconf __P((struct dhcp6_ifconf *));
 static void clear_prefixifconf __P((struct prefix_ifconf *));
 static void clear_hostconf __P((struct host_conf *));
@@ -111,7 +112,6 @@ ifinit(ifname)
 #else
 	ifp->linkid = ifp->ifid; /* XXX */
 #endif
-
 	ifp->next = dhcp6_if;
 	dhcp6_if = ifp;
 	return;
@@ -126,6 +126,7 @@ configure_interface(iflist)
 {
 	struct cf_namelist *ifp;
 	struct dhcp6_ifconf *ifc;
+	struct dhcp6_addr *v6addr;
 
 	for (ifp = iflist; ifp; ifp = ifp->next) {
 		struct cf_list *cfl;
@@ -147,6 +148,7 @@ configure_interface(iflist)
 
 		ifc->server_pref = DH6OPT_PREF_UNDEF;
 		TAILQ_INIT(&ifc->reqopt_list);
+		TAILQ_INIT(&ifc->addr_list);
 
 		for (cfl = ifp->params; cfl; cfl = cfl->next) {
 			switch(cfl->type) {
@@ -176,14 +178,12 @@ configure_interface(iflist)
 				}
 				break;
 			case DECL_INFO_ONLY:
-				if (dhcp6_mode != DHCP6_MODE_CLIENT) {
-					dprintf(LOG_INFO, "%s" "%s:%d "
-						"client-only configuration",
-						FNAME, configfilename,
-						cfl->line);
-					goto bad;
-				}
-				ifc->send_flags |= DHCIFF_INFO_ONLY;
+				if (dhcp6_mode == DHCP6_MODE_CLIENT)
+					ifc->send_flags |= DHCIFF_INFO_ONLY;
+				break;
+			case DECL_TEMP_ADDR:
+				if (dhcp6_mode == DHCP6_MODE_CLIENT)
+					ifc->send_flags |= DHCIFF_TEMP_ADDRS;
 				break;
 			case DECL_PREFERENCE:
 				if (dhcp6_mode != DHCP6_MODE_SERVER) {
@@ -202,6 +202,49 @@ configure_interface(iflist)
 						ifc->server_pref);
 					goto bad;
 				}
+				break;
+			case DECL_IAID:
+				if (ifc->iaidinfo.iaid) {
+					dprintf(LOG_ERR, "%s" "%s:%d "
+						"duplicated IAID for %s",
+						FNAME, configfilename,
+						cfl->line, ifc->ifname);
+					goto bad;
+				} else
+					ifc->iaidinfo.iaid = (u_int32_t)cfl->num;
+				break;
+			case DECL_RENEWTIME:
+				if (ifc->iaidinfo.renewtime) {
+					dprintf(LOG_ERR, "%s" "%s:%d "
+						"duplicated renewtime for %s",
+						FNAME, configfilename,
+						cfl->line, ifc->ifname);
+					goto bad;
+				} else
+					ifc->iaidinfo.renewtime = (u_int32_t)cfl->num;
+				break;
+			case DECL_REBINDTIME:
+				if (ifc->iaidinfo.iaid) {
+					dprintf(LOG_ERR, "%s" "%s:%d "
+						"duplicated rebindtime for %s",
+						FNAME, configfilename,
+						cfl->line, ifc->ifname);
+					goto bad;
+				} else 
+					ifc->iaidinfo.rebindtime = (u_int32_t)cfl->num;
+				break;
+			case DECL_ADDRESS:
+				if (add_address(&ifc->addr_list, cfl->ptr)) {
+					dprintf(LOG_ERR, "%s" "failed "
+						"to configure ipv6address for %s",
+						FNAME, ifc->ifname);
+					goto bad;
+				}
+				break;
+			case DECL_PREFIX_REQ:
+				/* XX: ToDo */
+				break;
+			case DECL_PREFIX_INFO:
 				break;
 			default:
 				dprintf(LOG_ERR, "%s" "%s:%d "
@@ -296,7 +339,8 @@ configure_host(hostlist)
 {
 	struct cf_namelist *host;
 	struct host_conf *hconf;
-
+	struct dhcp6_addr *v6addr;
+	
 	for (host = hostlist; host; host = host->next) {
 		struct cf_list *cfl;
 
@@ -306,6 +350,8 @@ configure_host(hostlist)
 			goto bad;
 		}
 		memset(hconf, 0, sizeof(*hconf));
+		TAILQ_INIT(&hconf->addr_list);
+		TAILQ_INIT(&hconf->addr_binding_list);
 		TAILQ_INIT(&hconf->prefix_list);
 		TAILQ_INIT(&hconf->prefix_binding_list);
 		hconf->next = host_conflist0;
@@ -347,6 +393,55 @@ configure_host(hostlist)
 						FNAME, host->name);
 					goto bad;
 				}
+				break;
+			case DECL_IAID:
+				if (hconf->iaidinfo.iaid) {
+					dprintf(LOG_ERR, "%s" "%s:%d "
+						"duplicated IAID for %s",
+						FNAME, configfilename,
+						cfl->line, host->name);
+					goto bad;
+				} else
+					hconf->iaidinfo.iaid = (u_int32_t)cfl->num;
+				break;
+			case DECL_RENEWTIME:
+				if (hconf->iaidinfo.renewtime) {
+					dprintf(LOG_ERR, "%s" "%s:%d "
+						"duplicated renewtime for %s",
+						FNAME, configfilename,
+						cfl->line, host->name);
+					goto bad;
+				} else
+					hconf->iaidinfo.renewtime = (u_int32_t)cfl->num;
+				break;
+			case DECL_REBINDTIME:
+				if (hconf->iaidinfo.rebindtime) {
+					dprintf(LOG_ERR, "%s" "%s:%d "
+						"duplicated rebindtime for %s",
+						FNAME, configfilename,
+						cfl->line, host->name);
+					goto bad;
+				} else 
+					hconf->iaidinfo.rebindtime = (u_int32_t)cfl->num;
+				break;
+			case DECL_ADDRESS:
+				if (add_address(&hconf->addr_list, cfl->ptr)) {
+					dprintf(LOG_ERR, "%s" "failed "
+						"to configure ipv6address for %s",
+						FNAME, host->name);
+					goto bad;
+				}
+				break;
+			case DECL_LINKLOCAL:
+				if (IN6_IS_ADDR_UNSPECIFIED(&hconf->linklocal)) {
+					dprintf(LOG_ERR, "%s" "%s:%d "
+						"duplicated linklocal for %s",
+						FNAME, configfilename,
+						cfl->line, host->name);
+					goto bad;
+				} else 
+					memcpy(&hconf->linklocal, cfl->ptr, 
+							sizeof(hconf->linklocal) );
 				break;
 			default:
 				dprintf(LOG_ERR, "%s" "%s:%d "
@@ -551,8 +646,18 @@ configure_commit()
 			dhcp6_clear_list(&ifp->reqopt_list);
 			ifp->reqopt_list = ifc->reqopt_list;
 			TAILQ_INIT(&ifc->reqopt_list);
+			
+			dhcp6_clear_list(&ifp->addr_list);
+			ifp->addr_list = ifc->addr_list;
+			TAILQ_INIT(&ifc->addr_list);
 
+			dhcp6_clear_list(&ifp->prefix_list);
+			ifp->prefix_list = ifc->prefix_list;
+			TAILQ_INIT(&ifc->prefix_list);
+			
 			ifp->server_pref = ifc->server_pref;
+
+			memcpy(&ifp->iaidinfo, &ifc->iaidinfo, sizeof(ifp->iaidinfo));
 		}
 	}
 	clear_ifconf(dhcp6_ifconflist);
@@ -794,6 +899,41 @@ add_prefix(hconf, prefix0)
 	pent->val_prefix6 = oprefix;
 	TAILQ_INSERT_TAIL(&hconf->prefix_list, pent, link);
 
+	return (0);
+}
+
+static int
+add_address(addr_list, v6addr)
+	struct dhcp6_list *addr_list;
+	struct dhcp6_addr *v6addr;
+{
+	struct dhcp6_listval *lv, *val;
+	
+	/* avoid invalid addresses */
+	if (IN6_IS_ADDR_RESERVED(&v6addr->addr)) {
+		dprintf(LOG_ERR, "%s" "invalid address: %s",
+			FNAME, in6addr2str(&v6addr->addr, 0));
+		return (-1);
+	}
+
+	/* address duplication check */
+	for (lv = TAILQ_FIRST(addr_list); lv;
+	     lv = TAILQ_NEXT(lv, link)) {
+		if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &v6addr->addr) &&
+		    lv->val_dhcp6addr.plen == v6addr->plen) {
+			dprintf(LOG_ERR, "%s"
+				"duplicated address: %s/%d ", FNAME,
+				in6addr2str(&v6addr->addr, 0), v6addr->plen);
+			return (-1);
+		}
+	}
+	if ((val = (struct dhcp6_listval *)malloc(sizeof(*val))) == NULL)
+		dprintf(LOG_ERR, "%s" "memory allocation failed", FNAME);
+	memset(val, 0, sizeof(*val));
+	memcpy(&val->val_dhcp6addr, v6addr, sizeof(val->val_dhcp6addr));
+	dprintf(LOG_DEBUG, "%s" "add address: %s",
+		FNAME, in6addr2str(&v6addr->addr, 0));
+	TAILQ_INSERT_TAIL(addr_list, val, link);
 	return (0);
 }
 

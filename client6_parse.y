@@ -1,5 +1,5 @@
-/*	$Id: client6_parse.y,v 1.1 2003/02/07 17:24:52 shemminger Exp $	*/
-/*	from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
+/*	$Id: client6_parse.y,v 1.2 2003/02/10 23:47:06 shirleyma Exp $	*/
+/*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
  * Copyright (C) 2002 WIDE Project.
@@ -45,15 +45,15 @@
 extern int lineno;
 extern int cfdebug;
 
-extern void cfyywarn __P((char *, ...))
+extern void cpyywarn __P((char *, ...))
 	__attribute__((__format__(__printf__, 1, 2)));
-extern void cfyyerror __P((char *, ...))
+extern void cpyyerror __P((char *, ...))
 	__attribute__((__format__(__printf__, 1, 2)));
 
 #define MAKE_NAMELIST(l, n, p) do { \
 	(l) = (struct cf_namelist *)malloc(sizeof(*(l))); \
 	if ((l) == NULL) { \
-		cfyywarn("can't allocate memory"); \
+		cpyywarn("can't allocate memory"); \
 		if (p) cleanup_cflist(p); \
 		return (-1); \
 	} \
@@ -66,7 +66,7 @@ extern void cfyyerror __P((char *, ...))
 #define MAKE_CFLIST(l, t, pp, pl) do { \
 	(l) = (struct cf_list *)malloc(sizeof(*(l))); \
 	if ((l) == NULL) { \
-		cfyywarn("can't allocate memory"); \
+		cpyywarn("can't allocate memory"); \
 		if (pp) free(pp); \
 		if (pl) cleanup_cflist(pl); \
 		return (-1); \
@@ -81,33 +81,35 @@ extern void cfyyerror __P((char *, ...))
 static struct cf_namelist *iflist_head, *piflist_head, *hostlist_head; 
 struct cf_list *cf_dns_list;
 
-extern int cfyylex __P((void));
+extern int cpyylex __P((void));
 static void cleanup __P((void));
 static void cleanup_namelist __P((struct cf_namelist *));
 static void cleanup_cflist __P((struct cf_list *));
 %}
 
 %token INTERFACE IFNAME
-%token PREFIX_INTERFACE SLA_ID SLA_LEN DUID_ID
-%token REQUEST SEND ALLOW PREFERENCE
-%token HOST HOSTNAME DUID
-%token OPTION RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS
-%token INFO_ONLY
-%token NUMBER SLASH EOS BCL ECL STRING PREFIX INFINITY
+%token REQUEST SEND 
+%token OPTION RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS PREFIX_INFO PREFIX_REQ
+%token INFO_ONLY TEMP_ADDR
+%token ADDRESS IAID RENEW_TIME REBIND_TIME V_TIME P_TIME
+%token NUMBER SLASH EOS BCL ECL STRING INFINITY
 %token COMMA
 
 %union {
 	long long num;
 	char* str;
 	struct cf_list *list;
+	struct in6_addr addr;
 	struct dhcp6_prefix *prefix;
+	struct dhcp6_addr *v6addr;
 }
 
-%type <str> IFNAME HOSTNAME DUID_ID STRING
-%type <num> NUMBER duration
-%type <list> declaration declarations dhcpoption ifparam ifparams
-%type <list> address_list address_list_ent
-%type <prefix> prefixparam
+%type <str> IFNAME STRING
+%type <num> NUMBER duration addrvtime addrptime
+%type <list> declaration declarations dhcpoption 
+%type <prefix> prefixparam 
+%type <v6addr> addrparam addrdecl
+%type <addr> IPV6ADDR
 
 %%
 statements:
@@ -117,9 +119,6 @@ statements:
 
 statement:
 		interface_statement
-	|	prefix_interface_statement
-	|	host_statement
-	|	option_statement
 	;
 
 interface_statement:
@@ -134,86 +133,9 @@ interface_statement:
 	}
 	;
 
-prefix_interface_statement:
-	PREFIX_INTERFACE IFNAME BCL ifparams ECL EOS
-	{
-		struct cf_namelist *ifl;
-
-		MAKE_NAMELIST(ifl, $2, $4);
-
-		if (add_namelist(ifl, &piflist_head))
-			return (-1);
-	}
-	;
-
-host_statement:
-	HOST HOSTNAME BCL declarations ECL EOS
-	{
-		struct cf_namelist *host;
-
-		MAKE_NAMELIST(host, $2, $4);
-
-		if (add_namelist(host, &hostlist_head))
-			return (-1);
-	}
-	;
-
-option_statement:
-	OPTION DNS_SERVERS address_list EOS
-	{
-		if (cf_dns_list == NULL)
-			cf_dns_list = $3;
-		else {
-			cf_dns_list->tail->next = $3;
-			cf_dns_list->tail = $3->next;
-		}
-	}
-	;
-
-address_list:
-		{ $$ = NULL; }
-	|	address_list address_list_ent
-		{
-			struct cf_list *head;
-
-			if ((head = $1) == NULL) {
-				$2->next = NULL;
-				$2->tail = $2;
-				head = $2;
-			} else {
-				head->tail->next = $2;
-				head->tail = $2;
-			}
-
-			$$ = head;
-		}
-	;
-
-address_list_ent:
-	STRING
-	{
-		struct cf_list *l;
-		struct in6_addr a0, *a;
-
-		if (inet_pton(AF_INET6, $1, &a0) != 1) {
-			cfyywarn("invalid IPv6 address: %s", $1);
-			free($1);
-			return (-1);
-		}
-		if ((a = malloc(sizeof(*a))) == NULL) {
-			cfyywarn("can't allocate memory");
-			return (-1);
-		}
-		*a = a0;
-
-		MAKE_CFLIST(l, ADDRESS_LIST_ENT, a, NULL);
-
-		$$ = l;
-	}
-
 declarations:
 		{ $$ = NULL; }
-	|	declarations declaration
+	| 	declarations declaration;
 		{
 			struct cf_list *head;
 
@@ -229,7 +151,7 @@ declarations:
 			$$ = head;
 		}
 	;
-	
+
 declaration:
 		SEND dhcpoption EOS
 		{
@@ -255,37 +177,67 @@ declaration:
 			/* no value */
 			$$ = l;
 		}
-	|	ALLOW dhcpoption EOS
+	|	TEMP_ADDR EOS
 		{
 			struct cf_list *l;
 
-			MAKE_CFLIST(l, DECL_ALLOW, NULL, $2);
-
+			MAKE_CFLIST(l, DECL_TEMP_ADDR, NULL, NULL);
+			/* no value */
 			$$ = l;
 		}
-	|	DUID DUID_ID EOS
+	|	ADDRESS BCL addrdecl ECL EOS
 		{
 			struct cf_list *l;
 
-			MAKE_CFLIST(l, DECL_DUID, $2, NULL);
+			MAKE_CFLIST(l, DECL_ADDRESS, $3, NULL);
 
 			$$ = l;
+
 		}
-	|	PREFIX prefixparam EOS
+	|	RENEW_TIME duration EOS
 		{
 			struct cf_list *l;
 
-			MAKE_CFLIST(l, DECL_PREFIX, $2, NULL);
-
-			$$ = l;
-		}
-	|	PREFERENCE NUMBER EOS
-		{
-			struct cf_list *l;
-
-			MAKE_CFLIST(l, DECL_PREFERENCE, NULL, NULL);
+			MAKE_CFLIST(l, DECL_RENEWTIME, NULL, NULL);
 			l->num = $2;
 
+			$$ = l;
+
+		}
+	|	REBIND_TIME duration EOS
+		{
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DECL_REBINDTIME, NULL, NULL);
+			l->num = $2;
+
+			$$ = l;
+
+		}
+	|	IAID NUMBER EOS 
+		{	
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DECL_IAID, NULL, NULL);
+			l->num = $2;
+		
+			$$ = l;
+		}
+	|	PREFIX_INFO prefixparam EOS
+		{
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DECL_PREFIX_INFO, $2, NULL);
+
+			$$ = l;
+		}
+	|	PREFIX_REQ NUMBER EOS
+		{
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DECL_PREFIX_REQ, NULL, NULL);
+
+			l->num = $2;
 			$$ = l;
 		}
 	;
@@ -317,71 +269,96 @@ dhcpoption:
 		}
 	;
 
-ifparams:
-		{ $$ = NULL; }
-	|	ifparams ifparam
-		{
-			struct cf_list *head;
-
-			if ((head = $1) == NULL) {
-				$2->next = NULL;
-				$2->tail = $2;
-				head = $2;
-			} else {
-				head->tail->next = $2;
-				head->tail = $2;
-			}
-
-			$$ = head;
-		}
-	;
-
-ifparam:
-		SLA_ID NUMBER EOS
-		{
-			struct cf_list *l;
-
-			MAKE_CFLIST(l, IFPARAM_SLA_ID, NULL, NULL);
-			l->num = $2;
-			$$ = l;
-		}
-	|	SLA_LEN NUMBER EOS
-		{
-			struct cf_list *l;
-
-			MAKE_CFLIST(l, IFPARAM_SLA_LEN, NULL, NULL);
-			l->num = $2;
-			$$ = l;
-		}
-	;
-
 prefixparam:
-	STRING SLASH NUMBER duration
-	{
-		struct dhcp6_prefix pconf0, *pconf;		
-
-		memset(&pconf0, 0, sizeof(pconf0));
-		if (inet_pton(AF_INET6, $1, &pconf0.addr) != 1) {
-			cfyywarn("invalid IPv6 address: %s", $1);
+		
+		STRING SLASH NUMBER duration
+		{
+			struct dhcp6_prefix pconf0, *pconf;		
+	
+			memset(&pconf0, 0, sizeof(pconf0));
+			if (inet_pton(AF_INET6, $1, &pconf0.addr) != 1) {
+				cpyywarn("invalid IPv6 address: %s", $1);
+				free($1);
+				return (-1);
+			}
 			free($1);
-			return (-1);
-		}
-		free($1);
-		/* validate other parameters later */
-		pconf0.plen = $3;
-		if ($4 < 0)
-			pconf0.duration = DHCP6_DURATITION_INFINITE;
-		else
-			pconf0.duration = (u_int32_t)$4;
+			/* validate other parameters later */
+			pconf0.plen = $3;
+			if ($4 < 0)
+				pconf0.duration = DHCP6_DURATITION_INFINITE;
+			else
+				pconf0.duration = (u_int32_t)$4;
+	
+			if ((pconf = malloc(sizeof(*pconf))) == NULL) {
+				cpyywarn("can't allocate memory");
+				return (-1);
+			}
+			*pconf = pconf0;
 
-		if ((pconf = malloc(sizeof(*pconf))) == NULL) {
-			cfyywarn("can't allocate memory");
-			return (-1);
+			$$ = pconf;
 		}
-		*pconf = pconf0;
+	;
 
-		$$ = pconf;
-	}
+addrdecl:
+	
+		addrparam addrvtime 
+		{
+			(struct dhcp6_addr *)$1->validlifetime = (u_int32_t)$2;
+			$$ = $1;
+		}
+	|	 addrparam addrptime
+		{
+			(struct dhcp6_addr *)$1->preferlifetime = (u_int32_t)$2;
+			$$ = $1;
+		}
+	|	 addrparam addrvtime addrptime 
+		{
+			(struct dhcp6_addr *)$1->validlifetime = (u_int32_t)$2;
+			(struct dhcp6_addr *)$1->preferlifetime = (u_int32_t)$3;
+			$$ = $1;
+		}
+	| 	addrparam addrptime addrvtime
+		{
+			(struct dhcp6_addr *)$1->validlifetime = (u_int32_t)$3;
+			(struct dhcp6_addr *)$1->preferlifetime = (u_int32_t)$2;
+			$$ = $1;
+			}
+	| 	addrparam
+		{
+			$$ = $1;
+		}
+	;
+addrparam:
+		IPV6ADDR SLASH NUMBER EOS
+		{
+			struct dhcp6_addr *v6addr;		
+			/* validate other parameters later */
+			if ($3 < 0 || $3 > 128)
+				return (-1);
+			if ((v6addr = malloc(sizeof(*v6addr))) == NULL) {
+				cpyywarn("can't allocate memory");
+				return (-1);
+			}
+			memset(v6addr, 0, sizeof(*v6addr));
+			memcpy(&v6addr->addr, &$1, sizeof(v6addr->addr));
+			v6addr->plen = $3;
+			$$ = v6addr;
+		}
+	;
+
+addrvtime:
+		V_TIME duration EOS
+		{
+			$$ = $2;
+		}
+	;
+
+addrptime:
+		P_TIME duration EOS
+		{
+			$$ = $2;
+		}
+	;
 
 duration:
 		INFINITY
@@ -405,7 +382,7 @@ add_namelist(new, headp)
 	/* check for duplicated configuration */
 	for (ifp = *headp; ifp; ifp = ifp->next) {
 		if (strcmp(ifp->name, new->name) == 0) {
-			cfyywarn("duplicated interface: %s (ignored)",
+			cpyywarn("duplicated interface: %s (ignored)",
 			       new->name);
 			cleanup_namelist(new);
 			return (0);
@@ -423,10 +400,7 @@ static void
 cleanup()
 {
 	cleanup_namelist(iflist_head);
-	cleanup_namelist(piflist_head);
-	cleanup_namelist(hostlist_head);
 
-	cleanup_cflist(cf_dns_list);
 }
 
 static void
@@ -469,12 +443,6 @@ int
 cf_post_config()
 {
 	if (configure_interface(iflist_head))
-		config_fail();
-
-	if (configure_prefix_interface(piflist_head))
-		config_fail();
-
-	if (configure_host(hostlist_head))
 		config_fail();
 
 	if (configure_global_option())

@@ -1,4 +1,4 @@
-/*	$Id: timer.h,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: timer.h,v 1.2 2003/02/10 23:47:09 shirleyma Exp $	*/
 /*	ported from KAME: timer.h,v 1.1 2002/05/16 06:04:08 jinmei Exp	*/
 
 /*
@@ -42,10 +42,14 @@
 #define TIMEVAL_EQUAL(a, b) ((a).tv_sec == (b).tv_sec &&\
 			     (a).tv_usec == (b).tv_usec)
 
+#define MARK_CLEAR 0x00
+#define MARK_REMOVE 0x01
+	
 struct dhcp6_timer {
 	LIST_ENTRY(dhcp6_timer) link;
 
 	struct timeval tm;
+	int flag;
 
 	struct dhcp6_timer *(*expire) __P((void *));
 	void *expire_data;
@@ -55,7 +59,7 @@ void dhcp6_timer_init __P((void));
 struct dhcp6_timer *dhcp6_add_timer __P((struct dhcp6_timer *(*) __P((void *)),
 					 void *));
 void dhcp6_set_timer __P((struct timeval *, struct dhcp6_timer *));
-void dhcp6_remove_timer __P((struct dhcp6_timer **));
+void dhcp6_remove_timer __P((struct dhcp6_timer *));
 struct timeval * dhcp6_check_timer __P((void));
 struct timeval * dhcp6_timer_rest __P((struct dhcp6_timer *));
 

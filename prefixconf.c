@@ -1,4 +1,4 @@
-/*	$Id: prefixconf.c,v 1.3 2003/01/23 18:44:33 shirleyma Exp $	*/
+/*	$Id: prefixconf.c,v 1.4 2003/02/10 23:47:09 shirleyma Exp $	*/
 /*	ported from KAME: prefixconf.c,v 1.9 2002/12/12 09:47:26 suz Exp */
 
 /*
@@ -205,7 +205,7 @@ prefix6_remove(sp)
 	duidfree(&sp->serverid);
 
 	if (sp->timer)
-		dhcp6_remove_timer(&sp->timer);
+		dhcp6_remove_timer(sp->timer);
 
 	if (sp->evdata) {
 		TAILQ_REMOVE(&sp->evdata->event->data_list, sp->evdata, link);
@@ -306,7 +306,7 @@ update(sp, prefix, serverid)
 		return 0;
 	case DHCP6_DURATITION_INFINITE:
 		if (sp->timer)
-			dhcp6_remove_timer(&sp->timer);
+			dhcp6_remove_timer(sp->timer);
 		break;
 	default:
 		if (sp->timer == NULL) {
