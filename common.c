@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.23 2005/03/10 00:39:02 shemminger Exp $	*/
+/*	$Id: common.c,v 1.24 2005/03/10 00:57:45 shemminger Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -840,7 +840,7 @@ gethwid(buf, len, ifname, hwtypep)
 		return -1; /* XXX */
 	}
 	memcpy(buf, if_hwaddr.ifr_hwaddr.sa_data, l);
-	dprintf(LOG_DEBUG, "%s" "found an interface %s harware %x",
+	dprintf(LOG_DEBUG, "%s found an interface %s hardware %p",
 		FNAME, ifname, buf);
 	return l;
 }
@@ -1126,7 +1126,7 @@ dhcp6_get_options(p, ep, optinfo)
 					goto malformed;
 				else {
 					val += n;
-					dprintf(LOG_DEBUG, "expand domain name %s, size %d", 
+					dprintf(LOG_DEBUG, "expand domain name %s, size %u", 
 						dname->name, strlen(dname->name));
 				}
 				dname->next = NULL;

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.36 2004/04/06 21:18:30 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.37 2005/03/10 00:57:46 shemminger Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -94,7 +94,6 @@ static int num_device = 0;
 static struct iaid_table iaidtab[100];
 static u_int8_t client6_request_flag = 0;
 static	char leasename[100];
-static int rapatch = 0;
 
 #define CLIENT6_RELEASE_ADDR	0x1
 #define CLIENT6_CONFIRM_ADDR	0x2
@@ -153,8 +152,6 @@ extern int radvd_parse (struct dhcp6_iaidaddr *, int);
 #define DUID_FILE "/var/lib/dhcpv6/dhcp6c_duid"
 
 static int pid;
-static char cmdbuf[1024];
-static char oldlink[256];
 char client6_lease_temp[256];
 struct dhcp6_list request_list;
 
@@ -323,7 +320,6 @@ client6_init(device)
 	int error, on = 1;
 	struct dhcp6_if *ifp;
 	int ifidx;
-	struct ifaddrs *ifa, *ifap;
 	char linklocal[64];
 	struct in6_addr lladdr;
 	
@@ -502,7 +498,6 @@ client6_ifinit(char *device)
 	if (client6_lease_file == NULL)
 		exit(1);
 	if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
-		struct dhcp6_lease *cl;
 		struct dhcp6_listval *lv;
 		if (!(client6_request_flag & CLIENT6_REQUEST_ADDR) && 
 				!(client6_request_flag & CLIENT6_RELEASE_ADDR))
@@ -601,7 +596,6 @@ free_resources(struct dhcp6_if *ifp)
 static void
 process_signals()
 {
-	struct stat buf;
 	if ((sig_flags & SIGF_TERM)) {
 		dprintf(LOG_INFO, FNAME "exiting");
 		free_resources(dhcp6_if);
@@ -659,7 +653,6 @@ client6_timo(arg)
 	struct dhcp6_event *ev = (struct dhcp6_event *)arg;
 	struct dhcp6_if *ifp;
 	struct timeval now;
-	struct ra_info *rainfo;
 	
 	ifp = ev->ifp;
 	ev->timeouts++;
@@ -1715,10 +1708,6 @@ static struct dhcp6_timer
 *check_dad_timo(void *arg)
 {
 	struct dhcp6_if *ifp = (struct dhcp6_if *)arg;
-	struct dhcp6_listval *lv;
-	struct dhcp6_lease *cl, *cl_next;
-	struct timeval timo;
-	double d;
 	int newstate;
 	if (client6_iaidaddr.client6_info.type == IAPD)
 		goto end;
