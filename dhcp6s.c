@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.12 2003/04/18 16:10:13 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.13 2003/04/18 20:14:37 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -607,6 +607,13 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		TAILQ_INIT(&arg_dnslist.addrlist);
 	}
 	dprintf(LOG_DEBUG, "server preference is %2x", roptinfo.pref);
+	if (roptinfo.flags & DHCIFF_UNICAST) {
+		/* todo find the right server unicast address to client*/
+		memcpy(&roptinfo.server_addr, &pi->ipi6_addr,
+		       sizeof(roptinfo.server_addr));
+		dprintf(LOG_DEBUG, "%s" "server address is %s",
+			FNAME, in6addr2str(&roptinfo.server_addr, 0));
+	}
 	/*
 	 * When the server receives a Request message via unicast from a
 	 * client to which the server has not sent a unicast option, the server
@@ -615,18 +622,23 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	 * Identifier option containing the server's DUID, the Client
 	 * Identifier option from the client message and no other options.
 	 * [dhcpv6-26 18.2.1]
-	 * (Our current implementation never sends a unicast option.)
 	 */
-
 	switch (dh6->dh6_msgtype) {
 	case DH6_REQUEST:
 	case DH6_RENEW:
 	case DH6_DECLINE:
 		if (!IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
+			if (!(roptinfo.flags & DHCIFF_UNICAST)) {
+				num = DH6OPT_STCODE_USEMULTICAST;
+				goto send;
+			} else
+				break;
+		} 
+	default:
+		if (!IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
 			num = DH6OPT_STCODE_USEMULTICAST;
 			goto send;
 		}
-	default:
 		break;
 	}
 
