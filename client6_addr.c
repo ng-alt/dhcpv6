@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.19 2003/06/03 00:17:24 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.20 2003/06/03 19:12:00 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -673,35 +673,6 @@ client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr)
 	return (0);
 }
 
-u_int32_t
-get_min_preferlifetime(struct dhcp6_iaidaddr *sp)
-{
-	struct dhcp6_lease *lv, *first;
-	u_int32_t min;
-	if (TAILQ_EMPTY(&sp->lease_list))
-		return 0;
-	first = TAILQ_FIRST(&sp->lease_list);
-	min = first->lease_addr.preferlifetime;
-	for (lv = TAILQ_FIRST(&sp->lease_list); lv; lv = TAILQ_NEXT(lv, link)) {
-		min = MIN(min, lv->lease_addr.preferlifetime);
-	}
-	return min;
-}
-
-u_int32_t
-get_max_validlifetime(struct dhcp6_iaidaddr *sp)
-{
-	struct dhcp6_lease *lv, *first;
-	u_int32_t max;
-	if (TAILQ_EMPTY(&sp->lease_list))
-		return 0;
-	first = TAILQ_FIRST(&sp->lease_list);
-	max = first->lease_addr.validlifetime;
-	for (lv = TAILQ_FIRST(&sp->lease_list); lv; lv = TAILQ_NEXT(lv, link)) {
-		max = MAX(max, lv->lease_addr.validlifetime);
-	}
-	return max;
-}
 
 int
 get_iaid(const char *ifname, const struct iaid_table *iaidtab, int num_device)

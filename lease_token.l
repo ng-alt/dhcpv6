@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.8 2003/04/18 01:00:12 shirleyma Exp $	*/
+/*	$Id: lease_token.l,v 1.9 2003/06/03 19:12:00 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -254,6 +254,8 @@ do_iaidaddr_hash(lease_rec, key)
 	struct dhcp6_lease *found_lease;
 	struct timeb now;
 	time_t offset;
+	struct timeval timo;
+	double d;
 
 	if (!VALID_LEASE_FLAG(lease_flags) ||
 	    (lease_rec->lease_addr.preferlifetime > lease_rec->lease_addr.validlifetime)) {
@@ -319,6 +321,11 @@ do_iaidaddr_hash(lease_rec, key)
 				"this client iaidinfo is different to others", FNAME);
 			return (-1);
 		}
+		iaidaddr->state = ACTIVE;
+		d = get_max_validlifetime(iaidaddr) - offset;
+		timo.tv_sec = (long)d;
+		timo.tv_usec = 0;
+		dhcp6_set_timer(&timo, iaidaddr->timer);
 	} else {
 		iaidaddr = (struct dhcp6_iaidaddr *)malloc(sizeof(*iaidaddr));
 	  	if (!iaidaddr) {
@@ -330,8 +337,6 @@ do_iaidaddr_hash(lease_rec, key)
 		/* get the client info */
 		memcpy(&iaidaddr->client6_info, &client6_info, sizeof(iaidaddr->client6_info));
 		iaidaddr->start_date = lease_rec->start_date;	
-		/* iaidaddr will be removed if no lease under lease_list */
-		iaidaddr->timer = NULL;
 		TAILQ_INIT(&iaidaddr->lease_list);
 		if (hash_add(server6_hash_table, 
 				&iaidaddr->client6_info, iaidaddr) != 0) {
@@ -343,6 +348,18 @@ do_iaidaddr_hash(lease_rec, key)
 			iaidaddr->client6_info.type, 
 			duidstr(&iaidaddr->client6_info.clientid), 
 			iaidaddr->client6_info.iaidinfo.iaid);
+		/* update the start date and timer */
+		if ((iaidaddr->timer = 
+		     dhcp6_add_timer(dhcp6_iaidaddr_timo, iaidaddr)) == NULL) {
+	 		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %d",
+				FNAME, iaidaddr->client6_info.iaidinfo.iaid);
+	 		return (-1);
+	    	}
+		iaidaddr->state = ACTIVE;
+		d = get_max_validlifetime(iaidaddr) - offset;
+		timo.tv_sec = (long)d;
+		timo.tv_usec = 0;
+		dhcp6_set_timer(&timo, iaidaddr->timer);
 	}
 	if (add_lease(iaidaddr, lease_rec) != 0)
 		return (-1);
@@ -459,7 +476,7 @@ remove_lease(lease)
 	struct dhcp6_lease *lease;
 {
 	if (dhcp6_mode == DHCP6_MODE_SERVER) {
-		if (hash_delete(lease_hash_table, &lease->lease_addr.addr)) {
+		if (hash_delete(lease_hash_table, &lease->lease_addr.addr) != 0) {
 			dprintf(LOG_ERR, "%s" "failed to remove an address %s from hash", 
 				FNAME, in6addr2str(&lease->lease_addr.addr, 0));
 			return (-1);

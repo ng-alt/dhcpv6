@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.9 2003/05/22 23:00:29 shirleyma Exp $	*/
+/*	$Id: lease.c,v 1.10 2003/06/03 19:12:00 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -70,7 +70,6 @@ write_lease(const struct dhcp6_lease *lease_ptr,
 	struct tm brokendown_time;
 	char addr_str[64];
 	
-	dprintf(LOG_DEBUG, "%s" " called", FNAME);
 	if ((inet_ntop(AF_INET6, &lease_ptr->lease_addr.addr, 
 		addr_str, sizeof(addr_str))) == 0) {
 		dprintf(LOG_DEBUG, "%s" "inet_ntop %s", FNAME, strerror(errno));
@@ -410,3 +409,32 @@ addr_on_addrlist(addrlist, addr6)
 	return (0);
 }
 
+u_int32_t
+get_min_preferlifetime(struct dhcp6_iaidaddr *sp)
+{
+	struct dhcp6_lease *lv, *first;
+	u_int32_t min;
+	if (TAILQ_EMPTY(&sp->lease_list))
+		return 0;
+	first = TAILQ_FIRST(&sp->lease_list);
+	min = first->lease_addr.preferlifetime;
+	for (lv = TAILQ_FIRST(&sp->lease_list); lv; lv = TAILQ_NEXT(lv, link)) {
+		min = MIN(min, lv->lease_addr.preferlifetime);
+	}
+	return min;
+}
+
+u_int32_t
+get_max_validlifetime(struct dhcp6_iaidaddr *sp)
+{
+	struct dhcp6_lease *lv, *first;
+	u_int32_t max;
+	if (TAILQ_EMPTY(&sp->lease_list))
+		return 0;
+	first = TAILQ_FIRST(&sp->lease_list);
+	max = first->lease_addr.validlifetime;
+	for (lv = TAILQ_FIRST(&sp->lease_list); lv; lv = TAILQ_NEXT(lv, link)) {
+		max = MAX(max, lv->lease_addr.validlifetime);
+	}
+	return max;
+}

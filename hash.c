@@ -1,4 +1,4 @@
-/*	$Id: hash.c,v 1.6 2003/03/01 00:24:48 shemminger Exp $	*/
+/*	$Id: hash.c,v 1.7 2003/06/03 19:12:00 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -111,7 +111,7 @@ int hash_delete(struct hash_table *hash_tbl, const void *key)
 	  		free(element);		
 	   		hash_tbl->hash_count--;
 			return 0;
-		}		
+		}
 		prev_element = element;
 		element = element->next;
 	}

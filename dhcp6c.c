@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.30 2003/06/03 00:18:29 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.31 2003/06/03 19:12:00 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -622,7 +622,6 @@ client6_mainloop()
 	while(1) {
 		if (sig_flags)
 			process_signals();
-		dprintf(LOG_DEBUG, "%s" " called", FNAME);
 		w = dhcp6_check_timer();
 
 		FD_ZERO(&r);
