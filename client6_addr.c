@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.5 2003/02/12 19:43:14 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.6 2003/02/12 20:53:00 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -129,7 +129,7 @@ dhcp6_add_iaidaddr(optinfo)
 	}
 	if (client6_iaidaddr.client6_info.iaidinfo.rebindtime == 0) {
 		client6_iaidaddr.client6_info.iaidinfo.rebindtime 
-			= get_min_preferlifetime(&client6_iaidaddr)/3;
+			= (get_min_preferlifetime(&client6_iaidaddr) * 4) / 5;
 	}
 	/* set up start date, and renew timer */
 	time(&client6_iaidaddr.start_date);
@@ -434,14 +434,15 @@ dhcp6_iaidaddr_timo(arg)
 	case ACTIVE:
 		sp->state = RENEW;
 		dhcpstate = DHCP6S_RENEW;
-		d = sp->client6_info.iaidinfo.rebindtime;
+		d = sp->client6_info.iaidinfo.rebindtime - sp->client6_info.iaidinfo.renewtime;
 		timeo.tv_sec = (long)d;
 		timeo.tv_usec = 0;
 		break;
 	case RENEW:
 		sp->state = REBIND;
 		dhcpstate = DHCP6S_REBIND;
-		d = get_max_validlifetime(&client6_iaidaddr); 
+		d = get_max_validlifetime(&client6_iaidaddr) -
+				sp->client6_info.iaidinfo.rebindtime; 
 		timeo.tv_sec = (long)d;
 		timeo.tv_usec = 0;
 		if (sp->client6_info.serverid.duid_id != NULL)
@@ -469,10 +470,8 @@ dhcp6_iaidaddr_timo(arg)
 			dprintf(LOG_ERR, "%s" "failed to copy server ID", FNAME);
 			return (NULL);
 		}
-		ev->max_retrans_dur = sp->client6_info.iaidinfo.rebindtime;
-		break;
 	case REBIND:
-		ev->max_retrans_dur = get_max_validlifetime(&client6_iaidaddr);
+		ev->max_retrans_dur = d; 
 		break;
 	}
 	if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
