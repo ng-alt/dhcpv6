@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.22 2005/02/25 17:51:56 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.23 2005/03/10 00:39:02 shemminger Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -209,6 +209,25 @@ dhcp6_clear_list(head)
 
 	while ((v = TAILQ_FIRST(head)) != NULL) {
 		TAILQ_REMOVE(head, v, link);
+		free(v);
+	}
+
+	return;
+}
+
+void
+relayfree(head)
+	struct relay_list *head;
+{
+	struct relay_listval *v;
+
+	while ((v = TAILQ_FIRST(head)) != NULL) {
+		TAILQ_REMOVE(head, v, link);
+		if (v->intf_id != NULL) {
+			if (v->intf_id->intf_id != NULL) 
+				free(v->intf_id->intf_id);
+			free (v->intf_id);
+		}
 		free(v);
 	}
 
@@ -839,6 +858,7 @@ dhcp6_init_options(optinfo)
 	TAILQ_INIT(&optinfo->reqopt_list);
 	TAILQ_INIT(&optinfo->stcode_list);
 	TAILQ_INIT(&optinfo->dns_list.addrlist);
+	TAILQ_INIT(&optinfo->relay_list);
 	optinfo->dns_list.domainlist = NULL;
 }
 
@@ -854,6 +874,7 @@ dhcp6_clear_options(optinfo)
 	dhcp6_clear_list(&optinfo->reqopt_list);
 	dhcp6_clear_list(&optinfo->stcode_list);
 	dhcp6_clear_list(&optinfo->dns_list.addrlist);
+	relayfree(&optinfo->relay_list);
 	if (dhcp6_mode == DHCP6_MODE_CLIENT) {
 		for (dlist = optinfo->dns_list.domainlist; dlist; dlist = dlist_next) {
 			dlist_next = dlist->next;

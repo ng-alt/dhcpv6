@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.18 2004/04/06 21:05:44 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.19 2005/03/10 00:39:03 shemminger Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -126,6 +126,11 @@ struct duid {
 	char *duid_id;		/* variable length ID value (must be opaque) */
 };
 
+struct intf_id {
+	u_int16_t intf_len;	/* length */
+	char *intf_id;		/* variable length ID value (must be opaque) */
+};
+
 /* iaid info for the IA_NA */
 struct dhcp6_iaid_info {
 	u_int32_t iaid;
@@ -188,6 +193,28 @@ struct dns_list {
 	struct domain_list *domainlist;
 };
 
+/* DHCP6 relay agent base packet format */
+struct dhcp6_relay {
+	u_int8_t dh6_msg_type;
+	u_int8_t dh6_hop_count;
+	struct in6_addr link_addr;
+	struct in6_addr peer_addr;
+	/* options follow */
+} __attribute__ ((__packed__));
+
+
+struct relay_listval {
+	TAILQ_ENTRY(relay_listval) link;
+	
+	struct dhcp6_relay relay;
+	struct intf_id *intf_id;
+
+	/* pointer to the Relay Message option in the RELAY-REPL */
+	struct dhcp6opt *option;
+};
+
+TAILQ_HEAD (relay_list, relay_listval);
+
 struct dhcp6_optinfo {
 	struct duid clientID;	/* DUID */
 	struct duid serverID;	/* DUID */
@@ -201,6 +228,8 @@ struct dhcp6_optinfo {
 	struct dhcp6_list reqopt_list; /*  options in option request */
 	struct dhcp6_list stcode_list; /* status code */
 	struct dns_list dns_list; /* DNS server list */
+	struct relay_list relay_list; /* list of the relays the message 
+					 passed through on to the server */
 };
 
 /* DHCP6 base packet format */
@@ -226,8 +255,8 @@ struct dhcp6 {
 #  define DH6OPT_PREF_UNDEF 0 
 #  define DH6OPT_PREF_MAX 255
 #define DH6OPT_ELAPSED_TIME 8
-#define DH6OPT_CLIENT_MSG 9
-#define DH6OPT_SERVER_MSG 10
+#define DH6OPT_RELAY_MSG 9
+
 #define DH6OPT_AUTH 11
 #define DH6OPT_UNICAST 12
 #define DH6OPT_STATUS_CODE 13

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.20 2005/02/25 17:51:56 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.21 2005/03/10 00:39:03 shemminger Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -100,6 +100,7 @@ extern FILE *server6_lease_file;
 char server6_lease_temp[100];
 
 static const struct sockaddr_in6 *sa6_any_downstream;
+static u_int16_t upstream_port;
 static struct msghdr rmh;
 static char rdatabuf[BUFSIZ];
 static int rmsgctllen;
@@ -133,6 +134,15 @@ static int server6_send __P((int, struct dhcp6_if *, struct dhcp6 *,
 			     struct sockaddr *, int,
 			     struct dhcp6_optinfo *));
 static struct dhcp6_timer *check_lease_file_timo __P((void *arg));
+static struct dhcp6 *dhcp6_parse_relay __P((struct dhcp6_relay *,
+                                            struct dhcp6_relay *,
+                                            struct dhcp6_optinfo *,
+                                            struct in6_addr *));
+static int dhcp6_set_relay __P((struct dhcp6_relay *,
+                                struct dhcp6_relay *,
+                                struct dhcp6_optinfo *));
+static void dhcp6_set_relay_option_len __P((struct dhcp6_optinfo *,
+                                           int len));
 extern struct link_decl *dhcp6_allocate_link __P((struct dhcp6_if *, struct rootgroup *, 
 			struct in6_addr *));
 extern struct host_decl *dhcp6_allocate_host __P((struct dhcp6_if *, struct rootgroup *, 
@@ -316,6 +326,7 @@ server6_init()
 			FNAME, strerror(errno));
 		exit(1);
 	}
+	upstream_port = ((struct sockaddr_in6 *) res->ai_addr)->sin6_port;
 	freeaddrinfo(res);
 
 	/* initiallize outbound interface */
@@ -511,6 +522,7 @@ server6_recv(s)
 	struct dhcp6_if *ifp;
 	struct dhcp6 *dh6;
 	struct dhcp6_optinfo optinfo;
+	struct in6_addr relay;  /* the address of the first relay, if any */
 	memset(&iov, 0, sizeof(iov));
 	memset(&mhdr, 0, sizeof(mhdr));
 
@@ -559,10 +571,32 @@ server6_recv(s)
 	    dhcp6msgstr(dh6->dh6_msgtype),
 	    addr2str((struct sockaddr *)&from));
 
+	dhcp6_init_options(&optinfo);
+
+	/*
+	 * If this is a relayed message, parse all of the relay data, storing
+	 * the link addresses, peer addresses, and interface identifiers for
+	 * later use. Get a pointer to the original client message.
+	 */
+	if (dh6->dh6_msgtype == DH6_RELAY_FORW) {
+		dh6 = dhcp6_parse_relay((struct dhcp6_relay *) dh6, 
+		                        (struct dhcp6_relay *) (rdatabuf + len), 
+		                        &optinfo, &relay);
+
+		/*
+		 * NULL means there was an error in the relay format or no
+		 * client message was found.
+		 */
+		if (dh6 == NULL) {
+			dprintf(LOG_INFO, "%s" "failed to parse relay fields "
+			                       "or could not find client message", FNAME);
+			return -1;
+		}
+	}
+ 
 	/*
 	 * parse and validate options in the request
 	 */
-	dhcp6_init_options(&optinfo);
 	if (dhcp6_get_options((struct dhcp6opt *)(dh6 + 1),
 	    (struct dhcp6opt *)(rdatabuf + len), &optinfo) < 0) {
 		dprintf(LOG_INFO, "%s" "failed to parse options", FNAME);
@@ -574,7 +608,17 @@ server6_recv(s)
 	 * now assume client is on the same link as server
 	 * if the subnet couldn't be found return status code NotOnLink to client
 	 */
-	subnet = dhcp6_allocate_link(ifp, globalgroup, NULL);
+	/*
+	 * If the relay list is empty, then this is a message received directly
+	 * from the client, so client is on the same link as the server. 
+	 * Otherwise, allocate the client an address based on the first relay
+	 * that forwarded the message.
+	 */
+	if (TAILQ_EMPTY(&optinfo.relay_list))
+		subnet = dhcp6_allocate_link(ifp, globalgroup, NULL);
+	else
+		subnet = dhcp6_allocate_link(ifp, globalgroup, &relay);
+
 	if (!(DH6_VALID_MESSAGE(dh6->dh6_msgtype)))
 		dprintf(LOG_INFO, "%s" "unknown or unsupported msgtype %s",
 		    FNAME, dhcp6msgstr(dh6->dh6_msgtype));
@@ -700,15 +744,28 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	case DH6_REQUEST:
 	case DH6_RENEW:
 	case DH6_DECLINE:
-		if (!IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
+		/* 
+		 * If the message was relayed, then do not check whether the message
+		 * came in via unicast or multicast, since the relay may be configured
+		 * to send messages via unicast.
+		 */
+		if (TAILQ_EMPTY(&optinfo->relay_list) && 
+		    !IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
 			if (!(roptinfo.flags & DHCIFF_UNICAST)) {
 				num = DH6OPT_STCODE_USEMULTICAST;
 				goto send;
 			} else
 				break;
-		} 
+		}
+		break;
 	default:
-		if (!IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
+		/* 
+		 * If the message was relayed, then do not check whether the message
+		 * came in via unicast or multicast, since the relay may be configured
+		 * to send messages via unicast.
+		 */
+		if (TAILQ_EMPTY(&optinfo->relay_list) && 
+		    !IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
 			num = DH6OPT_STCODE_USEMULTICAST;
 			goto send;
 		}
@@ -945,7 +1002,7 @@ server6_send(type, ifp, origmsg, optinfo, from, fromlen, roptinfo)
 {
 	char replybuf[BUFSIZ];
 	struct sockaddr_in6 dst;
-	int len, optlen;
+	int len, optlen, relaylen = 0;
 	struct dhcp6 *dh6;
 
 	if (sizeof(struct dhcp6) > sizeof(replybuf)) {
@@ -953,7 +1010,16 @@ server6_send(type, ifp, origmsg, optinfo, from, fromlen, roptinfo)
 		return (-1);
 	}
 
-	dh6 = (struct dhcp6 *)replybuf;
+	if (!TAILQ_EMPTY(&optinfo->relay_list) && 
+	    (relaylen = dhcp6_set_relay((struct dhcp6_relay *) replybuf,
+	                                (struct dhcp6_relay *) (replybuf + 
+	                                                        sizeof (replybuf)),
+	                                optinfo)) < 0) {
+		dprintf(LOG_INFO, "%s" "failed to construct relay message", FNAME);
+		return (-1);
+	}
+
+	dh6 = (struct dhcp6 *) (replybuf + relaylen);
 	len = sizeof(*dh6);
 	memset(dh6, 0, sizeof(*dh6));
 	dh6->dh6_msgtypexid = origmsg->dh6_msgtypexid;
@@ -970,9 +1036,24 @@ server6_send(type, ifp, origmsg, optinfo, from, fromlen, roptinfo)
 	}
 	len += optlen;
 
+	/*
+	 * If there were any Relay Message options, fill in the option-len
+	 * field(s) with the appropriate value(s).
+	 */
+	if (!TAILQ_EMPTY(&optinfo->relay_list))
+	    dhcp6_set_relay_option_len(optinfo, len);
+
+	len += relaylen;
+
 	/* specify the destination and send the reply */
 	dst = *sa6_any_downstream;
 	dst.sin6_addr = ((struct sockaddr_in6 *)from)->sin6_addr;
+
+	/* RELAY-REPL messages need to be directed back to the port the relay
+	   agent is listening on, namely DH6PORT_UPSTREAM */
+	if (relaylen > 0)
+		dst.sin6_port = upstream_port;
+
 	dst.sin6_scope_id = ((struct sockaddr_in6 *)from)->sin6_scope_id;
 	dprintf(LOG_DEBUG, "send destination address is %s, scope id is %d", 
 		addr2str((struct sockaddr *)&dst), dst.sin6_scope_id);
@@ -1008,4 +1089,288 @@ static struct dhcp6_timer
 	timo.tv_usec = 0;
 	dhcp6_set_timer(&timo, sync_lease_timer);
 	return sync_lease_timer;
+}
+
+/* 
+ * Parse all of the RELAY-FORW messages and interface ID options. Each
+ * RELAY-FORW messages will have its hop count, link address, peer-address,
+ * and interface ID (if any) put into a relay_listval structure.
+ * A pointer to the actual original client message will be returned.
+ * If this client message cannot be found, NULL is returned to signal an error.
+ */
+static struct dhcp6 *
+dhcp6_parse_relay(relay_msg, endptr, optinfo, relay_addr)
+	struct dhcp6_relay *relay_msg;
+	struct dhcp6_relay *endptr;
+	struct dhcp6_optinfo *optinfo;
+	struct in6_addr *relay_addr;
+{
+	struct relay_listval *relay_val;
+	struct dhcp6 *relayed_msg;  /* the original message that the relay 
+	                               received */
+	struct dhcp6opt *option, *option_endptr = (struct dhcp6opt *) endptr;
+
+	u_int16_t optlen;
+	u_int16_t opt;
+
+	while ((relay_msg + 1) < endptr) {
+		relay_val = (struct relay_listval *) 
+		            calloc (1, sizeof (struct relay_listval));
+
+		if (relay_val == NULL) {
+			dprintf(LOG_ERR, "%s" "failed to allocate memory", FNAME);
+			relayfree(&optinfo->relay_list);
+			return NULL;
+		}
+
+		/* copy the msg-type, hop-count, link-address, and peer-address */
+		memcpy (&relay_val->relay, relay_msg, sizeof (struct dhcp6_relay));
+
+		/* set the msg type to relay reply now so that it doesn't need to be
+		   done when formatting the reply */
+		relay_val->relay.dh6_msg_type = DH6_RELAY_REPL;
+
+		TAILQ_INSERT_TAIL(&optinfo->relay_list, relay_val, link);
+
+		/*
+		 * need to record the first relay's link address field for later use.
+		 * The first relay is the last one we see, so keep overwriting the
+		 * relay value.
+		 */
+		memcpy (relay_addr, &relay_val->relay.link_addr, 
+		        sizeof (struct in6_addr));
+
+		/* now handle the options in the RELAY-FORW message */
+		/*
+		 * The only options that should appear in a RELAY-FORW message are:
+		 * - Interface identifier
+		 * - Relay message
+		 *
+		 * All other options are ignored.
+		 */
+		option = (struct dhcp6opt *) (relay_msg + 1);
+
+		relayed_msg = NULL; /* if this is NULL at the end of the loop, no
+		                       relayed message was found */
+
+		/* since the order of options is not specified, all of the options 
+		   must be processed */
+		while ((option + 1) < option_endptr) {
+			memcpy (&opt, &option->dh6opt_type, sizeof(opt));
+			opt = ntohs(opt);
+			memcpy (&optlen, &option->dh6opt_len, sizeof(optlen));
+			optlen = ntohs(optlen);
+
+			if ((char *) (option + 1) + optlen > (char *) option_endptr) {
+				dprintf(LOG_ERR, "%s" "invalid option length in %s option",
+				        FNAME, dhcp6optstr(opt));
+				relayfree(&optinfo->relay_list);
+				return NULL;
+			}
+
+			if (opt == DH6OPT_INTERFACE_ID) {
+				/* if this is not the first interface identifier option,
+				   then the message is incorrectly formed */
+				if (relay_val->intf_id == NULL) {
+					if (optlen) {
+						relay_val->intf_id = (struct intf_id *) 
+						                     malloc (sizeof (struct intf_id));
+						if (relay_val->intf_id == NULL) {
+							dprintf(LOG_ERR, "%s" "failed to allocate memory", 
+							        FNAME);
+							relayfree(&optinfo->relay_list);
+							return NULL;
+						}
+						else {  
+							relay_val->intf_id->intf_len = optlen;
+							relay_val->intf_id->intf_id = (char *) 
+							                              malloc (optlen);
+
+							if (relay_val->intf_id->intf_id == NULL) {
+								dprintf(LOG_ERR, "%s" 
+								                 "failed to allocate memory", 
+							            FNAME);
+								relayfree(&optinfo->relay_list);
+								return NULL;
+							}
+							else { /* copy the interface identifier so it can
+						              be sent in the reply */
+								memcpy (relay_val->intf_id->intf_id,
+								        ((char *) (option + 1)), optlen);
+							}
+						}
+					}
+					else {
+						dprintf(LOG_ERR, "%s" "Invalid length for interface "
+						                      "identifier option", FNAME);
+					}
+				}
+				else {
+					dprintf(LOG_INFO, "%s" "Multiple interface identifier "
+					                       "options in RELAY-FORW Message "
+					        FNAME);
+					relayfree(&optinfo->relay_list);
+					return NULL;
+				}
+			}
+			else if (opt == DH6OPT_RELAY_MSG) {
+				if (relayed_msg == NULL) 
+					relayed_msg = (struct dhcp6 *) (option + 1);
+				else {
+					dprintf(LOG_INFO, "%s" "Duplicated Relay Message option",
+					        FNAME);
+					relayfree(&optinfo->relay_list);
+					return NULL;
+				}
+			}
+			else   /* No other options besides interface identifier and relay
+			          message make sense, so ignore them with a warning */
+				dprintf(LOG_INFO, "%s" "Unsupported option %s found in "
+			                           "RELAY-FORW message", 
+				        FNAME, dhcp6optstr(opt));
+
+			/* advance the option pointer */
+			option = (struct dhcp6opt *) (((char *) (option + 1)) + optlen);
+		}
+
+		/*
+		 * If the relayed message is non-NULL and is a regular client
+		 * message, then the relay processing is done. If it is another
+		 * RELAY_FORW message, then continue. If the relayed message is
+		 * NULL, signal an error.
+		 */
+		if (relayed_msg != NULL && (char *) (relayed_msg + 1) <= 
+		                           (char *) endptr) {
+			/* done if have found the client message */
+			if (relayed_msg->dh6_msgtype != DH6_RELAY_FORW) 
+				return relayed_msg;
+			else 
+				relay_msg = (struct dhcp6_relay *) relayed_msg;
+		}
+		else {
+			dprintf(LOG_ERR, "%s" "invalid relayed message", FNAME);
+			relayfree(&optinfo->relay_list);
+			return NULL;
+		}
+	}
+}
+
+/*
+ * Format all of the RELAY-REPL messages and options to send back to the 
+ * client. A RELAY-REPL message and Relay Message option are added for 
+ * each of the relays that were in the RELAY-FORW packet that this is 
+ * in response to.
+ */
+static int 
+dhcp6_set_relay (msg, endptr, optinfo)
+	struct dhcp6_relay *msg;
+	struct dhcp6_relay *endptr;
+	struct dhcp6_optinfo *optinfo;
+{
+	struct relay_listval *relay;
+	struct dhcp6opt *option;
+	int relaylen = 0;
+	u_int16_t type, len;
+
+	for (relay = TAILQ_FIRST(&optinfo->relay_list); relay; 
+	     relay = TAILQ_NEXT(relay, link)) {
+		/* bounds check */
+		if (((char *) msg) + sizeof (struct dhcp6_relay) >= (char *) endptr) {
+			dprintf(LOG_ERR, "%s" "insufficient buffer size for RELAY-REPL",
+			        FNAME);
+			return -1;
+		}
+
+		memcpy (msg, &relay->relay, sizeof(struct dhcp6_relay));
+
+		relaylen += sizeof(struct dhcp6_relay);
+
+		option = (struct dhcp6opt *) (msg + 1);
+
+		/* include an Interface Identifier option if it was present in the
+		   original message */
+		if (relay->intf_id != NULL) {
+			/* bounds check */
+			if ((((char *) option) + sizeof(struct dhcp6opt) + 
+			    relay->intf_id->intf_len) >= (char *) endptr) {
+				dprintf(LOG_ERR, "%s" "insufficient buffer size for RELAY-REPL",
+				        FNAME);
+				return -1;
+			}
+			type = htons(DH6OPT_INTERFACE_ID);
+			memcpy (&option->dh6opt_type, &type, sizeof(type));
+			len = htons(relay->intf_id->intf_len);
+			memcpy (&option->dh6opt_len, &len, sizeof(len));
+			memcpy (option + 1, relay->intf_id->intf_id, 
+			        relay->intf_id->intf_len);
+			
+			option = (struct dhcp6opt *)(((char *)(option + 1)) + 
+			                             relay->intf_id->intf_len);
+			relaylen += sizeof(struct dhcp6opt) + relay->intf_id->intf_len;
+		}
+
+		/* save a pointer to the relay message option so that it is easier 
+		   to fill in the length later */
+		relay->option = option;
+
+		/* bounds check */
+		if ((char *) (option + 1) >= (char *) endptr) {
+			dprintf(LOG_ERR, "%s" "insufficient buffer size for RELAY-REPL",
+			        FNAME);
+			return -1;
+		}
+
+		/* lastly include the Relay Message option, which encapsulates the
+		   message being relayed */
+		type = htons(DH6OPT_RELAY_MSG);
+		memcpy (&option->dh6opt_type, &type, sizeof(type));
+		relaylen += sizeof(struct dhcp6opt);
+		/* dh6opt_len will be set by dhcp6_set_relay_option_len */
+		
+		msg = (struct dhcp6_relay *) (option + 1);
+	}
+	
+	/*
+	 * if there were no relays, this is an error since this function should
+	 * not have even been called in this case
+	 */
+	if (relaylen == 0) 
+		return -1;
+	else 
+		return relaylen;
+}
+
+/*
+ * Fill in all of the opt-len fields for the Relay Message options now that
+ * the length of the entire message is known.
+ * 
+ * len - the length of the DHCPv6 message to the client (not including any
+ *       relay options)
+ *
+ * Precondition: dhcp6_set_relay has already been called and the relay->option
+ *               fields of all of the elements in optinfo->relay_list are 
+ *               non-NULL
+ */
+static void 
+dhcp6_set_relay_option_len(optinfo, reply_msg_len)
+	struct dhcp6_optinfo *optinfo;
+	int reply_msg_len;
+{
+	struct relay_listval *relay, *last = NULL;
+	u_int16_t len;
+
+	for (relay = TAILQ_LAST(&optinfo->relay_list, relay_list);
+	     relay; relay = TAILQ_PREV(relay, relay_list, link)) {
+		if (last == NULL) {
+			len = htons(reply_msg_len);
+			memcpy (&relay->option->dh6opt_len, &len, sizeof(len));
+			last = relay;
+		}
+		else {
+			len = reply_msg_len + (((void *) (last->option + 1)) -
+			                        ((void *) (relay->option + 1)));
+			len = htons(len);
+			memcpy (&relay->option->dh6opt_len, &len, sizeof(len));
+		}
+	}
 }

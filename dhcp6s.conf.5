@@ -1,4 +1,4 @@
-.\" $Id: dhcp6s.conf.5,v 1.3 2003/05/28 22:56:23 shirleyma Exp $
+.\" $Id: dhcp6s.conf.5,v 1.4 2005/03/10 00:39:04 shemminger Exp $
 .\"
 .\" Copyright (C) International Business Machines  Corp., 2003
 .\" All rights reserved.
@@ -112,7 +112,7 @@ and its own declaration in which you can declare pool-specific network parameter
 .fi
 This declaration allows administrators to describe the addresses, prefixes, and
 network configuration parameters for this  host. As for this declaration, the
-DHCP Unique Identifier (DUID), Identity Association Identifier (IAID), and 
+DHCP Unique Identifier (DUID), Identity Association Identifier (IAID), and 
 addresses must be specified. The host declaration is used to do Static
 Address Assginment for a particular DHCPv6 client. 
 
@@ -135,6 +135,13 @@ This statement allows administrators to specify the prefix.
 This parameter is needed when configuring dhcp6s as the Delegation Router for
 the Prefix Delegation. dhcp6s assigns the specified prefixes 
 to the requesting routers.
+.nf
+.B relay\ <relay>/<prefix\ length>;
+.fi
+This statement specifies the prefix that the relay agent will put in the link
+address field of the RELAY-FORW message to indicate the link the client is
++attached to. If the link-address matches this prefix, this link declaration
+will be used. This statement is only valid in the link declaration.
 
 .nf
 .B iaidinfo

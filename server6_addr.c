@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.23 2005/02/25 17:51:56 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.24 2005/03/10 00:39:09 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -930,8 +930,8 @@ dhcp6_allocate_link(ifp, rootgroup, relay)
 			continue;
 		else {
 			for (link = ifnetwork->linklist; link; link = link->next) {
-				/* without relay agent support, so far we assume
-				 * that client and server on the same link, no relay
+				/* if relay is NULL, assume client and server are on the
+				 * same link (which cannot have a relay configuration option)
 				 */
 				struct v6addrlist *temp;
 				if (relay == NULL) {
@@ -941,8 +941,11 @@ dhcp6_allocate_link(ifp, rootgroup, relay)
 						return link;
 				} else {
 					for (temp = link->relaylist; temp; temp = temp->next) {
-						if (IN6_ARE_ADDR_EQUAL(relay, 
-									&temp->v6addr.addr))
+						/* only compare the prefix configured to the relay
+						   link address */
+						if (!prefixcmp (relay, 
+									    &temp->v6addr.addr,
+						                temp->v6addr.plen))
 							return link;
 						else
 							continue;

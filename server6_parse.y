@@ -1,4 +1,4 @@
-/*	$Id: server6_parse.y,v 1.10 2004/04/06 21:18:30 shirleyma Exp $	*/
+/*	$Id: server6_parse.y,v 1.11 2005/03/10 00:39:09 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -268,7 +268,6 @@ linkhead
 linkbody	
 	:  
 	| linkbody linkparams
-	| relaylist 
 	;
 
 linkparams	
@@ -278,6 +277,7 @@ linkparams
 	| hostdef
 	| groupdef
 	| confdecl
+	| relaylist 
 	;
 
 relaylist	

@@ -1,4 +1,4 @@
-/*	$Id: common.h,v 1.9 2003/04/30 19:04:07 shirleyma Exp $	*/
+/*	$Id: common.h,v 1.10 2005/03/10 00:39:02 shemminger Exp $	*/
 /*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*
@@ -98,6 +98,7 @@ extern char *duidstr __P((const struct duid *));
 extern int duidcpy __P((struct duid *, const struct duid *));
 extern int duidcmp __P((const struct duid *, const struct duid *));
 extern void duidfree __P((struct duid *));
+extern void relayfree __P((struct relay_list *));
 extern void ifinit __P((const char *));
 extern int configure_duid __P((const char *, struct duid *));
 extern struct dhcp6_if *find_ifconfbyname __P((const char *));
