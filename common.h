@@ -1,4 +1,4 @@
-/*	$Id: common.h,v 1.10 2005/03/10 00:39:02 shemminger Exp $	*/
+/*	$Id: common.h,v 1.11 2005/03/17 20:55:09 shemminger Exp $	*/
 /*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*
@@ -105,11 +105,3 @@ extern struct dhcp6_if *find_ifconfbyname __P((const char *));
 extern struct dhcp6_if *find_ifconfbyid __P((unsigned int));
 extern struct prefix_ifconf *find_prefixifconf __P((const char *));
 extern struct host_conf *find_hostconf __P((const struct duid *));
-
-/* missing */
-#ifndef HAVE_STRLCAT
-extern size_t strlcat __P((char *, const char *, size_t));
-#endif
-#ifndef HAVE_STRLCPY
-extern size_t strlcpy __P((char *, const char *, size_t));
-#endif

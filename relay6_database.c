@@ -36,7 +36,7 @@
 #include "relay6_database.h"
 
 void  
-init_relay() 
+init_relay(void)
 {
 	nr_of_uni_addr = 0;	
 	multicast_off = 0;
@@ -61,8 +61,7 @@ init_relay()
 }
 
 int 
-check_interface_semafor(index)
-	int index;
+check_interface_semafor(int index)
 {
 	struct interface *device = NULL;
 	struct cifaces *iface;
@@ -85,9 +84,7 @@ check_interface_semafor(index)
 	return 0;
 }	
 
-struct interface *
-get_interface(if_index)
-	int if_index;
+struct interface *get_interface(int if_index)
 {
 	struct interface *deviface;
  
@@ -100,9 +97,7 @@ get_interface(if_index)
 	return NULL;
 }
 
-struct interface *
-get_interface_s(s)
-	char *s;
+struct interface *get_interface_s(char *s)
 {
 	struct interface *deviface;
 
@@ -115,8 +110,7 @@ get_interface_s(s)
 	return NULL;
 }
 
-struct msg_parser *
-get_send_messages_out()
+struct msg_parser *get_send_messages_out(void)
 {
 	struct msg_parser *msg;
 
@@ -129,8 +123,7 @@ get_send_messages_out()
 }
 
 
-void
-delete_messages()
+void delete_messages(void)
 {
 	struct msg_parser *msg;
 
@@ -149,8 +142,7 @@ delete_messages()
 
 
 int
-process_RELAY_FORW(msg)
-	struct msg_parser *msg;
+process_RELAY_FORW(struct msg_parser *msg)
 {
 	uint8_t *head = (uint8_t *) malloc(HEAD_SIZE*sizeof(uint8_t));
 	uint8_t *newbuff = (uint8_t *) malloc(MAX_DHCP_MSG_LENGTH*sizeof(uint8_t));
@@ -291,8 +283,7 @@ process_RELAY_FORW(msg)
 }
 
 int 
-process_RELAY_REPL(msg)
-	struct msg_parser *msg;
+process_RELAY_REPL(struct msg_parser *msg)
 {
 	uint8_t *newbuff = (uint8_t *) malloc(MAX_DHCP_MSG_LENGTH*sizeof(uint8_t)); 
 	uint8_t *pointer, *pstart, *psp;
@@ -314,7 +305,7 @@ process_RELAY_REPL(msg)
 	pstart = pointer;
 
 	if (( ((int) msg->buffer) - ((int) (pointer - pstart)) ) < 
-       MESSAGE_HEADER_LENGTH ) {
+	    MESSAGE_HEADER_LENGTH ) {
 		printf("ProcessRELAYREPL()--> opt_length has 0 value for "
 		       "MESSAGE_HEADER_LENGTH, DROPING... \n");
 		return 0;

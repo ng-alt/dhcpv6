@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.24 2005/03/10 00:57:45 shemminger Exp $	*/
+/*	$Id: common.c,v 1.25 2005/03/17 20:55:09 shemminger Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -469,7 +469,7 @@ getdev(addr)
 {
 	struct ifaddrs *ifap, *ifa;
 	struct sockaddr_in6 *a6;
-	static char ret_ifname[IFNAMSIZ];
+	static char ret_ifname[IFNAMSIZ+1];
 
 	if (getifaddrs(&ifap) != 0) {
 		err(1, "getdev: getifaddrs");
@@ -489,7 +489,7 @@ getdev(addr)
 	}
 
 	if (ifa)
-		strlcpy(ret_ifname, ifa->ifa_name, sizeof(ret_ifname));
+		strncpy(ret_ifname, ifa->ifa_name, IFNAMSIZ);
 	freeifaddrs(ifap);
 
 	return (ifa ? ret_ifname : NULL);
@@ -1126,7 +1126,7 @@ dhcp6_get_options(p, ep, optinfo)
 					goto malformed;
 				else {
 					val += n;
-					dprintf(LOG_DEBUG, "expand domain name %s, size %u", 
+					dprintf(LOG_DEBUG, "expand domain name %s, size %d", 
 						dname->name, strlen(dname->name));
 				}
 				dname->next = NULL;

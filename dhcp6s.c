@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.21 2005/03/10 00:39:03 shemminger Exp $	*/
+/*	$Id: dhcp6s.c,v 1.22 2005/03/17 20:55:27 shemminger Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -88,7 +88,6 @@ struct dhcp6_binding {
 	u_int32_t duration;
 	struct dhcp6_timer *timer;
 };
-static TAILQ_HEAD(, dhcp6_binding) dhcp6_binding_head;
 
 static char *device[100];
 static int num_device = 0;
@@ -1206,8 +1205,9 @@ dhcp6_parse_relay(relay_msg, endptr, optinfo, relay_addr)
 					}
 				}
 				else {
-					dprintf(LOG_INFO, "%s" "Multiple interface identifier "
-					                       "options in RELAY-FORW Message "
+					dprintf(LOG_INFO, "%s" 
+						"Multiple interface identifier "
+						"options in RELAY-FORW Message ",
 					        FNAME);
 					relayfree(&optinfo->relay_list);
 					return NULL;
