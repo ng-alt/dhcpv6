@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.23 2004/04/06 21:18:29 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.24 2005/02/25 17:26:51 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -546,6 +546,7 @@ dhcp6_iaidaddr_timo(void *arg)
 	case RENEW:
 		if (duidcpy(&ev->serverid, &sp->client6_info.serverid)) {
 			dprintf(LOG_ERR, "%s" "failed to copy server ID", FNAME);
+			free(ev);
 			return (NULL);
 		}
 	case REBIND:
@@ -557,6 +558,8 @@ dhcp6_iaidaddr_timo(void *arg)
 	}
 	if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
 		dprintf(LOG_ERR, "%s" "failed to create a new event timer", FNAME);
+		if (sp->state == RENEW)
+			duidfree(&ev->serverid);
 		free(ev);
 		return (NULL); /* XXX */
 	}
@@ -571,6 +574,10 @@ dhcp6_iaidaddr_timo(void *arg)
 			if ((lv = malloc(sizeof(*lv))) == NULL) {
 				dprintf(LOG_ERR, "%s" 
 				"failed to allocate memory for an ipv6 addr", FNAME);
+				if (sp->state == RENEW)
+					duidfree(&ev->serverid);
+				free(ev->timer);
+				free(ev);
 		 		return (NULL);
 			}
 			memcpy(&lv->val_dhcp6addr, &cl->lease_addr, 
