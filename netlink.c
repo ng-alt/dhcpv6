@@ -120,7 +120,7 @@ get_if_prefix(struct nlmsghdr *nlm, int nlm_len, int request,
 		dprintf(LOG_DEBUG, "get prefix plen %d",rtm->rtm_dst_len);
 		break;
 	case RTA_CACHEINFO:
-		dprintf("prefix route life time is %lu\n",
+		dprintf(LOG_DEBUG, "prefix route life time is %lu\n",
 		      ((struct rta_cacheinfo *)rtadata)->rta_expires);
 		break;
 	default:
