@@ -1,4 +1,4 @@
-/*	$Id: common.h,v 1.7 2003/03/01 00:24:47 shemminger Exp $	*/
+/*	$Id: common.h,v 1.8 2003/04/22 18:05:32 shemminger Exp $	*/
 /*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*
@@ -39,8 +39,12 @@
 #define FNAME ""
 #endif
 
-#define MIN(a, b) ((a < b) ? a : b)
-#define MAX(a, b) ((a > b) ? a : b)
+#ifndef MIN
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+#ifndef MAX
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#endif
 
 extern int foreground;
 extern int debug_thresh;

@@ -1,4 +1,4 @@
-/*	$Id: ifaddrs.c,v 1.3 2003/04/04 01:13:11 shemminger Exp $	*/
+/*	$Id: ifaddrs.c,v 1.4 2003/04/22 18:05:33 shemminger Exp $	*/
 /* 	from USAGI: ifaddrs.c,v 1.20.2.1 2002/12/08 08:22:23 yoshfuji Exp */
 
 /* 
@@ -654,6 +654,7 @@ getifaddrs (struct ifaddrs **ifap)
 			case IFLA_QDISC:
 			  break;
 			default:
+				;
 			}
 		      break;
 		    case RTM_NEWADDR:
@@ -697,6 +698,7 @@ getifaddrs (struct ifaddrs **ifap)
 			case IFA_CACHEINFO:
 			  break;
 			default:
+				;
 			}
 		    }
 		}

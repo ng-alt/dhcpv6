@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.11 2003/04/18 20:09:45 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.12 2003/04/22 18:05:33 shemminger Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -95,7 +95,9 @@
 
 #define RA_MBIT_SET 0x01
 #define RA_OBIT_SET 0x02
+#ifndef MAXDNAME
 #define MAXDNAME 255
+#endif
 #define MAXDN 100
 
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
