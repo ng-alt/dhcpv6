@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.6 2003/02/11 19:51:00 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.7 2003/02/11 20:28:36 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -993,7 +993,7 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 
 		switch(opt) {
 		case DH6OPT_IADDR:
-			if (optlen != sizeof(ai) - sizeof(u_int32_t) || 
+			if (optlen != sizeof(ai) - sizeof(u_int32_t) && 
 					optlen != sizeof(ai) - sizeof(u_int32_t) + sizeof(si))
 				goto malformed;
 			memcpy(&ai, p, sizeof(ai));
@@ -1207,7 +1207,7 @@ dhcp6_set_options(bp, ep, optinfo)
 			opt_iana.renewtime = htonl(optinfo->iaidinfo.renewtime);
 			opt_iana.rebindtime = htonl(optinfo->iaidinfo.rebindtime);
 		}
-		buflen = optlen + dhcp6_count_list(&optinfo->addr_list) *
+		buflen = sizeof(opt_iana) + dhcp6_count_list(&optinfo->addr_list) *
 			(sizeof(ai) + sizeof(status));
 		tmpbuf = NULL;
 		if ((tmpbuf = malloc(buflen)) == NULL) {
@@ -1219,24 +1219,29 @@ dhcp6_set_options(bp, ep, optinfo)
 			memcpy(tmpbuf, &iaid, sizeof(iaid));
 		else
 			memcpy(tmpbuf, &opt_iana, sizeof(opt_iana));
-		optlen += dhcp6_count_list(&optinfo->addr_list) * 
-				(sizeof(struct dhcp6_addr_info));
+		tp = tmpbuf + optlen;
+		optlen += dhcp6_count_list(&optinfo->addr_list) * sizeof(ai);
 		if (!TAILQ_EMPTY(&optinfo->addr_list)) {
-			for (dp = TAILQ_FIRST(&optinfo->addr_list), 
-			    tp = tmpbuf + 3 * sizeof(u_int32_t); dp;
-		     	        dp = TAILQ_NEXT(dp, link)) {
+			for (dp = TAILQ_FIRST(&optinfo->addr_list); dp; 
+			     dp = TAILQ_NEXT(dp, link)) {
+				int iaddr_len = 0;
 				memset(&ai, 0, sizeof(ai));
 				ai.dh6_ai_type = htons(DH6OPT_IADDR);
-				ai.dh6_ai_len = htons(sizeof(ai) - sizeof(u_int32_t));
+				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) 
+					iaddr_len = sizeof(ai) - sizeof(u_int32_t) 
+								+ sizeof(status);
+				else 
+					iaddr_len = sizeof(ai) - sizeof(u_int32_t);
+				ai.dh6_ai_len = htons(iaddr_len);
 				ai.preferlifetime = htonl(dp->val_dhcp6addr.preferlifetime);
 				ai.validlifetime = htonl(dp->val_dhcp6addr.validlifetime);
 				memcpy(&ai.addr, &dp->val_dhcp6addr.addr,
 			       		sizeof(ai.addr));
 				memcpy(tp, &ai, sizeof(ai));
 				tp += sizeof(ai);
-				dprintf(LOG_DEBUG, "%s" "set IAADDR address information: "
+				dprintf(LOG_DEBUG, "%s" "set IADDR address option len %d: "
 			    		"%s preferlifetime %ld validlifetime %ld", FNAME,
-			    		in6addr2str(&ai.addr, 0), 
+			    		iaddr_len, in6addr2str(&ai.addr, 0), 
 			    		ntohl(ai.preferlifetime), ntohl(ai.validlifetime));
 				/* set up address status code if any */
 				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
