@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.14 2003/05/23 19:00:36 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.15 2003/05/28 21:10:32 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -113,6 +113,10 @@ char radvd_dhcpv6_file[254];
 
 
 typedef enum { IANA, IATA, IAPD} iatype_t;
+
+typedef enum { ACTIVE, RENEW,
+	       REBIND, EXPIRED,
+	       INVALID } state_t;
 /* Internal data structure */
 
 struct duid {
@@ -138,6 +142,19 @@ struct dhcp6_addr {
 	char *status_msg;
 };
 
+struct dhcp6_lease {
+	TAILQ_ENTRY(dhcp6_lease) link;
+	char hostname[1024];
+	struct in6_addr linklocal;
+	struct dhcp6_addr lease_addr;
+	iatype_t addr_type;
+	state_t state;
+	struct dhcp6_iaidaddr *iaidaddr;
+	time_t start_date;
+	/* address assigned on the interface */
+	struct dhcp6_timer *timer;
+};
+
 struct dhcp6_listval {
 	TAILQ_ENTRY(dhcp6_listval) link;
 
@@ -145,17 +162,19 @@ struct dhcp6_listval {
 		int uv_num;
 		struct in6_addr uv_addr6;
 		struct dhcp6_addr uv_dhcp6_addr;
+		struct dhcp6_lease uv_dhcp6_lease;
 	} uv;
 };
 
 #define val_num uv.uv_num
 #define val_addr6 uv.uv_addr6
 #define val_dhcp6addr uv.uv_dhcp6_addr
+#define val_dhcp6lease uv.uv_dhcp6_lease
 
 TAILQ_HEAD(dhcp6_list, dhcp6_listval);
 
 typedef enum { DHCP6_LISTVAL_NUM, DHCP6_LISTVAL_ADDR6,
-	       DHCP6_LISTVAL_DHCP6ADDR } dhcp6_listval_type_t;
+	       DHCP6_LISTVAL_DHCP6ADDR, DHCP6_LISTVAL_DHCP6LEASE } dhcp6_listval_type_t;
 
 struct domain_list {
 	struct domain_list *next;
