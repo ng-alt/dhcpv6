@@ -1,4 +1,4 @@
-/*	$Id: client6_token.l,v 1.6 2003/03/11 23:52:23 shirleyma Exp $	*/
+/*	$Id: client6_token.l,v 1.7 2003/04/02 23:31:49 shemminger Exp $	*/
 /*	ported from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -92,7 +92,7 @@ hexdigit	[0-9A-Fa-f]
 hexpair		{hexdigit}{hexdigit}
 hexstring	0[xX]{hexpair}+
 duid 		{hexpair}(:{hexpair})*
-ipv4addr        ({digit}{1,3}"."{digit}{1,3}"."{digit}{1,3})
+ipv4addr        ({digit}{1,3}"."{digit}{1,3}"."{digit}{1,3}"."{digit}{1,3})
 addr_head       ("::"|{hexdigit}{1,4}(":"|"::"))
 addr_tail       ({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})
 addr_body       ({hexdigit}{1,4}(":"|"::"))*
