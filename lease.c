@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.8 2003/05/16 21:40:46 shirleyma Exp $	*/
+/*	$Id: lease.c,v 1.9 2003/05/22 23:00:29 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -389,5 +389,24 @@ dhcp6_get_prefixlen(addr, ifp)
 			return rainfo->plen;
 	}
 	return PREFIX_LEN_NOTINRA;
+}
+
+int 
+addr_on_addrlist(addrlist, addr6)
+	struct dhcp6_list *addrlist;
+	struct dhcp6_addr *addr6;
+{
+	struct dhcp6_listval *lv;
+
+	for (lv = TAILQ_FIRST(addrlist); lv;
+	     lv = TAILQ_NEXT(lv, link)) {
+		if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &addr6->addr)) {
+			if ((lv->val_dhcp6addr.type != IAPD) 
+			    || ((lv->val_dhcp6addr.type == IAPD) 
+			    && (lv->val_dhcp6addr.plen == addr6->plen)))
+				return (1);
+		}
+	}
+	return (0);
 }
 

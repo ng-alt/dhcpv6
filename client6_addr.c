@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.15 2003/05/16 21:40:45 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.16 2003/05/22 23:00:26 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -221,6 +221,8 @@ dhcp6_add_lease(addr)
 	if (sp->lease_addr.type == IAPD) {
 		dprintf(LOG_INFO, "request prefix is %s/%d", 
 			in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen);
+		/* XXX: add to update prefix list */
+		
 	} else if (client6_ifaddrconf(IFADDRCONF_ADD, addr) != 0) {
 		dprintf(LOG_ERR, "%s" "adding address failed: %s",
 		    FNAME, in6addr2str(&addr->addr, 0));
@@ -267,6 +269,8 @@ dhcp6_remove_lease(struct dhcp6_lease *sp)
 	if (sp->lease_addr.type == IAPD) {
 		dprintf(LOG_INFO, "request prefix is %s/%d", 
 			in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen);
+		/* XXX: remove from the update prefix list */
+
 	} else if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
 			dprintf(LOG_INFO, "%s" "removing address %s failed",
 		    		FNAME, in6addr2str(&sp->lease_addr.addr, 0));

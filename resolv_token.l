@@ -1,4 +1,4 @@
-/*	$Id: resolv_token.l,v 1.4 2003/04/30 19:04:13 shirleyma Exp $	*/
+/*	$Id: resolv_token.l,v 1.5 2003/05/22 23:00:30 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -68,6 +68,7 @@ static struct dns_list *new_dns_list;
 static FILE *dhcp6_resolv_file;
 static int oldfd, newfd;
 
+static int yywrap __P(());
 int resolv_parse __P((struct dns_list *));
 static int update_resolver __P((struct dns_list *));
 
@@ -310,6 +311,7 @@ update_resolver(struct dns_list *dns_list)
 	return (0);
 }
 
+static int 
 yywrap()
 {
 	update_resolver(new_dns_list);

@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.12 2003/05/16 21:40:46 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.13 2003/05/22 23:00:31 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -65,7 +65,6 @@ struct dhcp6_lease *
 dhcp6_find_lease __P((struct dhcp6_iaidaddr *, struct dhcp6_addr *));
 static int dhcp6_add_lease __P((struct dhcp6_iaidaddr *, struct dhcp6_addr *));
 static int dhcp6_update_lease __P((struct dhcp6_addr *, struct dhcp6_lease *));
-static int addr_on_addrlist __P((struct dhcp6_list *, struct dhcp6_addr *));
 static int addr_on_segment __P((struct v6addrseg *, struct in6_addr *));
 static void  server6_get_newaddr __P((iatype_t, struct dhcp6_addr *, struct v6addrseg *));
 static void  server6_get_addrpara __P((struct dhcp6_addr *, struct v6addrseg *));
@@ -498,25 +497,6 @@ dhcp6_lease_timo(arg)
 		return (NULL);
 	}
 	return (sp->timer);
-}
-
-int 
-addr_on_addrlist(addrlist, addr6)
-	struct dhcp6_list *addrlist;
-	struct dhcp6_addr *addr6;
-{
-	struct dhcp6_listval *lv;
-
-	for (lv = TAILQ_FIRST(addrlist); lv;
-	     lv = TAILQ_NEXT(lv, link)) {
-		if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &addr6->addr)) {
-			if ((lv->val_dhcp6addr.type != IAPD) 
-			    || ((lv->val_dhcp6addr.type == IAPD) 
-			    && (lv->val_dhcp6addr.plen == addr6->plen)))
-				return (1);
-		}
-	}
-	return (0);
 }
 
 void

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.24 2003/05/16 22:17:27 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.25 2003/05/22 23:00:26 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -145,6 +145,7 @@ static void setup_interface __P((char *));
 struct dhcp6_timer *client6_timo __P((void *));
 extern int client6_ifaddrconf __P((ifaddrconf_cmd_t, struct dhcp6_addr *));
 extern struct dhcp6_timer *syncfile_timo __P((void *));
+extern int radvd_parse (struct dhcp6_iaidaddr *, int);
 
 #define DHCP6C_CONF "/etc/dhcp6c.conf"
 #define DHCP6C_PIDFILE "/var/run/dhcpv6/dhcp6c.pid"
@@ -446,7 +447,7 @@ client6_init(device)
 			FNAME, strerror(errno));
 		exit(1);
 	}
-	if (signal(SIGTERM, client6_signal) == SIG_ERR) {
+	if (signal(SIGTERM|SIGKILL, client6_signal) == SIG_ERR) {
 		dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
 			FNAME, strerror(errno));
 		exit(1);
@@ -563,11 +564,28 @@ static void
 free_resources(struct dhcp6_if *ifp)
 {
 	struct dhcp6_event *ev, *ev_next;
+	struct dhcp6_lease *sp, *sp_next;
+	struct stat buf;
+	if (client6_iaidaddr.client6_info.type == IAPD && 
+	    !TAILQ_EMPTY(&client6_iaidaddr.lease_list))
+		radvd_parse(&client6_iaidaddr, ADDR_REMOVE);
+	dhcp6_remove_iaidaddr(&client6_iaidaddr);
 	dprintf(LOG_DEBUG, "%s" " remove all events on interface", FNAME);
 	/* cancel all outstanding events for each interface */
 	for (ev = TAILQ_FIRST(&ifp->event_list); ev; ev = ev_next) {
 		ev_next = TAILQ_NEXT(ev, link);
 		dhcp6_remove_event(ev);
+	}
+	/* XXX: check the last dhcpv6 client daemon to restore the original file */
+	{
+		/* restore /etc/radv.conf.bak back to /etc/radvd.conf */
+		if (!lstat(RADVD_CONF_BAK_FILE, &buf))
+			rename(RADVD_CONF_BAK_FILE, RADVD_CONF_FILE);
+		/* restore /etc/resolv.conf.dhcpv6.bak back to /etc/resolv.conf */
+		if (!lstat(RESOLV_CONF_BAK_FILE, &buf)) {
+			if (rename(RESOLV_CONF_BAK_FILE, RESOLV_CONF_FILE)) 
+				dprintf(LOG_ERR, "%s" " failed to backup resolv.conf", FNAME);
+		}
 	}
 	free_servers(ifp);
 }
@@ -576,11 +594,6 @@ static void
 process_signals()
 {
 	struct stat buf;
-	/* restore /etc/resolv.conf.dhcpv6.bak back to /etc/resolv.conf */
-	if (!lstat(RESOLV_CONF_BAK_FILE, &buf)) {
-		if (rename(RESOLV_CONF_BAK_FILE, RESOLV_CONF_FILE)) 
-			dprintf(LOG_ERR, "%s" " failed to backup resolv.conf", FNAME);
-	} 
 	if ((sig_flags & SIGF_TERM)) {
 		dprintf(LOG_INFO, FNAME "exiting");
 		free_resources(dhcp6_if);
@@ -968,6 +981,8 @@ client6_send(ev)
 				dprintf(LOG_INFO, "client release failed");
 				exit(1);
 			}
+			if (client6_iaidaddr.client6_info.type == IAPD)
+				radvd_parse(&client6_iaidaddr, ADDR_REMOVE);
 		}
 		break;
 	default:
@@ -1443,6 +1458,8 @@ client6_recvreply(ifp, dh6, len, optinfo)
 			if (!TAILQ_EMPTY(&optinfo->addr_list)) {
 				ra_parse(raproc_file);
 				dhcp6_add_iaidaddr(optinfo);
+				if (optinfo->type == IAPD)
+					radvd_parse(&client6_iaidaddr, ADDR_UPDATE);
 				setup_check_timer(ifp);
 			}
 			break;
@@ -1468,6 +1485,8 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		case DH6OPT_STCODE_UNDEFINE:
 		default:
 			dhcp6_update_iaidaddr(optinfo, ADDR_UPDATE);
+			if (optinfo->type == IAPD)
+				radvd_parse(&client6_iaidaddr, ADDR_UPDATE);
 			break;
 		}
 		break;
@@ -1608,13 +1627,8 @@ create_request_list(int reboot)
 		lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
 		TAILQ_INSERT_TAIL(&request_list, lv, link);
 		/* config the interface for reboot */
-		if (cl->lease_addr.type == IAPD) {
-			dprintf(LOG_INFO, "get prefix %s/%d",
-				in6addr2str(&cl->lease_addr.addr, 0),
-				cl->lease_addr.plen);
-				/* XXX:	what to do for PD */
-			continue;
-		} else if (reboot && (client6_request_flag & CLIENT6_CONFIRM_ADDR)) {
+		if (reboot && client6_iaidaddr.client6_info.type != IAPD && 
+		    (client6_request_flag & CLIENT6_CONFIRM_ADDR)) {
 			if (client6_ifaddrconf(IFADDRCONF_ADD, &cl->lease_addr) != 0) {
 				dprintf(LOG_INFO, "config address failed: %s",
 					in6addr2str(&cl->lease_addr.addr, 0));
@@ -1622,6 +1636,10 @@ create_request_list(int reboot)
 			}
 		}
 	}
+	/* update radvd.conf for prefix delegation */
+	if (reboot && client6_iaidaddr.client6_info.type == IAPD &&
+	    (client6_request_flag & CLIENT6_CONFIRM_ADDR))
+		radvd_parse(&client6_iaidaddr, ADDR_UPDATE);
 	return (0);
 }
 
@@ -1687,7 +1705,8 @@ static struct dhcp6_timer
 	if (TAILQ_EMPTY(&request_list))
 		goto end;
 	/* remove RENEW timer for client6_iaidaddr */
-	dhcp6_remove_timer(client6_iaidaddr.timer);
+	if (client6_iaidaddr.timer != NULL)
+		dhcp6_remove_timer(client6_iaidaddr.timer);
 	newstate = DHCP6S_DECLINE;
 	client6_send_newstate(ifp, newstate);
 end:
@@ -1778,3 +1797,4 @@ again:
 	}
 	return;
 }
+

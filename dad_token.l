@@ -1,4 +1,4 @@
-/*	$Id: dad_token.l,v 1.1 2003/05/16 21:40:46 shirleyma Exp $	*/
+/*	$Id: dad_token.l,v 1.2 2003/05/22 23:00:26 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -117,15 +117,15 @@ nl              \n
 		BEGIN S_INDEX;}
 	}
 <S_INDEX>{hexpair} {ifinfo->index = strtol(ifyytext, NULL, 16);
-		dprintf(LOG_DEBUG, "adress %s index is %2x", 
+		dprintf(LOG_DEBUG, "address %s index is %2x", 
 			in6addr2str(&ifinfo->addr, 0), ifinfo->index);
 		BEGIN S_PLEN;}
 <S_PLEN>{hexpair} {ifinfo->plen = strtol(ifyytext, NULL, 16); 
-		dprintf(LOG_DEBUG, "adress %s plen is %2x", 
+		dprintf(LOG_DEBUG, "address %s plen is %2x", 
 			in6addr2str(&ifinfo->addr, 0), ifinfo->plen);
 		BEGIN S_SCOPE;}
 <S_SCOPE>{hexpair} {ifinfo->scope = strtol(ifyytext, NULL, 16);
-		dprintf(LOG_DEBUG, "adress %s scope is %2x", 
+		dprintf(LOG_DEBUG, "address %s scope is %2x", 
 			in6addr2str(&ifinfo->addr, 0), ifinfo->scope);
 		BEGIN S_FLAGS;}
 <S_FLAGS>{hexpair} {ifinfo->flags = strtol(ifyytext, NULL, 16);

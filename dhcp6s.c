@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.15 2003/05/16 21:40:46 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.16 2003/05/22 23:00:28 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -234,7 +234,7 @@ static void
 usage()
 {
 	fprintf(stderr,
-		"usage: dhcp6s [-c configfile] [-dDf] intface\n");
+		"usage: dhcp6s [-c configfile] [-dDf] [interface]\n");
 	exit(0);
 }
 

@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.9 2003/05/16 21:40:46 shirleyma Exp $	*/
+/*	$Id: lease.h,v 1.10 2003/05/22 23:00:29 shirleyma Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -130,7 +130,7 @@ extern int v6addr_key_compare __P((const void *, const void *));
 extern int client6_ifaddrconf __P((ifaddrconf_cmd_t , struct dhcp6_addr *));
 extern int dhcp6_get_prefixlen __P((struct in6_addr *, struct dhcp6_if *));
 extern int prefixcmp __P((struct in6_addr *, struct in6_addr *, int));
-
+extern int addr_on_addrlist __P((struct dhcp6_list *, struct dhcp6_addr *));
 struct link_decl;
 extern int dhcp6_create_prefixlist __P((struct dhcp6_optinfo *,
 					const struct dhcp6_optinfo *,
