@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.19 2003/04/18 20:10:58 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.20 2003/04/25 18:56:20 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -978,7 +978,8 @@ client6_send(ev)
 	case DHCP6S_RENEW:
 	case DHCP6S_DECLINE:
 	case DHCP6S_RELEASE:
-		if (!IN6_IS_ADDR_UNSPECIFIED(&ifp->current_server->server_addr)) {
+		if (ifp->current_server && 
+		    !IN6_IS_ADDR_UNSPECIFIED(&ifp->current_server->server_addr)) {
 			struct addrinfo hints, *res;
 			int error;
 			memset(&hints, 0, sizeof(hints));
