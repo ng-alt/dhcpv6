@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.13 2004/04/06 21:05:42 shirleyma Exp $
+# $Id: Makefile.in,v 1.14 2005/03/10 00:44:41 shemminger Exp $
 #
 
 srcdir=	@srcdir@
@@ -10,7 +10,7 @@ LIBS=	@LIBS@
 CC=	@CC@
 YACC=	@YACC@
 LEX=	@LEX@
-TARGET=	dhcp6c dhcp6s
+TARGET=	dhcp6c dhcp6s dhcp6r
 DESTDIR=
 
 INSTALL=@INSTALL@
@@ -36,6 +36,7 @@ CLIENTOBJS=	dhcp6c.o common.o config.o timer.o client6_addr.o \
 SERVOBJS=	dhcp6s.o common.o timer.o hash.o lease.o \
 		server6_conf.o server6_addr.o \
 	$(SERVERGENSRCS:%.c=%.o) $(COMMONGENSRCS:%.c=%.o)
+RELAYOBJS=	dhcp6r.o relay6_database.o relay6_parser.o relay6_socket.o
 
 CLEANFILES=cf.tab.h cp.tab.h sf.tab.h dad_token.c ra_token.c client6_token.c client6_parse.c \
 		server6_parse.c server6_token.c lease_token.c resolv_token.c radvd_token.c
@@ -45,6 +46,8 @@ dhcp6c:	$(CLIENTOBJS) $(LIBOBJS)
 	$(CC) $(LDFLAGS) -o dhcp6c $(CLIENTOBJS) $(LIBOBJS) $(LIBS) 
 dhcp6s:	$(SERVOBJS) $(LIBOBJS)
 	$(CC) $(LDFLAGS) -o dhcp6s $(SERVOBJS) $(LIBOBJS) $(LIBS) 
+dhcp6r: $(RELAYOBJS) $(LIBOBJS)
+	$(CC) $(LDFLAGS) -o dhcp6r $(RELAYOBJS)
 
 dad_token.c: dad_token.l
 	$(LEX) -Pifyy dad_token.l
@@ -90,6 +93,7 @@ install::
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man8 $(DESTDIR)$(mandir)/man5
 	$(INSTALL_DATA) -o bin -g bin dhcp6c.8 $(DESTDIR)$(mandir)/man8/
 	$(INSTALL_DATA) -o bin -g bin dhcp6s.8 $(DESTDIR)$(mandir)/man8/
+	$(INSTALL_DATA) -o bin -g bin dhcp6r.8 $(DESTDIR)$(mandir)/man8/
 	$(INSTALL_DATA) -o bin -g bin dhcp6c.conf.5 $(DESTDIR)$(mandir)/man5/
 	$(INSTALL_DATA) -o bin -g bin dhcp6s.conf.5 $(DESTDIR)$(mandir)/man5/
 
