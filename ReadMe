@@ -28,7 +28,7 @@ A. Validated Features:
 
       IPv6 address Assignment & Prefix Delegation
 
-      1. Server configuration file support. 
+      1. Server configuration file support for both static and dynamic assignments.
       2. Server lease file support for saving all the client's IPv6 address binding 
 	 info. 
       3. Client IPv6 address assignment and temporary IPv6 address assignment support 
@@ -47,12 +47,12 @@ B. Support available but not validated yet
 
 C. ToDo List: 
 
-      1. Unicast/elapsed time/Authentication/User class/Vendor class/Interface-ID option 
+      1. Unicast/Authentication/User class/Vendor class/Interface-ID option 
          support 
       2. Relay agent support. 
       3. Reconfig/Relay messages support. 
 
-INSTALLATTION:
+D. INSTALLATTION:
 
 	1. tar -xvzf dhcp6.tar
 	2. ./configure
