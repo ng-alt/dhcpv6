@@ -1,4 +1,4 @@
-/*	$Id: server6_parse.y,v 1.6 2003/05/23 19:00:37 shirleyma Exp $	*/
+/*	$Id: server6_parse.y,v 1.7 2003/07/16 19:09:53 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -112,7 +112,7 @@ extern int sfyylex __P((void));
 %type	<dhcp6addr>	hostaddr6 hostprefix6 addr6para v6address
 
 %union {
-	int	num;
+	unsigned int	num;
 	int 	snum;
 	char	*str;
 	int 	dec;

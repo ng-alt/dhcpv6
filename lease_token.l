@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.12 2003/07/02 02:21:25 shirleyma Exp $	*/
+/*	$Id: lease_token.l,v 1.13 2003/07/16 19:09:53 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -203,7 +203,7 @@ comment		\#.*
 <S_DUID>. {ABORT;}
 <S_SDUID>{duid_id} {configure_duid(yytext, &client6_info.serverid);}
 <S_SDUID>. {ABORT;}
-<S_IAID>{number} {client6_info.iaidinfo.iaid = atoll(yytext);
+<S_IAID>{number} {client6_info.iaidinfo.iaid = strtoll(yytext, NULL, 10);
 		lease_flags |= LEASE_IAID_FLAG;}
 <S_IAID>"type:" {BEGIN S_IATYPE;}
 <S_IAID>. {ABORT;}
