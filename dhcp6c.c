@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.6 2003/02/12 20:52:04 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.7 2003/02/13 18:58:11 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -798,20 +798,17 @@ client6_send(ev)
 
 	if (ev->state == DHCP6S_SOLICIT) { 
 		/* rapid commit */
-		if (ifp->send_flags & DHCIFF_RAPID_COMMIT) {
+		if (ifp->send_flags & DHCIFF_RAPID_COMMIT) 
 			optinfo.flags |= DHCIFF_RAPID_COMMIT;
-			if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
-				memcpy(&optinfo.iaidinfo, 
-					&client6_iaidaddr.client6_info.iaidinfo,
+		if (!(ifp->send_flags & DHCIFF_INFO_ONLY) ||
+		    (client6_request_flag & CLIENT6_REQUEST_ADDR)) {
+			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
 					sizeof(optinfo.iaidinfo));
-		     		if (ifp->send_flags & DHCIFF_TEMP_ADDRS)
-					optinfo.flags |= DHCIFF_TEMP_ADDRS;
-			}
+		     	if (ifp->send_flags & DHCIFF_TEMP_ADDRS)
+				optinfo.flags |= DHCIFF_TEMP_ADDRS;
 		}
 		/* support for client preferred ipv6 address */
 		if (client6_request_flag & CLIENT6_REQUEST_ADDR) {
-			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
-				sizeof(optinfo.iaidinfo));
 			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
 				goto end;
 		}
@@ -840,9 +837,6 @@ client6_send(ev)
 			if (ifp->send_flags & DHCIFF_TEMP_ADDRS) 
 				optinfo.flags |= DHCIFF_TEMP_ADDRS;
 		}
-		if (client6_request_flag & CLIENT6_REQUEST_ADDR) 
-			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
-				goto end;
 	}
 
 	switch(ev->state) {
