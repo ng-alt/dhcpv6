@@ -1,4 +1,4 @@
-/*	$Id: radvd_token.l,v 1.3 2003/05/29 20:32:43 shirleyma Exp $	*/
+/*	$Id: radvd_token.l,v 1.4 2003/05/29 22:18:25 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -151,7 +151,7 @@ comment		\#.*
 						lv->lease_addr.plen);
 					update = 1;
 				}
-				dprintf(LOG_DEBUG, "update radvd.conf with new prefixes");
+				dprintf(LOG_INFO, "update radvd.conf with DHCPv6 prefixes");
 			}
 			fprintf(dhcp6_radvd_file, yytext);
 			BEGIN INITIAL;
@@ -182,7 +182,7 @@ comment		\#.*
 		if (update_flag == ADDR_REMOVE && 
 		    !addr_on_addrlist((struct dhcp6_list *)&client6iaid->lease_list, 
 		    &lv->val_dhcp6addr)) { 
-			dprintf(LOG_DEBUG, "remove radvd.conf DHCPv6 prefixe");
+			dprintf(LOG_DEBUG, "remove DHCPv6 assgined prefix in radvd.conf");
 			update = 1;
 		} else {
 			TAILQ_INSERT_TAIL(&previous_prefix_list, lv, link);

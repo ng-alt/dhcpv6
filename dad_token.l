@@ -1,4 +1,4 @@
-/*	$Id: dad_token.l,v 1.2 2003/05/22 23:00:26 shirleyma Exp $	*/
+/*	$Id: dad_token.l,v 1.3 2003/05/29 22:18:56 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -105,7 +105,6 @@ nl              \n
 		} else
 			strcpy(buff+len, "\0");
 	}
-	dprintf(LOG_DEBUG, "parse addrss is %s", buff);
 	if (inet_pton(AF_INET6, buff, &addr) < 1) {
 		dprintf(LOG_ERR, "parse address failed");
 		ABORT;
@@ -117,19 +116,15 @@ nl              \n
 		BEGIN S_INDEX;}
 	}
 <S_INDEX>{hexpair} {ifinfo->index = strtol(ifyytext, NULL, 16);
-		dprintf(LOG_DEBUG, "address %s index is %2x", 
 			in6addr2str(&ifinfo->addr, 0), ifinfo->index);
 		BEGIN S_PLEN;}
 <S_PLEN>{hexpair} {ifinfo->plen = strtol(ifyytext, NULL, 16); 
-		dprintf(LOG_DEBUG, "address %s plen is %2x", 
 			in6addr2str(&ifinfo->addr, 0), ifinfo->plen);
 		BEGIN S_SCOPE;}
 <S_SCOPE>{hexpair} {ifinfo->scope = strtol(ifyytext, NULL, 16);
-		dprintf(LOG_DEBUG, "address %s scope is %2x", 
 			in6addr2str(&ifinfo->addr, 0), ifinfo->scope);
 		BEGIN S_FLAGS;}
 <S_FLAGS>{hexpair} {ifinfo->flags = strtol(ifyytext, NULL, 16);
-		dprintf(LOG_DEBUG, "address %s flags is %2x", 
 			in6addr2str(&ifinfo->addr, 0), ifinfo->flags);
 		if (ifinfo->flags == DAD_FLAGS) {
 			dprintf(LOG_INFO, "duplicated ipv6 address %s detected",
@@ -140,7 +135,7 @@ nl              \n
 			BEGIN S_CNF;
 		}
 		}
-<S_NAME>{ifname} {dprintf(LOG_DEBUG, "parse interface name %s", ifyytext);
+<S_NAME>{ifname} {
 		if (strcmp(ifyytext, dhcp6_if->ifname)) {
 			free(ifinfo);
 			BEGIN S_CNF;
