@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.14 2003/04/12 00:25:32 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.15 2003/04/18 20:10:27 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -874,6 +874,7 @@ dhcp6_copy_options(dst, src)
 		goto fail;
 	if (dhcp6_copy_list(&dst->dns_list.addrlist, &src->dns_list.addrlist))
 		goto fail;
+	memcpy(&dst->server_addr, &src->server_addr, sizeof(dst->server_addr));
 	dst->pref = src->pref;
 
 	return 0;
@@ -1006,13 +1007,21 @@ dhcp6_get_options(p, ep, optinfo)
 			if (optlen != 1)
 				goto malformed;
 			optinfo->pref = (int)*(u_char *)cp;
-			dprintf(LOG_DEBUG, "%s" "get option preferrence is %d", 
+			dprintf(LOG_DEBUG, "%s" "get option preferrence is %2x", 
 					FNAME, optinfo->pref);
 			break;
 		case DH6OPT_RAPID_COMMIT:
 			if (optlen != 0)
 				goto malformed;
 			optinfo->flags |= DHCIFF_RAPID_COMMIT;
+			break;
+		case DH6OPT_UNICAST:
+			if (optlen != sizeof(struct in6_addr)
+			    && dhcp6_mode != DHCP6_MODE_CLIENT)
+				goto malformed;
+			optinfo->flags |= DHCIFF_UNICAST;
+			memcpy(&optinfo->server_addr,
+			       (struct in6_addr *)cp, sizeof(struct in6_addr));
 			break;
 		case DH6OPT_IA_TA:
 			if (optlen < sizeof(u_int32_t))
@@ -1339,6 +1348,12 @@ dhcp6_set_options(bp, ep, optinfo)
 	if (optinfo->flags & DHCIFF_RAPID_COMMIT)
 		COPY_OPTION(DH6OPT_RAPID_COMMIT, 0, NULL, p);
 
+	if ((dhcp6_mode == DHCP6_MODE_SERVER) && (optinfo->flags & DHCIFF_UNICAST)) {
+		if (!IN6_IS_ADDR_UNSPECIFIED(&optinfo->server_addr)) {
+			COPY_OPTION(DH6OPT_UNICAST, sizeof(optinfo->server_addr),
+				    &optinfo->server_addr, p);
+		}
+	}
 	switch(optinfo->type) {
 	int buflen;
 	char *tp;
@@ -1519,7 +1534,7 @@ dhcp6_set_options(bp, ep, optinfo)
 	}
 	if (dhcp6_mode == DHCP6_MODE_SERVER && optinfo->pref != DH6OPT_PREF_UNDEF) {
 		u_int8_t p8 = (u_int8_t)optinfo->pref;
-		dprintf(LOG_DEBUG, "server perference %2x", optinfo->pref);
+		dprintf(LOG_DEBUG, "server preference %2x", optinfo->pref);
 		COPY_OPTION(DH6OPT_PREFERENCE, sizeof(p8), &p8, p);
 	}
 

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.18 2003/04/18 16:32:54 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.19 2003/04/18 20:10:58 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -973,7 +973,32 @@ client6_send(ev)
 	 * [dhcpv6-26 Section 13.]
 	 * Our current implementation always follows the case.
 	 */
-	dst = *sa6_allagent;
+	switch(ev->state) {
+	case DHCP6S_REQUEST:
+	case DHCP6S_RENEW:
+	case DHCP6S_DECLINE:
+	case DHCP6S_RELEASE:
+		if (!IN6_IS_ADDR_UNSPECIFIED(&ifp->current_server->server_addr)) {
+			struct addrinfo hints, *res;
+			int error;
+			memset(&hints, 0, sizeof(hints));
+			hints.ai_family = PF_INET6;
+			hints.ai_socktype = SOCK_DGRAM;
+			hints.ai_protocol = IPPROTO_UDP;
+			error = getaddrinfo(in6addr2str(&ifp->current_server->server_addr,0),
+				DH6PORT_UPSTREAM, &hints, &res);
+			if (error) {
+				dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
+					FNAME, gai_strerror(error));
+				exit(1);
+			}
+			memcpy(&dst, res->ai_addr, res->ai_addrlen);
+			break;
+		}
+	default:
+		dst = *sa6_allagent;
+		break;
+	}
 	dst.sin6_scope_id = ifp->linkid;
 
 	if (sendto(ifp->outsock, buf, len, 0, (struct sockaddr *)&dst,
@@ -1225,6 +1250,9 @@ allocate_newserver(ifp, optinfo)
 		newserver->optinfo.serverID.duid_len);
 	if (optinfo->pref != DH6OPT_PREF_UNDEF)
 		newserver->pref = optinfo->pref;
+	if (optinfo->flags & DHCIFF_UNICAST)
+		memcpy(&newserver->server_addr, &optinfo->server_addr,
+		       sizeof(newserver->server_addr));
 	newserver->active = 1;
 	for (sp = &ifp->servers; *sp; sp = &(*sp)->next) {
 		if ((*sp)->pref != DH6OPT_PREF_MAX &&
