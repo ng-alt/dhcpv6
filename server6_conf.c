@@ -1,4 +1,4 @@
-/*    $Id: server6_conf.c,v 1.13 2003/05/23 19:00:37 shirleyma Exp $   */
+/*    $Id: server6_conf.c,v 1.14 2004/03/15 22:03:52 shemminger Exp $   */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -39,7 +39,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <net/if.h>
-#include <openssl/md5.h>
+//#include <openssl/md5.h>
 
 #include "queue.h"
 #include "dhcp6.h"
