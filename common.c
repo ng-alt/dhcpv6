@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.4 2003/02/10 23:47:07 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.5 2003/02/11 19:12:28 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -833,7 +833,7 @@ dhcp6_get_options(p, ep, optinfo)
 				goto malformed;
 			memcpy(&val16, cp, sizeof(val16));
 			num = ntohs(val16);
-			dprintf(LOG_DEBUG, "  status code: %s",
+			dprintf(LOG_DEBUG, "  this message status code: %s",
 			    dhcp6_stcodestr(num));
 
 			/* need to check duplication? */
@@ -992,24 +992,8 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 		}
 
 		switch(opt) {
-		case DH6OPT_STATUS_CODE:
-			if (optlen != sizeof(si) - sizeof(u_int32_t))
-				goto malformed;
-			
-			memcpy(&val16, cp, sizeof(val16));
-			num = ntohs(val16);
-			dprintf(LOG_DEBUG, "  status code: %s",
-			    dhcp6_stcodestr(num));
-
-			if (dhcp6_add_listval(&optinfo->stcode_list,
-			    &num, DHCP6_LISTVAL_NUM) == NULL) {
-				dprintf(LOG_ERR, "%s" "failed to copy "
-				    "status code", FNAME);
-				goto fail;
-			}
-			break;
 		case DH6OPT_IADDR:
-			if (optlen != sizeof(ai) - sizeof(u_int32_t))
+			if (optlen < sizeof(ai) - sizeof(u_int32_t))
 				goto malformed;
 			memcpy(&ai, p, sizeof(ai));
 			/* copy the information into internal format */
@@ -1030,23 +1014,34 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 				    "(%ld)", FNAME, addr6.preferlifetime, addr6.validlifetime);
 				goto malformed;
 			}
-			if (dhcp6_find_listval(&optinfo->addr_list,
-			    &addr6, DHCP6_LISTVAL_DHCP6ADDR)) {
-				dprintf(LOG_INFO, "%s" "duplicated "
-				    "address (%s)", FNAME,
-				    in6addr2str(&addr6.addr, 0));
-				continue;	
-			}
-
-			if (dhcp6_add_listval(&optinfo->addr_list, &addr6,
-			    DHCP6_LISTVAL_DHCP6ADDR) == NULL) {
-				dprintf(LOG_ERR, "%s" "failed to copy an "
-				    "address", FNAME);
-				goto fail;
-			}
+			/* by default */
+			addr6.status_code = DH6OPT_STCODE_UNDEFINE;
+			break;
+		/* address status code must be added after IADDA option */
+		case DH6OPT_STATUS_CODE:
+			if (optlen != sizeof(si) - sizeof(u_int32_t))
+				goto malformed;
+			memcpy(&val16, cp, sizeof(val16));
+			num = ntohs(val16);
+			dprintf(LOG_DEBUG, "  status code for this address is: %s",
+				dhcp6_stcodestr(num));
+			addr6.status_code = num;	
+			break;
+		}
+		if (dhcp6_find_listval(&optinfo->addr_list,
+				&addr6, DHCP6_LISTVAL_DHCP6ADDR)) {
+			dprintf(LOG_INFO, "%s" "duplicated " "address (%s)", FNAME,
+				in6addr2str(&addr6.addr, 0));
+			/* XXX: decline message */
+			continue;	
+		}
+		if (dhcp6_add_listval(&optinfo->addr_list, &addr6,
+		    DHCP6_LISTVAL_DHCP6ADDR) == NULL) {
+			dprintf(LOG_ERR, "%s" "failed to copy an "
+			    "address", FNAME);
+			goto fail;
 		}
 	}
-
 	return (0);
 
   malformed:
@@ -1299,14 +1294,14 @@ dhcp6_set_options(bp, ep, optinfo)
 			    in6addr2str(&ai.addr, 0), 
 			    ntohl(ai.preferlifetime), ntohl(ai.validlifetime));
 			/* XXX: set up address status code if any */
-				if (dp->val_dhcp6addr.status_code != 0xffff) {
+				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
 		       			struct dhcp6_status_info status;
 					status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
 					status.dh6_status_len = htons(sizeof(u_int32_t));
 					status.dh6_status_code = 
 						htons(dp->val_dhcp6addr.status_code);
 					memcpy(tp, &status, sizeof(status));
-					dprintf(LOG_DEBUG, "  status code: %s",
+					dprintf(LOG_DEBUG, "  this address status code: %s",
 			    		dhcp6_stcodestr(ntohs(status.dh6_status_code)));
 					optlen += sizeof(status);
 					tp += sizeof(status);
