@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.10 2004/02/05 00:13:05 shemminger Exp $	*/
+/*	$Id: client6_parse.y,v 1.11 2004/04/06 21:18:30 shirleyma Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -32,6 +32,7 @@
 %{
 #include <string.h>
 
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>

@@ -1,4 +1,4 @@
-/*	$Id: radvd_token.l,v 1.7 2003/07/07 18:01:05 shirleyma Exp $	*/
+/*	$Id: radvd_token.l,v 1.8 2004/04/06 21:18:30 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -281,12 +281,12 @@ radvd_parse(struct dhcp6_iaidaddr *client6_iaid, int flag)
 	client6iaid = client6_iaid;
 	update_flag = flag;
 	yylex();
+	return 0;
 }
 
 static int
 update_radvd(void)
 {
-	struct dhcp6_listval *d, *d_next;
 	struct stat buf;
 	if (fflush(dhcp6_radvd_file) == EOF) {
 		dprintf(LOG_ERR, "%s" "write radvd.conf.dhcpv6 file fflush failed %s", 

@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.22 2003/07/02 02:21:25 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.23 2004/04/06 21:18:29 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -156,7 +156,7 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0)
 		return (0);
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == DHCP6_DURATITION_INFINITE) {
-		client6_iaidaddr.client6_info.iaidinfo.rebindtime == DHCP6_DURATITION_INFINITE;
+		client6_iaidaddr.client6_info.iaidinfo.rebindtime = DHCP6_DURATITION_INFINITE;
 		return (0);
 	}
 	/* set up start date, and renew timer */
@@ -394,7 +394,7 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0)
 		return (0);
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == DHCP6_DURATITION_INFINITE) {
-		client6_iaidaddr.client6_info.iaidinfo.rebindtime == DHCP6_DURATITION_INFINITE;
+		client6_iaidaddr.client6_info.iaidinfo.rebindtime = DHCP6_DURATITION_INFINITE;
 		if (client6_iaidaddr.timer)
 			dhcp6_remove_timer(client6_iaidaddr.timer);
 		return (0);

@@ -31,6 +31,7 @@
 
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include <malloc.h>
 #include <errno.h>
 #include <syslog.h>
@@ -40,10 +41,12 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
+#include "common.h"
 
 static void
 get_if_prefix(struct nlmsghdr *nlm, int nlm_len, int request,

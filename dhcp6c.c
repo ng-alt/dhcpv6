@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.35 2004/03/04 23:31:24 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.36 2004/04/06 21:18:30 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -34,6 +34,7 @@
 #include <sys/socket.h>
 #include <sys/uio.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 #include <errno.h>
 #if TIME_WITH_SYS_TIME

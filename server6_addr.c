@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.21 2004/03/15 22:02:55 shemminger Exp $	*/
+/*	$Id: server6_addr.c,v 1.22 2004/04/06 21:18:30 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -41,9 +41,9 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 
-#include <linux/ipv6.h>
 
 #include <net/if.h>
+#include <netinet/in.h>
 
 #include <errno.h>
 #include <syslog.h>

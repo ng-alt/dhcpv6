@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.20 2004/04/06 21:05:43 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.21 2004/04/06 21:18:30 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -255,7 +255,9 @@ dhcp6_find_listval(head, val, type)
 				return (lv);
 			}
 			break;
+		/* DHCP6_LISTVAL_DHCP6LEASE is missing? */
 		}
+
 	}
 
 	return (NULL);

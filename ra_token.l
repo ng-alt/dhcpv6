@@ -1,4 +1,4 @@
-/*	$Id: ra_token.l,v 1.8 2004/03/04 23:31:24 shirleyma Exp $	*/
+/*	$Id: ra_token.l,v 1.9 2004/04/06 21:18:30 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -172,4 +172,5 @@ ra_parse(const char *raname)
 		return (-1);
 	}
 	yylex();
+	return 0;
 }

@@ -1,4 +1,4 @@
-/*	$Id: server6_parse.y,v 1.9 2004/02/05 00:10:31 shemminger Exp $	*/
+/*	$Id: server6_parse.y,v 1.10 2004/04/06 21:18:30 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -35,11 +35,12 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <syslog.h>
 #include <errno.h>
 #include <sys/socket.h>
 #include <net/if.h>
-#include <linux/ipv6.h>
+#include <netinet/in.h>
 #include "queue.h"
 #include "dhcp6.h"
 #include "config.h"

@@ -1,4 +1,4 @@
-/*	$Id: resolv_token.l,v 1.6 2003/06/23 17:24:48 shirleyma Exp $	*/
+/*	$Id: resolv_token.l,v 1.7 2004/04/06 21:18:30 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -204,13 +204,13 @@ resolv_parse(struct dns_list *dnslist)
 		return (-1);
 	}
 	yylex();
+	return 0;
 }
 
 static int
 update_resolver(struct dns_list *dns_list)
 {
 	struct domain_list *oldlist, *dprev, *dlist, *dlist_next;
-	struct domain_list *dfirst = NULL;
 	struct dhcp6_listval *d, *d_next;
 	struct stat buf;
 	int i = 0;

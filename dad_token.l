@@ -1,4 +1,4 @@
-/*	$Id: dad_token.l,v 1.4 2003/05/29 22:23:28 shirleyma Exp $	*/
+/*	$Id: dad_token.l,v 1.5 2004/04/06 21:18:30 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -35,6 +35,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <net/if.h>
 
 #include <errno.h>
@@ -195,4 +196,5 @@ dad_parse(const char *file)
 		return (-1);
 	}
 	yylex();
+	return 0;
 }
