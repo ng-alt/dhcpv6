@@ -1946,7 +1946,7 @@ if test "$ac_test_CFLAGS" = set; then
   CFLAGS=$ac_save_CFLAGS
 elif test $ac_cv_prog_cc_g = yes; then
   if test "$GCC" = yes; then
-    CFLAGS="-g -O2 -Wall"
+    CFLAGS="-g -O2"
   else
     CFLAGS="-g"
   fi
@@ -2280,6 +2280,423 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+for ac_prog in 'bison -y' byacc
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_prog_YACC+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$YACC"; then
+  ac_cv_prog_YACC="$YACC" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_YACC="$ac_prog"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+fi
+fi
+YACC=$ac_cv_prog_YACC
+if test -n "$YACC"; then
+  echo "$as_me:$LINENO: result: $YACC" >&5
+echo "${ECHO_T}$YACC" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  test -n "$YACC" && break
+done
+test -n "$YACC" || YACC="yacc"
+
+
+for ac_prog in flex lex
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_prog_LEX+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$LEX"; then
+  ac_cv_prog_LEX="$LEX" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_LEX="$ac_prog"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+fi
+fi
+LEX=$ac_cv_prog_LEX
+if test -n "$LEX"; then
+  echo "$as_me:$LINENO: result: $LEX" >&5
+echo "${ECHO_T}$LEX" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  test -n "$LEX" && break
+done
+test -n "$LEX" || LEX=":"
+
+if test -z "$LEXLIB"
+then
+  echo "$as_me:$LINENO: checking for yywrap in -lfl" >&5
+echo $ECHO_N "checking for yywrap in -lfl... $ECHO_C" >&6
+if test "${ac_cv_lib_fl_yywrap+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lfl  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+#include "confdefs.h"
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char yywrap ();
+#ifdef F77_DUMMY_MAIN
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+#endif
+int
+main ()
+{
+yywrap ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_fl_yywrap=yes
+else
+  echo "$as_me: failed program was:" >&5
+cat conftest.$ac_ext >&5
+ac_cv_lib_fl_yywrap=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_fl_yywrap" >&5
+echo "${ECHO_T}$ac_cv_lib_fl_yywrap" >&6
+if test $ac_cv_lib_fl_yywrap = yes; then
+  LEXLIB="-lfl"
+else
+  echo "$as_me:$LINENO: checking for yywrap in -ll" >&5
+echo $ECHO_N "checking for yywrap in -ll... $ECHO_C" >&6
+if test "${ac_cv_lib_l_yywrap+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ll  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+#include "confdefs.h"
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char yywrap ();
+#ifdef F77_DUMMY_MAIN
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+#endif
+int
+main ()
+{
+yywrap ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_l_yywrap=yes
+else
+  echo "$as_me: failed program was:" >&5
+cat conftest.$ac_ext >&5
+ac_cv_lib_l_yywrap=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_l_yywrap" >&5
+echo "${ECHO_T}$ac_cv_lib_l_yywrap" >&6
+if test $ac_cv_lib_l_yywrap = yes; then
+  LEXLIB="-ll"
+fi
+
+fi
+
+fi
+
+if test "x$LEX" != "x:"; then
+  echo "$as_me:$LINENO: checking lex output file root" >&5
+echo $ECHO_N "checking lex output file root... $ECHO_C" >&6
+if test "${ac_cv_prog_lex_root+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  # The minimal lex program is just a single line: %%.  But some broken lexes
+# (Solaris, I think it was) want two %% lines, so accommodate them.
+cat >conftest.l <<_ACEOF
+%%
+%%
+_ACEOF
+{ (eval echo "$as_me:$LINENO: \"$LEX conftest.l\"") >&5
+  (eval $LEX conftest.l) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }
+if test -f lex.yy.c; then
+  ac_cv_prog_lex_root=lex.yy
+elif test -f lexyy.c; then
+  ac_cv_prog_lex_root=lexyy
+else
+  { { echo "$as_me:$LINENO: error: cannot find output from $LEX; giving up" >&5
+echo "$as_me: error: cannot find output from $LEX; giving up" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+fi
+echo "$as_me:$LINENO: result: $ac_cv_prog_lex_root" >&5
+echo "${ECHO_T}$ac_cv_prog_lex_root" >&6
+rm -f conftest.l
+LEX_OUTPUT_ROOT=$ac_cv_prog_lex_root
+
+echo "$as_me:$LINENO: checking whether yytext is a pointer" >&5
+echo $ECHO_N "checking whether yytext is a pointer... $ECHO_C" >&6
+if test "${ac_cv_prog_lex_yytext_pointer+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  # POSIX says lex can declare yytext either as a pointer or an array; the
+# default is implementation-dependent. Figure out which it is, since
+# not all implementations provide the %pointer and %array declarations.
+ac_cv_prog_lex_yytext_pointer=no
+echo 'extern char *yytext;' >>$LEX_OUTPUT_ROOT.c
+ac_save_LIBS=$LIBS
+LIBS="$LIBS $LEXLIB"
+cat >conftest.$ac_ext <<_ACEOF
+`cat $LEX_OUTPUT_ROOT.c`
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_prog_lex_yytext_pointer=yes
+else
+  echo "$as_me: failed program was:" >&5
+cat conftest.$ac_ext >&5
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_save_LIBS
+rm -f "${LEX_OUTPUT_ROOT}.c"
+
+fi
+echo "$as_me:$LINENO: result: $ac_cv_prog_lex_yytext_pointer" >&5
+echo "${ECHO_T}$ac_cv_prog_lex_yytext_pointer" >&6
+if test $ac_cv_prog_lex_yytext_pointer = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define YYTEXT_POINTER 1
+_ACEOF
+
+fi
+
+fi
+
+
+echo "$as_me:$LINENO: checking for MD5_Init in -lcrypto" >&5
+echo $ECHO_N "checking for MD5_Init in -lcrypto... $ECHO_C" >&6
+if test "${ac_cv_lib_crypto_MD5_Init+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lcrypto  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+#include "confdefs.h"
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char MD5_Init ();
+#ifdef F77_DUMMY_MAIN
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+#endif
+int
+main ()
+{
+MD5_Init ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_crypto_MD5_Init=yes
+else
+  echo "$as_me: failed program was:" >&5
+cat conftest.$ac_ext >&5
+ac_cv_lib_crypto_MD5_Init=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_crypto_MD5_Init" >&5
+echo "${ECHO_T}$ac_cv_lib_crypto_MD5_Init" >&6
+if test $ac_cv_lib_crypto_MD5_Init = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBCRYPTO 1
+_ACEOF
+
+  LIBS="-lcrypto $LIBS"
+
+else
+
+echo "$as_me:$LINENO: checking for MD5_Init in -lssl" >&5
+echo $ECHO_N "checking for MD5_Init in -lssl... $ECHO_C" >&6
+if test "${ac_cv_lib_ssl_MD5_Init+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lssl  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+#include "confdefs.h"
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char MD5_Init ();
+#ifdef F77_DUMMY_MAIN
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+#endif
+int
+main ()
+{
+MD5_Init ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_ssl_MD5_Init=yes
+else
+  echo "$as_me: failed program was:" >&5
+cat conftest.$ac_ext >&5
+ac_cv_lib_ssl_MD5_Init=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_ssl_MD5_Init" >&5
+echo "${ECHO_T}$ac_cv_lib_ssl_MD5_Init" >&6
+if test $ac_cv_lib_ssl_MD5_Init = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSSL 1
+_ACEOF
+
+  LIBS="-lssl $LIBS"
+
+fi
+
+fi
 
 
 
@@ -2288,12 +2705,13 @@ CFLAGS="$CFLAGS -I\$(srcdir)"
 echo "$as_me:$LINENO: checking for getaddrinfo/getnameinfo library" >&5
 echo $ECHO_N "checking for getaddrinfo/getnameinfo library... $ECHO_C" >&6
 
-
 cat >conftest.$ac_ext <<_ACEOF
 #line $LINENO "configure"
 #include "confdefs.h"
 #include <netinet/in.h>
+#ifdef __KAME__
  yes
+#endif
 _ACEOF
 if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
   egrep "yes" >/dev/null 2>&1; then
@@ -2309,7 +2727,7 @@ kame)	cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 	o_LIBS="$LIBS"
-	LIBS="$LIBS -L/usr/local/v6/lib -L/usr/lib"
+	LIBS="$LIBS -L/usr/local/v6/lib"
 
 echo "$as_me:$LINENO: checking for getaddrinfo in -linet6" >&5
 echo $ECHO_N "checking for getaddrinfo in -linet6... $ECHO_C" >&6
@@ -2609,7 +3027,8 @@ if test $ac_cv_func_getifaddrs = yes; then
 _ACEOF
 
 else
-  LIBOBJS="$LIBOBJS ifaddrs.o"
+  	echo FATAL: getifaddrs is required
+	exit 1
 fi
 
 
@@ -3983,83 +4402,6 @@ done
 
 
 
-for ac_func in arc4random
-do
-as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
-echo "$as_me:$LINENO: checking for $ac_func" >&5
-echo $ECHO_N "checking for $ac_func... $ECHO_C" >&6
-if eval "test \"\${$as_ac_var+set}\" = set"; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  cat >conftest.$ac_ext <<_ACEOF
-#line $LINENO "configure"
-#include "confdefs.h"
-/* System header to define __stub macros and hopefully few prototypes,
-    which can conflict with char $ac_func (); below.  */
-#include <assert.h>
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char $ac_func ();
-char (*f) ();
-
-#ifdef F77_DUMMY_MAIN
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-#endif
-int
-main ()
-{
-/* The GNU C library defines this for functions which it implements
-    to always fail with ENOSYS.  Some functions are actually named
-    something starting with __ and the normal name is an alias.  */
-#if defined (__stub_$ac_func) || defined (__stub___$ac_func)
-choke me
-#else
-f = $ac_func;
-#endif
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-         { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  eval "$as_ac_var=yes"
-else
-  echo "$as_me: failed program was:" >&5
-cat conftest.$ac_ext >&5
-eval "$as_ac_var=no"
-fi
-rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
-fi
-echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_var'}'`" >&5
-echo "${ECHO_T}`eval echo '${'$as_ac_var'}'`" >&6
-if test `eval echo '${'$as_ac_var'}'` = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define `echo "HAVE_$ac_func" | $as_tr_cpp` 1
-_ACEOF
-  LIBOBJS="$LIBOBJS $ac_func.$ac_objext"
-fi
-done
-
-
-
 echo "$as_me:$LINENO: checking if --enable-mediator option is specified" >&5
 echo $ECHO_N "checking if --enable-mediator option is specified... $ECHO_C" >&6
 
@@ -4200,17 +4542,17 @@ echo $ECHO_N "checking for DHCP DNS option... $ECHO_C" >&6
 # Check whether --with-opt-dns or --without-opt-dns was given.
 if test "${with_opt_dns+set}" = set; then
   withval="$with_opt_dns"
-  dhcpopt_dns_resolvers="$withval"
+  dhcpopt_dns="$withval"
 else
-  dhcpopt_dns_resolvers=0
+  dhcpopt_dns=0
 fi;
-if test $dhcpopt_dns_resolvers = 0 ; then
-	dhcpopt_dns_resolvers=25
-	echo "$as_me:$LINENO: result: unspecified and using $dhcpopt_dns_resolvers" >&5
-echo "${ECHO_T}unspecified and using $dhcpopt_dns_resolvers" >&6
+if test $dhcpopt_dns = 0 ; then
+	dhcpopt_dns=25
+	echo "$as_me:$LINENO: result: unspecified and using $dhcpopt_dns" >&5
+echo "${ECHO_T}unspecified and using $dhcpopt_dns" >&6
 else
-	echo "$as_me:$LINENO: result: using $dhcpopt_dns_resolvers" >&5
-echo "${ECHO_T}using $dhcpopt_dns_resolvers" >&6
+	echo "$as_me:$LINENO: result: using $dhcpopt_dns" >&5
+echo "${ECHO_T}using $dhcpopt_dns" >&6
 fi
 
 
@@ -4240,17 +4582,17 @@ echo $ECHO_N "checking for DHCP prefix information option... $ECHO_C" >&6
 # Check whether --with-opt-pinfo or --without-opt-pinfo was given.
 if test "${with_opt_pinfo+set}" = set; then
   withval="$with_opt_pinfo"
-  dhcpopt_iaprefix="$withval"
+  dhcpopt_pinfo="$withval"
 else
-  dhcpopt_iaprefix=0
+  dhcpopt_pinfo=0
 fi;
-if test $dhcpopt_iaprefix = 0 ; then
-	dhcpopt_iaprefix=31
-	echo "$as_me:$LINENO: result: unspecified and using $dhcpopt_iaprefix" >&5
-echo "${ECHO_T}unspecified and using $dhcpopt_iaprefix" >&6
+if test $dhcpopt_pinfo = 0 ; then
+	dhcpopt_pinfo=31
+	echo "$as_me:$LINENO: result: unspecified and using $dhcpopt_pinfo" >&5
+echo "${ECHO_T}unspecified and using $dhcpopt_pinfo" >&6
 else
-	echo "$as_me:$LINENO: result: using $dhcpopt_iaprefix" >&5
-echo "${ECHO_T}using $dhcpopt_iaprefix" >&6
+	echo "$as_me:$LINENO: result: using $dhcpopt_pinfo" >&5
+echo "${ECHO_T}using $dhcpopt_pinfo" >&6
 fi
 
 
@@ -4980,10 +5322,14 @@ s,@ac_ct_CC@,$ac_ct_CC,;t t
 s,@EXEEXT@,$EXEEXT,;t t
 s,@OBJEXT@,$OBJEXT,;t t
 s,@CPP@,$CPP,;t t
+s,@YACC@,$YACC,;t t
+s,@LEX@,$LEX,;t t
+s,@LEXLIB@,$LEXLIB,;t t
+s,@LEX_OUTPUT_ROOT@,$LEX_OUTPUT_ROOT,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
-s,@dhcpopt_dns_resolvers@,$dhcpopt_dns_resolvers,;t t
+s,@dhcpopt_dns@,$dhcpopt_dns,;t t
 s,@dhcpopt_pdel@,$dhcpopt_pdel,;t t
-s,@dhcpopt_iaprefix@,$dhcpopt_iaprefix,;t t
+s,@dhcpopt_pinfo@,$dhcpopt_pinfo,;t t
 s,@dhcpopt_preq@,$dhcpopt_preq,;t t
 CEOF
 

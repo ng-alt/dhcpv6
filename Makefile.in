@@ -1,13 +1,15 @@
 #
-# $Id: Makefile.in,v 1.6 2003/03/28 23:01:47 shirleyma Exp $
+# $Id: Makefile.in,v 1.7 2003/04/03 17:03:46 shemminger Exp $
 #
 
 srcdir=	@srcdir@
 CFLAGS=	@CFLAGS@ @DEFS@
 LDFLAGS=@LDFLAGS@
 LIBOBJS=@LIBOBJS@
-LIBS=	@LIBS@ -ll -lssl
+LIBS=	@LIBS@
 CC=	@CC@
+YACC=	@YACC@
+LEX=	@LEX@
 TARGET=	dhcp6c dhcp6s
 
 INSTALL=@INSTALL@
@@ -25,7 +27,7 @@ CHKCONFIG=/sbin/chkconfig
 
 CFLAGS+= -DCONF_DH6OPT_DNS_RESOLVERS=@dhcpopt_dns_resolvers@ \
 	-DCONF_DH6OPT_IA_PD=@dhcpopt_pdel@ \
-	-DCONF_DH6OPT_IAPREFIX=@dhcpopt_iaprefix@ 
+	-DCONF_DH6OPT_IAPREFIX=@dhcpopt_pinfo@ 
 
 COMMONGENSRCS=lease_token.c
 CLIENTGENSRCS=client6_parse.c client6_token.c ra_token.c
@@ -47,39 +49,42 @@ dhcp6s:	$(SERVOBJS) $(LIBOBJS)
 	$(CC) $(LDFLAGS) -o dhcp6s $(SERVOBJS) $(LIBOBJS) $(LIBS) 
 
 ra_token.c: ra_token.l
-	lex -Prayy ra_token.l
+	$(LEX) -Prayy ra_token.l
 	mv lex.rayy.c $@
 
 client6_parse.c cp.tab.h: client6_parse.y
-	yacc -d -p cpyy client6_parse.y
+	$(YACC) -d -p cpyy client6_parse.y
 	mv y.tab.h cp.tab.h
 	mv y.tab.c client6_parse.c
 
 client6_token.c: client6_token.l
-	lex -Pcpyy client6_token.l
+	$(LEX) -Pcpyy client6_token.l
 	mv lex.cpyy.c $@	
 
 lease_token.c: lease_token.l
-	lex -Plyy lease_token.l
+	$(LEX) -Plyy lease_token.l
 	mv lex.lyy.c $@
 
 server6_parse.c sf.tab.h: server6_parse.y
-	yacc -d -p sfyy server6_parse.y
+	$(YACC) -d -p sfyy server6_parse.y
 	mv y.tab.h sf.tab.h
 	mv y.tab.c server6_parse.c 
 
 server6_token.c: server6_token.l sf.tab.h
-	lex -Psfyy server6_token.l
+	$(LEX) -Psfyy server6_token.l
 	mv lex.sfyy.c $@
 
 install::
+	$(INSTALL) -d $(sbindir)
 	$(INSTALL_PROGRAM) -s -o bin -g bin $(TARGET) $(sbindir)
+	$(INSTALL) -d $(mandir)/man8 $(mandir)/man5
 	$(INSTALL_DATA) -o bin -g bin dhcp6c.8 $(mandir)/man8/
 	$(INSTALL_DATA) -o bin -g bin dhcp6s.8 $(mandir)/man8/
 	$(INSTALL_DATA) -o bin -g bin dhcp6c.conf.5 $(mandir)/man5/
 	$(INSTALL_DATA) -o bin -g bin dhcp6s.conf.5 $(mandir)/man5/
 
 rh_install:: install
+	$(INSTALL) -d $(initdir)
 	$(INSTALL_PROGRAM) -o root -g root dhcp6s.sh $(initdir)/dhcp6s
 	$(INSTALL_PROGRAM) -o root -g root dhcp6c.sh $(initdir)/dhcp6c
 	$(CHKCONFIG) --add dhcp6s

@@ -6,10 +6,13 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_CC
 AC_PROG_CPP
+AC_PROG_YACC
+AC_PROG_LEX
 
 dnl Checks for libraries.
 dnl AC_CHECK_LIB(c, kvm_open, [], [AC_CHECK_LIB(kvm, kvm_open)])
 dnl AC_CHECK_LIB(mld, nlist)
+AC_CHECK_LIB(crypto, MD5_Init, [], [AC_CHECK_LIB(ssl, MD5_Init)])
 
 dnl pcap library
 dnl CFLAGS="-I. $CFLAGS"
@@ -98,7 +101,7 @@ AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(mktime select socket)
 
 dnl Checks for arc4random
-AC_REPLACE_FUNCS(arc4random)
+dnl AC_REPLACE_FUNCS(arc4random)
 
 dnl Checks for optinal parameters
 AC_MSG_CHECKING(if --enable-mediator option is specified)
