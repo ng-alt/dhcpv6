@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.h,v 1.2 2003/02/10 23:47:09 shirleyma Exp $	*/
+/*	$Id: server6_conf.h,v 1.3 2003/02/11 20:38:19 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -34,7 +34,7 @@
 #ifndef __SERVER6_CONF_H_DEFINED
 #define __SERVER6_CONF_H_DEFINED
 
-#define DEFAULT_PREFER_LIFE_TIME 360000
+#define DEFAULT_PREFERRED_LIFE_TIME 360000
 #define DEFAULT_VALID_LIFE_TIME 720000
 
 
