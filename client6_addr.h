@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.h,v 1.2 2003/01/20 20:25:42 shirleyma Exp $	*/
+/*	$Id: client6_addr.h,v 1.3 2003/02/12 21:51:18 shirleyma Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -43,6 +43,8 @@ typedef enum { IAID6S_ACTIVE, IAID6S_RENEW,
 	       IAID6S_REBIND, IAID6S_EXPIRED,
 	       IAID6S_INVALID } iaid6state_t;
 
+typedef enum { IFADDRCONF_ADD, IFADDRCONF_REMOVE } ifaddrconf_cmd_t;
+
 struct client6_iaidaddr {
 	TAILQ_ENTRY(client6_iaidaddr) link;
 	struct dhcp6_if *ifp;
@@ -74,5 +76,5 @@ extern int client6_add_iaidaddr __P((struct dhcp6_if *, struct dhcp6_optinfo *,
 			       struct duid *));
 extern int client6_update_iaidaddr __P((struct dhcp6_event *, struct dhcp6_optinfo *,
 				  struct duid *));
-extern int client6_do_release __P((struct dhcp6_list *));
+extern int client6_ifaddrconf __P((ifaddrconf_cmd_t, struct dhcp6_addr *));
 #endif
