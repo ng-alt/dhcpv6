@@ -1,0 +1,114 @@
+.\"	$Id: dhcp6s.8,v 1.1 2003/01/16 15:41:11 root Exp $
+.\"	from KAME: dhcp6s.8,v 1.21 2002/06/21 10:25:39 jinmei Exp
+.\"
+.\" Copyright (C) 1998 and 1999 WIDE Project.
+.\" All rights reserved.
+.\" 
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\" 3. Neither the name of the project nor the names of its contributors
+.\"    may be used to endorse or promote products derived from this software
+.\"    without specific prior written permission.
+.\" 
+.\" THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE PROJECT OR CONTRIBUTORS BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.Dd Sep 12, 1999
+.Dt DHCP6S 8
+.Os KAME
+.Sh NAME
+.Nm dhcp6s
+.Nd DHCPv6 server
+.\"
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar configfile
+.Op Fl Ddf
+.Ar interface
+.\"
+.Sh DESCRIPTION
+.Nm
+replies to DHCPv6 client as DHCPv6 server.
+.Nm
+can give the following information to clients.
+.Bl -bullet -compact
+.It
+IPv6 prefixes for the requesting cite
+.El
+.Pp
+Command line options are as below:
+.Bl -tag -width indent
+.\"
+.It Fl c Ar configfile
+Use
+.Ar configfile
+as the configuration file.
+.It Fl d
+Print debugging messages.
+.It Fl D
+Even more debugging information is printed.
+.It Fl f
+Foreground mode (useful when debugging).
+Although
+.Nm
+usually prints warning, debugging, or error messages to
+.Xr syslog 8 ,
+it prints the messages to standard error if this option is
+specified.
+.El
+.\"
+.Sh FILES
+.Bl -tag -width /usr/local/v6/etc/dhcp6s.conf -compact
+.It Pa /usr/local/v6/etc/dhcp6s.conf
+is the default configuration file.
+.It Pa /etc/dhcp6s_duid
+is the default file to store the server's DUID.
+.El
+.\"
+.Sh SEE ALSO
+.Xr dhcp6s.conf 5 ,
+.Xr dhcp6c 8
+.Rs
+.%A Ralph Droms, Editor
+.%D 2002
+.%T Dynamic Host Configuration Protocol for IPv6 (DHCPv6)
+.%R internet draft
+.%N draft-ietf-dhc-dhcpv6-26.txt
+.%O work in progress material
+.Re
+.\"
+.Sh HISTORY
+The
+.Nm
+command first appeared in WIDE/KAME IPv6 protocol stack kit.
+.Pp
+The
+.Fl n Ar dnsserv
+command-line option was obsoleted by introducing a configuration file.
+.\"
+.Sh BUGS
+.Nm
+is incomplete and violates DHCPv6 protocol spec, in several aspects.
+To name a few:
+.Bl -enum
+.It
+it does not accept messages from DHCP relay agents,
+.It
+it does not assign IPv6 addresses
+.Pq nor will .
+.El

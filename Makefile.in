@@ -1,0 +1,82 @@
+#
+# $Id: Makefile.in,v 1.1 2003/01/16 15:41:11 root Exp $
+#
+
+srcdir=	@srcdir@
+CFLAGS=	@CFLAGS@ @DEFS@
+LDFLAGS=@LDFLAGS@
+LIBOBJS=@LIBOBJS@
+LIBS=	@LIBS@ -ll -lssl
+CC=	@CC@
+TARGET=	dhcp6c dhcp6s
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+prefix=	@prefix@
+exec_prefix=	@exec_prefix@
+bindir=	@bindir@
+sbindir=@sbindir@
+mandir=	@mandir@
+
+CFLAGS+= -DCONF_DH6OPT_DNS=@dhcpopt_dns@ \
+	-DCONF_DH6OPT_PREFIX_DELEGATION=@dhcpopt_pdel@ \
+	-DCONF_DH6OPT_PREFIX_INFORMATION=@dhcpopt_pinfo@ \
+	-DCONF_DH6OPT_PREFIX_REQUEST=@dhcpopt_preq@
+
+CLIENTGENSRCS=cfparse.c cftoken.c
+SERVERGENSRCS=server6_addr_parse.c server6_addr_token.c server6_lparse.c
+CLIENTOBJS=	dhcp6c.o common.o config.o prefixconf.o timer.o client6_addr.o \
+	$(CLIENTGENSRCS:%.c=%.o)
+SERVOBJS=	dhcp6s.o common.o config.o timer.o hash.o server6_lease.o \
+		server6_conf.o server6_addr.o \
+	$(SERVERGENSRCS:%.c=%.o) $(CLIENTGENSRCS:%.c=%.o)
+
+CLEANFILES=cf.tab.h sf.tab.h cfparse.c cftoken.c \
+		server6_addr_parse.c server6_addr_token.c server6_lparse.c 
+
+all:	$(TARGET) 
+dhcp6c:	$(CLIENTOBJS) $(LIBOBJS)
+	$(CC) $(LDFLAGS) -o dhcp6c $(CLIENTOBJS) $(LIBOBJS) $(LIBS) 
+dhcp6s:	$(SERVOBJS) $(LIBOBJS)
+	$(CC) $(LDFLAGS) -o dhcp6s $(SERVOBJS) $(LIBOBJS) $(LIBS) 
+
+cfparse.c cf.tab.h: cfparse.y
+	yacc -d -p cfyy cfparse.y
+	mv y.tab.h cf.tab.h
+	mv y.tab.c cfparse.c
+
+cftoken.c: cftoken.l cf.tab.h
+	lex -Pcfyy cftoken.l
+	mv lex.cfyy.c $@	
+
+server6_lparse.c: server6_lparse.l
+	lex -Plyy server6_lparse.l
+	mv lex.lyy.c $@
+
+server6_addr_parse.c sf.tab.h: server6_addr_parse.y
+	yacc -d -p sfyy server6_addr_parse.y
+	mv y.tab.h sf.tab.h
+	mv y.tab.c server6_addr_parse.c 
+
+server6_addr_token.c: server6_addr_token.l sf.tab.h
+	lex -Psfyy server6_addr_token.l
+	mv lex.sfyy.c $@
+
+install::
+	$(INSTALL_PROGRAM) -s -o bin -g bin $(TARGET) $(sbindir)
+	$(INSTALL_DATA) -o bin -g bin dhcp6c.8 $(mandir)/man8
+	$(INSTALL_DATA) -o bin -g bin dhcp6s.8 $(mandir)/man8
+	$(INSTALL_DATA) -o bin -g bin dhcp6c.conf.5 $(mandir)/man5
+	$(INSTALL_DATA) -o bin -g bin dhcp6s.conf.5 $(mandir)/man5
+
+includes::
+
+clean::
+	/bin/rm -f *.o $(TARGET) $(CLEANFILES) $(GENSRCS)
+
+distclean:: clean
+	/bin/rm -f Makefile config.cache config.log config.status .depend 
+
+depend:
+	mkdep ${CFLAGS:M-[ID]*} $(srcdir)/*.c
