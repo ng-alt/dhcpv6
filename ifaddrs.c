@@ -1,4 +1,4 @@
-/*	$Id: ifaddrs.c,v 1.2 2003/02/11 22:03:08 shirleyma Exp $	*/
+/*	$Id: ifaddrs.c,v 1.3 2003/04/04 01:13:11 shemminger Exp $	*/
 /* 	from USAGI: ifaddrs.c,v 1.20.2.1 2002/12/08 08:22:23 yoshfuji Exp */
 
 /* 
@@ -22,10 +22,10 @@
 #include <string.h>
 #include <time.h>
 #include <malloc.h>
-#define _LIBC
 #include <errno.h>
-#undef _LIBC
 #include <unistd.h>
+
+#define __set_errno(x)	errno = (x)
 
 #include <sys/socket.h>
 #include <asm/types.h>
