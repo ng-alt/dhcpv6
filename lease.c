@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.12 2003/07/02 02:21:25 shirleyma Exp $	*/
+/*	$Id: lease.c,v 1.13 2004/03/03 20:11:16 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -340,7 +340,7 @@ prefixcmp(addr, prefix, len)
 	for (i = 0; i < num_bytes; i++) {
 		mask.s6_addr[i] = 0xFF;
 	}
-	mask.s6_addr[num_bytes] = (0xFF << 8) - len % 8 ;
+	mask.s6_addr[num_bytes] = 0xFF << (8 - len % 8);
 	for (i = 0; i < num_bytes; i++) {
 		if (addr->s6_addr[i] != prefix->s6_addr[i]) return -1;
 	}
