@@ -1,4 +1,4 @@
-/*	$Id: server6_parse.y,v 1.3 2003/04/22 17:37:29 shirleyma Exp $	*/
+/*	$Id: server6_parse.y,v 1.4 2003/04/29 17:50:06 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -167,8 +167,7 @@ ifhead
 		{
 			if (!strcmp(temp_if->name, $2))
 			{
-				dprintf(LOG_ERR, "duplicate interface definition for %s",
-					ifnetwork->name);
+				dprintf(LOG_ERR, "duplicate interface definition for %s", $2);
 				ABORT;
 			}
 			temp_if = temp_if->next;
