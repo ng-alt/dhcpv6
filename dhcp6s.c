@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.6 2003/02/25 00:31:52 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.7 2003/02/27 19:43:08 shemminger Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -34,7 +34,7 @@
 #include <sys/socket.h>
 #include <linux/sockios.h>
 #include <sys/ioctl.h>
-#include <sys/queue.h>
+
 #include <sys/uio.h>
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -66,8 +66,8 @@
 #include <netdb.h>
 #include <limits.h>
 
-#include <timer.h>
-#include <queue.h>
+#include "queue.h"
+#include "timer.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
@@ -201,7 +201,7 @@ main(argc, argv)
 	ifinit(device);
 	globalgroup = (struct rootgroup *)malloc(sizeof(struct rootgroup));
 	if (globalgroup == NULL) {
-		dprintf(LOG_ERR, "failed to allocate memory", strerror(errno));
+		dprintf(LOG_ERR, "failed to allocate memory %s", strerror(errno));
 		exit(1);
 	}
 	memset(globalgroup, 0, sizeof(*globalgroup));
@@ -337,7 +337,7 @@ server6_init()
 	    sizeof(mreq6.ipv6mr_multiaddr));
 	if (setsockopt(insock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
 	    &mreq6, sizeof(mreq6))) {
-		dprintf(LOG_ERR, "%s" "setsockopt(insock, IPV6_JOIN_GROUP)",
+		dprintf(LOG_ERR, "%s" "setsockopt(insock, IPV6_JOIN_GROUP) %s",
 			FNAME, strerror(errno));
 		exit(1);
 	}
@@ -531,10 +531,6 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 {
 	struct dhcp6_optinfo roptinfo;
 	struct host_conf *client_conf;
-	struct dhcp6_listval *lv;
-	
-	struct host_decl *hostlist = NULL;
-	struct host_decl *host;
 	int addr_flag;
 	int addr_request = 0;
 	int resptype = DH6_REPLY;
@@ -817,7 +813,6 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	(void)server6_send(resptype, ifp, dh6, optinfo, from, fromlen,
 			   &roptinfo);
 
-  end:
 	dhcp6_clear_options(&roptinfo);
 	return 0;
 

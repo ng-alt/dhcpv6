@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.8 2003/02/25 00:31:52 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.9 2003/02/27 19:43:07 shemminger Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -33,7 +33,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
-#include <sys/queue.h>
+
 #include <errno.h>
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -64,11 +64,11 @@
 #include <err.h>
 #include <ifaddrs.h>
 
-#include <dhcp6.h>
-#include <config.h>
-#include <common.h>
-#include <timer.h>
-#include <queue.h>
+#include "queue.h"
+#include "dhcp6.h"
+#include "config.h"
+#include "common.h"
+#include "timer.h"
 #include "lease.h"
 
 static int debug = 0;
@@ -90,8 +90,6 @@ static u_int8_t client6_request_flag = 0;
 #define CLIENT6_RELEASE_ADDR	0x1
 #define CLIENT6_CONFIRM_ADDR	0x2
 #define CLIENT6_REQUEST_ADDR	0x4
-
-static struct dhcp6_list stcode_list;
 
 int insock;	/* inbound udp port */
 int outsock;	/* outbound udp port */
@@ -141,7 +139,6 @@ main(argc, argv)
 	int ch, pid;
 	char *progname, *conffile = DHCP6C_CONF;
 	FILE *pidfp;
-	struct dhcp6_lease *lease;
 	char *addr;
 
 	srandom(time(NULL) & getpid());
@@ -283,8 +280,9 @@ static void
 usage()
 {
 
-	fprintf(stderr, "usage: dhcpc [-c configfile] [-r all or (ipv6address ipv6address...)] 
-		[-R (ipv6 address ipv6address...) [-dDf] interface\n");
+	fprintf(stderr, 
+	"usage: dhcpc [-c configfile] [-r all or (ipv6address ipv6address...)]"
+	"[-R (ipv6 address ipv6address...) [-dDf] interface\n");
 }
 
 /*------------------------------------------------------------*/
@@ -301,7 +299,7 @@ client6_init(device)
 
 	ifidx = if_nametoindex(device);
 	if (ifidx == 0) {
-		dprintf(LOG_ERR, "if_nametoindex(%s)");
+		dprintf(LOG_ERR, "if_nametoindex(%s)", device);
 		exit(1);
 	}
 
@@ -429,13 +427,11 @@ client6_ifinit()
 	struct dhcp6_event *ev;
 	char iaidstr[20];
 	char leasename[50];
-	struct timeval timo;
-	struct timeb now;
-	time_t offset;
+
 	for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
 		dhcp6_init_iaidaddr();
 		/* get iaid for each interface */
-		if (ifp->iaidinfo.iaid = get_iaid(ifp->ifname, iaidtab) == 0) {
+		if ((ifp->iaidinfo.iaid = get_iaid(ifp->ifname, iaidtab)) == 0) {
 			create_iaid(iaidtab);
 			ifp->iaidinfo.iaid = get_iaid(ifp->ifname, iaidtab);
 			dprintf(LOG_DEBUG, "%s" "interface %s iaid is %d", 
@@ -644,7 +640,7 @@ client6_timo(arg)
 			ifp->current_server = select_server(ifp);
 			if (ifp->current_server == NULL) {
 				/* this should not happen! */
-				dprintf(LOG_ERR, "%s" "can't find a server"
+				dprintf(LOG_ERR, "%s" "can't find a server",
 					FNAME);
 				exit(1); /* XXX */
 			}
@@ -772,7 +768,7 @@ client6_send(ev)
 		dh6->dh6_msgtype = DH6_RELEASE;
 		break;
 	default:
-		dprintf(LOG_ERR, "%s" "unexpected state");
+		dprintf(LOG_ERR, "%s" "unexpected state %d", FNAME, ev->state);
 		exit(1);	/* XXX */
 	}
 	if (ev->timeouts == 0) {
@@ -1202,7 +1198,7 @@ client6_recvreply(ifp, dh6, len, optinfo)
 {
 	struct dhcp6_listval *lv;
 	struct dhcp6_event *ev;
-	int addr_status_code;
+	int addr_status_code = DH6OPT_STCODE_UNSPECFAIL;
 	struct dhcp6_serverinfo *newserver;
 	int newstate = 0;
 	/* find the corresponding event based on the received xid */

@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.4 2003/02/25 00:31:52 shirleyma Exp $	*/
+/*	$Id: client6_parse.y,v 1.5 2003/02/27 19:43:04 shemminger Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -30,14 +30,15 @@
  * SUCH DAMAGE.
  */
 %{
+#include <string.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/queue.h>
-
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
 
+#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
@@ -78,7 +79,7 @@ extern void cpyyerror __P((char *, ...))
 	l->list = (pl); \
 	} while (0)
 
-static struct cf_namelist *iflist_head, *piflist_head, *hostlist_head; 
+static struct cf_namelist *iflist_head;
 struct cf_list *cf_dns_list;
 
 extern int cpyylex __P((void));

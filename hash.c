@@ -1,4 +1,4 @@
-/*	$Id: hash.c,v 1.4 2003/02/10 23:47:08 shirleyma Exp $	*/
+/*	$Id: hash.c,v 1.5 2003/02/27 19:43:08 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -35,8 +35,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <syslog.h>
+
 #include "hash.h"
 
+#ifdef	__GNUC__
+extern void dprintf(int, const char *, ...)
+	__attribute__ ((__format__(__printf__, 2, 3)));
+#else
+extern void dprintf __P((int, const char *, ...));
+#endif
 
 struct hash_table * hash_table_create (unsigned int hash_size,
                                        unsigned int (*hash_function)(void *hash_key),

@@ -1,4 +1,4 @@
-/*	$Id: cftoken.l,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: cftoken.l,v 1.2 2003/02/27 19:43:04 shemminger Exp $	*/
 /*	from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -35,7 +35,6 @@
 %{
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/queue.h>
 
 #include <netinet/in.h>
 
@@ -48,6 +47,7 @@
 #include <varargs.h>
 #endif
 
+#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"

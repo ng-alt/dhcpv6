@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.5 2003/02/25 00:31:52 shirleyma Exp $	*/
+/*	$Id: config.h,v 1.6 2003/02/27 19:43:07 shemminger Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -212,37 +212,52 @@ struct cf_list {
 	void *ptr;
 };
 
+/* Some systems define thes in in.h */
+#ifndef IN6_IS_ADDR_UNSPECIFIED
 #define IN6_IS_ADDR_UNSPECIFIED(a) \
 	(((__const u_int32_t *) (a))[0] == 0				\
 	 && ((__const u_int32_t *) (a))[1] == 0				\
 	 && ((__const u_int32_t *) (a))[2] == 0				\
 	 && ((__const u_int32_t *) (a))[3] == 0)
+#endif
 	
+#ifndef IN6_IS_ADDR_LOOPBACK
 #define IN6_IS_ADDR_LOOPBACK(a) \
 	(((__const u_int32_t *) (a))[0] == 0				\
 	 && ((__const u_int32_t *) (a))[1] == 0				\
 	 && ((__const u_int32_t *) (a))[2] == 0				\
 	 && ((__const u_int32_t *) (a))[3] == htonl (1))
+#endif
 
+#ifndef IN6_IS_ADDR_MULTICAST
 #define IN6_IS_ADDR_MULTICAST(a) (((__const u_int8_t *) (a))[0] == 0xff)
+#endif
 
+#ifndef IN6_IS_ADDR_LINKLOCAL
 #define IN6_IS_ADDR_LINKLOCAL(a) \
 	((((__const u_int32_t *) (a))[0] & htonl (0xffc00000))		\
 	 == htonl (0xfe800000))
+#endif
 
+#ifndef IN6_IS_ADDR_SITELOCAL
 #define IN6_IS_ADDR_SITELOCAL(a) \
 	((((__const u_int32_t *) (a))[0] & htonl (0xffc00000))		\
 	 == htonl (0xfec00000))
+#endif
 
+#ifndef IN6_ARE_ADDR_EQUAL
 #define IN6_ARE_ADDR_EQUAL(a,b) \
 	((((__const u_int32_t *) (a))[0] == ((__const u_int32_t *) (b))[0])     \
 	 && (((__const u_int32_t *) (a))[1] == ((__const u_int32_t *) (b))[1])  \
 	 && (((__const u_int32_t *) (a))[2] == ((__const u_int32_t *) (b))[2])  \
 	 && (((__const u_int32_t *) (a))[3] == ((__const u_int32_t *) (b))[3]))
+#endif
 
+#ifndef IN6_IS_ADDR_RESERVED
 #define IN6_IS_ADDR_RESERVED(a) \
 	IN6_IS_ADDR_MULTICAST(a) || IN6_IS_ADDR_LOOPBACK(a) 		\
 	|| IN6_IS_ADDR_UNSPECIFIED(a)			
+#endif
 /* ANYCAST later */
 
 enum {DECL_SEND, DECL_ALLOW, DECL_INFO_ONLY, DECL_TEMP_ADDR, DECL_REQUEST, DECL_DUID,

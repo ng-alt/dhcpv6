@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.2 2003/02/25 00:31:52 shirleyma Exp $	*/
+/*	$Id: lease.c,v 1.3 2003/02/27 19:43:08 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -36,13 +36,17 @@
 #include <time.h>
 #include <syslog.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <net/if.h>
 #include <linux/sockios.h>
+
 #include "queue.h"
 #include "dhcp6.h"
 #include "hash.h"
@@ -127,7 +131,6 @@ sync_leases (file, original, template)
        char *template;
 {
 	int i, fd;
-	char *newname;
 	struct hashlist_element *element;
 	fd = mkstemp(template);
         if ((sync_file = fdopen(fd, "w")) == NULL) {
@@ -157,7 +160,7 @@ sync_leases (file, original, template)
 	fclose(sync_file);
 	fclose(file);
 	if (rename(template, original) < 0) { 
-		dprintf(LOG_ERR, "Could not rename sync file", FNAME);
+		dprintf(LOG_ERR, "%s" "Could not rename sync file", FNAME);
 		return (NULL);
 	}
         if ((file = fopen(original, "a+")) == NULL) {
@@ -200,13 +203,13 @@ init_lease_hashes(void)
 
 	hash_anchors = (struct hash_table **)malloc(HASH_TABLE_COUNT*sizeof(*hash_anchors));
 	if (!hash_anchors) {
-		dprintf(LOG_ERR, "Couldn't malloc hash anchors", FNAME);
+		dprintf(LOG_ERR, "%s" "Couldn't malloc hash anchors", FNAME);
 		return (-1);
 	}
         hash_anchors[HT_IPV6ADDR] = hash_table_create(DEFAULT_HASH_SIZE, 
 			addr_hash, lease_findkey, lease_key_compare);
 	if (!hash_anchors[HT_IPV6ADDR]) {
-		dprintf(LOG_ERR, "Couldn't create hash table", FNAME);
+		dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
 		return (-1);
 	}
         hash_anchors[HT_IAIDADDR] = hash_table_create(DEFAULT_HASH_SIZE, 
@@ -271,7 +274,6 @@ lease_key_compare(data, key)
 	void *data; 
 	void *key;
 { 	
-	int i;
 	struct dhcp6_addr *lease_address = 
 		(struct dhcp6_addr *) &(((struct dhcp6_lease *)data)->lease_addr);
 	struct dhcp6_addr *addr6 = (struct dhcp6_addr *)key;
@@ -294,7 +296,6 @@ iaid_key_compare(data, key)
 	void *data;
 	void *key;
 { 	
-	int i;
         struct dhcp6_iaidaddr *iaidaddr = (struct dhcp6_iaidaddr *)data;
 	struct client6_if *client_key = (struct client6_if *)key;
 	if (0 == duidcmp(&client_key->clientid, &iaidaddr->client6_info.clientid)){

@@ -1,4 +1,4 @@
-/*	$Id: common.h,v 1.5 2003/02/25 00:31:52 shirleyma Exp $	*/
+/*	$Id: common.h,v 1.6 2003/02/27 19:43:05 shemminger Exp $	*/
 /*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*
@@ -32,10 +32,9 @@
 
 #define IN6_IFF_INVALID -1
 
-#ifdef HAVE_ANSI_FUNC
-#define FNAME __func__ ": "
-#elif defined (HAVE_GCC_FUNCTION)
-#define FNAME __FUNCTION__ ": "
+/* ANSI __func__ can not be concatantated (C99 std) */
+#if defined (HAVE_GCC_FUNCTION)
+#define FNAME __FUNCTION__ ":"
 #else
 #define FNAME ""
 #endif
@@ -71,7 +70,13 @@ extern const char *getdev __P((struct sockaddr_in6 *));
 extern int in6_addrscopebyif __P((struct in6_addr *, char *));
 extern int in6_scope __P((struct in6_addr *));
 extern void setloglevel __P((int));
+#ifdef	__GNUC__
+extern void dprintf(int, const char *, ...)
+	__attribute__ ((__format__(__printf__, 2, 3)));
+#else
 extern void dprintf __P((int, const char *, ...));
+#endif
+
 extern int get_duid __P((char *, struct duid *));
 extern void dhcp6_init_options __P((struct dhcp6_optinfo *));
 extern void dhcp6_clear_options __P((struct dhcp6_optinfo *));

@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.4 2003/02/25 00:31:52 shirleyma Exp $	*/
+/*	$Id: config.c,v 1.5 2003/02/27 19:43:07 shemminger Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -31,7 +31,6 @@
  */
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/queue.h>
 
 #include <net/if.h>
 
@@ -43,10 +42,10 @@
 #include <string.h>
 #include <ifaddrs.h>
 
-#include <dhcp6.h>
-#include <config.h>
-#include <common.h>
-#include <queue.h>
+#include "queue.h"
+#include "dhcp6.h"
+#include "config.h"
+#include "common.h"
 
 extern int errno;
 
@@ -68,7 +67,6 @@ configure_interface(iflist)
 {
 	struct cf_namelist *ifp;
 	struct dhcp6_ifconf *ifc;
-	struct dhcp6_addr *v6addr;
 
 	for (ifp = iflist; ifp; ifp = ifp->next) {
 		struct cf_list *cfl;
@@ -211,7 +209,6 @@ configure_host(hostlist)
 {
 	struct cf_namelist *host;
 	struct host_conf *hconf;
-	struct dhcp6_addr *v6addr;
 	
 	for (host = hostlist; host; host = host->next) {
 		struct cf_list *cfl;
@@ -356,7 +353,8 @@ configure_global_option()
 		}
 		if (dhcp6_add_listval(&dnslist0, cl->ptr,
 		    DHCP6_LISTVAL_ADDR6) == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to add a DNS server");
+			dprintf(LOG_ERR, "%s" "failed to add a DNS server", 
+				FNAME);
 			goto bad;
 		}
 	}
@@ -367,7 +365,7 @@ configure_global_option()
 	return -1;
 }
 
-
+#if 0
 /* we currently only construct EUI-64 based interface ID */
 static int
 get_default_ifid(pif)
@@ -430,6 +428,7 @@ get_default_ifid(pif)
 	freeifaddrs(ifap);
 	return (-1);
 }
+#endif
 
 void
 configure_cleanup()

@@ -30,7 +30,6 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/queue.h>
 #include <sys/uio.h>
 
 #include <net/if.h>
@@ -55,8 +54,9 @@
 #include <err.h>
 #include <string.h>
 
-#include <dhcp6.h>
-#include <common.h>
+#include "queue.h"
+#include "dhcp6.h"
+#include "common.h"
 
 static int ssock;		/* socket for servers */
 static int csock;		/* socket for clients */

@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.2 2003/02/25 00:31:53 shirleyma Exp $	*/
+/*	$Id: lease_token.l,v 1.3 2003/02/27 19:43:08 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -247,7 +247,6 @@ do_iaidaddr_hash(lease_rec, key)
 {
 	struct dhcp6_iaidaddr *iaidaddr;
 	struct dhcp6_lease *found_lease;
-	struct timeval timo;
 	struct timeb now;
 	time_t offset;
 
@@ -406,7 +405,7 @@ add_lease(iaidaddr, lease)
 		}
 	} 
 	if (lease_rec->state == INVALID) {
-		dprintf(LOG_DEBUG, "parse an invalid state lease %s/%d", 
+		dprintf(LOG_DEBUG, "parse an invalid state lease %s/%d in line %d",
 			in6addr2str(&lease_rec->lease_addr.addr, 0), 
 			lease_rec->lease_addr.plen, num_lines);
 		free(lease_rec);

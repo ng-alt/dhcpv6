@@ -1,4 +1,4 @@
-/*	$Id: prefixconf.c,v 1.4 2003/02/10 23:47:09 shirleyma Exp $	*/
+/*	$Id: prefixconf.c,v 1.5 2003/02/27 19:43:08 shemminger Exp $	*/
 /*	ported from KAME: prefixconf.c,v 1.9 2002/12/12 09:47:26 suz Exp */
 
 /*
@@ -32,7 +32,6 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
-#include <sys/queue.h>
 #include <sys/ioctl.h>
 
 #include <net/if.h>
@@ -48,8 +47,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <queue.h>
 
+#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"

@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.5 2003/02/25 00:31:53 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.6 2003/02/27 19:43:08 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -39,7 +39,6 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
-#include <sys/queue.h>
 #include <sys/ioctl.h>
 
 #include <linux/ipv6.h>
@@ -50,14 +49,14 @@
 #include <syslog.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
 #include "server6_conf.h"
 #include "lease.h"
 #include "timer.h"
-
-#include "queue.h"
 #include "hash.h"
 
 extern struct hash_table **hash_anchors;
@@ -100,11 +99,8 @@ int
 dhcp6_add_iaidaddr(optinfo)
 	struct dhcp6_optinfo *optinfo;
 {
-	struct dhcp6_list *addr_list = &optinfo->addr_list;
 	struct dhcp6_iaidaddr *iaidaddr;
 	struct dhcp6_listval *lv, *lv_next = NULL;
-	struct dhcp6_lease *s_lease;
-	struct timeval timo;
 		
 	dprintf(LOG_DEBUG, "%s" "called", FNAME);
 	iaidaddr = (struct dhcp6_iaidaddr *)malloc(sizeof(*iaidaddr));
@@ -158,7 +154,6 @@ int
 dhcp6_remove_iaidaddr(iaidaddr)
 	struct dhcp6_iaidaddr *iaidaddr;
 {
-	struct client6_if client6_info;
 	struct dhcp6_lease *lv, *lv_next;
 	struct dhcp6_lease *lease;
 	
@@ -235,9 +230,7 @@ dhcp6_update_iaidaddr(optinfo, flag)
 	struct dhcp6_optinfo *optinfo;
 	int flag;
 {
-	struct dhcp6_list *addr_list = &optinfo->addr_list;
 	struct dhcp6_iaidaddr *iaidaddr;
-	struct client6_if client6_info;
 	struct dhcp6_lease *lease, *lease_next = NULL;
 	struct dhcp6_listval *lv, *lv_next = NULL;
 	
@@ -251,7 +244,7 @@ dhcp6_update_iaidaddr(optinfo, flag)
 		/* add or update new lease */
 		for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
 			lv_next = TAILQ_NEXT(lv, link);
-			dprintf(LOG_DEBUG, "address is %s " , FNAME, 
+			dprintf(LOG_DEBUG, "%s" "address is %s " , FNAME, 
 					in6addr2str(&lv->val_dhcp6addr.addr,0));
 			if ((lease = dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr)) 
 					!= NULL) {
@@ -275,9 +268,10 @@ dhcp6_update_iaidaddr(optinfo, flag)
 		/* remove leases */
 		for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
 			lv_next = TAILQ_NEXT(lv, link);
-			if (lease = dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr)) {
+			lease = dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr);
+			if (lease) {
 				dhcp6_remove_lease(lease);
-				if (flag = ADDR_ABANDON) {
+				if (flag == ADDR_ABANDON) {
 					/* XXX: preallocate a abandoned duid 
 					 * for maintain abandoned list with
 					 * preferlifetime xxx, validlifetime xxx
@@ -408,8 +402,7 @@ dhcp6_update_lease(addr, sp)
 	if (addr->preferlifetime == DHCP6_DURATITION_INFINITE) {
 		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
 		    "with infinite preferlifetime", FNAME,
-		    in6addr2str(&addr->addr, 0), addr->plen,
-		    addr->preferlifetime);
+			in6addr2str(&addr->addr, 0), addr->plen);
 	} else {
 		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
 		    "with preferlifetime %d", FNAME,
@@ -419,8 +412,7 @@ dhcp6_update_lease(addr, sp)
 	if (addr->validlifetime == DHCP6_DURATITION_INFINITE) {
 		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
 		    "with infinite validlifetime", FNAME,
-		    in6addr2str(&addr->addr, 0), addr->plen,
-		    addr->validlifetime);
+			in6addr2str(&addr->addr, 0), addr->plen);
 	} else {
 		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
 		    "with validlifetime %d", FNAME,
@@ -574,8 +566,6 @@ dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
 	struct dhcp6_list *req_list = &optinfo->addr_list;
 	int numaddr;
 	struct dhcp6_listval *lv, *lv_next = NULL;
-	struct duid *clientID = &optinfo->clientID;
-	u_int32_t iaid = optinfo->iaidinfo.iaid;
 
 	/* XXX: check hostdecl first */
 	roptinfo->iaidinfo.renewtime = subnet->linkscope.renew_time;
@@ -645,7 +635,7 @@ dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
 						v6addr=(struct dhcp6_listval *)malloc(sizeof(*v6addr));
 						if (v6addr == NULL) {
 							dprintf(LOG_ERR, "%s" 
-								"fail to allocate memory", 
+								"fail to allocate memory %s", 
 								FNAME, strerror(errno));
 							return (-1);
 						}
@@ -665,7 +655,7 @@ dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
 		if (numaddr == 0) {
 			v6addr = (struct dhcp6_listval *)malloc(sizeof(*v6addr));
 			if (v6addr == NULL) {
-				dprintf(LOG_ERR, "%s" "fail to allocate memory", 
+				dprintf(LOG_ERR, "%s" "fail to allocate memory %s", 
 					FNAME, strerror(errno));
 				return (-1);
 			}
@@ -800,7 +790,6 @@ dhcp6_create_prefixlist(roptinfo, optinfo, iaidaddr, subnet)
 	struct dhcp6_list *reply_list = &roptinfo->addr_list;
 	struct dhcp6_list *req_list = &optinfo->addr_list;
 	struct dhcp6_listval *lv, *lv_next = NULL;
-	struct duid *clientID = &optinfo->clientID;
 
 	/* XXX: ToDo check hostdecl first */
 	roptinfo->iaidinfo.renewtime = subnet->linkscope.renew_time;
@@ -820,8 +809,8 @@ dhcp6_create_prefixlist(roptinfo, optinfo, iaidaddr, subnet)
 		v6addr->val_dhcp6addr.plen = prefix6->prefix.plen;
 		v6addr->val_dhcp6addr.type = IAPD;
 		server6_get_prefixpara(&v6addr->val_dhcp6addr, prefix6);
-		dprintf(LOG_DEBUG, "%s" " get prefix %s/%d, 
-			preferlifetime %ld, validlifetime %ld", FNAME,
+		dprintf(LOG_DEBUG, "%s" " get prefix %s/%d, "
+			"preferlifetime %ld, validlifetime %ld", FNAME,
 			in6addr2str(&v6addr->val_dhcp6addr.addr, 0), 
 			v6addr->val_dhcp6addr.plen,
 			v6addr->val_dhcp6addr.preferlifetime, 

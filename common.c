@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.8 2003/02/25 00:31:52 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.9 2003/02/27 19:43:05 shemminger Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -34,7 +34,7 @@
 #include <sys/socket.h>
 #include <linux/sockios.h>
 #include <sys/ioctl.h>
-#include <sys/queue.h>
+
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
 # include <time.h>
@@ -71,21 +71,18 @@
 # endif
 #endif
 
-#include <dhcp6.h>
-#include <config.h>
-#include <common.h>
-#include <timer.h>
-#include <queue.h>
+#include "queue.h"
+#include "dhcp6.h"
+#include "config.h"
+#include "common.h"
+#include "timer.h"
 #include "lease.h"
 
 int foreground;
 int debug_thresh;
 struct dhcp6_if *dhcp6_if;
 struct dhcp6_list dnslist;
-static struct host_conf *host_conflist0, *host_conflist;
-#if 0
-static unsigned int if_maxindex __P((void));
-#endif
+static struct host_conf *host_conflist;
 static int in6_matchflags __P((struct sockaddr *, char *, int));
 ssize_t gethwid __P((char *, int, const char *, u_int16_t *));
 static int get_assigned_ipv6addrs __P((char *, char *,
@@ -344,22 +341,6 @@ dhcp6_remove_event(ev)
 	ev = NULL;
 }
 
-#if 0
-static unsigned int
-if_maxindex()
-{
-	struct if_nameindex *p, *p0;
-	unsigned int max = 0;
-
-	p0 = if_nameindex();
-	for (p = p0; p && p->if_index && p->if_name; p++) {
-		if (max < p->if_index)
-			max = p->if_index;
-	}
-	if_freenameindex(p0);
-	return max;
-}
-#endif
 
 int
 getifaddr(addr, ifnam, prefix, plen, strong, ignoreflags)
@@ -1106,7 +1087,6 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 	struct dhcp6opt opth;
 	struct dhcp6_addr_info ai;
 	struct dhcp6_prefix_info pi;
-	struct dhcp6_status_info si;
 	struct dhcp6_addr addr6;
 	int optlen, opt;
 	u_int16_t val16;
@@ -1882,7 +1862,7 @@ dprintf(int level, const char *fmt, ...)
 		if ((now = time(NULL)) < 0)
 			exit(1); /* XXX */
 		tm_now = localtime(&now);
-		fprintf(stderr, "%03s/%02d/%04d %02d:%02d:%02d %s\n",
+		fprintf(stderr, "%3s/%02d/%04d %02d:%02d:%02d %s\n",
 			month[tm_now->tm_mon], tm_now->tm_mday,
 			tm_now->tm_year + 1900,
 			tm_now->tm_hour, tm_now->tm_min, tm_now->tm_sec,

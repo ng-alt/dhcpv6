@@ -1,4 +1,4 @@
-/*	$Id: server6_addr_parse.y,v 1.5 2003/02/25 00:31:53 shirleyma Exp $	*/
+/*	$Id: server6_addr_parse.y,v 1.6 2003/02/27 19:43:09 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -544,7 +544,7 @@ hostdef
 		struct host_decl *temp_host = hostlist;
 		while (temp_host)
 		{
-			if (temp_host->iaidinfo.iaid = host->iaidinfo.iaid) {
+			if (temp_host->iaidinfo.iaid == host->iaidinfo.iaid) {
 				dprintf(LOG_ERR, "duplicated host %d redefined", 
 					host->iaidinfo.iaid);
 				ABORT;

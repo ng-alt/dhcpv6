@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.7 2003/02/25 00:31:52 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.8 2003/02/27 19:43:04 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -34,12 +34,12 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
-#include <sys/queue.h>
 #include <sys/ioctl.h>
 
 #include <linux/ipv6.h>
 
 #include <net/if.h>
+#include <time.h>
 #include <errno.h>
 #include <syslog.h>
 #include <string.h>
@@ -48,12 +48,12 @@
 #include <unistd.h>
 #include <net/if_arp.h>
 
+#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
 #include "timer.h"
 #include "lease.h"
-#include "queue.h"
 
 
 static int dhcp6_update_lease __P((struct dhcp6_addr *, struct dhcp6_lease *));
@@ -287,7 +287,8 @@ dhcp6_update_iaidaddr(optinfo, flag)
 	if (flag == ADDR_REMOVE) {
 		for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
 			lv_next = TAILQ_NEXT(lv, link);
-			if (cl = dhcp6_find_lease(&client6_iaidaddr, &lv->val_dhcp6addr)) {
+			cl = dhcp6_find_lease(&client6_iaidaddr, &lv->val_dhcp6addr);
+			if (cl) {
 				/* remove leases */
 				dhcp6_remove_lease(cl);
 			}
@@ -359,8 +360,7 @@ dhcp6_update_lease(addr, sp)
 	if (addr->preferlifetime == DHCP6_DURATITION_INFINITE) {
 		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
 		    "with infinite preferlifetime", FNAME,
-		    in6addr2str(&addr->addr, 0), addr->plen,
-		    addr->preferlifetime);
+			in6addr2str(&addr->addr, 0), addr->plen);
 	} else {
 		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
 		    "with preferlifetime %d", FNAME,
@@ -370,8 +370,7 @@ dhcp6_update_lease(addr, sp)
 	if (addr->validlifetime == DHCP6_DURATITION_INFINITE) {
 		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
 		    "with infinite validlifetime", FNAME,
-		    in6addr2str(&addr->addr, 0), addr->plen,
-		    addr->validlifetime);
+			in6addr2str(&addr->addr, 0), addr->plen);
 	} else {
 		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
 		    "with validlifetime %d", FNAME,
@@ -440,7 +439,6 @@ dhcp6_iaidaddr_timo(arg)
 {
 	struct dhcp6_iaidaddr *sp = (struct dhcp6_iaidaddr *)arg;
 	struct dhcp6_event *ev;
-	struct dhcp6_eventdata *evd;
 	struct timeval timeo;
 	int dhcpstate;
 	double d;
@@ -480,7 +478,7 @@ dhcp6_iaidaddr_timo(arg)
 		return (NULL);
 	}
 	if ((ev = dhcp6_create_event(sp->ifp, dhcpstate)) == NULL) {
-		dprintf(LOG_ERR, "%s" "failed to create a new event"
+		dprintf(LOG_ERR, "%s" "failed to create a new event",
 		    FNAME);
 		return (NULL); /* XXX: should try to recover reserve memory?? */
 	}
