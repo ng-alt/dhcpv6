@@ -2609,8 +2609,7 @@ if test $ac_cv_func_getifaddrs = yes; then
 _ACEOF
 
 else
-  	echo FATAL: getifaddrs is required
-	exit 1
+  LIBOBJS="$LIBOBJS ifaddrs.o"
 fi
 
 
