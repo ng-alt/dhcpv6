@@ -1,4 +1,4 @@
-/*	$Id: timer.c,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: timer.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
 /*	ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp	*/
 
 /*
@@ -81,7 +81,7 @@ dhcp6_add_timer(timeout, timeodata)
 
 	if (timeout == NULL) {
 		dprintf(LOG_ERR, "%s" "timeout function unspecified", FNAME);
-		exit(1);
+		return (NULL);
 	}
 	newtimer->expire = timeout;
 	newtimer->expire_data = timeodata;

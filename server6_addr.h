@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.h,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: server6_addr.h,v 1.2 2003/01/20 20:25:42 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -46,11 +46,13 @@
 #define PATH_DHCPv6S_TEMPLEASE "/var/db/dhcpv6.leases~"
 
 enum hash_type{HT_IPV6ADDR = 0, HT_IAIDADDR};
-#define HASH_TABLE_COUNT 2
-#define MAX_DUID_LEN 130
+#define HASH_TABLE_COUNT 	2
+#define MAX_DUID_LEN 		130
 
-typedef enum { ADDR6S_ACTIVE, ADDR6S_EXPIRED,
-	       ADDR6S_ABANDONED} addr6state_t;
+#define ADDR_UPDATE 	0
+#define ADDR_REMOVE	1
+typedef enum { ACTIVE, EXPIRED,
+	       DECLINED, INVALID} state_t;
 
 struct client_if {
         struct duid clientid;
@@ -60,10 +62,9 @@ struct client_if {
 
 struct server6_cl_iaidaddr {
 	struct client_if client_info;
-	addr6state_t state;
+	state_t state;
+	time_t start_date;
 	struct dhcp6_timer *timer;
-	struct dhcp6_eventdata *evdata;
-
 	/* list of interface addresses */
 	TAILQ_HEAD(, server6_lease) ifaddr_list;
 };
@@ -71,17 +72,13 @@ struct server6_cl_iaidaddr {
 struct  server6_lease {
 	TAILQ_ENTRY(server6_lease) link;
 	struct server6_cl_iaidaddr *iaidinfo;
-        struct in6_addr lease_addr;
-	int plen;
+        struct dhcp6_addr lease_addr;
 	time_t start_date;
-	u_int32_t preferlifetime; /* value at start_date */
-	u_int32_t validlifetime;  /* value at start_date */
-	addr6state_t state;
+	state_t state;
 	/* address assigned on the interface */
 	struct dhcp6_timer *timer;
-	struct dhcp6_eventdata *evdata;
 	struct in6_addr linklocal;
-	char* hostname;
+	char hostname[IFNAMSIZ];
 };
 
 unsigned int iaid_hash __P((void *));
@@ -95,18 +92,18 @@ unsigned int iaid_hashfunc(void *key);
 unsigned int parse_leases(void);
 unsigned int do_ipv6addr_hash(struct server6_lease *lease_rec);
 unsigned int do_iaidaddr_hash(struct server6_lease *lease_rec, struct client_if *key);
-struct server6_lease * server6_find_iaidlease(struct server6_cl_iaidaddr *iaidaddr, 
-		struct server6_lease *lease_rec);
 int write_lease(struct server6_lease *lease_ptr, FILE *file);
 int sync_leases(void);
 
-extern struct link_decl *server6_allocate_link __P((struct rootgroup *));
+extern struct link_decl *server6_allocate_link __P((struct rootgroup *, struct in6_addr *));
 extern int server6_create_addrlist __P((int, struct link_decl *, 
 			struct dhcp6_optinfo *, struct dhcp6_optinfo *));
 extern void server6_iaidaddr_init __P((void));
-extern int server6_delete_iaidaddr __P((struct dhcp6_optinfo *));
+struct server6_cl_iaidaddr *server6_find_iaidaddr __P((struct dhcp6_optinfo *));
+extern int server6_remove_iaidaddr __P((struct server6_cl_iaidaddr *));
 extern int server6_add_iaidaddr __P((struct dhcp6_optinfo *));
-extern int server6_update_iaidaddr __P((struct dhcp6_optinfo *));
+extern int server6_update_iaidaddr __P((struct dhcp6_optinfo *, int));
+extern int server6_validate_iaidaddr __P((struct dhcp6_optinfo *));
 extern struct host_decl *find_hostdecl __P((struct duid *, u_int32_t, struct host_decl *));
 
 #endif

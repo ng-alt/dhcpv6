@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: server6_addr.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -64,12 +64,16 @@ extern struct hash_table **hash_anchors;
 
 extern FILE *lease_file;
 
-static struct server6_lease *iaidaddr_find_lease __P((struct server6_cl_iaidaddr *, struct dhcp6_addr *));
-static void iaidaddr_delete_lease __P((struct server6_lease *));
+static struct dhcp6_timer *iaidaddr_lease_timo __P((void *));
+static struct dhcp6_timer *server6_iaidaddr_timo __P((void *));
+static struct server6_lease 
+*iaidaddr_find_lease __P((struct server6_cl_iaidaddr *, struct dhcp6_addr *));
+static int iaidaddr_remove_lease __P((struct server6_lease *));
 static int iaidaddr_add_lease __P((struct server6_cl_iaidaddr *, struct dhcp6_addr *));
 static int iaidaddr_update_lease __P((struct dhcp6_addr *, struct server6_lease *));
 static u_int32_t do_hash __P((void *, u_int8_t ));
 static int addr_on_addrlist __P((struct dhcp6_list *, struct in6_addr *));
+static u_int32_t get_max_validlifetime __P((struct server6_cl_iaidaddr *));
 
 static u_int32_t 
 do_hash(key, len)
@@ -96,7 +100,9 @@ iaid_hash(key)
 	struct client_if *iaidkey = (struct client_if *)key;
 	struct duid *duid = &iaidkey->clientid;
 	unsigned int index;
-	index = do_hash((void *)&duid->duid_id, duid->duid_len);
+	dprintf(LOG_DEBUG, "duid is %s, duid_len is %d",
+		duidstr(duid), duid->duid_len);
+	index = do_hash((void *)duid->duid_id, duid->duid_len);
 	return index;
 }
 
@@ -107,6 +113,8 @@ addr_hash(key)
 	struct in6_addr *addrkey = (struct in6_addr *)key;
 	unsigned int index;
 	index = do_hash((void *)addrkey, sizeof(*addrkey));
+	dprintf(LOG_DEBUG, "ipv6address is %s, len is %d",
+		in6addr2str(addrkey, 0), sizeof(*addrkey));
 	return index;
 }
 
@@ -135,7 +143,9 @@ server6_add_iaidaddr(optinfo)
 	struct dhcp6_list *addr_list = &optinfo->addr_list;
 	struct server6_cl_iaidaddr *iaidaddr;
 	struct dhcp6_listval *lv;
-	
+	struct server6_lease *s_lease;
+	struct timeval timo;
+		
 	dprintf(LOG_DEBUG, "%s" "called", FNAME);
 	iaidaddr = (struct server6_cl_iaidaddr *)malloc(sizeof(*iaidaddr));
 	if (iaidaddr == NULL) {
@@ -144,10 +154,16 @@ server6_add_iaidaddr(optinfo)
 	}
 	memset(iaidaddr, 0, sizeof(*iaidaddr));
 	duidcpy(&iaidaddr->client_info.clientid, &optinfo->clientID);
-	iaidaddr->client_info.client_iaid = optinfo->iaid;
-	if (hash_search(iaidaddr_hash_table, (void *)&iaidaddr->client_info) != NULL) {
-		dprintf(LOG_ERR, "%s" "iaid %d iaidaddr exists", FNAME, 
-			iaidaddr->client_info.client_iaid);
+	iaidaddr->client_info.client_iaid = optinfo->iaidinfo.iaid;
+	if (optinfo->flags & DHCIFF_TEMP_ADDRS)
+		iaidaddr->client_info.client_iatype = 1;
+	else
+		iaidaddr->client_info.client_iatype = 0;
+	if ((iaidaddr->timer =
+			dhcp6_add_timer(server6_iaidaddr_timo, iaidaddr)) == NULL) {
+		dprintf(LOG_ERR, "%s" "failed to add a timer for duid %s iaid %",
+			FNAME, iaidaddr->client_info.client_iaid,
+				duidstr(&iaidaddr->client_info.clientid));
 		free(iaidaddr);
 		return (-1);
 	}
@@ -155,106 +171,211 @@ server6_add_iaidaddr(optinfo)
 	/* add new leases */
 	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
 		if (hash_search(lease_hash_table, (void *)&lv->val_dhcp6addr.addr) != NULL) {
-			/* remove the address from the addr list, since someone already
-			 * got it.
-			 */
-			dprintf(LOG_INFO, "%s" "address for %s is removed", FNAME,
-				in6addr2str(&lv->val_dhcp6addr.addr, 0));
+			dprintf(LOG_INFO, "%s" "address for %s has been used",
+				FNAME, in6addr2str(&lv->val_dhcp6addr.addr, 0));
 			TAILQ_REMOVE(&optinfo->addr_list, lv, link);
 			continue;
 		}
 		if (iaidaddr_add_lease(iaidaddr, &lv->val_dhcp6addr) != 0)
 			TAILQ_REMOVE(&optinfo->addr_list, lv, link); 
 	}
-	if (TAILQ_EMPTY(&iaidaddr->ifaddr_list)) {
-		dprintf(LOG_INFO, "%s" "no leases are added", FNAME);
-		free(iaidaddr);
-		return (0);
-	}
 	if (hash_add(iaidaddr_hash_table, &iaidaddr->client_info, iaidaddr)) {
-		dprintf(LOG_ERR, "%s" "failed to hash_add an iaidaddr", FNAME);
-		free(iaidaddr);
+		dprintf(LOG_ERR, "%s" "failed to hash_add an iaidaddr %d for client duid %s", 
+			FNAME, iaidaddr->client_info.client_iaid,
+				duidstr(&iaidaddr->client_info.clientid));
+		server6_remove_iaidaddr(iaidaddr);
 		return (-1);
 	}
-	dprintf(LOG_DEBUG, "%s" "add iaidaddr for iaid %d", FNAME, iaidaddr->client_info.client_iaid);
+
+	dprintf(LOG_DEBUG, "%s" "hash_add an iaidaddr %d for client duid %s", 
+		FNAME, iaidaddr->client_info.client_iaid,
+			duidstr(&iaidaddr->client_info.clientid));
+	/* it's meaningless to have an iaid without any leases */	
+	if (TAILQ_EMPTY(&iaidaddr->ifaddr_list)) {
+		dprintf(LOG_INFO, "%s" "no leases are added for duid %s iaid %d", 
+			FNAME, duidstr(&iaidaddr->client_info.clientid), 
+				iaidaddr->client_info.client_iaid);
+		server6_remove_iaidaddr(iaidaddr);
+		return (0);
+	}
+
+	/* iaidaddr will be timed out when the max(validlifetime of all addresses 
+	 * in this iaid) */
+	time(&iaidaddr->start_date);
+	dprintf(LOG_DEBUG, "%s" "start date is %ld", FNAME, iaidaddr->start_date);
+	iaidaddr->state = ACTIVE;
+	timo.tv_sec = get_max_validlifetime(iaidaddr);
+	timo.tv_usec = 0;
+	dhcp6_set_timer(&timo, iaidaddr->timer);
+	dprintf(LOG_DEBUG, "%s" "add iaidaddr for client %s iaid %d", FNAME,
+		duidstr(&iaidaddr->client_info.clientid),
+			iaidaddr->client_info.client_iaid);
 	return (0);
 }
 
 int 
-server6_delete_iaidaddr(optinfo)
-	struct dhcp6_optinfo *optinfo;
-{
-	struct dhcp6_list *addr_list = &optinfo->addr_list;
-	struct client_if client_info;
+server6_remove_iaidaddr(iaidaddr)
 	struct server6_cl_iaidaddr *iaidaddr;
-	struct dhcp6_listval *lv;
+{
+	struct client_if client_info;
+	struct server6_lease *lv;
+	struct server6_lease *lease;
 	
 	dprintf(LOG_DEBUG, "%s" "called", FNAME);
-	memcpy(&client_info.clientid, &optinfo->clientID, sizeof(optinfo->clientID));
-	client_info.client_iaid = optinfo->iaid;
-	if (optinfo->flags & DHCIFF_TEMP_ADDRS)
-		client_info.client_iatype = 1;
-	else
-		client_info.client_iatype = 0;
-	if ((iaidaddr = hash_search(iaidaddr_hash_table, (void *)&client_info)) == NULL) {
-		dprintf(LOG_ERR, "%s" "can't find client iaid %d", FNAME, iaidaddr->client_info.client_iaid);
-		return (-1);
-	}
 	/* remove all the leases in this iaid */
-	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
-		struct server6_lease *lease;
-		if ((lease = hash_search(lease_hash_table, (void *)&lv->val_dhcp6addr.addr)) != NULL) {
-			hash_delete(lease_hash_table, &lease->lease_addr);
-			free(lease);
+	for (lv = TAILQ_FIRST(&iaidaddr->ifaddr_list); lv; lv = TAILQ_NEXT(lv, link)) {
+		if ((lease = hash_search(lease_hash_table, 
+				(void *)&lv->lease_addr.addr)) != NULL) {
+	dprintf(LOG_DEBUG, "%s" "lease address is %s", FNAME,
+		in6addr2str(&lv->lease_addr.addr, 0));
+			if (iaidaddr_remove_lease(lv)) {
+				dprintf(LOG_ERR, "%s" "failed to remove an iaid %d", FNAME,
+					 iaidaddr->client_info.client_iaid);
+				return (-1);
+			}
 		}
 	}
-	hash_delete(iaidaddr_hash_table, &iaidaddr->client_info);
+	if (hash_delete(iaidaddr_hash_table, &iaidaddr->client_info)) {
+		dprintf(LOG_ERR, "%s" "failed to remove an iaid %d from hash",
+			FNAME, iaidaddr->client_info.client_iaid);
+		return (-1);
+	}
+	if (iaidaddr->timer)
+		dhcp6_remove_timer(&iaidaddr->timer);
 	free(iaidaddr);
 	return (0);
 }
 
-/* for renew/rebind/release/confirm/decline */
+struct server6_cl_iaidaddr
+*server6_find_iaidaddr(optinfo)
+	struct dhcp6_optinfo *optinfo;
+{
+	struct server6_cl_iaidaddr *iaidaddr;
+	struct client_if client_info;
+	dprintf(LOG_DEBUG, "%s" "called", FNAME);
+	duidcpy(&client_info.clientid, &optinfo->clientID);
+	client_info.client_iaid = optinfo->iaidinfo.iaid;
+	if ((iaidaddr = hash_search(iaidaddr_hash_table, (void *)&client_info)) == NULL) {
+		dprintf(LOG_DEBUG, "%s" "iaid %d iaidaddr for client duid %s doesn't exists", 
+			FNAME, client_info.client_iaid, 
+			duidstr(&client_info.clientid));
+	}
+	return iaidaddr;
+}
 
 int
-server6_update_iaidaddr(optinfo)
+iaidaddr_remove_lease(lease)
+	struct server6_lease *lease;
+{
+	dprintf(LOG_DEBUG, "%s" "removing lease %s", FNAME,
+		in6addr2str(&lease->lease_addr.addr, 0));
+	lease->state = INVALID;
+	if (write_lease(lease, lease_file) != 0) {
+		dprintf(LOG_ERR, "%s" "failed to write an invalid lease %s to lease file", 
+			FNAME, in6addr2str(&lease->lease_addr.addr, 0));
+		return (-1);
+	}
+	if (hash_delete(lease_hash_table, &lease->lease_addr.addr)) {
+		dprintf(LOG_ERR, "%s" "failed to remove an address %s from hash", 
+			FNAME, in6addr2str(&lease->lease_addr.addr, 0));
+		return (-1);
+	}
+	if (lease->timer)
+		dhcp6_remove_timer(&lease->timer);
+	TAILQ_REMOVE(&lease->iaidinfo->ifaddr_list, lease, link);
+	free(lease);
+	return 0;
+}
+		
+/* for renew/rebind/release/decline */
+int
+server6_update_iaidaddr(optinfo, flag)
 	struct dhcp6_optinfo *optinfo;
+	int flag;
 {
 	struct dhcp6_list *addr_list = &optinfo->addr_list;
 	struct server6_cl_iaidaddr *iaidaddr;
 	struct client_if client_info;
 	struct server6_lease *lease;
 	struct dhcp6_listval *lv;
-
+	struct timeval timo;
+	
 	dprintf(LOG_DEBUG, "%s" "called", FNAME);
 	
-	memcpy(&client_info.clientid, &optinfo->clientID, sizeof(client_info.clientid));
-	client_info.client_iaid = optinfo->iaid;
-	
-	if (optinfo->flags & DHCIFF_TEMP_ADDRS)
-		client_info.client_iatype = 1;
-	else
-		client_info.client_iatype = 0;
-	
-	if ((iaidaddr = hash_search(iaidaddr_hash_table, (void *)&client_info)) == NULL)
+	if ((iaidaddr = server6_find_iaidaddr(optinfo)) == NULL) {
 		return (-1);
+	}
 	
-	/* add or update new lease */
-	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
-		if (lease = iaidaddr_find_lease(iaidaddr, &lv->val_dhcp6addr)) {
-			iaidaddr_update_lease(&lv->val_dhcp6addr, lease);
-		}
-		else if (iaidaddr_add_lease(iaidaddr, &lv->val_dhcp6addr)) {
-			dprintf(LOG_ERR, "%s" "failed to add a new addr", FNAME);
+	if (iaidaddr->timer == NULL) {
+		if ((iaidaddr->timer = dhcp6_add_timer(server6_iaidaddr_timo, 
+						iaidaddr)) == NULL) {
+			dprintf(LOG_ERR, "%s" "failed to create a new event "
+	    			"timer", FNAME);
+			return (-1); 
 		}
 	}
-	/* remove leases that are not on the new list */
-	for (lease = TAILQ_FIRST(&iaidaddr->ifaddr_list); lease; lease = TAILQ_NEXT(lease, link)) {
-		if (!addr_on_addrlist(&optinfo->addr_list, &lease->lease_addr)) {
-			hash_delete(lease_hash_table, &lease->lease_addr);
-			free(lease);
+	if (flag == ADDR_UPDATE) {		
+		/* add or update new lease */
+		for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
+			if ((lease = iaidaddr_find_lease(iaidaddr, &lv->val_dhcp6addr)) 
+					!= NULL) {
+				iaidaddr_update_lease(&lv->val_dhcp6addr, lease);
+			} else {
+				dprintf(LOG_DEBUG, "%s" "failed to find lease", FNAME);
+				/* update the preferlifetime and valid lifetime 0 */
+				lv->val_dhcp6addr.validlifetime = 0;
+				lv->val_dhcp6addr.preferlifetime = 0;
+			}
 		}
+		/* add leases that to the reply list */
+		for (lease = TAILQ_FIRST(&iaidaddr->ifaddr_list); lease; 
+				lease = TAILQ_NEXT(lease, link)) {
+			if (!addr_on_addrlist(&optinfo->addr_list, &lease->lease_addr.addr)) {
+				dhcp6_add_listval(&optinfo->addr_list, &lease->lease_addr,
+					DHCP6_LISTVAL_DHCP6ADDR);
+				iaidaddr_update_lease(&lease->lease_addr, lease);
+			}
+		}
+		/* iaidaddr will be timed out when the max
+		 * (validlifetime of all addresses in this iaid) */
+		time(&iaidaddr->start_date);
+		iaidaddr->state = ACTIVE;
+		timo.tv_sec = get_max_validlifetime(iaidaddr);
+		timo.tv_usec = 0;
+		dhcp6_set_timer(&timo, iaidaddr->timer);
+		dprintf(LOG_DEBUG, "%s" "update iaidaddr for iaid %d", FNAME, 
+			iaidaddr->client_info.client_iaid);
+	} else if (flag == ADDR_REMOVE) {
+		/* add or update new lease */
+		for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
+			if (lease = iaidaddr_find_lease(iaidaddr, &lv->val_dhcp6addr)) {
+				iaidaddr_remove_lease(lease);
+			} else {
+				dprintf(LOG_INFO, "%s" "address is not on the iaid", FNAME);
+			}
+		}
+	
 	}
 	return (0);
+}
+
+int
+server6_validate_iaidaddr(optinfo)
+	struct dhcp6_optinfo *optinfo;
+{
+	struct server6_cl_iaidaddr *iaidaddr;
+	struct dhcp6_listval *lv;
+
+	dprintf(LOG_DEBUG, "%s" "called", FNAME);
+	if ((iaidaddr = server6_find_iaidaddr(optinfo)) == NULL) {
+		return (-1);
+	}
+	/* add or update new lease */
+	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
+		if (!iaidaddr_find_lease(iaidaddr, &lv->val_dhcp6addr)) 
+			return (-1);
+	}
+	return 0;
 }
 
 int
@@ -263,6 +384,7 @@ iaidaddr_add_lease(iaidaddr, addr)
 	struct dhcp6_addr *addr;
 {
 	struct server6_lease *sp;
+	struct timeval timo;
 	/* ignore meaningless address, this never happens */
 	if (addr->validlifetime == 0 || addr->preferlifetime == 0) {
 		dprintf(LOG_INFO, "%s" "zero address life time for %s",
@@ -282,32 +404,38 @@ iaidaddr_add_lease(iaidaddr, addr)
 		return (-1);
 	}
 	memset(sp, 0, sizeof(*sp));
-	sp->iaidinfo = iaidaddr;
-	sp->validlifetime = addr->validlifetime;
-	sp->preferlifetime = addr->preferlifetime;
-	memcpy(&sp->lease_addr, &addr->addr, sizeof(addr->addr));
-	sp->plen = addr->plen;
-	sp->state = ADDR6S_ACTIVE;
-	gettimeofday((struct timeval *)&sp->start_date, NULL);
-	
-	/* ToDo: preferlifetime EXPIRED; validlifetime DELETED; renew T1; rebind T2 timer
-	 * renew/rebind based on iaid, preferlifetime, validlifetime based on per addr
-	 */
-	/* if a finite lease perferlifetime is specified, set up a timer. */
-
-	if (hash_add(lease_hash_table, &sp->lease_addr, sp)) {
-		dprintf(LOG_ERR, "%s" "failed to add hash for an address", FNAME);
+	memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
+	sp->iaidinfo = iaidaddr;	
+	if ((sp->timer = dhcp6_add_timer(iaidaddr_lease_timo, sp)) == NULL) {
+		dprintf(LOG_ERR, "%s" "failed to create a new event "
+	    		"timer", FNAME);
 		free(sp);
-		return (-1);
+		return (-1); 
 	}
+	/* ToDo: preferlifetime EXPIRED; validlifetime DELETED; */
+	/* if a finite lease perferlifetime is specified, set up a timer. */
+	time(&sp->start_date);
+	dprintf(LOG_DEBUG, "%s" "start date is %ld", FNAME, sp->start_date);
+	sp->state = ACTIVE;
 	if (write_lease(sp, lease_file) != 0) {
 		dprintf(LOG_ERR, "%s" "failed to write lease to lease file", FNAME,
-			in6addr2str(&sp->lease_addr, 0));
-		hash_delete(lease_hash_table, &sp->lease_addr);
+			in6addr2str(&sp->lease_addr.addr, 0));
+		free(sp->timer);
 		free(sp);
 		return (-1);
 	}
+	if (hash_add(lease_hash_table, &sp->lease_addr.addr, sp)) {
+		dprintf(LOG_ERR, "%s" "failed to add hash for an address", FNAME);
+			free(sp->timer);
+			free(sp);
+			return (-1);
+	}
 	TAILQ_INSERT_TAIL(&iaidaddr->ifaddr_list, sp, link);
+	timo.tv_sec = sp->lease_addr.preferlifetime; 
+	timo.tv_usec = 0;
+	dhcp6_set_timer(&timo, sp->timer);
+	dprintf(LOG_DEBUG, "%s" "add lease for %s iaid %d", FNAME,
+		in6addr2str(&sp->lease_addr.addr, 0), sp->iaidinfo->client_info.client_iaid);
 	return (0);
 }
 
@@ -316,38 +444,50 @@ iaidaddr_update_lease(addr, sp)
 	struct dhcp6_addr *addr;
 	struct server6_lease *sp;
 {
+	struct timeval timo;
 	if (addr->preferlifetime == DHCP6_DURATITION_INFINITE) {
 		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
 		    "with infinite preferlifetime", FNAME,
-		    in6addr2str(&addr->addr, 0), addr->plen);
+		    in6addr2str(&addr->addr, 0), addr->plen,
+		    addr->preferlifetime);
 	} else {
 		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
 		    "with preferlifetime %d", FNAME,
-		    in6addr2str(&addr->addr, 0), addr->plen);
+		    in6addr2str(&addr->addr, 0), addr->plen,
+		    addr->preferlifetime);
 	}
 	if (addr->validlifetime == DHCP6_DURATITION_INFINITE) {
 		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
 		    "with infinite validlifetime", FNAME,
-		    in6addr2str(&addr->addr, 0), addr->plen);
+		    in6addr2str(&addr->addr, 0), addr->plen,
+		    addr->validlifetime);
 	} else {
 		dprintf(LOG_DEBUG, "%s" "update an address %s/%d "
 		    "with validlifetime %d", FNAME,
-		    in6addr2str(&addr->addr, 0), addr->plen);
+		    in6addr2str(&addr->addr, 0), addr->plen,
+		    addr->validlifetime);
 	}
- 
-	sp->validlifetime = addr->validlifetime;
-	sp->preferlifetime = addr->preferlifetime;
+	if (sp->timer == NULL) {
+		if ((sp->timer = dhcp6_add_timer(iaidaddr_lease_timo, sp)) == NULL) {
+			dprintf(LOG_ERR, "%s" "failed to create a new event "
+	    			"timer", FNAME);
+			return (-1); 
+		}
+	}
+	 
+	memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
 
 	/* ToDo: update the renew/rebind, expire/release timer*/
-	
-	sp->state = ADDR6S_ACTIVE;
+	time(&sp->start_date);
+	sp->state = ACTIVE;
 	if (write_lease(sp, lease_file) != 0) {
-		dprintf(LOG_ERR, "%s" "failed to write lease to lease file", FNAME,
-			in6addr2str(&sp->lease_addr, 0));
-		hash_delete(lease_hash_table, &sp->lease_addr);
-		free(sp);
+		dprintf(LOG_ERR, "%s" "failed to write an updated lease %s to lease file", 
+			FNAME, in6addr2str(&sp->lease_addr.addr, 0));
 		return (-1);
 	}
+	timo.tv_sec = sp->lease_addr.preferlifetime; 
+	timo.tv_usec = 0;
+	dhcp6_set_timer(&timo, sp->timer);
 	return (0);
 }
 
@@ -357,11 +497,17 @@ iaidaddr_find_lease(iaidaddr, ifaddr)
 	struct dhcp6_addr *ifaddr;
 {
 	struct server6_lease *sp;
-
+	dprintf(LOG_DEBUG, "%s" "called", FNAME);
 	for (sp = TAILQ_FIRST(&iaidaddr->ifaddr_list); sp;
 	     sp = TAILQ_NEXT(sp, link)) {
-		if (sp->plen == ifaddr->plen &&
-		    IN6_ARE_ADDR_EQUAL(&sp->lease_addr, &ifaddr->addr)) {
+		/* check for prefix length
+		 * sp->lease_addr.plen == ifaddr->plen &&
+		 */
+      		dprintf(LOG_DEBUG, "%s" "request address is %s ", FNAME,
+			in6addr2str(&ifaddr->addr, 0));		
+      		dprintf(LOG_DEBUG, "%s" "lease address is %s ", FNAME,
+			in6addr2str(&sp->lease_addr.addr, 0));		
+	      	if (IN6_ARE_ADDR_EQUAL(&sp->lease_addr.addr, &ifaddr->addr)) {
 			return (sp);
 		}
 	}
@@ -441,7 +587,7 @@ server6_create_addrlist(tempaddr, subnet, optinfo, roptinfo)
 	struct dhcp6_list *req_list = &optinfo->addr_list;
 	
 	struct duid *clientID = &optinfo->clientID;
-	u_int32_t iaid = optinfo->iaid;
+	u_int32_t iaid = optinfo->iaidinfo.iaid;
 
 	dprintf(LOG_DEBUG, "%s" "called", FNAME);
 	/* do we allow the request addr list from client ?
@@ -460,7 +606,7 @@ server6_create_addrlist(tempaddr, subnet, optinfo, roptinfo)
 	for (seg = subnet->seglist; seg; seg = seg->next) {
 		struct in6_addr current;
 		int round = 0;
-		memcpy(&current, seg->free, sizeof(*seg->free));
+		memcpy(&current, seg->free, sizeof(current));
 		do {
 			memset(addr6, 0, sizeof(*addr6));
 			if (tempaddr) 
@@ -468,12 +614,12 @@ server6_create_addrlist(tempaddr, subnet, optinfo, roptinfo)
 				create_tempaddr(&seg->prefix.addr, seg->prefix.plen, addr6);
 		
 			else {
-				memcpy(addr6, seg->free, sizeof(*seg->free));
+				memcpy(addr6, seg->free, sizeof(*addr6));
 				/* set seg->free */
 				seg->free = inc_ipv6addr(seg->free);
-				if (ipv6addrcmp(seg->free, &seg->max) > 0 ) {
+				if (ipv6addrcmp(seg->free, &seg->max) == 1 ) {
 					round = 1;
-					memcpy(seg->free, &seg->min, sizeof(seg->min));
+					memcpy(seg->free, &seg->min, sizeof(*seg->free));
 				}
 				if (round && IN6_ARE_ADDR_EQUAL(&current, addr6)) {
 					memset(addr6, 0, sizeof(*addr6));
@@ -487,11 +633,12 @@ server6_create_addrlist(tempaddr, subnet, optinfo, roptinfo)
 		if (IN6_IS_ADDR_UNSPECIFIED(addr6)) continue;
 		v6addr = (struct dhcp6_listval *)malloc(sizeof(*v6addr));
 		if (v6addr == NULL) {
-			dprintf(LOG_ERR, "%s" "fail to allocate memory", FNAME, strerror(errno));
+			dprintf(LOG_ERR, "%s" "fail to allocate memory", 
+				FNAME, strerror(errno));
 			continue;
 		}
 		memset(v6addr, 0, sizeof(*v6addr));
-		memcpy(&v6addr->val_dhcp6addr.addr, addr6, sizeof(*addr6));
+		memcpy(&v6addr->val_dhcp6addr.addr, addr6, sizeof(v6addr->val_dhcp6addr.addr));
 		v6addr->val_dhcp6addr.plen = seg->prefix.plen;
 		if (seg->parainfo.prefer_life_time == 0)
 			seg->parainfo.prefer_life_time = DEFAULT_PREFERRED_LIFE_TIME;
@@ -506,8 +653,9 @@ server6_create_addrlist(tempaddr, subnet, optinfo, roptinfo)
 }
 
 struct link_decl 
-*server6_allocate_link(rootgroup)
+*server6_allocate_link(rootgroup, relay)
 	struct rootgroup *rootgroup;
+	struct in6_addr *relay;
 {
 	struct link_decl *link;
 	struct interface *ifnetwork;
@@ -520,12 +668,99 @@ struct link_decl
 				/* without relay agent support, so far we assume
 				 * that client and server on the same link
 				 */
-				if (link->relaylist != NULL)
-					continue;
-				else
-					return link;
+				struct v6addrlist *temp;
+				if (relay == NULL) {
+					if (link->relaylist != NULL) 
+						continue;
+					else
+						return link;
+				} else {
+					for (temp = link->relaylist; temp; temp = temp->next) {
+						if (IN6_ARE_ADDR_EQUAL(relay, &temp->v6addr.addr))
+							return link;
+						else
+							continue;
+					}
+				}
 			}
 		}
 	}
 	return NULL;
+}
+
+static struct dhcp6_timer 
+*server6_iaidaddr_timo(arg)
+	void *arg;
+{
+	struct server6_cl_iaidaddr *sp = (struct server6_cl_iaidaddr *)arg;
+	struct timeval timeo;
+	double d;
+
+	dprintf(LOG_DEBUG, "%s" "iaidaddr timeout for %d, state=%d", FNAME,
+		sp->client_info.client_iaid, sp->state);
+	switch(sp->state) {
+	case ACTIVE:
+		if (!TAILQ_EMPTY(&sp->ifaddr_list)) {
+			struct timeval timo;
+			timo.tv_sec = get_max_validlifetime(sp);
+			timo.tv_usec = 0;
+			dhcp6_set_timer(&timo, sp->timer);
+			return (sp->timer);
+			
+		} else {
+			sp->state = INVALID;
+			server6_remove_iaidaddr(sp);
+			return (NULL);
+		}
+	default:
+		server6_remove_iaidaddr(sp);
+		return (NULL);
+	}
+}
+
+static struct dhcp6_timer
+*iaidaddr_lease_timo(arg)
+	void *arg;
+{
+	struct server6_lease *sp = (struct server6_lease *)arg;
+	struct timeval timeo;
+	double d;
+
+	dprintf(LOG_DEBUG, "%s" "lease timeout for %s, state=%d", FNAME,
+		in6addr2str(&sp->lease_addr.addr, 0), sp->state);
+
+	switch(sp->state) {
+	case ACTIVE:
+		sp->state = EXPIRED;
+		d = sp->lease_addr.validlifetime - sp->lease_addr.preferlifetime;
+		timeo.tv_sec = (long)d;
+		timeo.tv_usec = 0;
+		dhcp6_set_timer(&timeo, sp->timer);
+		break;
+	case EXPIRED:
+		sp->state = INVALID;
+		iaidaddr_remove_lease(sp);
+		return (NULL);
+	default:
+		if (sp->timer)
+			dhcp6_remove_timer(&sp->timer);
+		return (NULL);
+	}
+	return (sp->timer);
+}
+
+static u_int32_t
+get_max_validlifetime(sp)
+	struct server6_cl_iaidaddr *sp;
+{
+	struct server6_lease *lv, *first;
+	u_int32_t max;
+	if (TAILQ_EMPTY(&sp->ifaddr_list))
+		return 0;
+	first = TAILQ_FIRST(&sp->ifaddr_list);
+	max = first->lease_addr.validlifetime;
+	for (lv = TAILQ_FIRST(&sp->ifaddr_list); lv; lv = TAILQ_NEXT(lv, link)) {
+		max = MAX(max, lv->lease_addr.validlifetime);
+	}
+	return max;
 }

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: dhcp6.h,v 1.2 2003/01/20 20:25:42 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -47,10 +47,16 @@
 #define DH6_SOLICIT	1
 #define DH6_ADVERTISE	2
 #define DH6_REQUEST	3
+#define DH6_CONFIRM	4
 #define DH6_RENEW	5
 #define DH6_REBIND	6
 #define DH6_REPLY	7
+#define DH6_RELEASE	8
+#define DH6_DECLINE	9
+#define DH6_RECONFIGURE	10
 #define DH6_INFORM_REQ	11
+#define DH6_RELAY_FORW	12
+#define DH6_RELAY_REPL	13
 
 /* Predefined addresses */
 #define DH6ADDR_ALLAGENT	"ff02::1:2"
@@ -74,6 +80,13 @@
 #define REN_MAX_RT	600000	/* 600secs */
 #define REB_TIMEOUT	10000	/* 10secs */
 #define REB_MAX_RT	600000	/* 600secs */
+#define DEC_TIMEOUT	1000
+#define DEC_MAX_RC	5
+#define REL_TIMEOUT	2000
+#define REL_MAX_RC	8
+#define CNF_TIMEOUT	1000
+#define CNF_MAX_RD	10000
+#define CNF_MAX_RT	4000
 
 #define DHCP6_DURATITION_INFINITE 0xffffffff
 
@@ -83,6 +96,13 @@
 struct duid {
 	int duid_len;		/* length */
 	char *duid_id;		/* variable length ID value (must be opaque) */
+};
+
+/* iaid info for the IA_NA */
+struct dhcp6_iaid_info {
+	u_int32_t iaid;
+	u_int32_t renewtime;
+	u_int32_t rebindtime;
 };
 
 /* dhcpv6 addr */
@@ -123,10 +143,7 @@ typedef enum { DHCP6_LISTVAL_NUM, DHCP6_LISTVAL_ADDR6,
 struct dhcp6_optinfo {
 	struct duid clientID;	/* DUID */
 	struct duid serverID;	/* DUID */
-	u_int32_t iaid;		/* IA iaid */
-	
-	u_int32_t renewtime;	/* addrs T1 time */
-	u_int32_t rebindtime;	/* addrs T2 time */
+	struct dhcp6_iaid_info iaidinfo;
 	u_int8_t flags;	/* flags for rapid commit, info_only, temp address */
 	int pref;		/* server preference */
 
@@ -238,13 +255,6 @@ struct dhcp6_addr_info {
 	u_int32_t validlifetime;
 /*	u_int8_t plen;	*/
 	struct dhcp6_status_info status;
-} __attribute__ ((__packed__));
-
-/* iaid info for the IA_NA */
-struct dhcp6_iaid_info {
-	u_int32_t iaid;
-	u_int32_t renewtime;
-	u_int32_t rebindtime;
 } __attribute__ ((__packed__));
 
 #endif /*__DHCP6_H_DEFINED*/

@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: config.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -70,7 +70,6 @@ static void clear_ifconf __P((struct dhcp6_ifconf *));
 static void clear_prefixifconf __P((struct prefix_ifconf *));
 static void clear_hostconf __P((struct host_conf *));
 static void clear_options __P((struct dhcp6_optconf *));
-static int configure_duid __P((char *, struct duid *));
 static int get_default_ifid __P((struct prefix_ifconf *));
 
 void
@@ -401,7 +400,7 @@ configure_global_option()
 	return -1;
 }
 
-static int
+int
 configure_duid(str, duid)
 	char *str;		/* this is a valid DUID string */
 	struct duid *duid;
@@ -425,7 +424,7 @@ configure_duid(str, duid)
 		return (-1);
 	}
 
-	if ((idbuf = malloc(sizeof(duidlen))) == NULL) {
+	if ((idbuf = (char *)malloc(duidlen)) == NULL) {
 		dprintf(LOG_ERR, "%s" "memory allocation failed", FNAME);
 		return (-1);
 	}
@@ -445,7 +444,7 @@ configure_duid(str, duid)
 
 	duid->duid_len = duidlen;
 	duid->duid_id = idbuf;
-
+	dprintf(LOG_DEBUG, "configure duid is %s", duidstr(duid));
 	return (0);
 
   bad:

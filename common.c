@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: common.c,v 1.2 2003/01/20 20:25:22 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -210,7 +210,7 @@ dhcp6_add_listval(head, val, type)
 	default:
 		dprintf(LOG_ERR, "%s" "unexpected list value type (%d)",
 		    FNAME, type);
-		exit(1);
+		return (NULL);
 	}
 
 	TAILQ_INSERT_TAIL(head, lv, link);
@@ -249,10 +249,10 @@ dhcp6_remove_event(ev)
 			"event data list is not empty", FNAME);
 		exit(1);
 	}
-	/*
-	 * ToDo: where the serverid gets assgined??
-	 * duidfree(&ev->serverid);
-	 */
+#ifdef mshirley
+	if (ev->serverid.duid_id)
+		duidfree(&ev->serverid);
+#endif
 	if (ev->timer)
 		dhcp6_remove_timer(&ev->timer);
 	TAILQ_REMOVE(&ev->ifp->event_list, ev, link);
@@ -315,7 +315,7 @@ getifaddr(addr, ifnam, prefix, plen, strong, ignoreflags)
 		if (in6_matchflags(ifa->ifa_addr, ifa->ifa_name, ignoreflags))
 			continue;
 
-		memcpy(&sin6, ifa->ifa_addr, sizeof(*(ifa->ifa_addr)));
+		memcpy(&sin6, ifa->ifa_addr, sizeof(sin6));
 #ifdef __KAME__
 		if (IN6_IS_ADDR_LINKLOCAL(&sin6.sin6_addr)) {
 			sin6.sin6_addr.s6_addr[2] = 0;
@@ -329,7 +329,7 @@ getifaddr(addr, ifnam, prefix, plen, strong, ignoreflags)
 			struct in6_addr a, m;
 			int i;
 
-			memcpy(&a, &sin6.sin6_addr, sizeof(sin6.sin6_addr));
+			memcpy(&a, &sin6.sin6_addr, sizeof(a));
 			memset(&m, 0, sizeof(m));
 			memset(&m, 0xff, plen / 8);
 			m.s6_addr[plen / 8] = (0xff00 >> (plen % 8)) & 0xff;
@@ -341,7 +341,7 @@ getifaddr(addr, ifnam, prefix, plen, strong, ignoreflags)
 			    (prefix->s6_addr[plen / 8] & m.s6_addr[plen / 8]))
 				continue;
 		}
-		memcpy(addr, &sin6.sin6_addr, sizeof(sin6.sin6_addr));
+		memcpy(addr, &sin6.sin6_addr, sizeof(*addr));
 #ifdef __KAME__
 		if (IN6_IS_ADDR_LINKLOCAL(addr))
 			addr->s6_addr[2] = addr->s6_addr[3] = 0; 
@@ -943,8 +943,8 @@ dhcp6_get_options(p, ep, optinfo)
 				goto malformed;
 			/* check iaid */
 			optinfo->flags |= DHCIFF_TEMP_ADDRS;
-			dprintf(LOG_DEBUG, "%s" "get option iaid is %d", FNAME, optinfo->iaid);
-			optinfo->iaid = ntohl(*(u_int32_t *)cp);
+			dprintf(LOG_DEBUG, "%s" "get option iaid is %d", FNAME, optinfo->iaidinfo.iaid);
+			optinfo->iaidinfo.iaid = ntohl(*(u_int32_t *)cp);
 			if (get_assigned_ipv6addrs(cp + 4, cp + optlen, optinfo))
 				goto fail;
 			break;
@@ -952,10 +952,11 @@ dhcp6_get_options(p, ep, optinfo)
 			/* check iaid */
 			if (optlen < sizeof(struct dhcp6_iaid_info)) 
 				goto malformed;
-			optinfo->iaid = ntohl(*(u_int32_t *)cp);
-			dprintf(LOG_DEBUG, "%s" "get option iaid is %d", FNAME, optinfo->iaid);
-			optinfo->renewtime = ntohl(*(u_int32_t *)(cp + sizeof(u_int32_t)));
-			optinfo->rebindtime = ntohl(*(u_int32_t *)(cp + 2 * sizeof(u_int32_t)));
+			optinfo->iaidinfo.iaid = ntohl(*(u_int32_t *)cp);
+			dprintf(LOG_DEBUG, "%s" "get option iaid is %d", FNAME, optinfo->iaidinfo.iaid);
+			optinfo->iaidinfo.renewtime = ntohl(*(u_int32_t *)(cp + sizeof(u_int32_t)));
+			optinfo->iaidinfo.rebindtime = 
+						ntohl(*(u_int32_t *)(cp + 2 * sizeof(u_int32_t)));
 			if (get_assigned_ipv6addrs(cp + 3 * sizeof(u_int32_t), cp + optlen, optinfo))
 				goto fail;
 			break;
@@ -1067,7 +1068,7 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 			    addr6.preferlifetime, addr6.validlifetime);
 			/* It shouldn't happen, since Server will do the check before 
 			 * sending the data to clients */
-			if (addr6.preferlifetime >= addr6.validlifetime) {
+			if (addr6.preferlifetime > addr6.validlifetime) {
 				dprintf(LOG_INFO, "%s" "preferred life time"
 				    "(%ld) is greater than valid life time"
 				    "(%ld)", FNAME, addr6.preferlifetime, addr6.validlifetime);
@@ -1233,7 +1234,7 @@ dhcp6_set_options(bp, ep, optinfo)
 	if (optinfo->flags & DHCIFF_RAPID_COMMIT)
 		COPY_OPTION(DH6OPT_RAPID_COMMIT, 0, NULL, p);
 	
-	if ((optinfo->flags & DHCIFF_TEMP_ADDRS) && optinfo->iaid != 0) {
+	if ((optinfo->flags & DHCIFF_TEMP_ADDRS) && optinfo->iaidinfo.iaid != 0) {
 		char *tp;
 		u_int32_t iaid;
 		struct dhcp6_listval *dp;
@@ -1247,7 +1248,7 @@ dhcp6_set_options(bp, ep, optinfo)
 				"memory allocation failed for options", FNAME);
 			goto fail;
 		}
-		iaid = htonl(optinfo->iaid); 
+		iaid = htonl(optinfo->iaidinfo.iaid); 
 		memcpy(tmpbuf, &iaid, sizeof(u_int32_t));
 		if (!TAILQ_EMPTY(&optinfo->addr_list)) {
 			for (dp = TAILQ_FIRST(&optinfo->addr_list), 
@@ -1264,7 +1265,7 @@ dhcp6_set_options(bp, ep, optinfo)
 				ai.preferlifetime = htonl(dp->val_dhcp6addr.preferlifetime);
 				ai.validlifetime = htonl(dp->val_dhcp6addr.validlifetime);
 				memcpy(&ai.addr, &dp->val_dhcp6addr.addr,
-			       		sizeof(struct in6_addr));
+			       		sizeof(ai.addr));
 				memcpy(tp, &ai, sizeof(ai));
 			}
 			/* ToDo where to put the option status code of this address 
@@ -1287,7 +1288,7 @@ dhcp6_set_options(bp, ep, optinfo)
 		COPY_OPTION(DH6OPT_IA_TA, optlen, tmpbuf, p);
 		free(tmpbuf);
 	}
-	if (optinfo->iaid != 0) { 
+	if (optinfo->iaidinfo.iaid != 0) { 
 		char *tp;
 		struct dhcp6_listval *dp;
 		struct dhcp6_addr_info ai;
@@ -1301,9 +1302,12 @@ dhcp6_set_options(bp, ep, optinfo)
 				"memory allocation failed for options", FNAME);
 			goto fail;
 		}
-		opt_iana.iaid = htonl(optinfo->iaid);
-		opt_iana.renewtime = htonl(optinfo->renewtime);
-		opt_iana.rebindtime = htonl(optinfo->rebindtime);
+		opt_iana.iaid = htonl(optinfo->iaidinfo.iaid);
+		opt_iana.renewtime = htonl(optinfo->iaidinfo.renewtime);
+		opt_iana.rebindtime = htonl(optinfo->iaidinfo.rebindtime);
+		dprintf(LOG_DEBUG, "%s" "assigned address information: "
+		    "iaid %d renewtime %ld rebindtime %ld", FNAME,
+		    optinfo->iaidinfo.iaid, optinfo->iaidinfo.renewtime, optinfo->iaidinfo.rebindtime);
 		memcpy(tmpbuf, &opt_iana, sizeof(opt_iana));
 		if (!TAILQ_EMPTY(&optinfo->addr_list)) {
 			for (dp = TAILQ_FIRST(&optinfo->addr_list), 
@@ -1319,13 +1323,12 @@ dhcp6_set_options(bp, ep, optinfo)
 				ai.preferlifetime = htonl(dp->val_dhcp6addr.preferlifetime);
 				ai.validlifetime = htonl(dp->val_dhcp6addr.validlifetime);
 				memcpy(&ai.addr, &dp->val_dhcp6addr.addr,
-			       		sizeof(struct in6_addr));
+			       		sizeof(ai.addr));
 				ai.status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
 				ai.status.dh6_status_len = htons(sizeof(u_int32_t));
 				ai.status.dh6_status_code = htons(dp->val_dhcp6addr.status_code);
 				memcpy(tp, &ai, sizeof(ai));
 			}
-			/* ToDo status code about this address for renew/rebind/confirm/decline */
 		} else if (dhcp6_mode == DHCP6_MODE_SERVER) {
 			int num;
 			num = DH6OPT_STCODE_NOADDRAVAIL;
@@ -1474,6 +1477,18 @@ dhcp6_set_timeoparam(ev)
 		ev->init_retrans = REB_TIMEOUT;
 		ev->max_retrans_time = REB_MAX_RT;
 		break;
+        case DHCP6S_DECLINE:
+                ev->init_retrans = DEC_TIMEOUT;
+                ev->max_retrans_cnt = DEC_MAX_RC;
+                break;
+        case DHCP6S_RELEASE:
+                ev->init_retrans = REL_TIMEOUT;
+                ev->max_retrans_cnt = REL_MAX_RC;
+                break;
+        case DHCP6S_CONFIRM:
+                ev->init_retrans = CNF_TIMEOUT;
+                ev->max_retrans_dur = CNF_MAX_RD;
+                ev->max_retrans_time = CNF_MAX_RT;
 	default:
 		dprintf(LOG_INFO, "%s" "unexpected event state %d on %s",
 		    FNAME, ev->state, ev->ifp->ifname);
@@ -1543,6 +1558,15 @@ dhcp6_reset_timer(ev)
 	case DHCP6S_REBIND:
 		statestr = "REBIND";
 		break;
+	case DHCP6S_CONFIRM:
+		statestr = "CONFIRM";
+		break;
+	case DHCP6S_DECLINE:
+		statestr = "DECLINE";
+		break;
+	case DHCP6S_RELEASE:
+		statestr = "RELEASE";
+		break;
 	case DHCP6S_IDLE:
 		statestr = "IDLE";
 		break;
@@ -1588,10 +1612,14 @@ void
 duidfree(duid)
 	struct duid *duid;
 {
+	dprintf(LOG_DEBUG, "%s" "DUID is %s, DUID_LEN is %d", 
+			FNAME, duidstr(duid), duid->duid_len);
 	if (duid->duid_id != NULL && duid->duid_len != 0) {
 		dprintf(LOG_DEBUG, "%s" "removing ID (ID: %s)",
 		    FNAME, duidstr(duid));
 		free(duid->duid_id);
+		duid->duid_id = NULL;
+		duid->duid_len = 0;
 	}
 	duid->duid_len = 0;
 }
@@ -1652,8 +1680,20 @@ dhcp6msgstr(type)
 		return "request";
 	case DH6_REPLY:
 		return "reply";
+	case DH6_CONFIRM:
+		return "confirm";
+	case DH6_RELEASE:
+		return "release";
+	case DH6_DECLINE:
+		return "decline";
 	case DH6_INFORM_REQ:
 		return "information request";
+	case DH6_RECONFIGURE:
+		return "reconfigure";
+	case DH6_RELAY_FORW:
+		return "relay forwarding";
+	case DH6_RELAY_REPL:
+		return "relay reply";
 	default:
 		sprintf(genstr, "msg%d", type);
 		return (genstr);

@@ -1,4 +1,4 @@
-/*	$Id: prefixconf.c,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: prefixconf.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
 /*	ported from KAME: prefixconf.c,v 1.9 2002/12/12 09:47:26 suz Exp */
 
 /*
@@ -84,8 +84,7 @@ static int update __P((struct dhcp6_siteprefix *, struct dhcp6_prefix *,
 			  struct duid *));
 
 extern struct dhcp6_timer *client6_timo __P((void *));
-extern void client6_send_renew __P((struct dhcp6_event *));
-extern void client6_send_rebind __P((struct dhcp6_event *));
+extern void client6_send __P((struct dhcp6_event *));
 
 void
 prefix6_init()
@@ -450,10 +449,8 @@ prefix6_timo(arg)
 
 	switch(sp->state) {
 	case PREFIX6S_RENEW:
-		client6_send_renew(ev);
-		break;
 	case PREFIX6S_REBIND:
-		client6_send_rebind(ev);
+		client6_send(ev);
 		break;
 	case PREFIX6S_ACTIVE:
 		/* what to do? */

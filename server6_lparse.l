@@ -1,4 +1,4 @@
-/*	$Id: server6_lparse.l,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: server6_lparse.l,v 1.2 2003/01/20 20:25:56 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -42,7 +42,6 @@
 #include "hash.h"
 
 
-static int parser_i = 0, parser_rc, parsing_lease = 0;
 extern struct hash_table **hash_anchors;
 extern FILE *lease_file;
 static struct server6_lease *lease_rec;
@@ -71,6 +70,7 @@ LBRACE		("{")
 RBRACE		("}")
 
 %s LEASE
+%s RBRACE
 %s PREFIX_LEN
 %s SDATE
 %s PLIFE
@@ -84,8 +84,7 @@ RBRACE		("}")
 %s START
 
 %%
-^"lease" {parsing_lease = 1;
- 	  lease_rec = (struct server6_lease *)
+^"lease" { lease_rec = (struct server6_lease *)
 			malloc(sizeof(struct server6_lease));
 	  if (!lease_rec) {
 		dprintf(LOG_ERR, "Couldn't malloc lease");
@@ -106,25 +105,27 @@ RBRACE		("}")
 {WHITESPACE}   {;}
 
 <LEASE>{addr} { if (inet_pton(AF_INET6, yytext, 
-			&lease_rec->lease_addr) < 1) {
+			&lease_rec->lease_addr.addr) < 1) {
 				dprintf(LOG_ERR, "invalid address"); 
 				return (-1);
 			}
+			dprintf(LOG_DEBUG, "lease address is %s", 
+				in6addr2str(&lease_rec->lease_addr.addr, 0));
 	      }
 <LEASE>{COLON}     {;} 
 <LEASE>"/"     {BEGIN PREFIX_LEN;}
-<PREFIX_LEN>{NUMBER}  {lease_rec->plen = (u_int8_t)atoi(yytext);}
+<PREFIX_LEN>{NUMBER}  {lease_rec->lease_addr.plen = (u_int8_t)atoi(yytext);}
 <PREFIX_LEN>{LBRACE}  {;} 
-<PREFIX_LEN>\n        {parser_i = 0; BEGIN INITIAL;}
+<PREFIX_LEN>\n        {BEGIN INITIAL;}
 
 <SDATE>\n      {BEGIN INITIAL;}
 <SDATE>.       {;}
 
-<PLIFE>{HEXNUM}          {lease_rec->preferlifetime = (u_int)strtoul(yytext,NULL,16);}
+<PLIFE>{HEXNUM}          {lease_rec->lease_addr.preferlifetime = (u_int)strtoul(yytext,NULL,16);}
 <PLIFE>.                 {;}
 <PLIFE>[\n]              {BEGIN INITIAL;}
 
-<VLIFE>{HEXNUM}          {lease_rec->validlifetime = (u_int)strtoul(yytext,NULL,16);}
+<VLIFE>{HEXNUM}          {lease_rec->lease_addr.validlifetime = (u_int)strtoul(yytext,NULL,16);}
 <VLIFE>.                 {;}
 <VLIFE>[\n]              {BEGIN INITIAL;}
 
@@ -134,24 +135,21 @@ RBRACE		("}")
 <IAID>[\n]              {BEGIN INITIAL;}
 <IAID>.      {;} 
 
-<DUIDLEN>{NUMBER}    {temp_iaid_key.clientid.duid_len = (u_int)atoi(yytext);
-                      strcpy(temp_iaid_key.clientid.duid_id,"");}
-<DUIDLEN>.            {;}
-<DUIDLEN>\n           {BEGIN INITIAL;}
-
-<DUID>{duid_id}       {strcat(temp_iaid_key.clientid.duid_id, yytext);}
-<DUID>;               {;} 
+<DUIDLEN>{NUMBER}	{temp_iaid_key.clientid.duid_len = (u_int8_t)atoi(yytext);}
+<DUID>{duid_id}       {configure_duid(yytext, &temp_iaid_key.clientid);}
+<DUID>.               {;} 
 <DUID>\n              {BEGIN INITIAL;}
                         
-<LINKLOCAL>{addr} {if (inet_pton(AF_INET6, yytext, &lease_rec->linklocal) < 1) {
+<LINKLOCAL>{addr} {	if (inet_pton(AF_INET6, yytext, &lease_rec->linklocal) < 1) {
 				dprintf(LOG_ERR, "invalid linklocal address"); 
 				return (-1);
+		   	}
 		   }
-		   parser_i = (++parser_i)%8;} 
+		    
 <LINKLOCAL>{COLON}|";"      {;} 
-<LINKLOCAL>\n               {parser_i = 0; BEGIN INITIAL;}
+<LINKLOCAL>\n               {BEGIN INITIAL;}
 
-<HOSTNAME>{NUMCHAR}+  {lease_rec->hostname = strdup(yytext);}
+<HOSTNAME>{NUMCHAR}+  {strncpy(lease_rec->hostname, yytext, sizeof(yytext));}
 <HOSTNAME>.       {;}
 <HOSTNAME>\n      {BEGIN INITIAL;}
 
@@ -159,33 +157,25 @@ RBRACE		("}")
 <STATE>.          {;}
 <STATE>\n         {BEGIN INITIAL;}
 
-<START>{NUMBER}   {lease_rec->start_date = strtoul(yytext,NULL,0); parsing_lease = 0;}
-<START>\n         {if (do_iaidaddr_hash(lease_rec, &temp_iaid_key) != 0)
+<START>{NUMBER}   {lease_rec->start_date = strtoul(yytext,NULL,0);}
+{RBRACE} 	{if (do_iaidaddr_hash(lease_rec, &temp_iaid_key) != 0)
 			return (-1);
 	           BEGIN INITIAL;} 
 <START>.          {;}
-<RBRACE>.	  {;}
 \n		  {;}
 %%
 
-/* parsing_lease is for checking for partial lease in file, and causing sync so
-that the partial lease is removed before any more leases are added beneath it.
-*/
 unsigned int 
 parse_leases(void) 
 {
 	fseek(lease_file, 0,0);
         yyin = lease_file;
-	temp_iaid_key.clientid.duid_id =(char *)malloc(MAX_DUID_LEN + 1);
-	if (!temp_iaid_key.clientid.duid_id) {
-		dprintf(LOG_ERR, "%s" "Couldn't malloc duid space", FNAME);
-		return(-1);
-	} 
         yylex();
-	if (1 == parsing_lease) {
-		sync_leases();
-	}
-	free(temp_iaid_key.clientid.duid_id);
+/*
+	sync_leases();
+	set up timer 
+	post_lease();
+*/
 	return 0;
 }
 
@@ -194,48 +184,60 @@ do_iaidaddr_hash(struct server6_lease *lease_rec, struct client_if *key)
 {
 	struct server6_cl_iaidaddr *iaidaddr;
 	struct server6_lease *found_lease;
+	dprintf(LOG_DEBUG, "%s" " called", FNAME);
 	iaidaddr = (struct server6_cl_iaidaddr *)hash_search(hash_anchors[HT_IAIDADDR], key); 
 	if (iaidaddr){
-		found_lease = hash_search(hash_anchors[HT_IPV6ADDR], lease_rec);
+		found_lease = hash_search(hash_anchors[HT_IPV6ADDR], &lease_rec->lease_addr.addr);
 		if(found_lease) {
-			if (hash_delete(hash_anchors[HT_IPV6ADDR], lease_rec) != 0) {
+			if (hash_delete(hash_anchors[HT_IPV6ADDR], 
+					&lease_rec->lease_addr.addr) != 0) {
 				dprintf(LOG_ERR, "%s" "hash delete failed", FNAME);
 				return (-1);
 			}
+			dprintf(LOG_DEBUG, "%s" "remove lease %s", FNAME, 
+					in6addr2str(&lease_rec->lease_addr.addr,0));
 			TAILQ_REMOVE(&iaidaddr->ifaddr_list, found_lease, link);
 			free(found_lease);
-		} 
-		lease_rec->iaidinfo = iaidaddr;
-		TAILQ_INSERT_TAIL(&iaidaddr->ifaddr_list, lease_rec, link);
-		if (hash_add(hash_anchors[HT_IPV6ADDR], &lease_rec->lease_addr, lease_rec) != 0)  {
-			dprintf(LOG_ERR, "%s" "hash add failed", FNAME);
-			return (-1);
 		}
+ 
 	} else {
-		iaidaddr = (struct server6_cl_iaidaddr *)malloc(sizeof(struct server6_cl_iaidaddr));
+		iaidaddr = (struct server6_cl_iaidaddr *)malloc(sizeof(*iaidaddr));
 	  	if (!iaidaddr) {
 			dprintf(LOG_ERR, "%s" "failed to allocate memory", FNAME);
 			return (-1);
-	  	} 
-		iaidaddr->client_info.clientid.duid_len = temp_iaid_key.clientid.duid_len;
-		iaidaddr->client_info.clientid.duid_id = 
-			(char *)malloc(temp_iaid_key.clientid.duid_len);
-	  	if (!iaidaddr->client_info.clientid.duid_id) {
-			dprintf(LOG_ERR, "%s" "failed to allocate memory", FNAME);
-			return(-1);
-	  	} 
+	  	}
+		memset(iaidaddr, 0, sizeof(*iaidaddr));
+		/* get the client info */
 		duidcpy(&iaidaddr->client_info.clientid, &temp_iaid_key.clientid);
+		free(temp_iaid_key.clientid.duid_id);
 		iaidaddr->client_info.client_iaid = temp_iaid_key.client_iaid;
 		iaidaddr->client_info.client_iatype = temp_iaid_key.client_iatype;
+		/* ToDo: set up exired timer */
 		iaidaddr->timer = NULL;
-		iaidaddr->evdata = NULL;
+
 		TAILQ_INIT(&iaidaddr->ifaddr_list);
-		lease_rec->iaidinfo = iaidaddr;
-		TAILQ_INSERT_TAIL(&iaidaddr->ifaddr_list, lease_rec, link);
-		if (hash_add(hash_anchors[HT_IPV6ADDR], &lease_rec->lease_addr, lease_rec) != 0) {
+		
+		if (hash_add(hash_anchors[HT_IAIDADDR], &iaidaddr->client_info, iaidaddr) != 0) {
 			dprintf(LOG_ERR, "%s" "hash add failed", FNAME);
+			free(iaidaddr);
 			return (-1);
 		}
+		dprintf(LOG_DEBUG, "hash add client duid %s for iaid %ld", 
+			duidstr(&iaidaddr->client_info.clientid), 
+				iaidaddr->client_info.client_iaid);
 	}
+				
+	lease_rec->iaidinfo = iaidaddr;
+	lease_rec->timer = NULL;
+
+	if (hash_add(hash_anchors[HT_IPV6ADDR], &lease_rec->lease_addr.addr, lease_rec) != 0) {
+		dprintf(LOG_ERR, "%s" "hash add lease failed for %s",
+			FNAME, in6addr2str(&lease_rec->lease_addr.addr, 0));
+		free(lease_rec);
+		return (-1);
+	}
+	TAILQ_INSERT_TAIL(&iaidaddr->ifaddr_list, lease_rec, link);
+	dprintf(LOG_DEBUG, "%s" "hash add lease addr %s", 
+			FNAME, in6addr2str(&lease_rec->lease_addr.addr, 0));
 	return (0);
 }

@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.h,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: client6_addr.h,v 1.2 2003/01/20 20:25:42 shirleyma Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -37,37 +37,35 @@
 
 typedef enum { ADDR6S_ACTIVE, ADDR6S_RENEW,
 	       ADDR6S_REBIND, ADDR6S_EXPIRED,
-	       ADDR6S_ABANDONED, ADDR6S_UNCONFIRMED} addr6state_t;
+	       ADDR6S_INVALID } addr6state_t;
+
+typedef enum { IAID6S_ACTIVE, IAID6S_RENEW,
+	       IAID6S_REBIND, IAID6S_EXPIRED,
+	       IAID6S_INVALID } iaid6state_t;
 
 struct client6_iaidaddr {
 	TAILQ_ENTRY(client6_iaidaddr) link;
 	struct dhcp6_if *ifp;
-	u_int32_t iaid;
-	u_int32_t renewtime;
-	u_int32_t rebindtime;
 	time_t start_date;
 	struct duid clientid;
 	struct duid serverid;
-	addr6state_t state;
+	struct dhcp6_iaid_info iaidinfo;
+	iaid6state_t state;
 	struct dhcp6_timer *timer;
 	struct dhcp6_eventdata *evdata;
 
-	/* list of interface addresses */
+	/* list of client leases */
 	TAILQ_HEAD(, client6_lease) ifaddr_list;
 };
 
 struct client6_lease {
 	TAILQ_ENTRY(client6_lease) link;
-	struct client6_iaidaddr *iaidinfo;
+	struct client6_iaidaddr *iaidaddr;
 	time_t start_date;
-	u_int32_t preferlifetime;
-	u_int32_t validlifetime;
-	addr6state_t state;
 	/* address assigned on the interface */
-	struct in6_addr addr;
-	int plen;
+	struct dhcp6_addr dhcp6addr;
+	addr6state_t state;
 	struct dhcp6_timer *timer;
-	struct dhcp6_eventdata *evdata;
 };
 
 extern void client6_init_iaidaddr __P((void));
@@ -76,4 +74,5 @@ extern int client6_add_iaidaddr __P((struct dhcp6_if *, struct dhcp6_optinfo *,
 			       struct duid *));
 extern int client6_update_iaidaddr __P((struct dhcp6_event *, struct dhcp6_optinfo *,
 				  struct duid *));
+extern int client6_do_release __P((struct dhcp6_list *));
 #endif

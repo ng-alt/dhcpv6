@@ -1,4 +1,4 @@
-/*	$Id: hash.c,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: hash.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -45,6 +45,7 @@ struct hash_table * hash_table_create (unsigned int hash_size,
 {
 	int i;
 	struct hash_table *hash_tbl;
+	dprintf(LOG_DEBUG, "hash_table_create: called");
 	hash_tbl = malloc(sizeof(struct hash_table));
 	if (!hash_tbl) {
 		dprintf(LOG_ERR, "Couldn't allocate hash table");
@@ -66,6 +67,7 @@ int  hash_add(struct hash_table *hash_tbl, void *key, void *data)
 {
 	int index;
 	struct hashlist_element *element;
+	dprintf(LOG_DEBUG, "hash_add: called");
 	element = (struct hashlist_element *)malloc(sizeof(struct hashlist_element));
 	if(!element){
 		dprintf(LOG_ERR, "Could not malloc hashlist_element");
@@ -74,8 +76,10 @@ int  hash_add(struct hash_table *hash_tbl, void *key, void *data)
 	if (hash_full(hash_tbl)) {
 	       grow_hash(hash_tbl);
 	}
-	index = hash_tbl->hash_function(key)%hash_tbl->hash_size;
+	index = hash_tbl->hash_function(key) % hash_tbl->hash_size;
+	dprintf(LOG_DEBUG, "hash_add: hash index is %ld", index);
 	if (hash_search(hash_tbl, key)) {
+		dprintf(LOG_DEBUG, "hash_add: duplicated item");
 		return HASH_COLLISION;
 	}
 	element->next = hash_tbl->hash_list[index];
@@ -83,23 +87,23 @@ int  hash_add(struct hash_table *hash_tbl, void *key, void *data)
 	element->data = data;
 	hash_tbl->hash_count++;
 	return 0;
-	
- 
 }            
 
 int hash_delete(struct hash_table *hash_tbl, void *key)
 {
 	int index;
 	struct hashlist_element *element, *prev_element = NULL;
-	index = hash_tbl->hash_function(key)%hash_tbl->hash_size;
+	dprintf(LOG_DEBUG, "hash_delete: called");
+	index = hash_tbl->hash_function(key)  % hash_tbl->hash_size;
 	element = hash_tbl->hash_list[index];
 	while (element) {
-		if (MATCH == hash_tbl->compare_hashkey(element->data,key)) {
+		if (MATCH == hash_tbl->compare_hashkey(element->data, key)) {
 			if(prev_element){
 				prev_element->next = element->next;	
-			}else{
+			} else {
 				hash_tbl->hash_list[index] = element->next;
 			}
+			element->next = NULL;
 	  		free(element);		
 	   		hash_tbl->hash_count--;
 			return 0;
@@ -114,7 +118,9 @@ void * hash_search(struct hash_table *hash_tbl, void *key)
 {
 	int index;
 	struct hashlist_element *element;
-	index = hash_tbl->hash_function(key)%hash_tbl->hash_size;
+	dprintf(LOG_DEBUG, "hash_search: called");
+	index = hash_tbl->hash_function(key)  % hash_tbl->hash_size;
+	dprintf(LOG_DEBUG, "hash_search: hash index is %ld", index);
 	element = hash_tbl->hash_list[index];
 	while (element) {
 		if (MATCH == hash_tbl->compare_hashkey(element->data, key)) {
@@ -147,7 +153,7 @@ int grow_hash(struct hash_table *hash_tbl) {
                 element = hash_tbl->hash_list[i];
                 while (element) {
 		  	key = hash_tbl->find_hashkey(element->data);
-			index = new_table->hash_function(key)%new_table->hash_size;
+			index = new_table->hash_function(key)  % hash_tbl->hash_size;
 			oldnext = element->next;
 			element->next = new_table->hash_list[index];
 			new_table->hash_list[index] = element;

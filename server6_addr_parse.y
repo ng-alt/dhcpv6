@@ -1,4 +1,4 @@
-/*	$Id: server6_addr_parse.y,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: server6_addr_parse.y,v 1.2 2003/01/20 20:26:43 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -288,7 +288,7 @@ relaypara
 			ABORT;
 		}
 		memset(temprelay, 0, sizeof(*temprelay));
-		memcpy(&temprelay->v6addr.addr, &$2, sizeof(struct in6_addr));
+		memcpy(&temprelay->v6addr.addr, &$2, sizeof(temprelay->v6addr.addr));
 		temprelay->v6addr.plen = $4;
 		temprelay->next = link->relaylist;
 		link->relaylist = temprelay;
@@ -379,12 +379,12 @@ rangedef
 			ABORT;
 		}
 		if (ipv6addrcmp(&$2, &$4) < 0) {
-			memcpy(&seg->min, &$2, sizeof(struct in6_addr));
-			memcpy(&seg->max, &$4, sizeof(struct in6_addr));
+			memcpy(&seg->min, &$2, sizeof(seg->min));
+			memcpy(&seg->max, &$4, sizeof(seg->max));
 		}
 		else {
-			memcpy(&seg->max, &$2, sizeof(struct in6_addr));
-			memcpy(&seg->min, &$4, sizeof(struct in6_addr));
+			memcpy(&seg->max, &$2, sizeof(seg->max));
+			memcpy(&seg->min, &$4, sizeof(seg->min));
 		}
 		/* check the assigned addresses are not reserved ipv6 addresses */
 		if (IN6_IS_ADDR_RESERVED(&seg->max) || IN6_IS_ADDR_RESERVED(&seg->max)) {
@@ -392,13 +392,13 @@ rangedef
 			ABORT;
 		}
 
-		memcpy(&seg->prefix, prefix1, sizeof(*prefix1));
+		memcpy(&seg->prefix, prefix1, sizeof(seg->prefix));
 		seg->free = (struct in6_addr *)malloc(sizeof(*(seg->free)));
 		if (seg->free == NULL) {
 			dprintf(LOG_ERR, "failed to allocate memory");
 			ABORT;
 		}
-		memcpy(seg->free, &seg->min, sizeof(seg->min));
+		memcpy(seg->free, &seg->min, sizeof(*seg->free));
 
 		if (pool)
 			seg->pool = pool;
@@ -557,14 +557,7 @@ hostpara
 	: paralist
 	| DUID DUID_ID ';'
 	{
-		host->cid.duid_len = strlen($2);
-		host->cid.duid_id = (unsigned char *)malloc(sizeof(host->cid.duid_len));
-		if (host->cid.duid_id == NULL) {
-			dprintf(LOG_ERR, "host duid memory allocation failed");
-			ABORT;
-		}
-		strncpy(host->cid.duid_id, $2, strlen($2));
-
+		configure_duid($2, &host->cid);
 	}
 	| IAID NUMBER ';'
 	{
@@ -572,7 +565,7 @@ hostpara
 	}
 	| LINKLOCAL IPV6ADDR ';'
 	{
-		memcpy(&host->linklocal, &$2, sizeof(struct in6_addr));
+		memcpy(&host->linklocal, &$2, sizeof(host->linklocal));
 	}
 	;
 
@@ -586,7 +579,7 @@ ipv6addr_list
 			ABORT;
 		}
 		memset(temp, 0, sizeof(*temp));
-		memcpy(&temp->v6addr, &$2, sizeof(struct in6_addr));
+		memcpy(&temp->v6addr, &$2, sizeof(temp->v6addr));
 		temp->v6addr.plen = $4;
 		temp->next = host->addrlist;
 		host->addrlist = temp;

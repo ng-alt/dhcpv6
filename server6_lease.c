@@ -1,4 +1,4 @@
-/*	$Id: server6_lease.c,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: server6_lease.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -52,12 +52,10 @@ write_lease(struct server6_lease *lease_ptr, FILE *file)
 	int i = 0;
 	struct tm brokendown_time;
 	char addr_str[16];
-
-        gmtime_r(&lease_ptr->start_date, &brokendown_time); 
-	inet_ntop(AF_INET6, &lease_ptr->lease_addr, addr_str, sizeof(struct in6_addr));
 	
-	fprintf(file, "lease %s/%d { \n", addr_str, lease_ptr->plen);
-
+	gmtime_r(&lease_ptr->start_date, &brokendown_time); 
+	inet_ntop(AF_INET6, &lease_ptr->lease_addr.addr, addr_str, sizeof(struct in6_addr));
+	fprintf(file, "lease %s/%d { \n", addr_str, lease_ptr->lease_addr.plen);
 	fprintf(file, "\t start date: %d %d/%d/%d %d:%d:%d UTC;\n",
 		     brokendown_time.tm_wday,
 		     brokendown_time.tm_year + 1900,
@@ -68,9 +66,9 @@ write_lease(struct server6_lease *lease_ptr, FILE *file)
 		     brokendown_time.tm_sec);
 	fprintf(file, "\t (program use only: start date %ld);\n", lease_ptr->start_date);
 	fprintf(file, "\t preferred lifetime: 0x%x;\n",
-                             lease_ptr->preferlifetime);
+                             lease_ptr->lease_addr.preferlifetime);
 	fprintf(file, "\t valid lifetime: 0x%x;\n",
-                             lease_ptr->validlifetime);
+                             lease_ptr->lease_addr.validlifetime);
         if(1 == lease_ptr->iaidinfo->client_info.client_iatype){
 		fprintf(file, "\t IAID: 0x%x temporary;\n",
 			lease_ptr->iaidinfo->client_info.client_iaid);
@@ -78,14 +76,14 @@ write_lease(struct server6_lease *lease_ptr, FILE *file)
 		fprintf(file, "\t IAID: 0x%x non-temporary;\n",
 			lease_ptr->iaidinfo->client_info.client_iaid);
 	}
-		
 	fprintf(file, "\t DUID string length: %d;\n",
 			lease_ptr->iaidinfo->client_info.clientid.duid_len);
 	fprintf(file, "\t DUID: %s;\n", duidstr(&lease_ptr->iaidinfo->client_info.clientid));
 	inet_ntop(AF_INET6, &lease_ptr->linklocal, addr_str, sizeof(struct in6_addr));
 	fprintf(file, "\t linklocal: %s;\n", addr_str);
 	fprintf(file, "\t state: %d;\n", lease_ptr->state);
-	fprintf(file, "\t hostname: %s;\n",lease_ptr->hostname);
+	if (lease_ptr->hostname != NULL)
+		fprintf(file, "\t hostname: %s;\n",lease_ptr->hostname);
 	fprintf(file, "}\n");
 	if (fflush(lease_file) == EOF) {
 		dprintf(LOG_INFO, "%s" "write lease fflush failed %s", 
@@ -155,7 +153,7 @@ int init_leases(void)
 int init_lease_hashes(void) 
 {
 
-	hash_anchors = malloc(HASH_TABLE_COUNT*sizeof(struct hashtable *));
+	hash_anchors = (struct hashtable *)malloc(HASH_TABLE_COUNT*sizeof(struct hashtable *));
 	if (!hash_anchors) {
 		dprintf(LOG_ERR, "Couldn't malloc hash anchors", FNAME);
 		return (-1);
@@ -179,19 +177,17 @@ int init_lease_hashes(void)
 void * addr_findkey(void *data)
 {
         struct server6_lease *lease = (struct server6_lease *)data;
-	return (void *)(&(lease->lease_addr));
+	return (void *)(&(lease->lease_addr.addr));
 }
 
 int addr_key_compare(void *data, void *key)
 { 	
 	int i;
-	struct in6_addr *data_lease_address = &(((struct server6_lease *)data)->lease_addr);
-	for (i = 0; i < 4; i++) {
-		if (data_lease_address->in6_u.u6_addr32[i] != (((struct in6_addr *)key)->in6_u.u6_addr32[i])){
-			return MISCOMPARE;
-		}
-        }
-	return MATCH;
+	struct in6_addr *data_lease_address = 
+		(struct in6_addr *) &(((struct server6_lease *)data)->lease_addr.addr);
+	if (IN6_ARE_ADDR_EQUAL(data_lease_address, key))
+		return MATCH;
+	return MISCOMPARE;
 }
 
 void * iaid_findkey(void *data)
@@ -205,8 +201,8 @@ int iaid_key_compare(void *data, void *key)
 	int i;
         struct server6_cl_iaidaddr *iaidaddr = (struct server6_cl_iaidaddr *)data;
 	struct client_if *client_key = (struct client_if *)key;
-	if (client_key->client_iaid == iaidaddr->client_info.client_iaid){
-		if (0 == duidcmp(&client_key->clientid, &iaidaddr->client_info.clientid)){
+	if (0 == duidcmp(&client_key->clientid, &iaidaddr->client_info.clientid)){
+		if (client_key->client_iaid == iaidaddr->client_info.client_iaid){
 			return MATCH;
 		}
 	}

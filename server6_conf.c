@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.c,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: server6_conf.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -66,7 +66,7 @@ ipv6addrcmp(addr1, addr2)
 {
 	int i;
 	for (i = 0; i < 16; i++) {
-		if (addr1->s6_addr[i] < addr2->s6_addr[i]) return -1;
+		if (addr1->s6_addr[i] < addr2->s6_addr[i]) return (-1);
 		else if (addr1->s6_addr[i] > addr2->s6_addr[i]) return 1;
 	}
 	return 0;
@@ -243,9 +243,9 @@ post_config(root)
 							download_scope(seg->pool->group, &seg->pool->poolscope);
 						current = &seg->pool->poolscope;
 						download_scope(up, current);
-						memcpy(&seg->parainfo, current, sizeof(*current));
+						memcpy(&seg->parainfo, current, sizeof(seg->parainfo));
 					} else {
-						memcpy(&seg->parainfo, up, sizeof(*up));
+						memcpy(&seg->parainfo, up, sizeof(seg->parainfo));
 					}
 				}
 			}
@@ -293,7 +293,7 @@ get_linklocal(ifname, linklocal)
 		/* which linklocal do we want, if find many 
 		 * from scope id??? sa_data[32]
 		 * */
-		memcpy(linklocal, &sd->sa_data[6], sizeof(struct in6_addr));
+		memcpy(linklocal, &sd->sa_data[6], sizeof(*linklocal));
 	}
 	freeifaddrs(ifap);
 	return 0;

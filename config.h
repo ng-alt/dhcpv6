@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: config.h,v 1.2 2003/01/20 20:25:42 shirleyma Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -124,7 +124,8 @@ struct dhcp6_serverinfo {
 
 /* client status code */
 enum {DHCP6S_INIT, DHCP6S_SOLICIT, DHCP6S_INFOREQ, DHCP6S_REQUEST,
-      DHCP6S_RENEW, DHCP6S_REBIND, DHCP6S_IDLE};
+      DHCP6S_RENEW, DHCP6S_REBIND, DHCP6S_CONFIRM, DHCP6S_DECLINE,
+      DHCP6S_RELEASE, DHCP6S_IDLE};
       
 struct dhcp6_ifconf {
 	struct dhcp6_ifconf *next;
@@ -250,6 +251,7 @@ extern struct prefix_ifconf *prefix_ifconflist;
 extern struct dhcp6_list dnslist;
 
 extern void ifinit __P((char *));
+extern int configure_duid __P((char *, struct duid *));
 extern int configure_interface __P((struct cf_namelist *));
 extern int configure_prefix_interface __P((struct cf_namelist *));
 extern int configure_host __P((struct cf_namelist *));
