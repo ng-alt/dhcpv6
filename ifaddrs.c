@@ -1,4 +1,5 @@
-/* $USAGI: ifaddrs.c,v 1.20.2.1 2002/12/08 08:22:23 yoshfuji Exp $ */
+/*	$Id: ifaddrs.c,v 1.2 2003/02/11 22:03:08 shirleyma Exp $	*/
+/* 	from USAGI: ifaddrs.c,v 1.20.2.1 2002/12/08 08:22:23 yoshfuji Exp */
 
 /* 
  * Copyright (C)2000 YOSHIFUJI Hideaki
@@ -18,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "config.h"
-
 #include <string.h>
 #include <time.h>
 #include <malloc.h>
+#define _LIBC
 #include <errno.h>
+#undef _LIBC
 #include <unistd.h>
 
 #include <sys/socket.h>
