@@ -1,4 +1,4 @@
-/*	$Id: radvd_token.l,v 1.6 2003/06/25 17:00:02 shirleyma Exp $	*/
+/*	$Id: radvd_token.l,v 1.7 2003/07/07 18:01:05 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -55,7 +55,7 @@
 #include "lease.h"
 
 #ifndef PATH_RADVD_PID
-#define	PATH_RADVD_PID "/var/run/radvd.pid"
+#define	PATH_RADVD_PID "/var/run/radvd/radvd.pid"
 #endif
 
 #define YYABORT(msg) dprintf(LOG_ERR, msg " %s lineno %d.", \
