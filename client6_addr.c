@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.18 2003/06/02 20:37:32 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.19 2003/06/03 00:17:24 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -131,10 +131,8 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 			continue;
 		}
 	}
-	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list) || 
-	    client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
+	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list))
 		return 0;
-	}
 	/* set up renew T1, rebind T2 timer renew/rebind based on iaid */
 	/* Should we process IA_TA, IA_NA differently */
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0 ||
@@ -156,6 +154,8 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	dprintf(LOG_INFO, "renew time %d, rebind time %d", 
 		client6_iaidaddr.client6_info.iaidinfo.renewtime,
 		client6_iaidaddr.client6_info.iaidinfo.rebindtime);
+	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0)
+		return (0);
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == DHCP6_DURATITION_INFINITE) {
 		client6_iaidaddr.client6_info.iaidinfo.rebindtime == DHCP6_DURATITION_INFINITE;
 		return (0);
@@ -373,6 +373,8 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 			return (-1);
 		}
 	}
+	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list))
+		return (0);
 	/* set up renew T1, rebind T2 timer renew/rebind based on iaid */
 	/* Should we process IA_TA, IA_NA differently */
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
@@ -390,8 +392,9 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	dprintf(LOG_INFO, "renew time %d, rebind time %d", 
 		client6_iaidaddr.client6_info.iaidinfo.renewtime,
 		client6_iaidaddr.client6_info.iaidinfo.rebindtime);
-	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list) ||
-	    client6_iaidaddr.client6_info.iaidinfo.renewtime == DHCP6_DURATITION_INFINITE) {
+	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0)
+		return (0);
+	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == DHCP6_DURATITION_INFINITE) {
 		client6_iaidaddr.client6_info.iaidinfo.rebindtime == DHCP6_DURATITION_INFINITE;
 		if (client6_iaidaddr.timer)
 			dhcp6_remove_timer(client6_iaidaddr.timer);
