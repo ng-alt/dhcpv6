@@ -1,4 +1,4 @@
-/*	$Id: ra_token.l,v 1.7 2003/06/02 20:38:15 shirleyma Exp $	*/
+/*	$Id: ra_token.l,v 1.8 2004/03/04 23:31:24 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -99,9 +99,9 @@ nl              \n
 <S_PLEN>{number} {rainfo->plen = atoi(rayytext); 
 		BEGIN S_FLAGS;}
 <S_FLAGS>{flags} {if (strchr(rayytext, 'M') != NULL)
-			rainfo->flags |= RA_MBIT_SET;
+			rainfo->flags |= IF_RA_MANAGED;
 		else 
-			rainfo->flags |= RA_OBIT_SET;
+			rainfo->flags |= IF_RA_OTHERCONF;
 		BEGIN S_PREFIX;}
 <S_PREFIX>{hexdigits} {struct in6_addr addr;
 		struct ra_info *ri, *ri_prev;

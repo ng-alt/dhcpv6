@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.34 2003/06/26 21:37:23 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.35 2004/03/04 23:31:24 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -527,8 +527,10 @@ client6_ifinit(char *device)
 	}
 	setup_interface(ifp->ifname);
 	ifp->link_flag |= IFF_RUNNING;
-	if (ra_parse(raproc_file) != 1)
-		rapatch = 1;
+
+	/* get addrconf prefix from kernel */
+	(void)get_if_rainfo(ifp);
+
 	/* set up check link timer and sync file timer */	
 	if ((ifp->link_timer =
 	    dhcp6_add_timer(check_link_timo, ifp)) < 0) {
@@ -657,7 +659,6 @@ client6_timo(arg)
 	struct dhcp6_if *ifp;
 	struct timeval now;
 	struct ra_info *rainfo;
-	int mbitset = 0;
 	
 	ifp = ev->ifp;
 	ev->timeouts++;
@@ -680,18 +681,18 @@ client6_timo(arg)
 		 * go to SOLICIT state if the client requests addresses;
 		 */
 		ev->timeouts = 0; /* indicate to generate a new XID. */
-		/* check RA flags M bits */
-		if (rapatch) {
-			for (rainfo = ifp->ralist; rainfo; rainfo = rainfo->next) {
-				if (rainfo->flags & RA_MBIT_SET) {
-					mbitset = 1;
-					break;
-				}
-			}
-		} else
-			mbitset = 1;
+		/* 
+		 * three cases client send information request:
+		 * 1. configuration file includes information-only
+		 * 2. command line includes -I
+		 * 3. check interface flags if managed bit isn't set and
+		 *    if otherconf bit set by RA
+		 *    and information-only, conmand line -I are not set.
+		 */
 		if ((ifp->send_flags & DHCIFF_INFO_ONLY) || 
-		    (client6_request_flag & CLIENT6_INFO_REQ) || mbitset == 0)
+		    (client6_request_flag & CLIENT6_INFO_REQ) ||
+		    (!(ifp->ra_flag & IF_RA_MANAGED) && 
+		     (ifp->ra_flag & IF_RA_OTHERCONF)))
 			ev->state = DHCP6S_INFOREQ;
 		else if (client6_request_flag & CLIENT6_RELEASE_ADDR) 
 			/* do release */
@@ -1466,7 +1467,7 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		case DH6OPT_STCODE_UNDEFINE:
 		default:
 			if (!TAILQ_EMPTY(&optinfo->addr_list)) {
-				ra_parse(raproc_file);
+				(void)get_if_rainfo(ifp);
 				dhcp6_add_iaidaddr(optinfo);
 				if (optinfo->type == IAPD)
 					radvd_parse(&client6_iaidaddr, ADDR_UPDATE);

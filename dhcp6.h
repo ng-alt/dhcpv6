@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.16 2004/02/04 23:30:17 shemminger Exp $	*/
+/*	$Id: dhcp6.h,v 1.17 2004/03/04 23:31:24 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -94,8 +94,10 @@
 #define DHCP6_DURATITION_INFINITE 0xffffffff
 #define DHCP6_ELAPSEDTIME_MAX	0xffff
 
-#define RA_MBIT_SET 0x01
-#define RA_OBIT_SET 0x02
+#define IF_RA_OTHERCONF 0x80
+#define IF_RA_MANAGED   0x40
+#define RTM_F_PREFIX	0x800
+
 #ifndef MAXDNAME
 #define MAXDNAME 255
 #endif

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.11 2003/05/27 20:54:52 shemminger Exp $
+# $Id: Makefile.in,v 1.12 2004/03/04 23:31:24 shirleyma Exp $
 #
 
 srcdir=	@srcdir@
@@ -36,7 +36,7 @@ CLIENTGENSRCS=client6_parse.c client6_token.c dad_token.c ra_token.c \
 		resolv_token.c radvd_token.c
 SERVERGENSRCS=server6_parse.c server6_token.c 
 CLIENTOBJS=	dhcp6c.o common.o config.o timer.o client6_addr.o \
-		hash.o lease.o \
+		hash.o lease.o netlink.o\
 	$(CLIENTGENSRCS:%.c=%.o) $(COMMONGENSRCS:%.c=%.o)
 SERVOBJS=	dhcp6s.o common.o timer.o hash.o lease.o \
 		server6_conf.o server6_addr.o \
