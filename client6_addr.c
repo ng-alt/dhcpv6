@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.11 2003/03/28 23:01:51 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.12 2003/04/28 17:25:18 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -110,12 +110,15 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	/* add new address */
 	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
 		lv_next = TAILQ_NEXT(lv, link);
-		lv->val_dhcp6addr.plen = 
-			dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
-		if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
-			dprintf(LOG_WARNING, "assigned address %s prefix len is not in any RAs"
-				" prefix length using 64 bit instead",
-				in6addr2str(&lv->val_dhcp6addr.addr, 0));
+		if (lv->val_dhcp6addr.type != IAPD) {	
+			lv->val_dhcp6addr.plen = 
+				dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
+			if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
+				dprintf(LOG_WARNING, 
+					"assigned address %s prefix len is not in any RAs"
+					" prefix length using 64 bit instead",
+					in6addr2str(&lv->val_dhcp6addr.addr, 0));
+			}
 		}
 		if ((cl_lease = dhcp6_find_lease(&client6_iaidaddr, 
 						&lv->val_dhcp6addr)) != NULL) {
@@ -302,12 +305,14 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	/* flag == ADDR_UPDATE */
 	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
 		lv_next = TAILQ_NEXT(lv, link);
-		lv->val_dhcp6addr.plen = 
-			dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
-		if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
-			dprintf(LOG_WARNING, "assigned address %s is not in any RAs"
-				" prefix length using 64 bit instead",
-				in6addr2str(&lv->val_dhcp6addr.addr, 0)); 
+		if (lv->val_dhcp6addr.type != IAPD) {	
+			lv->val_dhcp6addr.plen = 
+				dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
+			if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
+				dprintf(LOG_WARNING, "assigned address %s is not in any RAs"
+					" prefix length using 64 bit instead",
+					in6addr2str(&lv->val_dhcp6addr.addr, 0)); 
+			}
 		}
 		if ((cl = dhcp6_find_lease(&client6_iaidaddr, &lv->val_dhcp6addr)) != NULL) {
 		/* update leases */
