@@ -1,4 +1,4 @@
-/*	$Id: hash.c,v 1.7 2003/06/03 19:12:00 shirleyma Exp $	*/
+/*	$Id: hash.c,v 1.8 2004/02/04 23:28:04 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -155,7 +155,7 @@ int grow_hash(struct hash_table *hash_tbl) {
                 element = hash_tbl->hash_list[i];
                 while (element) {
 		  	key = hash_tbl->find_hashkey(element->data);
-			index = new_table->hash_function(key)  % hash_tbl->hash_size;
+			index = new_table->hash_function(key)  % hash_size;
 			oldnext = element->next;
 			element->next = new_table->hash_list[index];
 			new_table->hash_list[index] = element;
