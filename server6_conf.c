@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
+/*	$Id: server6_conf.c,v 1.3 2003/01/23 18:44:35 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -243,6 +243,15 @@ post_config(root)
 							download_scope(seg->pool->group, &seg->pool->poolscope);
 						current = &seg->pool->poolscope;
 						download_scope(up, current);
+						if (current->prefer_life_time != 0 && 
+						    current->valid_life_time != 0 &&
+						    current->prefer_life_time >= current->valid_life_time) {
+							dprintf(LOG_ERR, "%s" 
+							    "preferlife time is greater than validlife time",
+							    FNAME);
+							exit (1);
+						}
+							
 						memcpy(&seg->parainfo, current, sizeof(seg->parainfo));
 					} else {
 						memcpy(&seg->parainfo, up, sizeof(seg->parainfo));

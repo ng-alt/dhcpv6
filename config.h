@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.2 2003/01/20 20:25:42 shirleyma Exp $	*/
+/*	$Id: config.h,v 1.3 2003/01/23 18:44:31 shirleyma Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -69,6 +69,8 @@ struct dhcp6_if {
 #define DHCIFF_RAPID_COMMIT 0x2
 #define DHCIFF_TEMP_ADDRS 0x4
 #define DHCIFF_UNICAST 0x8
+#define DHCIFF_RELEASE 0x10
+#define DHCIFF_CONFIRM 0x20
 
 	int server_pref;	/* server preference (server only) */
 
@@ -213,7 +215,7 @@ struct cf_list {
 	 && ((__const u_int32_t *) (a))[2] == 0				\
 	 && ((__const u_int32_t *) (a))[3] == htonl (1))
 
-#define IN6_IS_ADDR_MULTICAST(a) (((__const u_int32_t *) (a))[0] == 0xff)
+#define IN6_IS_ADDR_MULTICAST(a) (((__const u_int8_t *) (a))[0] == 0xff)
 
 #define IN6_IS_ADDR_LINKLOCAL(a) \
 	((((__const u_int32_t *) (a))[0] & htonl (0xffc00000))		\

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.2 2003/01/20 20:25:42 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.3 2003/01/23 18:44:32 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -67,13 +67,14 @@
 /* Protocol constants */
 
 /* timer parameters (msec, unless explicitly commented) */
-#define MIN_SOL_DELAY	1000
-#define MAX_SOL_DELAY	5000
-#define SOL_TIMEOUT	500
-#define SOL_MAX_RT	30000
-#define INF_TIMEOUT	500
-#define INF_MAX_RT	30000
-#define REQ_TIMEOUT	250
+#define MIN_SOL_DELAY	500
+#define MAX_SOL_DELAY	1000
+#define SOL_TIMEOUT	1000
+#define SOL_MAX_RT	120000
+#define INF_TIMEOUT	1000
+#define INF_MAX_DELAY	1000
+#define INF_MAX_RT	120000
+#define REQ_TIMEOUT	1000
 #define REQ_MAX_RT	30000
 #define REQ_MAX_RC	10	/* Max Request retry attempts */
 #define REN_TIMEOUT	10000	/* 10secs */
@@ -82,8 +83,10 @@
 #define REB_MAX_RT	600000	/* 600secs */
 #define DEC_TIMEOUT	1000
 #define DEC_MAX_RC	5
-#define REL_TIMEOUT	2000
-#define REL_MAX_RC	8
+#define REL_TIMEOUT	1000
+#define REL_MAX_RC	5
+#define REC_TIMEOUT	2000
+#define REC_MAX_RC	8
 #define CNF_TIMEOUT	1000
 #define CNF_MAX_RD	10000
 #define CNF_MAX_RT	4000
@@ -94,7 +97,7 @@
 
 /* DUID: DHCP unique Identifier */
 struct duid {
-	int duid_len;		/* length */
+	u_int8_t duid_len;		/* length */
 	char *duid_id;		/* variable length ID value (must be opaque) */
 };
 

@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.2 2003/01/20 20:25:22 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.3 2003/01/23 18:44:30 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -230,6 +230,10 @@ dhcp6_create_event(ifp, state)
 			FNAME);
 		return (NULL);
 	}
+	/* for safety */
+	memset(ev, 0, sizeof(*ev));
+	ev->serverid.duid_id = NULL;
+	
 	ev->ifp = ifp;
 	ev->state = state;
 	TAILQ_INIT(&ev->data_list);
@@ -238,25 +242,35 @@ dhcp6_create_event(ifp, state)
 }
 
 void
+dhcp6_remove_evdata(ev)
+	struct dhcp6_event *ev;
+{
+	struct dhcp6_eventdata *evd, *evd_next;
+	for (evd = TAILQ_FIRST(&ev->data_list); evd; evd = evd_next) {
+		evd_next = TAILQ_NEXT(evd, link);
+		TAILQ_REMOVE(&ev->data_list, evd, link);
+		free(evd);
+	}
+	return;
+}
+
+void
 dhcp6_remove_event(ev)
 	struct dhcp6_event *ev;
 {
-	dprintf(LOG_DEBUG, "%s" "removing an event on %s, state=%d", FNAME,
-		ev->ifp->ifname, ev->state);
+	dprintf(LOG_DEBUG, "%s" "removing an event %x on %s, state=%d, xid=%x", FNAME,
+		ev, ev->ifp->ifname, ev->state, ev->xid);
 
 	if (!TAILQ_EMPTY(&ev->data_list)) {
 		dprintf(LOG_ERR, "%s" "assumption failure: "
 			"event data list is not empty", FNAME);
 		exit(1);
 	}
-#ifdef mshirley
-	if (ev->serverid.duid_id)
+	if (ev->serverid.duid_id != NULL)
 		duidfree(&ev->serverid);
-#endif
 	if (ev->timer)
 		dhcp6_remove_timer(&ev->timer);
 	TAILQ_REMOVE(&ev->ifp->event_list, ev, link);
-
 	free(ev);
 }
 
@@ -662,10 +676,8 @@ get_duid(idfile, duid)
   fail:
 	if (fp)
 		fclose(fp);
-	if (duid->duid_id) {
-		free(duid->duid_id);
-		duid->duid_len = 0;
-		duid->duid_id = NULL; /* for safety */
+	if (duid->duid_id != NULL) {
+		duidfree(duid);
 	}
 	return (-1);
 }
@@ -763,7 +775,9 @@ dhcp6_init_options(optinfo)
 	struct dhcp6_optinfo *optinfo;
 {
 	memset(optinfo, 0, sizeof(*optinfo));
-
+	/* for safety */
+	optinfo->clientID.duid_id = NULL;
+	optinfo->serverID.duid_id = NULL;
 	optinfo->pref = DH6OPT_PREF_UNDEF;
 	TAILQ_INIT(&optinfo->addr_list);
 	TAILQ_INIT(&optinfo->reqopt_list);
@@ -1510,18 +1524,18 @@ dhcp6_reset_timer(ev)
 		 * The first Solicit message from the client on the interface
 		 * MUST be delayed by a random amount of time between
 		 * MIN_SOL_DELAY and MAX_SOL_DELAY.
-		 * [dhcpv6-24 17.1.2]
+		 * [dhcpv6-28 14.]
 		 */
 		ev->retrans = (random() % (MAX_SOL_DELAY - MIN_SOL_DELAY)) +
 			MIN_SOL_DELAY;
 		break;
 	default:
-		if (ev->state == DHCP6S_SOLICIT && ev->timeouts == 0) {
+		if (ev->timeouts == 0) {
 			/*
 			 * The first RT MUST be selected to be strictly
 			 * greater than IRT by choosing RAND to be strictly
 			 * greater than 0.
-			 * [dhcpv6-24 17.1.2]
+			 * [dhcpv6-28 14.]
 			 */
 			r = (double)((random() % 1000) + 1) / 10000;
 			n = ev->init_retrans + r * ev->init_retrans;
@@ -1741,7 +1755,9 @@ duidstr(duid)
 	int i;
 	char *cp;
 	static char duidstr[sizeof("xx:") * 256 + sizeof("...")];
-
+	
+	duidstr[0] ='\0';
+	
 	cp = duidstr;
 	for (i = 0; i < duid->duid_len && i <= 256; i++) {
 		cp += sprintf(cp, "%s%02x", i == 0 ? "" : ":",

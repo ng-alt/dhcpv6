@@ -1,4 +1,4 @@
-/*	$Id: hash.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
+/*	$Id: hash.c,v 1.3 2003/01/23 18:44:33 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -45,7 +45,6 @@ struct hash_table * hash_table_create (unsigned int hash_size,
 {
 	int i;
 	struct hash_table *hash_tbl;
-	dprintf(LOG_DEBUG, "hash_table_create: called");
 	hash_tbl = malloc(sizeof(struct hash_table));
 	if (!hash_tbl) {
 		dprintf(LOG_ERR, "Couldn't allocate hash table");
@@ -67,7 +66,6 @@ int  hash_add(struct hash_table *hash_tbl, void *key, void *data)
 {
 	int index;
 	struct hashlist_element *element;
-	dprintf(LOG_DEBUG, "hash_add: called");
 	element = (struct hashlist_element *)malloc(sizeof(struct hashlist_element));
 	if(!element){
 		dprintf(LOG_ERR, "Could not malloc hashlist_element");
@@ -93,7 +91,6 @@ int hash_delete(struct hash_table *hash_tbl, void *key)
 {
 	int index;
 	struct hashlist_element *element, *prev_element = NULL;
-	dprintf(LOG_DEBUG, "hash_delete: called");
 	index = hash_tbl->hash_function(key)  % hash_tbl->hash_size;
 	element = hash_tbl->hash_list[index];
 	while (element) {
@@ -118,9 +115,7 @@ void * hash_search(struct hash_table *hash_tbl, void *key)
 {
 	int index;
 	struct hashlist_element *element;
-	dprintf(LOG_DEBUG, "hash_search: called");
 	index = hash_tbl->hash_function(key)  % hash_tbl->hash_size;
-	dprintf(LOG_DEBUG, "hash_search: hash index is %ld", index);
 	element = hash_tbl->hash_list[index];
 	while (element) {
 		if (MATCH == hash_tbl->compare_hashkey(element->data, key)) {

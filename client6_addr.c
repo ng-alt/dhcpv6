@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.2 2003/01/20 20:25:22 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.3 2003/01/23 18:44:29 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -56,6 +56,8 @@
 #include "queue.h"
 
 typedef enum { IFADDRCONF_ADD, IFADDRCONF_REMOVE } ifaddrconf_cmd_t;
+#define ADDR_UPDATE     0
+#define ADDR_REMOVE     1
 
 static void client6_remove_lease __P((struct client6_lease *));
 static int client6_update_lease __P((struct dhcp6_addr *, struct client6_lease *));
@@ -68,8 +70,7 @@ static u_int32_t get_min_preferlifetime __P((struct client6_iaidaddr *));
 static u_int32_t get_max_validlifetime __P((struct client6_iaidaddr *));
 extern struct dhcp6_timer *client6_timo __P((void *));
 extern void client6_send __P((struct dhcp6_event *));
-extern void client6_send_rebind __P((struct dhcp6_event *));
-
+extern void free_servers __P((struct dhcp6_if *));
 static struct client6_iaidaddr iaidaddr;
 
 void
@@ -116,10 +117,10 @@ client6_add_iaidaddr(ifp, optinfo, serverid)
 	/* set up renew T1, rebind T2 timer renew/rebind based on iaid */
 	/* Should we process IA_TA, IA_NA differently */
 	if (iaidaddr.iaidinfo.renewtime == 0) {
-		iaidaddr.iaidinfo.renewtime = 0.5 * get_min_preferlifetime(&iaidaddr);
+		iaidaddr.iaidinfo.renewtime = get_min_preferlifetime(&iaidaddr)/2;
 	}
 	if (iaidaddr.iaidinfo.rebindtime == 0) {
-		iaidaddr.iaidinfo.rebindtime = 0.3 * get_min_preferlifetime(&iaidaddr);
+		iaidaddr.iaidinfo.rebindtime = get_min_preferlifetime(&iaidaddr)/3;
 	}
 	/* set up start date, and renew timer */
 	time(&iaidaddr.start_date);
@@ -186,9 +187,9 @@ client6_add_lease(addr)
 void
 client6_remove_iaidaddr()
 {
-	struct client6_lease *lv;
-	for (lv = TAILQ_FIRST(&iaidaddr.ifaddr_list); lv; lv = TAILQ_NEXT(lv, link)) {
-		TAILQ_REMOVE(&iaidaddr.ifaddr_list, lv, link);
+	struct client6_lease *lv, *lv_next;
+	for (lv = TAILQ_FIRST(&iaidaddr.ifaddr_list); lv; lv = lv_next) { 
+		lv_next = TAILQ_NEXT(lv, link);
 		(void)client6_remove_lease(lv);
 	}
 	if (iaidaddr.serverid.duid_id != NULL)
@@ -231,7 +232,7 @@ client6_update_iaidaddr(ev, optinfo, serverid)
 	struct duid *serverid;
 {
 	struct dhcp6_listval *lv;
-	struct client6_lease *cl;
+	struct client6_lease *cl, *cl_next;
 	struct dhcp6_eventdata *evd, *evd_next;
 	struct timeval timo;
 	dprintf(LOG_DEBUG, "%s" " called", FNAME);
@@ -247,6 +248,7 @@ client6_update_iaidaddr(ev, optinfo, serverid)
 				FNAME, in6addr2str(&lv->val_dhcp6addr.addr, 0));
 			continue;
 		}
+		continue;
 	}
 	/* remove leases that not on the updated list */
 	for (evd = TAILQ_FIRST(&ev->data_list); evd; evd = evd_next) {
@@ -257,8 +259,9 @@ client6_update_iaidaddr(ev, optinfo, serverid)
 			continue;
 		if (TAILQ_EMPTY(&iaidaddr->ifaddr_list))
 			dprintf(LOG_DEBUG, "%s" "evdata is empty ", FNAME);
-		for (cl = TAILQ_FIRST(&iaidaddr->ifaddr_list); cl; 
-				cl = TAILQ_NEXT(cl, link)) {		
+		for (cl = TAILQ_FIRST(&iaidaddr->ifaddr_list); cl; cl = cl_next) { 
+				cl_next = TAILQ_NEXT(cl, link);
+			
 			lv = dhcp6_find_listval(&optinfo->addr_list, &cl->dhcp6addr, 
 				DHCP6_LISTVAL_DHCP6ADDR);
 			/* remove leases that not on the updated list */
@@ -267,11 +270,8 @@ client6_update_iaidaddr(ev, optinfo, serverid)
 			/* need to be update leases */
 		}
 		TAILQ_REMOVE(&ev->data_list, evd, link);
-#ifdef mshirley
-		/* some field in evd was freed twice, duidfree()? */
+		/* this event data list will be freed on ?? */
 		free(evd);
-		evd = NULL;
-#endif
 	}
 	/* update server id */
 	if (iaidaddr.state == IAID6S_REBIND) {
@@ -289,10 +289,10 @@ client6_update_iaidaddr(ev, optinfo, serverid)
 	if (iaidaddr.timer == NULL) {
 		    if ((iaidaddr.timer = dhcp6_add_timer(client6_iaidaddr_timo, &iaidaddr)) 
 				    == NULL) {
-		 	dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %d",
+	 		dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %d",
 				FNAME, iaidaddr.iaidinfo.iaid);
-		 	return (-1);
-		    }
+	 		return (-1);
+	    	}
 	}
 	/* update the start date and timer */
 	time(&iaidaddr.start_date);
@@ -394,12 +394,6 @@ client6_iaidaddr_timo(arg)
 		sp->evdata = NULL;
 	}
 	
-	if (sp->state == IAID6S_REBIND) {
-		dprintf(LOG_INFO, "%s" "failed to rebind an iaidaddr %d",
-		    FNAME, iaidaddr.iaidinfo.iaid);
-		/* try another rebind or return NULL*/
-		return (NULL);
-	}
 	/* ToDo: what kind of opiton Request value, client would like to pass? */
 	switch(sp->state) {
 	case IAID6S_ACTIVE:
@@ -412,70 +406,76 @@ client6_iaidaddr_timo(arg)
 	case IAID6S_RENEW:
 		sp->state = IAID6S_REBIND;
 		dhcpstate = DHCP6S_REBIND;
-		/* ToDo: how long the rebind should wait ?
-		 * if too long*/
+		/* ToDo: how long the rebind should wait */
 		d = get_max_validlifetime(&iaidaddr); 
-		/* ToDo: set a SOLICT event */
 		timeo.tv_sec = (long)d;
 		timeo.tv_usec = 0;
-		if (&sp->serverid)
+		if (sp->serverid.duid_id != NULL)
 			duidfree(&sp->serverid);
+		break;
+	case IAID6S_REBIND:
+		dprintf(LOG_INFO, "%s" "failed to rebind an iaidaddr %d"
+		    " go to solicit and request new ipv6 addresses",
+		    FNAME, iaidaddr.iaidinfo.iaid);
+		sp->state = IAID6S_INVALID;
+		dhcpstate = DHCP6S_SOLICIT;
+		free_servers(sp->ifp);
 		break;
 	default:
 		return (NULL);
 	}
-	dhcp6_set_timer(&timeo, sp->timer);
 	if ((ev = dhcp6_create_event(sp->ifp, dhcpstate)) == NULL) {
 		dprintf(LOG_ERR, "%s" "failed to create a new event"
 		    FNAME);
-		return (NULL); /* XXX: should try to recover */
+		return (NULL); /* XXX: should try to recover reserve memory?? */
 	}
-	if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
-		dprintf(LOG_ERR, "%s" "failed to create a new event "
-		    "timer", FNAME);
-		free(ev);
-		return (NULL); /* XXX */
-	}
-	if ((evd = malloc(sizeof(*evd))) == NULL) {
-		dprintf(LOG_ERR, "%s" "failed to create a new event "
-		    "data", FNAME);
-		free(ev->timer);
-		free(ev);
-		return (NULL); /* XXX */
-	}
-	if (sp->state == IAID6S_RENEW) {
-		if (duidcpy(&ev->serverid, &sp->serverid)) {
-			dprintf(LOG_ERR, "%s" "failed to copy server ID",
-			    FNAME);
-			free(ev->timer);
-			free(ev);
-			return (NULL); /* XXX */
-		}
-	}
-	memset(evd, 0, sizeof(*evd));
-	evd->type = DHCP6_DATA_ADDR;
-	evd->data = sp;
-	evd->event = ev;
-	TAILQ_INSERT_TAIL(&ev->data_list, evd, link);
-
-	TAILQ_INSERT_TAIL(&sp->ifp->event_list, ev, link);
-
-	ev->timeouts = 0;
-	dhcp6_set_timeoparam(ev);
-	dhcp6_reset_timer(ev);
-
-	sp->evdata = evd;
-
 	switch(sp->state) {
 	case IAID6S_RENEW:
+		if (duidcpy(&ev->serverid, &sp->serverid)) {
+			dprintf(LOG_ERR, "%s" "failed to copy server ID", FNAME);
+			return (NULL);
+		}
 		ev->max_retrans_dur = sp->iaidinfo.rebindtime;
 		break;
 	case IAID6S_REBIND:
 		ev->max_retrans_dur = get_max_validlifetime(&iaidaddr);
 		break;
 	}
+	if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
+		dprintf(LOG_ERR, "%s" "failed to create a new event "
+	    	"timer", FNAME);
+		free(ev);
+		return (NULL); /* XXX */
+	}
+	TAILQ_INSERT_TAIL(&sp->ifp->event_list, ev, link);
+	if (sp->state != IAID6S_INVALID) {
+		if ((evd = malloc(sizeof(*evd))) == NULL) {
+			dprintf(LOG_ERR, "%s" "failed to create a new event "
+	    		"data", FNAME);
+			free(ev->timer);
+			free(ev);
+			return (NULL); 
+		}
+		memset(evd, 0, sizeof(*evd));
+		evd->type = DHCP6_DATA_ADDR;
+		evd->data = sp;
+		evd->event = ev;
+		TAILQ_INSERT_TAIL(&ev->data_list, evd, link);
+		sp->evdata = evd;
+		dhcp6_set_timer(&timeo, sp->timer);
+	} else {
+		client6_remove_iaidaddr();
+		/* remove event data for that event */
+		dhcp6_remove_evdata(ev);
+	}
+	ev->timeouts = 0;
+	dhcp6_set_timeoparam(ev);
+	dhcp6_reset_timer(ev);
 	client6_send(ev);
-	return (sp->timer);
+	if (sp->state != IAID6S_INVALID) 
+		return (sp->timer);
+	else
+		return (NULL);
 }
 
 

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.3 2003/01/23 18:44:33 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -553,9 +553,9 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	struct host_decl *host;
 	int addr_flag;
 	int do_binding = 0;
-	int num, addr_request = 0;
+	int addr_request = 0;
 	int resptype = DH6_REPLY;
-		
+	int num = DH6OPT_STCODE_SUCCESS;
 	hostlist = globalgroup->iflist->hostlist;
 
 	/* message validation according to Section 18.2 of dhcpv6-28 */
@@ -600,6 +600,15 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		dprintf(LOG_ERR, "%s" "failed to copy client ID", FNAME);
 		goto fail;
 	}
+	/* if the client is not on the link */
+	if (subnet == NULL) {
+		num = DH6OPT_STCODE_NOTONLINK; 
+		/* Draft-28 18.2.2, drop the message if NotOnLink */
+		if (dh6->dh6_msgtype == DH6_CONFIRM)
+			goto fail;
+		else
+			goto send;
+	}
 	/*
 	 * When the server receives a Request message via unicast from a
 	 * client to which the server has not sent a unicast option, the server
@@ -611,48 +620,18 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	 * (Our current implementation never sends a unicast option.)
 	 */
 
-	/*
 	switch (dh6->dh6_msgtype) {
 	case DH6_REQUEST:
 	case DH6_RENEW:
-        case DH6_DECLINE:
-	if (!IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
-		int stcode = DH6OPT_STCODE_USEMULTICAST;
-
-		dprintf(LOG_INFO, "%s" "unexpected unicast message from %s",
-		    FNAME, addr2str(from));
-		if (dhcp6_add_listval(&roptinfo.stcode_list, &stcode,
-		    DHCP6_LISTVAL_NUM) == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to add a status code",
-			    FNAME);
-			goto fail;
+	case DH6_DECLINE:
+		if (!IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
+			int stcode = DH6OPT_STCODE_USEMULTICAST;
+			goto send;
 		}
-		server6_send(DH6_REPLY, ifp, dh6, optinfo, from,
-		    fromlen, &roptinfo);
-		goto end;
-	}
-		break;
 	default:
 		break;
 	}
-	*/
-	/* if the client is not on the link */
-	if (subnet == NULL) {
-		num = DH6OPT_STCODE_NOTONLINK; 
-		dprintf(LOG_DEBUG, "  status code: %s",
-		    dhcp6_stcodestr(num));
-		if (dhcp6_add_listval(&roptinfo.stcode_list,
-		    &num, DHCP6_LISTVAL_NUM) == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to copy "
-			    "status code", FNAME);
-			goto fail;
-		}
-		/* Draft-28 18.2.2 */
-		if (dh6->dh6_msgtype == DH6_CONFIRM)
-			goto fail;
-		else
-			goto send;
-	}
+
 	switch (dh6->dh6_msgtype) {
 	case DH6_SOLICIT: 
 		/* get per-host configuration for the client, if any. */
@@ -677,6 +656,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		 */
 			roptinfo.flags |= DHCIFF_RAPID_COMMIT;
 			do_binding = 1;
+			resptype = DH6_REPLY;
 		} else
 			resptype = DH6_ADVERTISE;
 
@@ -686,8 +666,16 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 				addr_request = 1;
 			}
 			roptinfo.flags |= DHCIFF_RAPID_COMMIT;
+			resptype = DH6_REPLY;
 		} else
 			resptype = DH6_ADVERTISE;
+		break;
+	case DH6_INFORM_REQ:
+		/* DNS server */
+		if (dhcp6_copy_list(&roptinfo.dns_list, &dnslist)) {
+			dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
+			goto fail;
+		}
 		break;
 	case DH6_REQUEST:
 		/* get iaid for that request client for that interface */
@@ -755,28 +743,28 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			dhcp6_copy_list(&roptinfo.addr_list, &optinfo->addr_list);
 			if (server6_find_iaidaddr(&roptinfo) == NULL) {
 				num = DH6OPT_STCODE_NOBINDING;
-				dprintf(LOG_INFO, "%s" "failed to find iaid %d",
-					FNAME, optinfo->iaidinfo.iaid);
-			}
-			if (server6_update_iaidaddr(&roptinfo, addr_flag) != 0) {
-				num = DH6OPT_STCODE_NOTONLINK;
-				dprintf(LOG_ERR, "%s" 
-					"failed to renew ipv6 address for client %d",
-					FNAME, roptinfo.iaidinfo.iaid);
-				num = DH6OPT_STCODE_UNSPECFAIL;
-				/* status code */	
+				dprintf(LOG_INFO, "%s" "Nobinding for client %s iaid %d",
+					FNAME, duidstr(&optinfo->clientID), optinfo->iaidinfo.iaid);
 			} else 
-				num = DH6OPT_STCODE_SUCCESS;
+#ifdef TEST 
+				if (server6_validate_binding(&roptinfo.flags) != 0) { 
+				num = DH6OPT_STCODE_NOTONLINK;
+				dprintf(LOG_INFO, "%s" "Bindings are not on link for client %s iaid %d",
+					FNAME, duidstr(&optinfo->clientID), optinfo->iaidinfo.iaid);
+				if (TAILQ_EMPTY(&roptinfo->addr_list))
+					num = DH6OPT_STCODE_NOADDRAVAIL;
+			} else
+				
+#endif		
+				if (server6_update_iaidaddr(&roptinfo, addr_flag) != 0) {
+				num = DH6OPT_STCODE_UNSPECFAIL;
+				dprintf(LOG_INFO, "%s" "Bindings failed for client %s iaid %d",
+					FNAME, duidstr(&optinfo->clientID), optinfo->iaidinfo.iaid);
+				/* status code */	
+			} 
 			
 		} else 
 			num = DH6OPT_STCODE_NOADDRAVAIL;
-		dprintf(LOG_DEBUG, " status code: %s",
-			dhcp6_stcodestr(num));
-		if (dhcp6_add_listval(&roptinfo.stcode_list,
-			&num, DHCP6_LISTVAL_NUM) == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to copy "
-				"status code", FNAME);
-		}
 		break;
 	case DH6_CONFIRM:
 		if (!TAILQ_EMPTY(&optinfo->addr_list)) {
@@ -786,19 +774,13 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			dhcp6_copy_list(&roptinfo.addr_list, &optinfo->addr_list);
 			if (server6_find_iaidaddr(&roptinfo) == NULL) {
 				num = DH6OPT_STCODE_NOBINDING;
-				dprintf(LOG_INFO, "%s" "failed to find iaid %d for client %s",
-				FNAME, optinfo->iaidinfo.iaid, duidstr(&optinfo->clientID));
-			} else if (server6_validate_iaidaddr(&roptinfo) != 0) 
+				dprintf(LOG_INFO, "%s" "Nobinding for client %s iaid %d",
+					FNAME, duidstr(&optinfo->clientID), optinfo->iaidinfo.iaid);
+			} else if (server6_validate_iaidaddr(&roptinfo) != 0)  {
 					num = DH6OPT_STCODE_NOTONLINK;
-				else
-					num = DH6OPT_STCODE_SUCCESS;
-		}
-		break;
-	case DH6_INFORM_REQ:
-		/* DNS server */
-		if (dhcp6_copy_list(&roptinfo.dns_list, &dnslist)) {
-			dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
-			goto fail;
+				dprintf(LOG_INFO, "%s" "Bindings are not on link for client %s iaid %d",
+					FNAME, duidstr(&optinfo->clientID), optinfo->iaidinfo.iaid);
+			} 
 		}
 		break;
 	default:
@@ -863,28 +845,22 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 						"assigned ipv6address for client iaid %d failed",
 							roptinfo.iaidinfo.iaid);
 						num = DH6OPT_STCODE_UNSPECFAIL;
-					} else
-						num = DH6OPT_STCODE_SUCCESS;
+					} 
 				} else 
 					num = DH6OPT_STCODE_NOADDRAVAIL;
 
-			} else {
+			} else 
+#ifdef TEST 
+				if (server6_validate_binding(&roptinfo) != 0 ){
+				}
+#endif		
 				addr_flag = ADDR_UPDATE;
 				if (server6_update_iaidaddr(&roptinfo, addr_flag)) {
 					dprintf(LOG_ERR,
 						"assigned ipv6address for client iaid %d failed",
 						roptinfo.iaidinfo.iaid);
 					num = DH6OPT_STCODE_UNSPECFAIL;
-				} else 
-					num = num = DH6OPT_STCODE_SUCCESS;
-			}
-		}
-		dprintf(LOG_DEBUG, " status code: %s",
-	    		dhcp6_stcodestr(num));
-		if (dhcp6_add_listval(&roptinfo.stcode_list,
-	    		&num, DHCP6_LISTVAL_NUM) == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to copy "
-		    		"status code", FNAME);
+			} 
 		}
 		/*
 	 	 * See if we have to make a binding of some configuration information
@@ -895,8 +871,17 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	    		client_conf ? &client_conf->prefix_list : NULL,
 	    		&optinfo->prefix_list, 1);
 	}
+	/* add address status code */
+  send:
+	dprintf(LOG_DEBUG, " status code: %s", dhcp6_stcodestr(num));
+	if (dhcp6_add_listval(&roptinfo.stcode_list,
+	   	&num, DHCP6_LISTVAL_NUM) == NULL) {
+		dprintf(LOG_ERR, "%s" "failed to copy "
+	    		"status code", FNAME);
+		goto fail;
+	}
 	/* send a reply message. */
-send:	(void)server6_send(resptype, ifp, dh6, optinfo, from, fromlen,
+	(void)server6_send(resptype, ifp, dh6, optinfo, from, fromlen,
 			   &roptinfo);
 
   end:

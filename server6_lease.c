@@ -1,4 +1,4 @@
-/*	$Id: server6_lease.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
+/*	$Id: server6_lease.c,v 1.3 2003/01/23 18:44:35 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -51,11 +51,15 @@ write_lease(struct server6_lease *lease_ptr, FILE *file)
 	int j = 0;
 	int i = 0;
 	struct tm brokendown_time;
-	char addr_str[16];
+	char addr_str[64];
+
+	if ( (inet_ntop(AF_INET6, &lease_ptr->lease_addr.addr, addr_str, sizeof(addr_str))) == 0)
+		dprintf(LOG_DEBUG, "%s" "inet_ntop %s", FNAME, strerror(errno));
+	gmtime_r(&lease_ptr->start_date, &brokendown_time);
+	fprintf(file, "lease %s/%d { \n", addr_str,
+		//	in6addr2str(&lease_ptr->lease_addr.addr, 0),
+			lease_ptr->lease_addr.plen);
 	
-	gmtime_r(&lease_ptr->start_date, &brokendown_time); 
-	inet_ntop(AF_INET6, &lease_ptr->lease_addr.addr, addr_str, sizeof(struct in6_addr));
-	fprintf(file, "lease %s/%d { \n", addr_str, lease_ptr->lease_addr.plen);
 	fprintf(file, "\t start date: %d %d/%d/%d %d:%d:%d UTC;\n",
 		     brokendown_time.tm_wday,
 		     brokendown_time.tm_year + 1900,
@@ -153,7 +157,7 @@ int init_leases(void)
 int init_lease_hashes(void) 
 {
 
-	hash_anchors = (struct hashtable *)malloc(HASH_TABLE_COUNT*sizeof(struct hashtable *));
+	hash_anchors = (struct hash_table **)malloc(HASH_TABLE_COUNT*sizeof(*hash_anchors));
 	if (!hash_anchors) {
 		dprintf(LOG_ERR, "Couldn't malloc hash anchors", FNAME);
 		return (-1);

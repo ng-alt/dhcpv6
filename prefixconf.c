@@ -1,4 +1,4 @@
-/*	$Id: prefixconf.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
+/*	$Id: prefixconf.c,v 1.3 2003/01/23 18:44:33 shirleyma Exp $	*/
 /*	ported from KAME: prefixconf.c,v 1.9 2002/12/12 09:47:26 suz Exp */
 
 /*
@@ -389,14 +389,14 @@ prefix6_timo(arg)
 	case PREFIX6S_ACTIVE:
 		sp->state = PREFIX6S_RENEW;
 		dhcpstate = DHCP6S_RENEW;
-		d = sp->prefix.duration * 0.3; /* (0.8 - 0.5) * duration */
+		d = sp->prefix.duration / 3; /* (0.8 - 0.5) * duration */
 		timeo.tv_sec = (long)d;
 		timeo.tv_usec = 0;
 		break;
 	case PREFIX6S_RENEW:
 		sp->state = PREFIX6S_REBIND;
 		dhcpstate = DHCP6S_REBIND;
-		d = sp->prefix.duration * 0.2; /* (1.0 - 0.8) * duration */
+		d = sp->prefix.duration / 5; /* (1.0 - 0.8) * duration */
 		timeo.tv_sec = (long)d;
 		timeo.tv_usec = 0;
 		duidfree(&sp->serverid);

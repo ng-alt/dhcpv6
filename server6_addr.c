@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.2 2003/01/20 20:25:23 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.3 2003/01/23 18:44:33 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -100,8 +100,6 @@ iaid_hash(key)
 	struct client_if *iaidkey = (struct client_if *)key;
 	struct duid *duid = &iaidkey->clientid;
 	unsigned int index;
-	dprintf(LOG_DEBUG, "duid is %s, duid_len is %d",
-		duidstr(duid), duid->duid_len);
 	index = do_hash((void *)duid->duid_id, duid->duid_len);
 	return index;
 }
@@ -218,16 +216,17 @@ server6_remove_iaidaddr(iaidaddr)
 	struct server6_cl_iaidaddr *iaidaddr;
 {
 	struct client_if client_info;
-	struct server6_lease *lv;
+	struct server6_lease *lv, *lv_next;
 	struct server6_lease *lease;
 	
 	dprintf(LOG_DEBUG, "%s" "called", FNAME);
 	/* remove all the leases in this iaid */
-	for (lv = TAILQ_FIRST(&iaidaddr->ifaddr_list); lv; lv = TAILQ_NEXT(lv, link)) {
+	for (lv = TAILQ_FIRST(&iaidaddr->ifaddr_list); lv; lv = lv_next) {
+		lv_next = TAILQ_NEXT(lv, link);
 		if ((lease = hash_search(lease_hash_table, 
 				(void *)&lv->lease_addr.addr)) != NULL) {
-	dprintf(LOG_DEBUG, "%s" "lease address is %s", FNAME,
-		in6addr2str(&lv->lease_addr.addr, 0));
+			dprintf(LOG_DEBUG, "%s" "lease address is %s", FNAME,
+				in6addr2str(&lv->lease_addr.addr, 0));
 			if (iaidaddr_remove_lease(lv)) {
 				dprintf(LOG_ERR, "%s" "failed to remove an iaid %d", FNAME,
 					 iaidaddr->client_info.client_iaid);
@@ -418,12 +417,14 @@ iaidaddr_add_lease(iaidaddr, addr)
 	dprintf(LOG_DEBUG, "%s" "start date is %ld", FNAME, sp->start_date);
 	sp->state = ACTIVE;
 	if (write_lease(sp, lease_file) != 0) {
-		dprintf(LOG_ERR, "%s" "failed to write lease to lease file", FNAME,
-			in6addr2str(&sp->lease_addr.addr, 0));
+		dprintf(LOG_ERR, "%s" "failed to write a new lease address %s to lease file", 
+			FNAME, in6addr2str(&sp->lease_addr.addr, 0));
 		free(sp->timer);
 		free(sp);
 		return (-1);
 	}
+	dprintf(LOG_ERR, "%s" "write lease %s to lease file", FNAME,
+		in6addr2str(&sp->lease_addr.addr, 0));
 	if (hash_add(lease_hash_table, &sp->lease_addr.addr, sp)) {
 		dprintf(LOG_ERR, "%s" "failed to add hash for an address", FNAME);
 			free(sp->timer);
@@ -640,11 +641,15 @@ server6_create_addrlist(tempaddr, subnet, optinfo, roptinfo)
 		memset(v6addr, 0, sizeof(*v6addr));
 		memcpy(&v6addr->val_dhcp6addr.addr, addr6, sizeof(v6addr->val_dhcp6addr.addr));
 		v6addr->val_dhcp6addr.plen = seg->prefix.plen;
-		if (seg->parainfo.prefer_life_time == 0)
-			seg->parainfo.prefer_life_time = DEFAULT_PREFERRED_LIFE_TIME;
-		v6addr->val_dhcp6addr.preferlifetime = seg->parainfo.prefer_life_time;
-		if (seg->parainfo.valid_life_time == 0)
+		if (seg->parainfo.prefer_life_time == 0 && seg->parainfo.valid_life_time == 0) {
 			seg->parainfo.valid_life_time = DEFAULT_VALID_LIFE_TIME;
+			seg->parainfo.prefer_life_time = DEFAULT_PREFERRED_LIFE_TIME;
+		} else if (seg->parainfo.prefer_life_time == 0) {
+			seg->parainfo.prefer_life_time = seg->parainfo.valid_life_time / 2;
+		} else if (seg->parainfo.valid_life_time == 0) {
+			seg->parainfo.valid_life_time = 2 * seg->parainfo.prefer_life_time;
+		}
+		v6addr->val_dhcp6addr.preferlifetime = seg->parainfo.prefer_life_time;
 		v6addr->val_dhcp6addr.validlifetime = seg->parainfo.valid_life_time;
 		TAILQ_INSERT_TAIL(reply_list, v6addr, link);
 	}

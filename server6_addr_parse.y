@@ -1,4 +1,4 @@
-/*	$Id: server6_addr_parse.y,v 1.2 2003/01/20 20:26:43 shirleyma Exp $	*/
+/*	$Id: server6_addr_parse.y,v 1.3 2003/01/23 18:44:34 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -684,6 +684,11 @@ paradecl
 				ABORT;
 		}
 		currentscope->scope->valid_life_time = $2;
+		if (currentscope->scope->prefer_life_time != 0 && 
+		    currentscope->scope->valid_life_time <= currentscope->scope->prefer_life_time) {
+			dprintf(LOG_ERR, "%s" "validlifetime is less than(equal) preferlifetime", FNAME);
+			ABORT;
+		}
 	}
 	| PREFERLIFETIME number_or_infinity ';'
 	{
@@ -693,6 +698,11 @@ paradecl
 				ABORT;
 		}
 		currentscope->scope->prefer_life_time = $2;
+		if (currentscope->scope->valid_life_time != 0 &&
+		    currentscope->scope->valid_life_time <= currentscope->scope->prefer_life_time) {
+			dprintf(LOG_ERR, "%s" "validlifetime is less than(equal) preferlifetime", FNAME);
+			ABORT;
+		}
 	}
 	;
 

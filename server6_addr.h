@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.h,v 1.2 2003/01/20 20:25:42 shirleyma Exp $	*/
+/*	$Id: server6_addr.h,v 1.3 2003/01/23 18:44:33 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -57,6 +57,7 @@ typedef enum { ACTIVE, EXPIRED,
 struct client_if {
         struct duid clientid;
         u_int32_t client_iaid;
+	struct dhcp6_iaid_info iaidinfo;
 	u_int8_t client_iatype;
 };
 
