@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.7 2003/04/12 00:25:33 shirleyma Exp $	*/
+/*	$Id: lease_token.l,v 1.8 2003/04/18 01:00:12 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -286,7 +286,7 @@ do_iaidaddr_hash(lease_rec, key)
 			return (0);
 		}
 	}
-	iaidaddr = (struct dhcp6_iaidaddr *)hash_search(lease_hash_table, key); 
+	iaidaddr = (struct dhcp6_iaidaddr *)hash_search(server6_hash_table, key); 
 	if (iaidaddr){
 		found_lease = hash_search(lease_hash_table, &lease_rec->lease_addr.addr);
 		/* remove the previous old lease */
