@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.20 2003/04/25 18:56:20 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.21 2003/04/28 22:12:20 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -1428,8 +1428,13 @@ client6_recvreply(ifp, dh6, len, optinfo)
 			break;
 		}
 		break;
-	case DHCP6S_RENEW:
 	case DHCP6S_REBIND:
+		if (client6_request_flag & CLIENT6_CONFIRM_ADDR) {
+			client6_request_flag &= 0;	
+			goto rebind_confirm;
+			
+		}
+	case DHCP6S_RENEW:
 		/* NoBinding for RENEW, REBIND, send REQUEST */
 		switch(addr_status_code) {
 		case DH6OPT_STCODE_NOBINDING:
@@ -1451,7 +1456,7 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		break;
 	case DHCP6S_CONFIRM:
 		/* NOtOnLink for a Confirm, send SOLICIT message */
-		switch(addr_status_code) {
+rebind_confirm:	switch(addr_status_code) {
 		case DH6OPT_STCODE_NOTONLINK:
 		case DH6OPT_STCODE_NOBINDING:
 		case DH6OPT_STCODE_NOADDRAVAIL:
