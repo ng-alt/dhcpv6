@@ -153,6 +153,7 @@ get_if_flags(struct nlmsghdr *nlm, int nlm_len, int request,
 	switch(rta->rta_type) {
 	case IFLA_IFNAME:
 		break;
+#ifdef IFLA_PROTINFO
 	case IFLA_PROTINFO:
 		rtasize1 = rta->rta_len;
 		for (rta1 = (struct rtattr *)rtadata; RTA_OK(rta1, rtasize1);
@@ -177,6 +178,7 @@ get_if_flags(struct nlmsghdr *nlm, int nlm_len, int request,
 			}
 		}
 		break;
+#endif
 	default:
 		break;
 	}
