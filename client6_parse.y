@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.2 2003/02/10 23:47:06 shirleyma Exp $	*/
+/*	$Id: client6_parse.y,v 1.3 2003/02/11 02:21:26 shirleyma Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -87,7 +87,7 @@ static void cleanup_namelist __P((struct cf_namelist *));
 static void cleanup_cflist __P((struct cf_list *));
 %}
 
-%token INTERFACE IFNAME
+%token INTERFACE IFNAME IPV6ADDR
 %token REQUEST SEND 
 %token OPTION RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS PREFIX_INFO PREFIX_REQ
 %token INFO_ONLY TEMP_ADDR
