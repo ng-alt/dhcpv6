@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.13 2003/05/16 21:40:46 shirleyma Exp $	*/
+/*	$Id: config.h,v 1.14 2004/02/04 23:30:17 shemminger Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -138,7 +138,7 @@ struct dhcp6_serverinfo {
 	/* option information provided in the advertisement */
 	struct dhcp6_optinfo optinfo;
 	struct in6_addr server_addr;
-	int pref;		/* preference */
+	u_int8_t pref;		/* preference */
 	int active;		/* bool; if this server is active or not */
 	/* TODO: remember available information from the server */
 };

@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.18 2003/07/02 02:21:25 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.19 2004/02/04 23:30:17 shemminger Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -1012,7 +1012,7 @@ dhcp6_get_options(p, ep, optinfo)
 		case DH6OPT_PREFERENCE:
 			if (optlen != 1)
 				goto malformed;
-			optinfo->pref = (int)*(u_char *)cp;
+			optinfo->pref = (u_int8_t)*(u_char *)cp;
 			dprintf(LOG_DEBUG, "%s" "get option preferrence is %2x", 
 					FNAME, optinfo->pref);
 			break;
