@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.3 2003/02/11 21:11:32 shirleyma Exp $
+# $Id: Makefile.in,v 1.4 2003/02/18 11:44:31 hiekata Exp $
 #
 
 srcdir=	@srcdir@
@@ -18,6 +18,10 @@ exec_prefix=	@exec_prefix@
 bindir=	@bindir@
 sbindir=@sbindir@
 mandir=	@mandir@
+initdir=/etc/rc.d/init.d
+etc=/etc
+sysconfigdir=/etc/sysconfig
+CHKCONFIG=/sbin/chkconfig
 
 CFLAGS+= -DCONF_DH6OPT_DNS=@dhcpopt_dns@ \
 	-DCONF_DH6OPT_PREFIX_DELEGATION=@dhcpopt_pdel@ \
@@ -76,10 +80,31 @@ server6_addr_token.c: server6_addr_token.l sf.tab.h
 
 install::
 	$(INSTALL_PROGRAM) -s -o bin -g bin $(TARGET) $(sbindir)
-	$(INSTALL_DATA) -o bin -g bin dhcp6c.8 $(mandir)/man8
-	$(INSTALL_DATA) -o bin -g bin dhcp6s.8 $(mandir)/man8
-	$(INSTALL_DATA) -o bin -g bin dhcp6c.conf.5 $(mandir)/man5
-	$(INSTALL_DATA) -o bin -g bin dhcp6s.conf.5 $(mandir)/man5
+	$(INSTALL_DATA) -o bin -g bin dhcp6c.8 $(mandir)/man8/
+	$(INSTALL_DATA) -o bin -g bin dhcp6s.8 $(mandir)/man8/
+	$(INSTALL_DATA) -o bin -g bin dhcp6c.conf.5 $(mandir)/man5/
+	$(INSTALL_DATA) -o bin -g bin dhcp6s.conf.5 $(mandir)/man5/
+
+rh_install:: install
+	$(INSTALL_PROGRAM) -o root -g root dhcp6s.sh $(initdir)/dhcp6s
+	$(INSTALL_PROGRAM) -o root -g root dhcp6c.sh $(initdir)/dhcp6c
+	$(CHKCONFIG) --add dhcp6s
+	$(CHKCONFIG) --add dhcp6c
+
+uninstall::
+	for progs in $(TARGET); do \
+		/bin/rm -f $(sbindir)/$$progs; \
+	done
+	/bin/rm -f $(mandir)/man8/dhcp6c.8
+	/bin/rm -f $(mandir)/man8/dhcp6s.8
+	/bin/rm -f $(mandir)/man5/dhcp6c.conf.5
+	/bin/rm -f $(mandir)/man5/dhcp6s.conf.5
+
+rh_uninstall:: uninstall
+	$(CHKCONFIG) --del dhcp6s
+	$(CHKCONFIG) --del dhcp6c
+	/bin/rm -f $(initdir)/dhcp6s
+	/bin/rm -f $(initdir)/dhcp6c
 
 includes::
 
