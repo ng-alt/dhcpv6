@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.9 2003/06/03 19:12:00 shirleyma Exp $	*/
+/*	$Id: lease_token.l,v 1.10 2003/06/03 19:51:13 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -290,7 +290,7 @@ do_iaidaddr_hash(lease_rec, key)
 	}
 	iaidaddr = (struct dhcp6_iaidaddr *)hash_search(server6_hash_table, key); 
 	if (iaidaddr){
-		found_lease = hash_search(lease_hash_table, &lease_rec->lease_addr.addr);
+		found_lease = hash_search(lease_hash_table, &lease_rec->lease_addr);
 		/* remove the previous old lease */
 		if(found_lease) {
 			if (found_lease->start_date < lease_rec->start_date) {
@@ -455,12 +455,17 @@ add_lease(iaidaddr, lease)
 	timo.tv_usec = 0;
 	dhcp6_set_timer(&timo, lease_rec->timer);
 	if (dhcp6_mode == DHCP6_MODE_SERVER) {
-		if (hash_add(lease_hash_table, &lease_rec->lease_addr.addr, lease_rec) != 0) {
+		if (hash_add(lease_hash_table, &lease_rec->lease_addr, lease_rec) != 0) {
 			dprintf(LOG_ERR, "%s" "hash add lease failed for %s",
 				FNAME, in6addr2str(&lease_rec->lease_addr.addr, 0));
 			free(lease_rec);
 			return (-1);
 		}
+		iaidaddr->state = ACTIVE;
+		d = get_max_validlifetime(iaidaddr) - offset;
+		timo.tv_sec = (long)d;
+		timo.tv_usec = 0;
+		dhcp6_set_timer(&timo, iaidaddr->timer);
 	}
 	lease_rec->iaidaddr = iaidaddr;
 	lease_rec->lease_addr.status_code = DH6OPT_STCODE_UNDEFINE;
@@ -485,7 +490,7 @@ remove_lease(lease)
 	if (lease->timer)
 		dhcp6_remove_timer(lease->timer);
 	TAILQ_REMOVE(&lease->iaidaddr->lease_list, lease, link);
-	dprintf(LOG_INFO, "%s" "remove lease addr %s/%d to %d", 
+	dprintf(LOG_INFO, "%s" "removed lease addr %s/%d to %d", 
 		FNAME, in6addr2str(&lease->lease_addr.addr, 0), 
 		lease->lease_addr.plen, lease->iaidaddr->client6_info.iaidinfo.iaid);
 	free(lease);
