@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.10 2003/05/22 23:00:29 shirleyma Exp $	*/
+/*	$Id: lease.h,v 1.11 2003/05/27 20:56:41 shemminger Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -39,8 +39,8 @@
 #define ADDR_VALIDATE	2
 #define ADDR_ABANDON	3
 
-#define PATH_SERVER6_LEASE "/var/db/dhcpv6/server6.leases"
-#define PATH_CLIENT6_LEASE "/var/db/dhcpv6/client6.leases"
+#define PATH_SERVER6_LEASE "/var/lib/dhcpv6/server6.leases"
+#define PATH_CLIENT6_LEASE "/var/lib/dhcpv6/client6.leases"
 
 #define HASH_TABLE_COUNT 	4
 

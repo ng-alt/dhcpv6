@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.26 2003/05/23 19:00:36 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.27 2003/05/27 20:56:41 shemminger Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -149,7 +149,7 @@ extern int radvd_parse (struct dhcp6_iaidaddr *, int);
 
 #define DHCP6C_CONF "/etc/dhcp6c.conf"
 #define DHCP6C_PIDFILE "/var/run/dhcpv6/dhcp6c.pid"
-#define DUID_FILE "/var/db/dhcpv6/dhcp6c_duid"
+#define DUID_FILE "/var/lib/dhcpv6/dhcp6c_duid"
 
 static int pid;
 static char cmdbuf[1024];

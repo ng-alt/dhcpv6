@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.16 2003/05/22 23:00:28 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.17 2003/05/27 20:56:41 shemminger Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -111,7 +111,7 @@ struct link_decl *subnet = NULL;
 struct host_decl *host = NULL;
 struct rootgroup *globalgroup = NULL;
 
-#define DUID_FILE "/var/db/dhcpv6/dhcp6s_duid"
+#define DUID_FILE "/var/lib/dhcpv6/dhcp6s_duid"
 #define DHCP6S_CONF "/etc/dhcp6s.conf"
 
 #define DH6_VALID_MESSAGE(a) \
