@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.20 2004/02/04 23:31:24 shemminger Exp $	*/
+/*	$Id: server6_addr.c,v 1.21 2004/03/15 22:02:55 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -34,7 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <openssl/md5.h>
+//#include <openssl/md5.h>
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -536,7 +536,7 @@ dhcp6_lease_timo(arg)
 	return (sp->timer);
 }
 
-void
+static void
 get_random_bytes(u_int8_t seed[], int num)
 {
 	int i;
@@ -546,7 +546,7 @@ get_random_bytes(u_int8_t seed[], int num)
 }
 
 
-void 
+static void 
 create_tempaddr(prefix, plen, tempaddr)
 	struct in6_addr *prefix;
 	int plen;
@@ -554,14 +554,9 @@ create_tempaddr(prefix, plen, tempaddr)
 {
 	int i, num_bytes;
 	u_int8_t digest[16];
-	MD5_CTX ctx;
 	u_int8_t seed[16];
+
 	get_random_bytes(seed, 16);
-	
-	MD5_Init(&ctx);
-	MD5_Update(&ctx, seed, 16);
-	MD5_Final(digest, &ctx);
-	memcpy(seed, digest, 16);
 	/* address mask */
 	memset(tempaddr, 0, sizeof(*tempaddr));	
 	num_bytes = plen / 8;
