@@ -29,7 +29,7 @@ A. Validated Features:
       IPv6 address Assignment 
 
       1. Server configuration file support. 
-      2. Server lease file suport for saving all the client's IPv6 address binding 
+      2. Server lease file support for saving all the client's IPv6 address binding 
 	 info. 
       3. Client IPv6 address assignment and temporary IPv6 address assignment support 
 	 on the same link. 
@@ -42,7 +42,7 @@ B. Support available but not validated yet
       1. Renew/Rebind messages 
       2. Prefix delegation option support 
       3. DNS server option support 
-      4. Request opiton support 
+      4. Request option support 
 
 C. Under development and testing 
 
@@ -50,7 +50,7 @@ C. Under development and testing
 	 (address preferlifetime reached)/deleted(address validlifetime reached) 
       2. Release/Decline/Confirm/ messages support for IPv6 address binding. 
       3. Client configuration file support for IPv6 address assignment. 
-      4. Client lease file suport for saving individual client ipv6address binding info. 
+      4. Client lease file support for saving individual client ipv6address binding info. 
       5. Prefix delegation configuration file supports relay. 
       6. Merge prefix delegation configuration file parser and IPv6 address assignment file 
 	 parser into one parser. 
