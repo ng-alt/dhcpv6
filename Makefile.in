@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.2 2003/02/10 23:47:06 shirleyma Exp $
+# $Id: Makefile.in,v 1.3 2003/02/11 21:11:32 shirleyma Exp $
 #
 
 srcdir=	@srcdir@
@@ -24,14 +24,15 @@ CFLAGS+= -DCONF_DH6OPT_DNS=@dhcpopt_dns@ \
 	-DCONF_DH6OPT_PREFIX_INFORMATION=@dhcpopt_pinfo@ \
 	-DCONF_DH6OPT_PREFIX_REQUEST=@dhcpopt_preq@
 
-CLIENTGENSRCS=client6_parse.c client6_token.c lease_token.c
-SERVERGENSRCS=server6_addr_parse.c server6_addr_token.c 
+COMMONGENSRCS=lease_token.c
+CLIENTGENSRCS=client6_parse.c client6_token.c 
+SERVERGENSRCS=server6_addr_parse.c server6_addr_token.c cfparse.c cftoken.c
 CLIENTOBJS=	dhcp6c.o common.o config.o prefixconf.o timer.o client6_addr.o \
 		hash.o lease.o \
-	$(CLIENTGENSRCS:%.c=%.o)
+	$(CLIENTGENSRCS:%.c=%.o) $(COMMONGENSRCS:%.c=%.o)
 SERVOBJS=	dhcp6s.o common.o config.o timer.o hash.o lease.o \
 		server6_conf.o server6_addr.o \
-	$(SERVERGENSRCS:%.c=%.o) $(CLIENTGENSRCS:%.c=%.o)
+	$(SERVERGENSRCS:%.c=%.o) $(COMMONGENSRCS:%.c=%.o)
 
 CLEANFILES=cf.tab.h cp.tab.h sf.tab.h cfparse.c cftoken.c client6_token.c client6_parse.c \
 		server6_addr_parse.c server6_addr_token.c lease_token.c 
