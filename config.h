@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.10 2003/04/18 00:19:59 shirleyma Exp $	*/
+/*	$Id: config.h,v 1.11 2003/04/18 20:08:55 shirleyma Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -78,12 +78,11 @@ struct dhcp6_if {
 #define DHCIFF_RAPID_COMMIT 0x2
 #define DHCIFF_TEMP_ADDRS 0x4
 #define DHCIFF_PREFIX_DELEGATION 0x8
-#define DHCIFF_UNICAST 0x01
+#define DHCIFF_UNICAST 0x10
 
 
 
 	int server_pref;	/* server preference (server only) */
-
 	struct dhcp6_optconf *send_options;
 	struct dhcp6_list reqopt_list;
 	/* request specific addresses list from client */
@@ -131,7 +130,7 @@ struct dhcp6_serverinfo {
 
 	/* option information provided in the advertisement */
 	struct dhcp6_optinfo optinfo;
-
+	struct in6_addr server_addr;
 	int pref;		/* preference */
 	int active;		/* bool; if this server is active or not */
 	/* TODO: remember available information from the server */
