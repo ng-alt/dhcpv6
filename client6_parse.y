@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.9 2004/02/05 00:10:31 shemminger Exp $	*/
+/*	$Id: client6_parse.y,v 1.10 2004/02/05 00:13:05 shemminger Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -95,7 +95,7 @@ static void cleanup_cflist __P((struct cf_list *));
 %token INFO_ONLY TEMP_ADDR
 %token ADDRESS PREFIX IAID RENEW_TIME REBIND_TIME V_TIME P_TIME
 %token NUMBER SLASH EOS BCL ECL STRING INFINITY
-%token COMMA
+%token COMMA OPTION
 
 %union {
 	long long num;
