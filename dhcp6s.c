@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.10 2003/03/28 23:01:55 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.11 2003/04/12 00:25:33 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -103,7 +103,7 @@ static char rdatabuf[BUFSIZ];
 static int rmsgctllen;
 static char *rmsgctlbuf;
 static struct duid server_duid;
-static struct dhcp6_list arg_dnslist;
+static struct dns_list arg_dnslist;
 struct link_decl *subnet = NULL;
 struct host_decl *host = NULL;
 struct rootgroup *globalgroup = NULL;
@@ -148,7 +148,7 @@ main(argc, argv)
 	else
 		progname++;
 
-	TAILQ_INIT(&arg_dnslist);
+	TAILQ_INIT(&arg_dnslist.addrlist);
 
 	srandom(time(NULL) & getpid());
 	while ((ch = getopt(argc, argv, "c:dDfn:")) != -1) {
@@ -177,7 +177,7 @@ main(argc, argv)
 				/* NOTREACHED */
 			}
 			dlv->val_addr6 = a;
-			TAILQ_INSERT_TAIL(&arg_dnslist, dlv, link);
+			TAILQ_INSERT_TAIL(&arg_dnslist.addrlist, dlv, link);
 			break;
 		default:
 			usage();
@@ -216,6 +216,7 @@ main(argc, argv)
 		exit(1);
 	}
 	memset(globalgroup, 0, sizeof(*globalgroup));
+	TAILQ_INIT(&globalgroup->scope.dnslist.addrlist);
 	if ((sfparse(conffile)) != 0) {
 		dprintf(LOG_ERR, "%s" "failed to parse addr configuration file",
 			FNAME);
@@ -527,6 +528,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	int addr_request = 0;
 	int resptype = DH6_REPLY;
 	int num = DH6OPT_STCODE_SUCCESS;
+	int sending_hint = 0;
 
 	/* message validation according to Section 18.2 of dhcpv6-28 */
 
@@ -594,15 +596,15 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		dnslist = host->hostscope.dnslist;
 	}
 	/* prohibit a mixture of old and new style of DNS server config */
-	if (!TAILQ_EMPTY(&arg_dnslist)) {
-		if (!TAILQ_EMPTY(&dnslist)) {
+	if (!TAILQ_EMPTY(&arg_dnslist.addrlist)) {
+		if (!TAILQ_EMPTY(&dnslist.addrlist)) {
 			dprintf(LOG_INFO, "%s" "do not specify DNS servers "
 			    "both by command line and by configuration file.",
 			    FNAME);
 			exit(1);
 		}
 		dnslist = arg_dnslist;
-		TAILQ_INIT(&arg_dnslist);
+		TAILQ_INIT(&arg_dnslist.addrlist);
 	}
 	dprintf(LOG_DEBUG, "server preference is %2x", roptinfo.pref);
 	/*
@@ -650,12 +652,8 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 				resptype = DH6_REPLY;
 			} else {
 				resptype = DH6_ADVERTISE;
-#ifdef TEST
-				if (optinfo->flags & DHCIFF_RAPID_COMMIT) {
-					addr_request = 0;
-					optinfo->iaidinfo.iaid = 0;
-				}
-#endif
+				/* giving hint ?? */
+				sending_hint = 1;
 			}	
 		}
 		break;
@@ -664,10 +662,11 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		if (optinfo->iaidinfo.iaid != 0)
 			goto fail;
 		/* DNS server */
-		if (dhcp6_copy_list(&roptinfo.dns_list, &dnslist)) {
+		if (dhcp6_copy_list(&roptinfo.dns_list.addrlist, &dnslist.addrlist)) {
 			dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
 			goto fail;
 		}
+		roptinfo.dns_list.domainlist = dnslist.domainlist;
 		break;
 	case DH6_REQUEST:
 		/* get iaid for that request client for that interface */
@@ -677,11 +676,6 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			roptinfo.type = optinfo->type;
 			addr_request = 1;
 		} 
-		/* DNS server */
-		if (dhcp6_copy_list(&roptinfo.dns_list, &dnslist)) {
-			dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
-			goto fail;
-		}
 		break;
 	/*
 	 * Locates the client's binding and verifies that the information
@@ -798,7 +792,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			dhcp6_create_addrlist(&roptinfo, optinfo, iaidaddr, subnet);
 		if (TAILQ_EMPTY(&roptinfo.addr_list)) {
 			num = DH6OPT_STCODE_NOADDRAVAIL;
-		} else {
+		} else if (sending_hint == 0) {
 		/* valid client request address list */
 			if (found_binding) {
 			       if (dhcp6_update_iaidaddr(&roptinfo, addr_flag) != 0) {
@@ -818,6 +812,12 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 					num = DH6OPT_STCODE_SUCCESS;
 			}
 		}
+		/* DNS server */
+		if (dhcp6_copy_list(&roptinfo.dns_list.addrlist, &dnslist.addrlist)) {
+			dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
+			goto fail;
+		}
+		roptinfo.dns_list.domainlist = dnslist.domainlist;
 	}
 	/* add address status code */
   send:

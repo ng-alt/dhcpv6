@@ -1,4 +1,4 @@
-/*	$Id: server6_token.l,v 1.2 2003/04/02 23:31:49 shemminger Exp $	*/
+/*	$Id: server6_token.l,v 1.3 2003/04/12 00:25:33 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -143,9 +143,9 @@ infinity	{ return INFINITY; }
 {snum}	{ sfyylval.snum = atoi(sfyytext); return SIGNEDNUMBER; }
 {decimal} { sfyylval.dec = atof(sfyytext); return DECIMAL; }
 {string}	{
-			static char name[IFNAMSIZ];
-			strncpy(name, sfyytext, IFNAMSIZ-1);
-			name[IFNAMSIZ-1] = '\0';
+			static char name[MAXDNAME];
+			strncpy(name, sfyytext, MAXDNAME-1);
+			name[MAXDNAME-1] = '\0';
 			sfyylval.str = name;
 			return STRING;
 		}

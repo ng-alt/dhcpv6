@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.8 2003/03/28 23:01:53 shirleyma Exp $	*/
+/*	$Id: config.h,v 1.9 2003/04/12 00:25:32 shirleyma Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -66,6 +66,7 @@ struct dhcp6_if {
 	char *ifname;
 	unsigned int ifid;
 	struct ra_info *ralist;
+	struct dns_list dnslist;
 	u_int32_t linkid;	/* to send link-local packets */
 	struct dhcp6_iaid_info iaidinfo;	
 	
@@ -285,7 +286,7 @@ extern const char *configfilename;
 extern struct dhcp6_if *dhcp6_if;
 extern struct dhcp6_ifconf *dhcp6_iflist;
 extern struct prefix_ifconf *prefix_ifconflist;
-extern struct dhcp6_list dnslist;
+extern struct dns_list dnslist;
 
 extern int configure_interface (const struct cf_namelist *);
 extern int configure_prefix_interface (struct cf_namelist *);
@@ -294,3 +295,4 @@ extern int configure_global_option (void);
 extern void configure_cleanup (void);
 extern void configure_commit (void);
 extern int cfparse (const char *);
+extern int resolv_parse (const char *);

@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.6 2003/03/28 23:01:56 shirleyma Exp $	*/
+/*	$Id: lease_token.l,v 1.7 2003/04/12 00:25:33 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -101,7 +101,7 @@ number          ({digit})+
 decimal         ({number}"."{number})
 hexdigit        ([a-f]|[A-F]|[0-9])
 hexpair		({hexdigit}{hexdigit})
-ipv4addr	({digit}{1,3}"."{digit}{1,3}"."{digit}{1,3})
+ipv4addr	({digit}{1,3}"."{digit}{1,3}"."{digit}{1,3}"."{digit}{1,3})
 addr_head	("::"|{hexdigit}{1,4}(":"|"::"))
 addr_tail	({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})?
 addr_body	({hexdigit}{1,4}(":"|"::"))*

@@ -1,4 +1,4 @@
-/*	$Id: ra_token.l,v 1.3 2003/04/12 00:25:33 shirleyma Exp $	*/
+/*	$Id: resolv_token.l,v 1.1 2003/04/12 00:25:33 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -51,16 +51,17 @@
 	yytext, num_lines)
 
 #define ABORT   do {    \
-	YYABORT("lease parse error");   \
+	YYABORT("resolv parse error");   \
 	exit(1);        \
 } while (0)
 
 extern struct dhcp6_if *dhcp6_if;
 extern char *device;
-const char *rafile = "/proc/net/ra_inet6";
+extern const char *resolv_file;
 
-static struct ra_info *rainfo;
 static int num_lines = 0;
+
+int resolv_parse __P((const char *));
 
 %}
 
@@ -73,82 +74,67 @@ addr_tail       ({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})?
 addr_body       ({hexdigit}{1,4}(":"|"::"))*
 ipv6addr        {addr_head}{addr_body}{addr_tail}
 whitespace      ([ \t])+
-ifname          [a-zA-Z]+[0-9]+
-flags		[a-zA-Z]+
+domainname	[a-zA-Z0-9:\._-]+
 nl              \n
 
 
-%s S_CNF S_INDEX S_PLEN S_FLAGS S_PREFIX
+%s S_ADDR S_DOMAIN
 
 %%
 
 {nl}            {num_lines++; BEGIN INITIAL;}
 {whitespace}    {;}
 
-<S_CNF>{ifname} {if (strcmp(rayytext, dhcp6_if->ifname))
-			BEGIN S_CNF;
-		else {
-			rainfo = (struct ra_info *)malloc(sizeof(*rainfo));
-			if (rainfo == NULL)
-				ABORT;
-			else 
-				BEGIN S_INDEX;}
-		}
-<S_CNF>. {ABORT;}
-<S_INDEX>{number} {if (atoi(rayytext) != dhcp6_if->ifid)
+"nameserver"	{BEGIN S_ADDR;}
+"search"	{BEGIN S_DOMAIN;}
+
+<S_DOMAIN>{domainname} { struct domain_list *domainname, *temp;
+		domainname = (struct domain_list *)malloc(sizeof(*domainname));
+		if (domainname == NULL)
 			ABORT;
-		else   
-			BEGIN S_PLEN;}
-<S_INDEX>. {ABORT;}
-<S_PLEN>{number} {rainfo->plen = atoi(rayytext); BEGIN S_FLAGS;}
-<S_PLEN>. {ABORT;}
-<S_FLAGS>{flags} {if (strchr(rayytext, 'M') != NULL)
-			rainfo->flags |= RA_MBIT_SET;
-		else if (strchr(rayytext, 'O') != NULL)
-			rainfo->flags |= RA_OBIT_SET;
-		BEGIN S_PREFIX;}
-<S_FLAGS>. {ABORT;}
-<S_PREFIX>{ipv6addr} {struct in6_addr addr;
-		struct ra_info *ri, *ri_prev;
-		if (inet_pton(AF_INET6, rayytext, &addr) < 1) 
+		if (strlen(yytext) > MAXDNAME)
 			ABORT;
+		strcpy(domainname->name, yytext);
+		dprintf(LOG_DEBUG, "parse domain name %s", domainname->name);
+		domainname->next = NULL;
+		if (dhcp6_if->dnslist.domainlist == NULL)
+			dhcp6_if->dnslist.domainlist = domainname;
 		else {
-			memcpy(&rainfo->prefix, &addr, sizeof(rainfo->prefix));
-			if (dhcp6_if->ralist == NULL) {
-				dhcp6_if->ralist = rainfo;
-				rainfo->next = NULL;
-			} else {
-				ri_prev = dhcp6_if->ralist;
-				for (ri = dhcp6_if->ralist; ri; ri = ri->next) {
-					if (rainfo->plen < ri->plen) {
-						if (ri->next == NULL) {
-							ri->next = rainfo;
-							rainfo->next = NULL;
-							break;
-						}
-					} else {
-						ri_prev->next = rainfo;
-						rainfo->next = ri;
-						break;
-					}
-					ri_prev = ri->next;	
-					continue;
+			for (temp = dhcp6_if->dnslist.domainlist; temp; temp = temp->next) {
+				if (temp->next == NULL) {
+					temp->next = domainname;
+					break;
 				}
 			}
-			BEGIN S_CNF;}
 		}
-<S_PREFIX>. {ABORT;}
+		BEGIN S_DOMAIN;}
+
+<S_DOMAIN>. {BEGIN INITIAL;}
+
+<S_ADDR>{ipv6addr} {struct in6_addr addr;
+		if (inet_pton(AF_INET6, yytext, &addr) < 1) 
+			ABORT;
+		dprintf(LOG_DEBUG, "parse name server %s", in6addr2str(&addr, 0));
+		if (dhcp6_add_listval(&dhcp6_if->dnslist.addrlist,
+		    &addr, DHCP6_LISTVAL_ADDR6) == NULL) {
+			dprintf(LOG_ERR, "%s" "failed to add a DNS server", FNAME);
+			ABORT;
+		}
+		BEGIN S_ADDR;}
+<S_ADDR>. {BEGIN INITIAL;}
 
 %%
 
 int
-ra_parse(const char *raname)
+resolv_parse(const char *resolvname)
 {
-	if ((rayyin = fopen(raname, "r")) == NULL) {
+	TAILQ_INIT(&dhcp6_if->dnslist.addrlist);
+	dhcp6_if->dnslist.domainlist = NULL;
+	if ((yyin = fopen(resolvname, "r")) == NULL) {
 		if (errno == ENOENT)
 			return (0);
-		dprintf(LOG_ERR, "ra_parse: fopen(%s): %s",
-			configfilename, strerror(errno));
+		dprintf(LOG_ERR, "resolv_parse: fopen(%s): %s",
+			resolvname, strerror(errno));
 		return (-1);
 	}
 	yylex();

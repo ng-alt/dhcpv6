@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.13 2003/04/02 19:09:00 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.14 2003/04/12 00:25:32 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -63,6 +63,7 @@
 #include <err.h>
 #include <netdb.h>
 #include <ifaddrs.h>
+#include <resolv.h>
 
 #ifdef HAVE_GETIFADDRS 
 # ifdef HAVE_IFADDRS_H
@@ -81,7 +82,7 @@
 int foreground;
 int debug_thresh;
 struct dhcp6_if *dhcp6_if;
-struct dhcp6_list dnslist;
+struct dns_list dnslist;
 static struct host_conf *host_conflist;
 static int in6_matchflags __P((struct sockaddr *, char *, int));
 ssize_t gethwid __P((char *, int, const char *, u_int16_t *));
@@ -829,22 +830,29 @@ dhcp6_init_options(optinfo)
 	TAILQ_INIT(&optinfo->addr_list);
 	TAILQ_INIT(&optinfo->reqopt_list);
 	TAILQ_INIT(&optinfo->stcode_list);
-	TAILQ_INIT(&optinfo->dns_list);
+	TAILQ_INIT(&optinfo->dns_list.addrlist);
+	optinfo->dns_list.domainlist = NULL;
 }
 
 void
 dhcp6_clear_options(optinfo)
 	struct dhcp6_optinfo *optinfo;
 {
-
+	struct domain_list *dlist, *dlist_next;
 	duidfree(&optinfo->clientID);
 	duidfree(&optinfo->serverID);
 
 	dhcp6_clear_list(&optinfo->addr_list);
 	dhcp6_clear_list(&optinfo->reqopt_list);
 	dhcp6_clear_list(&optinfo->stcode_list);
-	dhcp6_clear_list(&optinfo->dns_list);
-
+	dhcp6_clear_list(&optinfo->dns_list.addrlist);
+	if (dhcp6_mode == DHCP6_MODE_CLIENT) {
+		for (dlist = optinfo->dns_list.domainlist; dlist; dlist = dlist_next) {
+			dlist_next = dlist->next;
+			free(dlist);
+		}
+	}
+	optinfo->dns_list.domainlist = NULL;
 	dhcp6_init_options(optinfo);
 }
 
@@ -864,7 +872,7 @@ dhcp6_copy_options(dst, src)
 		goto fail;
 	if (dhcp6_copy_list(&dst->stcode_list, &src->stcode_list))
 		goto fail;
-	if (dhcp6_copy_list(&dst->dns_list, &src->dns_list))
+	if (dhcp6_copy_list(&dst->dns_list.addrlist, &src->dns_list.addrlist))
 		goto fail;
 	dst->pref = src->pref;
 
@@ -1044,8 +1052,8 @@ dhcp6_get_options(p, ep, optinfo)
 				goto malformed;
 			for (val = cp; val < cp + optlen;
 			     val += sizeof(struct in6_addr)) {
-				if (dhcp6_find_listval(&optinfo->dns_list,
-				    &num, DHCP6_LISTVAL_ADDR6)) {
+				if (dhcp6_find_listval(&optinfo->dns_list.addrlist,
+				    val, DHCP6_LISTVAL_ADDR6)) {
 					dprintf(LOG_INFO, "%s" "duplicated "
 					    "DNS address (%s)", FNAME,
 					    in6addr2str((struct in6_addr *)val,
@@ -1053,13 +1061,48 @@ dhcp6_get_options(p, ep, optinfo)
 					goto nextdns;
 				}
 
-				if (dhcp6_add_listval(&optinfo->dns_list,
+				if (dhcp6_add_listval(&optinfo->dns_list.addrlist,
 				    val, DHCP6_LISTVAL_ADDR6) == NULL) {
 					dprintf(LOG_ERR, "%s" "failed to copy "
 					    "DNS address", FNAME);
 					goto fail;
 				}
 			nextdns: ;
+			}
+			break;
+		case DH6OPT_DOMAIN_LIST:
+			if (optlen == 0)
+				goto malformed;
+			/* dependency on lib resolv */
+			for (val = cp; val < cp + optlen;) {
+				int n;
+				struct domain_list *dname, *dlist;
+				dname = malloc(sizeof(*dname));
+				if (dname == NULL) {
+					dprintf(LOG_ERR, "%s" "failed to allocate memory", 
+						FNAME);
+					goto fail;
+				}
+				n =  dn_expand(cp, cp + optlen, val, dname->name, MAXDNAME);
+				if (n < 0) 
+					goto malformed;
+				else {
+					val += n;
+					dprintf(LOG_DEBUG, "expand domain name %s, size %d", 
+						dname->name, strlen(dname->name));
+				}
+				dname->next = NULL;
+				if (optinfo->dns_list.domainlist == NULL) {
+					optinfo->dns_list.domainlist = dname;
+				} else {
+					for (dlist = optinfo->dns_list.domainlist; dlist;
+					     dlist = dlist->next) {
+						if (dlist->next == NULL) {
+							dlist->next = dname;
+							break;
+						}
+					}
+				}
 			}
 			break;
 		default:
@@ -1509,12 +1552,12 @@ dhcp6_set_options(bp, ep, optinfo)
 		free(tmpbuf);
 	}
 
-	if (!TAILQ_EMPTY(&optinfo->dns_list)) {
+	if (!TAILQ_EMPTY(&optinfo->dns_list.addrlist)) {
 		struct in6_addr *in6;
 		struct dhcp6_listval *d;
 
 		tmpbuf = NULL;
-		optlen = dhcp6_count_list(&optinfo->dns_list) *
+		optlen = dhcp6_count_list(&optinfo->dns_list.addrlist) *
 			sizeof(struct in6_addr);
 		if ((tmpbuf = malloc(optlen)) == NULL) {
 			dprintf(LOG_ERR, "%s"
@@ -1522,13 +1565,40 @@ dhcp6_set_options(bp, ep, optinfo)
 			goto fail;
 		}
 		in6 = (struct in6_addr *)tmpbuf;
-		for (d = TAILQ_FIRST(&optinfo->dns_list); d;
+		for (d = TAILQ_FIRST(&optinfo->dns_list.addrlist); d;
 		     d = TAILQ_NEXT(d, link), in6++) {
 			memcpy(in6, &d->val_addr6, sizeof(*in6));
 		}
 		COPY_OPTION(DH6OPT_DNS_RESOLVERS, optlen, tmpbuf, p);
 		free(tmpbuf);
 	}
+	if (optinfo->dns_list.domainlist != NULL) {
+		struct domain_list *dlist;
+		u_char *dst;
+		size_t dstsiz;
+		optlen = 0;
+		tmpbuf = NULL;
+		if ((tmpbuf = malloc(MAXDNAME * MAXDN)) == NULL) {
+			dprintf(LOG_ERR, "%s"
+			    "memory allocation failed for DNS options", FNAME);
+			goto fail;
+		}
+		dst = tmpbuf;
+		for (dlist = optinfo->dns_list.domainlist; dlist; dlist = dlist->next) {
+			int n;
+			n = dn_comp(dlist->name, dst, MAXDNAME, NULL, NULL);
+			if (n < 0) {
+				dprintf(LOG_ERR, "%s" "compress domain name failed", FNAME);
+				goto fail;
+			} else 
+				dprintf(LOG_DEBUG, "compress domain name %s", dlist->name);
+			optlen += n ;
+			dst += n;
+		}
+		COPY_OPTION(DH6OPT_DOMAIN_LIST, optlen, tmpbuf, p);
+		free(tmpbuf);
+	}
+		
 	
 	return (len);
 

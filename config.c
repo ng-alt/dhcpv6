@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.8 2003/03/28 23:01:53 shirleyma Exp $	*/
+/*	$Id: config.c,v 1.9 2003/04/12 00:25:32 shirleyma Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -481,13 +481,6 @@ configure_commit(void)
 	}
 	host_conflist = host_conflist0;
 	host_conflist0 = NULL;
-
-	/* commit DNS addresses */
-	if (!TAILQ_EMPTY(&dnslist)) {
-		dhcp6_clear_list(&dnslist);
-	}
-	dnslist = dnslist0;
-	TAILQ_INIT(&dnslist0);
 }
 
 static void

@@ -1,4 +1,4 @@
-/*    $Id: server6_conf.c,v 1.10 2003/03/28 23:01:59 shirleyma Exp $   */
+/*    $Id: server6_conf.c,v 1.11 2003/04/12 00:25:33 shirleyma Exp $   */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -286,8 +286,10 @@ download_scope(up, current)
 	}
 	current->allow_flags |= up->allow_flags;
 	current->send_flags |= up->send_flags;
-	if (TAILQ_EMPTY(&current->dnslist)) 
-		dhcp6_copy_list(&current->dnslist, &up->dnslist);
+	if (TAILQ_EMPTY(&current->dnslist.addrlist))
+		dhcp6_copy_list(&current->dnslist.addrlist, &up->dnslist.addrlist);
+	if (current->dnslist.domainlist == NULL)
+		current->dnslist.domainlist = up->dnslist.domainlist;
 	return;
 }
 

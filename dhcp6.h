@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.7 2003/03/28 23:01:54 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.8 2003/04/12 00:25:33 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -95,6 +95,8 @@
 
 #define RA_MBIT_SET 0x01
 #define RA_OBIT_SET 0x02
+#define MAXDNAME 255
+#define MAXDN 100
 
 typedef enum { IANA, IATA, IAPD} iatype_t;
 /* Internal data structure */
@@ -141,6 +143,16 @@ TAILQ_HEAD(dhcp6_list, dhcp6_listval);
 typedef enum { DHCP6_LISTVAL_NUM, DHCP6_LISTVAL_ADDR6,
 	       DHCP6_LISTVAL_DHCP6ADDR } dhcp6_listval_type_t;
 
+struct domain_list {
+	struct domain_list *next;
+	char name[MAXDNAME];
+};
+
+struct dns_list {
+	struct dhcp6_list addrlist;
+	struct domain_list *domainlist;
+};
+
 struct dhcp6_optinfo {
 	struct duid clientID;	/* DUID */
 	struct duid serverID;	/* DUID */
@@ -152,7 +164,7 @@ struct dhcp6_optinfo {
 	struct dhcp6_list addr_list; /* assigned ipv6 address list */
 	struct dhcp6_list reqopt_list; /*  options in option request */
 	struct dhcp6_list stcode_list; /* status code */
-	struct dhcp6_list dns_list; /* DNS server list */
+	struct dns_list dns_list; /* DNS server list */
 };
 
 /* DHCP6 base packet format */

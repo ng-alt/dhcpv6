@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.h,v 1.7 2003/03/28 23:01:59 shirleyma Exp $	*/
+/*	$Id: server6_conf.h,v 1.8 2003/04/12 00:25:33 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -40,11 +40,6 @@
 
 struct rootgroup *globalgroup;
 
-struct dns_list {
-	struct dhcp6_list addrlist;
-	struct dhcp6_list namelist;
-};
-
 /* provide common paramters within scopes */
 struct scope {
 	int32_t prefer_life_time;
@@ -54,7 +49,7 @@ struct scope {
 	int8_t server_pref;
 	u_int8_t send_flags;
 	u_int8_t allow_flags;
-	struct dhcp6_list dnslist;
+	struct dns_list dnslist;
 };
 
 struct scopelist {

@@ -13,7 +13,7 @@ dnl Checks for libraries.
 dnl AC_CHECK_LIB(c, kvm_open, [], [AC_CHECK_LIB(kvm, kvm_open)])
 dnl AC_CHECK_LIB(mld, nlist)
 AC_CHECK_LIB(crypto, MD5_Init, [], [AC_CHECK_LIB(ssl, MD5_Init)])
-
+AC_CHECK_LIB(resolv, __dn_comp, [], [])
 dnl pcap library
 dnl CFLAGS="-I. $CFLAGS"
 dnl AC_MSG_CHECKING(for pcap library/header)
@@ -142,9 +142,9 @@ case $pred_func_id in
 esac
 
 dnl DHCP option type values not officially defined
-AC_MSG_CHECKING(for DHCP DNS option)
-AC_ARG_WITH(opt-dns,
-[  --with-opt-dns=VALUE    specify DHCP option value for DNS],
+AC_MSG_CHECKING(for DHCP DNS resolvers option )
+AC_ARG_WITH(opt-dns-resolvers,
+[  --with-opt-dns-resolvers=VALUE    specify DHCP option value for DNS resolvers],
     dhcpopt_dns_resolvers="$withval", dhcpopt_dns_resolvers=0)
 if test $dhcpopt_dns_resolvers = 0 ; then
 	dhcpopt_dns_resolvers=25
@@ -153,6 +153,19 @@ else
 	AC_MSG_RESULT(using $dhcpopt_dns_resolvers)
 fi
 AC_SUBST(dhcpopt_dns_resolvers)
+
+dnl DHCP option type values not officially defined
+AC_MSG_CHECKING(for DHCP domain list option )
+AC_ARG_WITH(opt-domain-list,
+[  --with-opt-domain-list=VALUE    specify DHCP option value for domain list],
+    dhcpopt_domain_list="$withval", dhcpopt_domain_list=0)
+if test $dhcpopt_domain_list = 0 ; then
+	dhcpopt_domain_list=26
+	AC_MSG_RESULT(unspecified and using $dhcpopt_domain_list)
+else
+	AC_MSG_RESULT(using $dhcpopt_domain_list)
+fi
+AC_SUBST(dhcpopt_domain_list)
 
 AC_MSG_CHECKING(for DHCP prefix delegation option)
 AC_ARG_WITH(opt-pdel,

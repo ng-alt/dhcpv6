@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.14 2003/04/03 19:12:24 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.15 2003/04/12 00:25:33 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -124,12 +124,28 @@ static int client6_recvreply __P((struct dhcp6_if *, struct dhcp6 *,
 static void client6_signal __P((int));
 static struct dhcp6_event *find_event_withid __P((struct dhcp6_if *,
 						  u_int32_t));
+static void update_resolver __P((struct dns_list *));
 struct dhcp6_timer *client6_timo __P((void *));
 extern int client6_ifaddrconf __P((ifaddrconf_cmd_t, struct dhcp6_addr *));
 
 #define DHCP6C_CONF "/etc/dhcp6c.conf"
 #define DHCP6C_PIDFILE "/var/run/dhcpv6/dhcp6c.pid"
 #define DUID_FILE "/var/db/dhcpv6/dhcp6c_duid"
+
+#define RESOLV_CONF_FILE "/etc/resolv.conf"
+#define RESOLV_CONF_BAK_FILE "/etc/resolv.conf.bak"
+#define RESOLV_CONF_DHCPV6_FILE "/etc/resolv.conf.dhcpv6"
+#define CMD_LS "ls"
+#define CMD_MV "mv"
+#define CMD_CP "cp"
+#define CMD_LINK "ln -s"
+#define CMD_TOUCH "touch"
+#define CMD_RM "rm"
+#define SPACE " "
+
+static int pid;
+static char resolv_bak_file[254];
+static char cmdbuf[1024];
 char client6_lease_temp[256];
 struct dhcp6_list request_list;
 
@@ -138,12 +154,13 @@ main(argc, argv)
 	int argc;
 	char **argv;
 {
-	int ch, pid;
+	int ch;
 	char *progname, *conffile = DHCP6C_CONF;
 	FILE *pidfp;
 	char *addr;
 
-	srandom(time(NULL) & getpid());
+	pid = getpid();
+	srandom(time(NULL) & pid);
 
 	if ((progname = strrchr(*argv, '/')) == NULL)
 		progname = *argv;
@@ -158,18 +175,16 @@ main(argc, argv)
 			break;
 		case 'P':
 			client6_request_flag |= CLIENT6_REQUEST_ADDR;
-			for (addr = strtok(optarg, " "); addr; 
-					addr = strtok(NULL, " ")) {
+			for (addr = strtok(optarg, " "); addr; addr = strtok(NULL, " ")) {
 				struct dhcp6_listval *lv;
-				if ((lv = 
-					(struct dhcp6_listval *)malloc(sizeof(*lv)))
-						== NULL) {
+				if ((lv = (struct dhcp6_listval *)malloc(sizeof(*lv)))
+				    == NULL) {
 					dprintf(LOG_ERR, "failed to allocate memory");
 					exit(1);
 				}
 				memset(lv, 0, sizeof(*lv));
 				if (inet_pton(AF_INET6, strtok(addr, "/"), 
-						&lv->val_dhcp6addr.addr) < 1) {
+				    &lv->val_dhcp6addr.addr) < 1) {
 					dprintf(LOG_ERR, 
 						"invalid ipv6address for release");
 					usage();
@@ -184,18 +199,15 @@ main(argc, argv)
 
 		case 'R':
 			client6_request_flag |= CLIENT6_REQUEST_ADDR;
-			for (addr = strtok(optarg, " "); addr; 
-					addr = strtok(NULL, " ")) {
+			for (addr = strtok(optarg, " "); addr; addr = strtok(NULL, " ")) {
 				struct dhcp6_listval *lv;
-				if ((lv = 
-					(struct dhcp6_listval *)malloc(sizeof(*lv)))
-						== NULL) {
+				if ((lv = (struct dhcp6_listval *)malloc(sizeof(*lv)))
+				    == NULL) {
 					dprintf(LOG_ERR, "failed to allocate memory");
 					exit(1);
 				}
 				memset(lv, 0, sizeof(*lv));
-				if (inet_pton(AF_INET6, addr, 
-						&lv->val_dhcp6addr.addr) < 1) {
+				if (inet_pton(AF_INET6, addr, &lv->val_dhcp6addr.addr) < 1) {
 					dprintf(LOG_ERR, 
 						"invalid ipv6address for release");
 					usage();
@@ -210,17 +222,16 @@ main(argc, argv)
 			client6_request_flag |= CLIENT6_RELEASE_ADDR;
 			if (strcmp(optarg, "all")) {
 				for (addr = strtok(optarg, " "); addr; 
-						addr = strtok(NULL, " ")) {
+				     addr = strtok(NULL, " ")) {
 					struct dhcp6_listval *lv;
-					if ((lv = 
-						(struct dhcp6_listval *)malloc(sizeof(*lv)))
-							== NULL) {
+					if ((lv = (struct dhcp6_listval *)malloc(sizeof(*lv)))
+					    == NULL) {
 						dprintf(LOG_ERR, "failed to allocate memory");
 						exit(1);
 					}
 					memset(lv, 0, sizeof(*lv));
 					if (inet_pton(AF_INET6, addr, 
-							&lv->val_dhcp6addr.addr) < 1) {
+					    &lv->val_dhcp6addr.addr) < 1) {
 						dprintf(LOG_ERR, 
 							"invalid ipv6address for release");
 						usage();
@@ -265,7 +276,6 @@ main(argc, argv)
 	setloglevel(debug);
 
 	/* dump current PID */
-	pid = getpid();
 	if ((pidfp = fopen(DHCP6C_PIDFILE, "w")) != NULL) {
 		fprintf(pidfp, "%d\n", pid);
 		fclose(pidfp);
@@ -558,6 +568,23 @@ process_signals()
 		dprintf(LOG_INFO, FNAME "exiting");
 		free_resources();
 		unlink(DHCP6C_PIDFILE);
+		/* restore /etc/resolv.conf.BAK back to /etc/resolv.conf 
+		 * remove /etc/resolv.conf.dhcpv6 */
+		strcpy(cmdbuf, CMD_LS);
+		strcat(cmdbuf, SPACE);
+		strcat(cmdbuf, resolv_bak_file);
+		if (!system(cmdbuf)) {
+			strcpy(cmdbuf, CMD_MV);
+			strcat(cmdbuf, SPACE);
+			strcat(cmdbuf, resolv_bak_file);
+			strcat(cmdbuf, SPACE);
+			strcat(cmdbuf, RESOLV_CONF_FILE);
+			system(cmdbuf);
+			strcpy(cmdbuf, CMD_RM);
+			strcat(cmdbuf, SPACE);
+			strcat(cmdbuf, RESOLV_CONF_DHCPV6_FILE);
+			system(cmdbuf);
+		}
 		exit(0);
 	}
 	if ((sig_flags & SIGF_HUP)) {
@@ -1306,15 +1333,10 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		return -1;
 	}
 
-	if (!TAILQ_EMPTY(&optinfo->dns_list)) {
-		struct dhcp6_listval *d;
-		int i = 0;
-
-		for (d = TAILQ_FIRST(&optinfo->dns_list); d;
-		     d = TAILQ_NEXT(d, link), i++) {
-			dprintf(LOG_DEBUG, "%s" "nameserver[%d] %s",
-				FNAME, i, in6addr2str(&d->val_addr6, 0));
-		}
+	if (!TAILQ_EMPTY(&optinfo->dns_list.addrlist) || 
+	    optinfo->dns_list.domainlist != NULL) {
+		resolv_parse(RESOLV_CONF_FILE);
+		update_resolver(&optinfo->dns_list);
 	}
 	/*
 	 * The client MAY choose to report any status code or message from the
@@ -1524,4 +1546,135 @@ find_event_withid(ifp, xid)
 	}
 
 	return (NULL);
+}
+
+/* mv /etc/resolv.conf to /etc/resolv.conf.V6BAK
+ * parse /etc/resolv.conf
+ * create a new resolv.conf
+ * link resolv.conf to resolv.conf.dhcpv6
+ */
+static void
+update_resolver(dns_list)
+	struct dns_list *dns_list;
+{
+	struct domain_list *oldlist, *dprev, *dlist, *dlist_next;
+	struct domain_list *dfirst = NULL;
+	struct dhcp6_listval *d, *d_next;
+	FILE *file;
+	int ret;
+	int i = 0;
+	char pidstr[25];
+	sprintf(pidstr, "%d", pid);
+	strcpy(resolv_bak_file, RESOLV_CONF_BAK_FILE);
+	strcat(resolv_bak_file, pidstr);
+	strcpy(cmdbuf, CMD_LS);
+	strcat(cmdbuf, SPACE);
+	strcat(cmdbuf, RESOLV_CONF_FILE);
+	if (!system(cmdbuf)) {
+		strcpy(cmdbuf, CMD_CP);
+		strcat(cmdbuf, SPACE);
+		strcat(cmdbuf, RESOLV_CONF_FILE);
+		strcat(cmdbuf, SPACE);
+		strcat(cmdbuf, RESOLV_CONF_DHCPV6_FILE);
+		system(cmdbuf);
+		strcpy(cmdbuf, CMD_MV);
+		strcat(cmdbuf, SPACE);
+		strcat(cmdbuf, RESOLV_CONF_FILE);
+		strcat(cmdbuf, SPACE);
+		strcat(cmdbuf, resolv_bak_file);
+		system(cmdbuf);
+	} else {
+		strcpy(cmdbuf, CMD_TOUCH);
+		strcat(cmdbuf, SPACE);
+		strcat(cmdbuf, RESOLV_CONF_DHCPV6_FILE);
+		system(cmdbuf);
+	}
+	strcpy(cmdbuf, CMD_LINK);
+	strcat(cmdbuf, SPACE);
+	strcat(cmdbuf, RESOLV_CONF_DHCPV6_FILE);
+	strcat(cmdbuf, SPACE);
+	strcat(cmdbuf, RESOLV_CONF_FILE);
+	system(cmdbuf);
+
+	if ((file = fopen(RESOLV_CONF_DHCPV6_FILE, "a+")) == NULL) {
+		dprintf(LOG_ERR, "%s" " failed to open resolv.conf file", FNAME);
+		return;
+	}
+	fseek(file, 0, 0);
+	if (!TAILQ_EMPTY(&dns_list->addrlist)) {
+		for (d = TAILQ_FIRST(&dns_list->addrlist); d; d = d_next, i++) {
+			struct dhcp6_listval *lv;
+			dprintf(LOG_DEBUG, "%s" " received nameserver[%d] %s",
+				FNAME, i, in6addr2str(&d->val_addr6, 0));
+			d_next = TAILQ_NEXT(d, link);
+			for (lv = TAILQ_FIRST(&dhcp6_if->dnslist.addrlist); lv;
+			     lv = TAILQ_NEXT(lv, link)) {
+				if (IN6_ARE_ADDR_EQUAL(&lv->val_addr6, &d->val_addr6)) { 
+					dprintf(LOG_DEBUG, "%s" 
+						"nameserver %s found in resolv.conf",
+						FNAME, in6addr2str(&d->val_addr6, 0));
+					TAILQ_REMOVE(&dns_list->addrlist, d, link);
+					continue;
+				}
+			}
+		}
+		if (!TAILQ_EMPTY(&dns_list->addrlist)) {
+			fprintf(file, "nameserver ");
+			for (d = TAILQ_FIRST(&dns_list->addrlist); d;
+				d = TAILQ_NEXT(d, link), i++) {
+				fprintf(file, "%s ", in6addr2str(&d->val_addr6, 0));
+			}
+			fprintf(file, "\n");
+		}
+	}
+	if (dns_list->domainlist != NULL) {
+		i = 0;
+		for (dlist = dns_list->domainlist, dprev = dns_list->domainlist;
+		     dlist; i++, dlist = dlist_next) {
+			int found = 0;
+			dprintf(LOG_DEBUG, "%s" " received domainname[%d] %s",
+				FNAME, i, dlist->name);
+			if (dhcp6_if->dnslist.domainlist == NULL) 
+				break;
+			for (oldlist = dhcp6_if->dnslist.domainlist; oldlist; 
+			     oldlist = oldlist->next) {
+				if (strcmp(oldlist->name, dlist->name) == 0) {
+					found = 1;
+					dprintf(LOG_DEBUG, "%s" "domain name %s found in " 
+						"resolv.conf", FNAME, dlist->name);
+					if (dprev == dlist) {
+						dprev = dlist->next;
+						dns_list->domainlist = dlist->next;
+					} else
+						dprev->next = dlist->next;
+					break;
+				}
+			}
+			dlist_next = dlist->next;
+			if (found == 0) 
+				dprev = dlist;
+			else {
+				free(dlist);
+			}
+		}
+		if (dns_list->domainlist != NULL) {
+			fprintf(file, "search ");
+			for (dlist = dns_list->domainlist; dlist; dlist = dlist->next) {
+				dprintf(LOG_DEBUG, "%s" "domain name %s added in resolv.conf", 
+					FNAME, dlist->name);
+				fprintf(file, "%s ", dlist->name);
+			}
+			fprintf(file, "\n");
+		}
+	}
+	if (fflush(file) == EOF) {
+		dprintf(LOG_ERR, "%s" "write resolv.conf file fflush failed %s", 
+			FNAME, strerror(errno));
+	}
+	if (fsync(fileno(file)) < 0) {
+		dprintf(LOG_ERR, "%s" "write resolv.conf file failed %s", 
+			FNAME, strerror(errno));
+	}
+	fclose(file);
+	return;
 }

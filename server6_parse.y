@@ -1,4 +1,4 @@
-/*	$Id: server6_parse.y,v 1.1 2003/03/28 23:03:42 shirleyma Exp $	*/
+/*	$Id: server6_parse.y,v 1.2 2003/04/12 00:25:33 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -179,7 +179,7 @@ ifhead
 			ABORT;
 		}
 		memset(ifnetwork, 0, sizeof(*ifnetwork));
-		TAILQ_INIT(&ifnetwork->ifscope.dnslist);
+		TAILQ_INIT(&ifnetwork->ifscope.dnslist.addrlist);
 		strncpy(ifnetwork->name, $2, strlen($2)); 
 		if (get_linklocal(ifnetwork->name, &ifnetwork->linklocal) < 0) {
 			dprintf(LOG_ERR, "get device %s linklocal failed", ifnetwork->name);
@@ -240,7 +240,7 @@ linkhead
 			ABORT;
 		}
 		memset(link, 0, sizeof(*link));
-		TAILQ_INIT(&link->linkscope.dnslist);
+		TAILQ_INIT(&link->linkscope.dnslist.addrlist);
 		while (temp_sub) {
 			if (!strcmp(temp_sub->name, $2))
 			{
@@ -333,7 +333,7 @@ poolhead
 			ABORT;
 		}
 		memset(pool, 0, sizeof(*pool));
-		TAILQ_INIT(&pool->poolscope.dnslist);
+		TAILQ_INIT(&pool->poolscope.dnslist.addrlist);
 		if (link)
 			pool->link = link;
 			
@@ -528,7 +528,7 @@ grouphead
 			ABORT;
 		}
 		memset(groupscope, 0, sizeof(*groupscope));
-		TAILQ_INIT(&groupscope->dnslist);
+		TAILQ_INIT(&groupscope->dnslist.addrlist);
 		/* set up current group */
 		currentgroup = push_double_list(currentgroup, groupscope);
 		if (currentgroup == NULL)
@@ -585,7 +585,7 @@ hosthead
 		memset(host, 0, sizeof(*host));
 		TAILQ_INIT(&host->addrlist);
 		TAILQ_INIT(&host->prefixlist);
-		TAILQ_INIT(&host->hostscope.dnslist);
+		TAILQ_INIT(&host->hostscope.dnslist.addrlist);
 		host->network = ifnetwork;
 		strncpy(host->name, $2, strlen($2));
 		/* enter host scope */
@@ -798,10 +798,33 @@ dns_paras
 dns_para
 	: IPV6ADDR 
 	{
-		dhcp6_add_listval(&currentscope->scope->dnslist, &$1, DHCP6_LISTVAL_ADDR6);
+		dhcp6_add_listval(&currentscope->scope->dnslist.addrlist, &$1,
+			DHCP6_LISTVAL_ADDR6);
 	}
 	| STRING
 	{
+		struct domain_list *domainname, *temp;
+		domainname = (struct domain_list *)malloc(sizeof(*domainname));
+		if (domainname == NULL)
+			ABORT;
+		if (strlen($1) > MAXDNAME) 
+			ABORT;
+		strncpy(domainname->name, $1, strlen($1));
+		domainname->next = NULL;
+		if (currentscope->scope->dnslist.domainlist == NULL) {
+			currentscope->scope->dnslist.domainlist = domainname;
+			dprintf(LOG_DEBUG, "add domain name %s", domainname->name);
+		} else {
+			for (temp = currentscope->scope->dnslist.domainlist; temp;
+			     temp = temp->next) {
+				if (temp->next == NULL) {
+					dprintf(LOG_DEBUG, "add domain name %s", 
+						domainname->name);
+					temp->next = domainname;
+					break;
+				}
+			}
+		}
 	}
 	;
 

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.7 2003/04/03 17:03:46 shemminger Exp $
+# $Id: Makefile.in,v 1.8 2003/04/12 00:25:32 shirleyma Exp $
 #
 
 srcdir=	@srcdir@
@@ -26,11 +26,12 @@ sysconfigdir=/etc/sysconfig
 CHKCONFIG=/sbin/chkconfig
 
 CFLAGS+= -DCONF_DH6OPT_DNS_RESOLVERS=@dhcpopt_dns_resolvers@ \
+	-DCONF_DH6OPT_DOMAIN_LIST=@dhcpopt_domain_list@ \
 	-DCONF_DH6OPT_IA_PD=@dhcpopt_pdel@ \
 	-DCONF_DH6OPT_IAPREFIX=@dhcpopt_pinfo@ 
 
 COMMONGENSRCS=lease_token.c
-CLIENTGENSRCS=client6_parse.c client6_token.c ra_token.c
+CLIENTGENSRCS=client6_parse.c client6_token.c ra_token.c resolv_token.c
 SERVERGENSRCS=server6_parse.c server6_token.c 
 CLIENTOBJS=	dhcp6c.o common.o config.o timer.o client6_addr.o \
 		hash.o lease.o \
@@ -40,7 +41,7 @@ SERVOBJS=	dhcp6s.o common.o timer.o hash.o lease.o \
 	$(SERVERGENSRCS:%.c=%.o) $(COMMONGENSRCS:%.c=%.o)
 
 CLEANFILES=cf.tab.h cp.tab.h sf.tab.h ra_token.c client6_token.c client6_parse.c \
-		server6_parse.c server6_token.c lease_token.c 
+		server6_parse.c server6_token.c lease_token.c resolv_token.c
 
 all:	$(TARGET) 
 dhcp6c:	$(CLIENTOBJS) $(LIBOBJS)
@@ -51,6 +52,10 @@ dhcp6s:	$(SERVOBJS) $(LIBOBJS)
 ra_token.c: ra_token.l
 	$(LEX) -Prayy ra_token.l
 	mv lex.rayy.c $@
+
+resolv_token.c: resolv_token.l
+	$(LEX) -Prvyy resolv_token.l
+	mv lex.rvyy.c $@
 
 client6_parse.c cp.tab.h: client6_parse.y
 	$(YACC) -d -p cpyy client6_parse.y
