@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.17 2003/04/18 16:03:01 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.18 2003/04/18 16:32:54 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -1424,6 +1424,8 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		/* NOtOnLink for a Confirm, send SOLICIT message */
 		switch(addr_status_code) {
 		case DH6OPT_STCODE_NOTONLINK:
+		case DH6OPT_STCODE_NOBINDING:
+		case DH6OPT_STCODE_NOADDRAVAIL:
 			dprintf(LOG_DEBUG, "%s" 
 				"got a NotOnLink reply for confirm, sending solicit.", FNAME);
 			/* remove event data list */
