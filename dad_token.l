@@ -1,4 +1,4 @@
-/*	$Id: dad_token.l,v 1.3 2003/05/29 22:18:56 shirleyma Exp $	*/
+/*	$Id: dad_token.l,v 1.4 2003/05/29 22:23:28 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -116,16 +116,12 @@ nl              \n
 		BEGIN S_INDEX;}
 	}
 <S_INDEX>{hexpair} {ifinfo->index = strtol(ifyytext, NULL, 16);
-			in6addr2str(&ifinfo->addr, 0), ifinfo->index);
 		BEGIN S_PLEN;}
 <S_PLEN>{hexpair} {ifinfo->plen = strtol(ifyytext, NULL, 16); 
-			in6addr2str(&ifinfo->addr, 0), ifinfo->plen);
 		BEGIN S_SCOPE;}
 <S_SCOPE>{hexpair} {ifinfo->scope = strtol(ifyytext, NULL, 16);
-			in6addr2str(&ifinfo->addr, 0), ifinfo->scope);
 		BEGIN S_FLAGS;}
 <S_FLAGS>{hexpair} {ifinfo->flags = strtol(ifyytext, NULL, 16);
-			in6addr2str(&ifinfo->addr, 0), ifinfo->flags);
 		if (ifinfo->flags == DAD_FLAGS) {
 			dprintf(LOG_INFO, "duplicated ipv6 address %s detected",
 				in6addr2str(&ifinfo->addr, 0));
