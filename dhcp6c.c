@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.31 2003/06/03 19:12:00 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.32 2003/06/05 22:51:00 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -539,10 +539,8 @@ client6_ifinit(char *device)
 		dprintf(LOG_ERR, "%s" "failed to create a timer", FNAME);
 		exit(1);
 	}
-	if ((ifp->dad_timer = dhcp6_add_timer(check_dad_timo, ifp)) < 0) {
-		dprintf(LOG_ERR, "%s" "failed to create a timer", FNAME);
-		exit(1);
-	}
+	/* DAD timer set up after getting the address */
+	ifp->dad_timer = NULL;
 	/* create an event for the initial delay */
 	if ((ev = dhcp6_create_event(ifp, DHCP6S_INIT)) == NULL) {
 		dprintf(LOG_ERR, "%s" "failed to create an event",
@@ -569,7 +567,14 @@ free_resources(struct dhcp6_if *ifp)
 	if (client6_iaidaddr.client6_info.type == IAPD && 
 	    !TAILQ_EMPTY(&client6_iaidaddr.lease_list))
 		radvd_parse(&client6_iaidaddr, ADDR_REMOVE);
-	dhcp6_remove_iaidaddr(&client6_iaidaddr);
+	else {
+		for (sp = TAILQ_FIRST(&client6_iaidaddr.lease_list); sp; sp = sp_next) { 
+			sp_next = TAILQ_NEXT(sp, link);
+			if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) 
+				dprintf(LOG_INFO, "%s" "deconfiging address %s failed",
+					FNAME, in6addr2str(&sp->lease_addr.addr, 0));
+		}
+	}
 	dprintf(LOG_DEBUG, "%s" " remove all events on interface", FNAME);
 	/* cancel all outstanding events for each interface */
 	for (ev = TAILQ_FIRST(&ifp->event_list); ev; ev = ev_next) {
@@ -1465,6 +1470,11 @@ client6_recvreply(ifp, dh6, len, optinfo)
 				dhcp6_add_iaidaddr(optinfo);
 				if (optinfo->type == IAPD)
 					radvd_parse(&client6_iaidaddr, ADDR_UPDATE);
+				else if (ifp->dad_timer == NULL && (ifp->dad_timer =
+					  dhcp6_add_timer(check_dad_timo, ifp)) < 0) {
+					dprintf(LOG_INFO, "%s" "failed to create a timer for "
+						" DAD", FNAME); 
+				}
 				setup_check_timer(ifp);
 			}
 			break;
@@ -1499,6 +1509,9 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		/* NOtOnLink for a Confirm, send SOLICIT message */
 rebind_confirm:	client6_request_flag &= ~CLIENT6_CONFIRM_ADDR;
 	switch(addr_status_code) {
+		struct timeb now;
+		struct timeval timo;
+		time_t offset;
 		case DH6OPT_STCODE_NOTONLINK:
 		case DH6OPT_STCODE_NOBINDING:
 		case DH6OPT_STCODE_NOADDRAVAIL:
@@ -1510,11 +1523,6 @@ rebind_confirm:	client6_request_flag &= ~CLIENT6_CONFIRM_ADDR;
 			break;
 		case DH6OPT_STCODE_SUCCESS:
 		case DH6OPT_STCODE_UNDEFINE:
-		default:
-		{
-			struct timeb now;
-			struct timeval timo;
-			time_t offset;
 			/* XXX: set up renew/rebind timer */
 			dprintf(LOG_DEBUG, "%s" "got an expected reply for confirm", FNAME);
 			ftime(&now);
@@ -1540,9 +1548,16 @@ rebind_confirm:	client6_request_flag &= ~CLIENT6_CONFIRM_ADDR;
 				timo.tv_sec = client6_iaidaddr.client6_info.iaidinfo.renewtime 						- offset; 
 			timo.tv_usec = 0;
 			dhcp6_set_timer(&timo, client6_iaidaddr.timer);
+			/* check DAD */
+			if (optinfo->type != IAPD && ifp->dad_timer == NULL && 
+			    (ifp->dad_timer = dhcp6_add_timer(check_dad_timo, ifp)) < 0) {
+				dprintf(LOG_INFO, "%s" "failed to create a timer for "
+					" DAD", FNAME); 
+			}
 			setup_check_timer(ifp);
 			break;
-		}
+		default:
+			break;
 		}
 		break;
 	case DHCP6S_DECLINE:
@@ -1557,7 +1572,6 @@ rebind_confirm:	client6_request_flag &= ~CLIENT6_CONFIRM_ADDR;
 		dprintf(LOG_INFO, "%s" "got an expected release, exit.", FNAME);
 		dhcp6_remove_event(ev);
 		exit(0);
-		break;
 	default:
 		break;
 	}
@@ -1657,11 +1671,13 @@ static void setup_check_timer(struct dhcp6_if *ifp)
 	timo.tv_usec = 0;
 	dprintf(LOG_DEBUG, "set timer for checking link ...");
 	dhcp6_set_timer(&timo, ifp->link_timer);
-	d = DHCP6_CHECKDAD_TIME;
-	timo.tv_sec = (long)d;
-	timo.tv_usec = 0;
-	dprintf(LOG_DEBUG, "set timer for checking DAD ...");
-	dhcp6_set_timer(&timo, ifp->dad_timer);
+	if (ifp->dad_timer != NULL) {
+		d = DHCP6_CHECKDAD_TIME;
+		timo.tv_sec = (long)d;
+		timo.tv_usec = 0;
+		dprintf(LOG_DEBUG, "set timer for checking DAD ...");
+		dhcp6_set_timer(&timo, ifp->dad_timer);
+	}
 	d = DHCP6_SYNCFILE_TIME;
 	timo.tv_sec = (long)d;
 	timo.tv_usec = 0;
@@ -1706,7 +1722,7 @@ static struct dhcp6_timer
 		goto end;
 	dprintf(LOG_DEBUG, "enter checking dad ...");
 	if (dad_parse(ifproc_file) < 0) {
-		dprintf(LOG_DEBUG, "");
+		dprintf(LOG_ERR, "parse /proc/net/if_inet6 failed");
 		goto end;
 	}
 	if (TAILQ_EMPTY(&request_list))
@@ -1719,6 +1735,7 @@ static struct dhcp6_timer
 end:
 	/* one time check for DAD */	
 	dhcp6_remove_timer(ifp->dad_timer);
+	ifp->dad_timer = NULL;
 	return NULL;
 }
 	
