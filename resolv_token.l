@@ -1,4 +1,4 @@
-/*	$Id: resolv_token.l,v 1.2 2003/04/18 00:19:59 shirleyma Exp $	*/
+/*	$Id: resolv_token.l,v 1.3 2003/04/18 16:03:02 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -149,14 +149,18 @@ int
 resolv_parse(struct dns_list *dnslist)
 {
 	struct stat buf;
-	new_dns_list = dnslist;
+	char pidstr[128];
+	sprintf(pidstr, "%d", getpid());
+	strcpy(resolv_dhcpv6_file, RESOLV_CONF_DHCPV6_FILE);
+	strcat(resolv_dhcpv6_file, pidstr);
 	TAILQ_INIT(&dhcp6_if->dnslist.addrlist);
 	dhcp6_if->dnslist.domainlist = NULL;
+	new_dns_list = dnslist;
 	while ((oldfd = open(RESOLV_CONF_FILE, O_EXCL)) < 0) {
 		switch (errno) {
 		case ENOENT:
 			/* exclusive open of new resolv.conf.dhcpv6 file */
-			if ((newfd = open(RESOLV_CONF_DHCPV6_FILE, 
+			if ((newfd = open(resolv_dhcpv6_file, 
 			    O_CREAT|O_EXCL|O_WRONLY|O_TRUNC, 0644))
 			    < 0) {
 				dprintf(LOG_ERR, "%s" 
@@ -169,7 +173,7 @@ resolv_parse(struct dns_list *dnslist)
 				return (-1);
 			}
 			return(update_resolver(dnslist));
-		case EEXIST: 
+		case EACCES: 
 			sleep(1);
 			continue;
 		default:
@@ -188,7 +192,7 @@ resolv_parse(struct dns_list *dnslist)
 		return (-1);
 	}
 	/* exclusive open of new resolv.conf.dhcpv6 file */
-	if ((newfd = open(RESOLV_CONF_DHCPV6_FILE, 
+	if ((newfd = open(resolv_dhcpv6_file, 
 	    O_CREAT|O_EXCL|O_WRONLY|O_TRUNC, buf.st_mode)) < 0) {
 		dprintf(LOG_ERR, "%s" 
 			" failed to open resolv.conf.dhcpv6 file", FNAME);
@@ -232,7 +236,8 @@ update_resolver(struct dns_list *dns_list)
 			fprintf(dhcp6_resolv_file, "nameserver ");
 			for (d = TAILQ_FIRST(&dns_list->addrlist); d;
 				d = TAILQ_NEXT(d, link), i++) {
-				fprintf(dhcp6_resolv_file, "%s ", in6addr2str(&d->val_addr6, 0));
+				fprintf(dhcp6_resolv_file, "%s ", 
+					in6addr2str(&d->val_addr6, 0));
 			}
 			fprintf(dhcp6_resolv_file, "\n");
 		}
@@ -291,16 +296,15 @@ update_resolver(struct dns_list *dns_list)
 	fclose(dhcp6_resolv_file);
 	close(newfd);
 	if (!lstat(RESOLV_CONF_FILE, &buf)) {
-		char pidstr[128];
-		sprintf(pidstr, "%d", getpid());
-		strcpy(resolv_bak_file, RESOLV_CONF_BAK_FILE);
-		strcat(resolv_bak_file, pidstr);
-		if (link(RESOLV_CONF_FILE, resolv_bak_file)) {
-			dprintf(LOG_ERR, "%s" " backup failed for resolv.conf file", FNAME);
-			return (-1);
+		if ((lstat(RESOLV_CONF_BAK_FILE, &buf) < 0) && (errno == ENOENT)) {
+			if (link(RESOLV_CONF_FILE, RESOLV_CONF_BAK_FILE)) {
+				dprintf(LOG_ERR, "%s" 
+					" backup failed for resolv.conf file", FNAME);
+				return (-1);
+			}
 		}
 	}
-	if (rename(RESOLV_CONF_DHCPV6_FILE, RESOLV_CONF_FILE)) {
+	if (rename(resolv_dhcpv6_file, RESOLV_CONF_FILE)) {
 		dprintf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
 		return(-1);
 	}

@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.9 2003/03/28 23:01:56 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.10 2003/04/18 16:03:02 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -507,9 +507,11 @@ addr_on_addrlist(addrlist, addr6)
 
 	for (lv = TAILQ_FIRST(addrlist); lv;
 	     lv = TAILQ_NEXT(lv, link)) {
-		if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &addr6->addr) &&
-		    lv->val_dhcp6addr.plen == addr6->plen) {
-			return (1);
+		if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &addr6->addr)) {
+			if ((lv->val_dhcp6addr.type != IAPD) 
+			    || ((lv->val_dhcp6addr.type == IAPD) 
+			    && (lv->val_dhcp6addr.plen == addr6->plen)))
+				return (1);
 		}
 	}
 	return (0);
@@ -563,6 +565,8 @@ dhcp6_get_hostconf(roptinfo, optinfo, iaidaddr, host)
 	struct dhcp6_optinfo *optinfo, *roptinfo;
 {
 	struct dhcp6_list *reply_list = &roptinfo->addr_list;
+	struct dhcp6_list *req_list = &optinfo->addr_list;
+	struct dhcp6_listval *lv, *lv_next;
 	
 	if (!(host->hostscope.allow_flags & DHCIFF_TEMP_ADDRS)) {
 		roptinfo->iaidinfo.renewtime = host->hostscope.renew_time;
@@ -585,20 +589,27 @@ dhcp6_get_hostconf(roptinfo, optinfo, iaidaddr, host)
 int
 dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
 	struct dhcp6_optinfo *roptinfo;
+	struct dhcp6_optinfo *optinfo; 
 	const struct dhcp6_iaidaddr *iaidaddr;
-	const struct dhcp6_optinfo *optinfo; 
 	const struct link_decl *subnet;
 {
 	struct dhcp6_listval *v6addr;
 	struct v6addrseg *seg;
 	struct dhcp6_list *reply_list = &roptinfo->addr_list;
-	const struct dhcp6_list *req_list = &optinfo->addr_list;
+	struct dhcp6_list *req_list = &optinfo->addr_list;
 	int numaddr;
 	struct dhcp6_listval *lv, *lv_next = NULL;
 
 	roptinfo->iaidinfo.renewtime = subnet->linkscope.renew_time;
 	roptinfo->iaidinfo.rebindtime = subnet->linkscope.rebind_time;
 	roptinfo->type = optinfo->type;
+	/* check the duplication */
+	for (lv = TAILQ_FIRST(req_list); lv; lv = lv_next) {
+		lv_next = TAILQ_NEXT(lv, link);
+		if (addr_on_addrlist(reply_list, &lv->val_dhcp6addr)) {
+			TAILQ_REMOVE(req_list, lv, link);
+		}
+	}	       
 	dhcp6_copy_list(reply_list, req_list);
 	for (lv = TAILQ_FIRST(reply_list); lv; lv = lv_next) {
 			lv_next = TAILQ_NEXT(lv, link);

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.9 2003/04/18 00:19:59 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.10 2003/04/18 16:03:01 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -99,9 +99,9 @@
 #define MAXDN 100
 
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
-#define RESOLV_CONF_BAK_FILE "/etc/resolv.conf.bak"
+#define RESOLV_CONF_BAK_FILE "/etc/resolv.conf.dhcpv6.bak"
 #define RESOLV_CONF_DHCPV6_FILE "/etc/resolv.conf.dhcpv6"
-char resolv_bak_file[254];
+char resolv_dhcpv6_file[254];
 
 typedef enum { IANA, IATA, IAPD} iatype_t;
 /* Internal data structure */

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.16 2003/04/18 00:19:59 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.17 2003/04/18 16:03:01 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -561,12 +561,11 @@ static void
 process_signals()
 {
 	struct stat buf;
-	/* restore /etc/resolv.conf.BAK back to /etc/resolv.conf */
-	if (!lstat(resolv_bak_file, &buf)) {
-		if (rename(resolv_bak_file, RESOLV_CONF_FILE)) 
+	/* restore /etc/resolv.conf.dhcpv6.bak back to /etc/resolv.conf */
+	if (!lstat(RESOLV_CONF_BAK_FILE, &buf)) {
+		if (rename(RESOLV_CONF_BAK_FILE, RESOLV_CONF_FILE)) 
 			dprintf(LOG_ERR, "%s" " failed to backup resolv.conf", FNAME);
-	} else if (remove(RESOLV_CONF_FILE)) 
-		dprintf(LOG_ERR, "%s" " failed to remove the new resolv.conf file", FNAME);
+	} 
 	if ((sig_flags & SIGF_TERM)) {
 		dprintf(LOG_INFO, FNAME "exiting");
 		free_resources();
@@ -931,25 +930,17 @@ client6_send(ev)
 	case DHCP6S_RELEASE:
 	case DHCP6S_CONFIRM:
 	case DHCP6S_DECLINE:
-		/*
-		if (ifp->send_flags & DHCIFF_PREFIX_DELEGATION)
-			optinfo.type = IAPD;
-		else if (ifp->send_flags & DHCIFF_TEMP_ADDRS)
-			optinfo.type = IATA;
-		else
-			optinfo.type = IANA;
-		*/
+		memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
+			sizeof(optinfo.iaidinfo));
+		optinfo.type = client6_iaidaddr.client6_info.type;
+		if (ev->state == DHCP6S_CONFIRM) {
+			optinfo.iaidinfo.renewtime = 0;
+			optinfo.iaidinfo.rebindtime = 0;
+		}
 		if (!TAILQ_EMPTY(&request_list)) {
-			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
-				sizeof(optinfo.iaidinfo));
-			optinfo.type = client6_iaidaddr.client6_info.type;
 			/* XXX: ToDo: seperate to prefix list and address list */
 			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
 				goto end;
-			if (ev->state == DHCP6S_CONFIRM) {
-				optinfo.iaidinfo.renewtime = 0;
-				optinfo.iaidinfo.rebindtime = 0;
-			}
 		} else {
 			if (ev->state == DHCP6S_RELEASE) {
 				dprintf(LOG_INFO, "release empty address list");
