@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.7 2003/03/28 23:01:52 shirleyma Exp $	*/
+/*	$Id: client6_parse.y,v 1.8 2003/03/31 22:05:28 shirleyma Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -135,7 +135,7 @@ interface_statement:
 
 declarations:
 		{ $$ = NULL; }
-	| 	declarations declaration EOS
+	| 	declarations declaration 
 		{
 			struct cf_list *head;
 
