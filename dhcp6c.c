@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.13 2003/04/03 19:08:37 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.14 2003/04/03 19:12:24 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -826,7 +826,7 @@ client6_send(ev)
 	} else {
 		gettimeofday(&now, NULL);
 		timeval_sub(&now, &(ev->start_time), &duration);
-		optinfo.elapsed_time = (duration.tv_sec) * 1000 + (duration.tv_usec) / 1000000;
+		optinfo.elapsed_time = (duration.tv_sec) * 100 + (duration.tv_usec) / 10000;
 	}
 	dh6->dh6_xid &= ~ntohl(DH6_XIDMASK);
 	dh6->dh6_xid |= htonl(ev->xid);
