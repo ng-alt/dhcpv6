@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.14 2003/05/23 19:00:36 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.15 2003/06/03 00:16:15 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -65,7 +65,7 @@ struct dhcp6_lease *
 dhcp6_find_lease __P((struct dhcp6_iaidaddr *, struct dhcp6_addr *));
 static int dhcp6_add_lease __P((struct dhcp6_iaidaddr *, struct dhcp6_addr *));
 static int dhcp6_update_lease __P((struct dhcp6_addr *, struct dhcp6_lease *));
-static int addr_on_segment __P((struct v6addrseg *, struct in6_addr *));
+static int addr_on_segment __P((struct v6addrseg *, struct dhcp6_addr *));
 static void  server6_get_newaddr __P((iatype_t, struct dhcp6_addr *, struct v6addrseg *));
 static void  server6_get_addrpara __P((struct dhcp6_addr *, struct v6addrseg *));
 static void  server6_get_prefixpara __P((struct dhcp6_addr *, struct v6prefix *));
@@ -219,9 +219,6 @@ dhcp6_remove_lease(lease)
 		dhcp6_remove_timer(lease->timer);
 	TAILQ_REMOVE(&lease->iaidaddr->lease_list, lease, link);
 	free(lease);
-	/* check the iaidaddr */
-	if (TAILQ_EMPTY(&lease->iaidaddr->lease_list))
-		dhcp6_remove_iaidaddr(lease->iaidaddr);
 	return 0;
 }
 		
@@ -592,12 +589,11 @@ dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
 		lv->val_dhcp6addr.status_msg = NULL;
 	}
 	for (seg = subnet->seglist; seg; seg = seg->next) {
+		numaddr = 0;
 		for (lv = TAILQ_FIRST(reply_list); lv; lv = lv_next) {
 			lv_next = TAILQ_NEXT(lv, link);
-			numaddr = 0;
 			/* skip checked segment */
-			if (lv->val_dhcp6addr.status_code == DH6OPT_STCODE_NOADDRAVAIL ||
-				lv->val_dhcp6addr.status_code == DH6OPT_STCODE_SUCCESS)
+			if (lv->val_dhcp6addr.status_code == DH6OPT_STCODE_SUCCESS) 
 				continue;
 			if (IN6_IS_ADDR_RESERVED(&lv->val_dhcp6addr.addr) ||
 			    is_anycast(&lv->val_dhcp6addr.addr, seg->prefix.plen)) {
@@ -606,48 +602,34 @@ dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
 					in6addr2str(&lv->val_dhcp6addr.addr, 0));
 				continue;
 			}
-			if (addr_on_segment(seg, &lv->val_dhcp6addr.addr)) {
+			lv->val_dhcp6addr.type = optinfo->type;
+			if (addr_on_segment(seg, &lv->val_dhcp6addr)) {
 				if (numaddr == 0) {
 					lv->val_dhcp6addr.type = optinfo->type;
 					server6_get_addrpara(&lv->val_dhcp6addr, seg);
 					numaddr += 1;
-					continue;
 				} else {
 			/* check the addr count per seg, we only allow one address
 			 * per segment, set the status code */
 					lv->val_dhcp6addr.status_code 
 							= DH6OPT_STCODE_NOADDRAVAIL;
-					continue;
 				}
 			} else {
 				lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
 				dprintf(LOG_DEBUG, "%s" " %s address not on link", FNAME, 
 					in6addr2str(&lv->val_dhcp6addr.addr, 0));
-				continue;
-			}
-		}
-	}
-	for (seg = subnet->seglist; seg; seg = seg->next) {
-		numaddr = 0;
-		for (lv = TAILQ_FIRST(reply_list); lv; lv = lv_next) {
-				lv_next = TAILQ_NEXT(lv, link);
-			if (addr_on_segment(seg, &lv->val_dhcp6addr.addr)) {
-				lv->val_dhcp6addr.type = optinfo->type;
-				server6_get_addrpara(&lv->val_dhcp6addr, seg);
-				numaddr += 1;
 			}
 		}
 		if (iaidaddr != NULL) {
 			struct dhcp6_lease *cl;
 			for (cl = TAILQ_FIRST(&iaidaddr->lease_list); cl; 
 					cl = TAILQ_NEXT(cl, link)) {
-				if (addr_on_segment(seg, &cl->lease_addr.addr)) { 
+				if (addr_on_segment(seg, &cl->lease_addr)) { 
 					if (addr_on_addrlist(reply_list, 
 								&cl->lease_addr)) {
-						numaddr += 1;
 						continue;
 					} else if (numaddr == 0) {
-						v6addr=(struct dhcp6_listval *)malloc(sizeof(*v6addr));
+						v6addr = (struct dhcp6_listval *)malloc(sizeof(*v6addr));
 						if (v6addr == NULL) {
 							dprintf(LOG_ERR, "%s" 
 								"fail to allocate memory %s", 
@@ -691,15 +673,35 @@ dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
 static int
 addr_on_segment(seg, addr)
 	struct v6addrseg *seg;
-	struct in6_addr *addr;
+	struct dhcp6_addr *addr;
 {
-	if (ipv6addrcmp(addr, &seg->min) >= 0 && ipv6addrcmp(&seg->max, addr) >= 0) {
-		dprintf(LOG_DEBUG, "%s" " checking address %s on link", 
-				FNAME, in6addr2str(addr, 0));
-		return 1;
+	int onseg = 0;
+	struct v6addr *prefix;
+	dprintf(LOG_DEBUG, "%s" " checking address %s on segment", 
+		FNAME, in6addr2str(&addr->addr, 0));
+	switch (addr->type) {
+	case IATA:
+		prefix = getprefix(&addr->addr, seg->prefix.plen);
+		if (prefix && !memcmp(&seg->prefix, prefix, sizeof(seg->prefix))) {
+			dprintf(LOG_DEBUG, "%s" " address is on link", FNAME);
+			onseg = 1;
+		} else
+			onseg = 0;
+		free(prefix);
+		break;
+	case IANA:
+		if (ipv6addrcmp(&addr->addr, &seg->min) >= 0 &&
+		    ipv6addrcmp(&seg->max, &addr->addr) >= 0) {
+			dprintf(LOG_DEBUG, "%s" " address is on link", FNAME);
+			onseg = 1;
+		}
+		else 
+			onseg = 0;
+		break;
+	default:
+		break;
 	}
-	else 
-		return 0;
+	return onseg;
 	
 }
 
