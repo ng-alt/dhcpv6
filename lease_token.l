@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.3 2003/02/27 19:43:08 shemminger Exp $	*/
+/*	$Id: lease_token.l,v 1.4 2003/03/01 00:24:49 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -43,7 +43,8 @@
 #include <syslog.h>
 #include <errno.h>
 #include <sys/socket.h>
-#include <linux/in6.h>
+#include <arpa/inet.h>
+
 #include <net/if.h>
 #include <linux/sockios.h>
 #include "queue.h"
@@ -330,8 +331,8 @@ do_iaidaddr_hash(lease_rec, key)
 			return (-1);
 		}
 		dprintf(LOG_DEBUG, "hash add client iaidaddr for duid %s for iaid %ld",
-			duidstr(&iaidaddr->client6_info.clientid), 
-				iaidaddr->client6_info.iaidinfo.iaid);
+				   duidstr(&iaidaddr->client6_info.clientid), 
+				   (long) iaidaddr->client6_info.iaidinfo.iaid);
 	}
 	if (add_lease(iaidaddr, lease_rec) != 0)
 		return (-1);

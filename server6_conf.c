@@ -1,4 +1,4 @@
-/*    $Id: server6_conf.c,v 1.7 2003/02/27 19:43:09 shemminger Exp $   */
+/*    $Id: server6_conf.c,v 1.8 2003/03/01 00:24:49 shemminger Exp $   */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -36,7 +36,7 @@
 #include <syslog.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <linux/in6.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <net/if.h>
 #include <openssl/md5.h>
@@ -99,7 +99,7 @@ struct v6addr
 	struct v6addr *prefix;
 	prefix = (struct v6addr *)malloc(sizeof(*prefix));
 	if (prefix == NULL) {
-		dprintf(LOG_ERR, "fail to malloc memory", strerror(errno));
+		dprintf(LOG_ERR, "fail to malloc memory: %s", strerror(errno));
 		return NULL;
 	}
 	memset(prefix, 0, sizeof(*prefix));
@@ -145,8 +145,8 @@ prefixcmp(addr, prefix, len)
 	for (i = 0; i < num_bytes; i++) {
 		if (addr->s6_addr[i] != prefix->s6_addr[i]) return -1;
 	}
-	if(addr->s6_addr[num_bytes] & mask.s6_addr[num_bytes] != 
-	   prefix->s6_addr[num_bytes] & mask.s6_addr[num_bytes])
+	if((addr->s6_addr[num_bytes] & mask.s6_addr[num_bytes]) != 
+	   (prefix->s6_addr[num_bytes] & mask.s6_addr[num_bytes]))
  		return -1;
 	return 0;
 }
@@ -324,9 +324,8 @@ download_scope(up, current)
 }
 
 int
-get_linklocal(ifname, linklocal)
-	char *ifname; 
-	struct in6_addr *linklocal;
+get_linklocal(const char *ifname,
+	      struct in6_addr *linklocal)
 {	
 	struct ifaddrs *ifa, *ifap;
 	struct sockaddr *sd;

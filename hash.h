@@ -1,4 +1,4 @@
-/*	$Id: hash.h,v 1.2 2003/02/10 23:47:08 shirleyma Exp $	*/
+/*	$Id: hash.h,v 1.3 2003/03/01 00:24:49 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -50,20 +50,20 @@ struct hash_table {
         unsigned int hash_count;
         unsigned int hash_size;
         struct hashlist_element **hash_list;
-        unsigned int (*hash_function)(void *hash_key);
-	void * (*find_hashkey)(void *data);
-        int (*compare_hashkey)(void *data, void *key);
+        unsigned int (*hash_function)(const void *hash_key);
+	void * (*find_hashkey)(const void *data);
+        int (*compare_hashkey)(const void *data, const void *key);
 };
 
  
 extern int init_hashes(void);
 extern struct hash_table * hash_table_create(unsigned int hash_size,
-	unsigned int (*hash_function)(void *hash_key),
-	void * (*find_hashkey)(void *data),
-	int (*compare_hashkey)(void *data, void *hashkey));
-extern int  hash_add(struct hash_table *table, void *key, void *data);
-extern int hash_delete(struct hash_table *table, void *key);
-extern void * hash_search(struct hash_table *table, void *key);
+	unsigned int (*hash_function)(const void *hash_key),
+	void * (*find_hashkey)(const void *data),
+	int (*compare_hashkey)(const void *data, const void *hashkey));
+extern int  hash_add(struct hash_table *table, const void *key, void *data);
+extern int hash_delete(struct hash_table *table, const void *key);
+extern void * hash_search(struct hash_table *table, const void *key);
 extern int hash_full(struct hash_table *table);
 extern int grow_hash(struct hash_table *table);
 #endif

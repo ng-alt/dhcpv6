@@ -1,4 +1,4 @@
-/*	$Id: hash.c,v 1.5 2003/02/27 19:43:08 shemminger Exp $	*/
+/*	$Id: hash.c,v 1.6 2003/03/01 00:24:48 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -45,10 +45,11 @@ extern void dprintf(int, const char *, ...)
 extern void dprintf __P((int, const char *, ...));
 #endif
 
-struct hash_table * hash_table_create (unsigned int hash_size,
-                                       unsigned int (*hash_function)(void *hash_key),
-                                       void * (*find_hashkey)(void *data),
-                                       int (*compare_hashkey)(void *data, void *hashkey))
+struct hash_table * hash_table_create (
+	unsigned int hash_size,
+	unsigned int (*hash_function)(const void *hash_key),
+	void * (*find_hashkey)(const void *data),
+	int (*compare_hashkey)(const void *data, const void *hashkey))
 {
 	int i;
 	struct hash_table *hash_tbl;
@@ -69,7 +70,7 @@ struct hash_table * hash_table_create (unsigned int hash_size,
 	return hash_tbl;
 }
 
-int  hash_add(struct hash_table *hash_tbl, void *key, void *data)
+int  hash_add(struct hash_table *hash_tbl, const void *key, void *data)
 {
 	int index;
 	struct hashlist_element *element;
@@ -93,7 +94,7 @@ int  hash_add(struct hash_table *hash_tbl, void *key, void *data)
 	return 0;
 }            
 
-int hash_delete(struct hash_table *hash_tbl, void *key)
+int hash_delete(struct hash_table *hash_tbl, const void *key)
 {
 	int index;
 	struct hashlist_element *element, *prev_element = NULL;
@@ -117,7 +118,7 @@ int hash_delete(struct hash_table *hash_tbl, void *key)
 	return HASH_ITEM_NOT_FOUND;
 }            
 
-void * hash_search(struct hash_table *hash_tbl, void *key) 
+void * hash_search(struct hash_table *hash_tbl, const void *key) 
 {
 	int index;
 	struct hashlist_element *element;

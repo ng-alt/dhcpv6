@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.3 2003/02/27 19:43:08 shemminger Exp $	*/
+/*	$Id: lease.c,v 1.4 2003/03/01 00:24:49 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -59,12 +59,12 @@ extern FILE *server6_lease_file;
 extern char *server6_lease_temp;
 extern FILE *client6_lease_file;
 extern char *client6_lease_temp;
-static u_int32_t do_hash __P((void *, u_int8_t ));
+static u_int32_t do_hash __P((const void *, u_int8_t ));
+static int init_lease_hashes(void);
 
 int 
-write_lease(lease_ptr, file)
-	struct dhcp6_lease *lease_ptr; 
-	FILE *file;
+write_lease(const struct dhcp6_lease *lease_ptr,
+	    FILE *file)
 {
 	struct tm brokendown_time;
 	char addr_str[64];
@@ -83,9 +83,9 @@ write_lease(lease_ptr, file)
 	fprintf(file, "\t IAID: %d ", lease_ptr->iaidaddr->client6_info.iaidinfo.iaid);
 	fprintf(file, "\t type: %d;\n", lease_ptr->iaidaddr->client6_info.type);
 	fprintf(file, "\t RenewTime: %ld;\n", 
-			lease_ptr->iaidaddr->client6_info.iaidinfo.renewtime);
+			(long)lease_ptr->iaidaddr->client6_info.iaidinfo.renewtime);
 	fprintf(file, "\t RebindTime: %ld;\n",
-			lease_ptr->iaidaddr->client6_info.iaidinfo.rebindtime);
+			(long) lease_ptr->iaidaddr->client6_info.iaidinfo.rebindtime);
 	if (!IN6_IS_ADDR_UNSPECIFIED(&lease_ptr->linklocal)) {
 		if ((inet_ntop(AF_INET6, &lease_ptr->linklocal, addr_str, 
 			sizeof(struct in6_addr))) == 0) {
@@ -107,9 +107,9 @@ write_lease(lease_ptr, file)
 		     brokendown_time.tm_sec);
 	fprintf(file, "\t start date: %ld;\n", lease_ptr->start_date);
 	fprintf(file, "\t PreferredLifeTime: %ld;\n",
-                             lease_ptr->lease_addr.preferlifetime);
+                             (long)lease_ptr->lease_addr.preferlifetime);
 	fprintf(file, "\t ValidLifeTime: %ld;\n",
-                             lease_ptr->lease_addr.validlifetime);
+                             (long)lease_ptr->lease_addr.validlifetime);
 	fprintf(file, "}\n");
 	if (fflush(file) == EOF) {
 		dprintf(LOG_INFO, "%s" "write lease fflush failed %s", 
@@ -125,10 +125,7 @@ write_lease(lease_ptr, file)
 }
 
 FILE *
-sync_leases (file, original, template)
-       FILE *file;
-       char *original;
-       char *template;
+sync_leases (FILE *file, const char *original, char *template)
 {
 	int i, fd;
 	struct hashlist_element *element;
@@ -171,15 +168,14 @@ sync_leases (file, original, template)
 }
 
 struct dhcp6_timer *
-syncfile_timo(arg)
-	void *arg;
+syncfile_timo(void *arg)
 {
 	/*XXX: ToDo*/
+	return NULL;
 }
 
 FILE *
-init_leases(name)
-       char *name;
+init_leases(const char *name)
 {
 	FILE *file;
 	file = fopen(name, "a+");
@@ -223,9 +219,7 @@ init_lease_hashes(void)
 }
 
 static u_int32_t 
-do_hash(key, len)
-	void *key;
-	u_int8_t len;
+do_hash(const void *key, u_int8_t len)
 {
 	int i;
 	u_int32_t *p;
@@ -241,42 +235,39 @@ do_hash(key, len)
 }
 
 unsigned int
-iaid_hash(key)
-	void *key;
+iaid_hash(const void *key)
 {
-	struct client6_if *iaidkey = (struct client6_if *)key;
-	struct duid *duid = &iaidkey->clientid;
+	const struct client6_if *iaidkey = (const struct client6_if *)key;
+	const struct duid *duid = &iaidkey->clientid;
 	unsigned int index;
-	index = do_hash((void *)duid->duid_id, duid->duid_len);
+	index = do_hash((const void *) duid->duid_id, duid->duid_len);
 	return index;
 }
 
 unsigned int
-addr_hash(key)
-	void *key;
+addr_hash(const void *key)
 {
-	struct in6_addr *addrkey = (struct in6_addr *)&(((struct dhcp6_addr *)key)->addr);
+	const struct in6_addr *addrkey 
+		= (const struct in6_addr *)&(((const struct dhcp6_addr *)key)->addr);
 	unsigned int index;
-	index = do_hash((void *)addrkey, sizeof(*addrkey));
+	index = do_hash((const void *)addrkey, sizeof(*addrkey));
 	return index;
 }
 
 void * 
-lease_findkey(data)
-	void *data;
+lease_findkey(const void *data)
 {
-        struct dhcp6_lease *lease = (struct dhcp6_lease *)data;
+        const struct dhcp6_lease *lease = (const struct dhcp6_lease *)data;
 	return (void *)(&(lease->lease_addr));
 }
 
 int 
-lease_key_compare(data, key)
-	void *data; 
-	void *key;
+lease_key_compare(const void *data, const void *key)
 { 	
-	struct dhcp6_addr *lease_address = 
-		(struct dhcp6_addr *) &(((struct dhcp6_lease *)data)->lease_addr);
-	struct dhcp6_addr *addr6 = (struct dhcp6_addr *)key;
+	const struct dhcp6_addr *lease_address = 
+		(const struct dhcp6_addr *) &(((const struct dhcp6_lease *)data)->lease_addr);
+	const struct dhcp6_addr *addr6 = (const struct dhcp6_addr *)key;
+
 	if (IN6_ARE_ADDR_EQUAL(&lease_address->addr, &addr6->addr) 
 	    && lease_address->plen == addr6->plen)
 		return MATCH;
@@ -284,20 +275,19 @@ lease_key_compare(data, key)
 }
 
 void *
-iaid_findkey(data)
-	void *data;
+iaid_findkey(const void *data)
 {
         struct dhcp6_iaidaddr *iaidaddr = (struct dhcp6_iaidaddr *)data;
 	return (void *)(&(iaidaddr->client6_info));
 }
 
 int 
-iaid_key_compare(data, key)
-	void *data;
-	void *key;
+iaid_key_compare(const void *data,
+		 const void *key)
 { 	
-        struct dhcp6_iaidaddr *iaidaddr = (struct dhcp6_iaidaddr *)data;
-	struct client6_if *client_key = (struct client6_if *)key;
+        const struct dhcp6_iaidaddr *iaidaddr = (const struct dhcp6_iaidaddr *)data;
+	const struct client6_if *client_key = (const struct client6_if *)key;
+
 	if (0 == duidcmp(&client_key->clientid, &iaidaddr->client6_info.clientid)){
 		if (client_key->iaidinfo.iaid == iaidaddr->client6_info.iaidinfo.iaid){
 			return MATCH;

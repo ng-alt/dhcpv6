@@ -1,4 +1,4 @@
-/*	$Id: common.h,v 1.6 2003/02/27 19:43:05 shemminger Exp $	*/
+/*	$Id: common.h,v 1.7 2003/03/01 00:24:47 shemminger Exp $	*/
 /*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*
@@ -47,7 +47,7 @@ extern int debug_thresh;
 extern char *device;
 
 /* common.c */
-extern int dhcp6_copy_list __P((struct dhcp6_list *, struct dhcp6_list *));
+extern int dhcp6_copy_list __P((struct dhcp6_list *, const struct dhcp6_list *));
 extern void dhcp6_clear_list __P((struct dhcp6_list *));
 extern int dhcp6_count_list __P((struct dhcp6_list *));
 extern struct dhcp6_listval *dhcp6_find_listval __P((struct dhcp6_list *,
@@ -77,7 +77,7 @@ extern void dprintf(int, const char *, ...)
 extern void dprintf __P((int, const char *, ...));
 #endif
 
-extern int get_duid __P((char *, struct duid *));
+extern int get_duid __P((const char *, struct duid *));
 extern void dhcp6_init_options __P((struct dhcp6_optinfo *));
 extern void dhcp6_clear_options __P((struct dhcp6_optinfo *));
 extern int dhcp6_copy_options __P((struct dhcp6_optinfo *,
@@ -91,16 +91,16 @@ extern void dhcp6_reset_timer __P((struct dhcp6_event *));
 extern char *dhcp6optstr __P((int));
 extern char *dhcp6msgstr __P((int));
 extern char *dhcp6_stcodestr __P((int));
-extern char *duidstr __P((struct duid *));
-extern int duidcpy __P((struct duid *, struct duid *));
-extern int duidcmp __P((struct duid *, struct duid *));
+extern char *duidstr __P((const struct duid *));
+extern int duidcpy __P((struct duid *, const struct duid *));
+extern int duidcmp __P((const struct duid *, const struct duid *));
 extern void duidfree __P((struct duid *));
-extern void ifinit __P((char *));
-extern int configure_duid __P((char *, struct duid *));
-extern struct dhcp6_if *find_ifconfbyname __P((char *));
+extern void ifinit __P((const char *));
+extern int configure_duid __P((const char *, struct duid *));
+extern struct dhcp6_if *find_ifconfbyname __P((const char *));
 extern struct dhcp6_if *find_ifconfbyid __P((unsigned int));
-extern struct prefix_ifconf *find_prefixifconf __P((char *));
-extern struct host_conf *find_hostconf __P((struct duid *));
+extern struct prefix_ifconf *find_prefixifconf __P((const char *));
+extern struct host_conf *find_hostconf __P((const struct duid *));
 
 /* missing */
 #ifndef HAVE_STRLCAT

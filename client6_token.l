@@ -1,4 +1,4 @@
-/*	$Id: client6_token.l,v 1.4 2003/02/27 19:43:04 shemminger Exp $	*/
+/*	$Id: client6_token.l,v 1.5 2003/03/01 00:24:46 shemminger Exp $	*/
 /*	ported from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -37,6 +37,7 @@
 #include <sys/socket.h>
 
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include <errno.h>
 #include <syslog.h>
@@ -53,7 +54,7 @@
 #include "common.h"
 #include "cp.tab.h"
 
-char *configfilename;
+const char *configfilename;
 int lineno = 1;
 
 static int cpyy_first_time = 1;
@@ -69,6 +70,9 @@ int cfdebug = 0;
 #endif
 
 static void cfdebug_print __P((char *, char *, int));
+
+extern int cpyyparse(void);
+extern int cf_post_config(void);
 
 #define DP(str) if (cfdebug) cfdebug_print(str, cpyytext, cpyyleng)
 #define DECHO if (cfdebug) cfdebug_print(NULL, cpyytext, cpyyleng);
@@ -231,8 +235,7 @@ cpyywarn(char *s, ...)
 }
 
 int
-cfparse(conf)
-	char *conf;
+cfparse(const char *conf)
 {
 	configfilename = conf;
 	if ((cpyyin = fopen(configfilename, "r")) == NULL) {

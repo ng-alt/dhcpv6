@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.5 2003/02/27 19:43:07 shemminger Exp $	*/
+/*	$Id: config.c,v 1.6 2003/03/01 00:24:47 shemminger Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -62,10 +62,9 @@ static void clear_hostconf __P((struct host_conf *));
 static void clear_options __P((struct dhcp6_optconf *));
 
 int
-configure_interface(iflist)
-	struct cf_namelist *iflist;
+configure_interface(const struct cf_namelist *iflist)
 {
-	struct cf_namelist *ifp;
+	const struct cf_namelist *ifp;
 	struct dhcp6_ifconf *ifc;
 
 	for (ifp = iflist; ifp; ifp = ifp->next) {
@@ -204,10 +203,9 @@ configure_interface(iflist)
 }
 
 int
-configure_host(hostlist)
-	struct cf_namelist *hostlist;
+configure_host(const struct cf_namelist *hostlist)
 {
-	struct cf_namelist *host;
+	const struct cf_namelist *host;
 	struct host_conf *hconf;
 	
 	for (host = hostlist; host; host = host->next) {
@@ -314,7 +312,7 @@ configure_host(hostlist)
 				break;
 			default:
 				dprintf(LOG_ERR, "%s" "%s:%d "
-					"invalid host configuration for %s"
+					"invalid host configuration for %s",
 					FNAME, configfilename, cfl->line,
 					host->name);
 				goto bad;
@@ -330,7 +328,7 @@ configure_host(hostlist)
 }
 
 int
-configure_global_option()
+configure_global_option(void)
 {
 	struct cf_list *cl;
 
@@ -431,7 +429,7 @@ get_default_ifid(pif)
 #endif
 
 void
-configure_cleanup()
+configure_cleanup(void)
 {
 	clear_ifconf(dhcp6_ifconflist);
 	dhcp6_ifconflist = NULL;
@@ -442,7 +440,7 @@ configure_cleanup()
 }
 
 void
-configure_commit()
+configure_commit(void)
 {
 	struct dhcp6_ifconf *ifc;
 	struct dhcp6_if *ifp;
@@ -495,8 +493,7 @@ configure_commit()
 }
 
 static void
-clear_ifconf(iflist)
-	struct dhcp6_ifconf *iflist;
+clear_ifconf(struct dhcp6_ifconf *iflist)
 {
 	struct dhcp6_ifconf *ifc, *ifc_next;
 
@@ -512,8 +509,7 @@ clear_ifconf(iflist)
 }
 
 static void
-clear_hostconf(hlist)
-	struct host_conf *hlist;
+clear_hostconf(struct host_conf *hlist)
 {
 	struct host_conf *host, *host_next;
 	struct dhcp6_listval *p;
@@ -533,8 +529,7 @@ clear_hostconf(hlist)
 }
 
 static void
-clear_options(opt0)
-	struct dhcp6_optconf *opt0;
+clear_options(struct dhcp6_optconf *opt0)
 {
 	struct dhcp6_optconf *opt, *opt_next;
 
@@ -547,10 +542,8 @@ clear_options(opt0)
 }
 
 static int
-add_options(opcode, ifc, cfl0)
-	int opcode;
-	struct dhcp6_ifconf *ifc;
-	struct cf_list *cfl0;
+add_options(int opcode,	struct dhcp6_ifconf *ifc,
+	    struct cf_list *cfl0)
 {
 	struct dhcp6_listval *opt;
 	struct cf_list *cfl;
@@ -623,16 +616,15 @@ add_options(opcode, ifc, cfl0)
 				return (-1);
 		}
 
-	  next:
+	next:;
 	}
 
 	return (0);
 }
 
 static int
-add_address(addr_list, v6addr)
-	struct dhcp6_list *addr_list;
-	struct dhcp6_addr *v6addr;
+add_address(struct dhcp6_list *addr_list,
+	    struct dhcp6_addr *v6addr)
 {
 	struct dhcp6_listval *lv, *val;
 	

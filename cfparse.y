@@ -1,4 +1,4 @@
-/*	$Id: cfparse.y,v 1.2 2003/02/27 19:43:04 shemminger Exp $	*/
+/*	$Id: cfparse.y,v 1.3 2003/03/01 00:24:45 shemminger Exp $	*/
 /*	from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -466,7 +466,7 @@ cleanup_cflist(p)
 	do { cleanup(); configure_cleanup(); return (-1); } while(0)
 
 int
-cf_post_config()
+cf_post_config(void)
 {
 	if (configure_interface(iflist_head))
 		config_fail();

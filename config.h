@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.6 2003/02/27 19:43:07 shemminger Exp $	*/
+/*	$Id: config.h,v 1.7 2003/03/01 00:24:48 shemminger Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -272,17 +272,17 @@ dhcp6_mode_t;
 
 extern const dhcp6_mode_t dhcp6_mode;
 extern struct cf_list *cf_dns_list;
-extern char *configfilename;
+extern const char *configfilename;
 
 extern struct dhcp6_if *dhcp6_if;
 extern struct dhcp6_ifconf *dhcp6_iflist;
 extern struct prefix_ifconf *prefix_ifconflist;
 extern struct dhcp6_list dnslist;
 
-extern int configure_interface __P((struct cf_namelist *));
-extern int configure_prefix_interface __P((struct cf_namelist *));
-extern int configure_host __P((struct cf_namelist *));
-extern int configure_global_option __P((void));
-extern void configure_cleanup __P((void));
-extern void configure_commit __P((void));
-extern int cfparse __P((char *));
+extern int configure_interface (const struct cf_namelist *);
+extern int configure_prefix_interface (struct cf_namelist *);
+extern int configure_host (const struct cf_namelist *);
+extern int configure_global_option (void);
+extern void configure_cleanup (void);
+extern void configure_commit (void);
+extern int cfparse (const char *);

@@ -1,4 +1,4 @@
-/*	$Id: timer.c,v 1.5 2003/02/27 19:43:09 shemminger Exp $	*/
+/*	$Id: timer.c,v 1.6 2003/03/01 00:24:49 shemminger Exp $	*/
 /*	ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp	*/
 
 /*
@@ -55,20 +55,51 @@ LIST_HEAD(, dhcp6_timer) timer_head;
 static struct timeval tm_sentinel;
 static struct timeval tm_max = {0x7fffffff, 0x7fffffff};
 
-static void timeval_add __P((struct timeval *, struct timeval *,
-			     struct timeval *));
+/* result = a + b */
+static void
+timeval_add(struct timeval *a, struct timeval *b, struct timeval *result)
+{
+	long l;
+
+	if ((l = a->tv_usec + b->tv_usec) < MILLION) {
+		result->tv_usec = l;
+		result->tv_sec = a->tv_sec + b->tv_sec;
+	}
+	else {
+		result->tv_usec = l - MILLION;
+		result->tv_sec = a->tv_sec + b->tv_sec + 1;
+	}
+}
+
+/*
+ * result = a - b
+ * XXX: this function assumes that a >= b.
+ */
+void
+timeval_sub(struct timeval *a, struct timeval *b, struct timeval *result)
+{
+	long l;
+
+	if ((l = a->tv_usec - b->tv_usec) >= 0) {
+		result->tv_usec = l;
+		result->tv_sec = a->tv_sec - b->tv_sec;
+	}
+	else {
+		result->tv_usec = MILLION + l;
+		result->tv_sec = a->tv_sec - b->tv_sec - 1;
+	}
+}
 
 void
-dhcp6_timer_init()
+dhcp6_timer_init(void)
 {
 	LIST_INIT(&timer_head);
 	tm_sentinel = tm_max;
 }
 
 struct dhcp6_timer *
-dhcp6_add_timer(timeout, timeodata)
-	struct dhcp6_timer *(*timeout) __P((void *));
-	void *timeodata;
+dhcp6_add_timer(struct dhcp6_timer *(*timeout)(void *),
+		void *timeodata)
 {
 	struct dhcp6_timer *newtimer;
 	if ((newtimer = malloc(sizeof(*newtimer))) == NULL) {
@@ -92,16 +123,14 @@ dhcp6_add_timer(timeout, timeodata)
 }
 
 void
-dhcp6_remove_timer(timer)
-	struct dhcp6_timer *timer;
+dhcp6_remove_timer(struct dhcp6_timer *timer)
 {
 	timer->flag |= MARK_REMOVE;
 }
 
 void
-dhcp6_set_timer(tm, timer)
-	struct timeval *tm;
-	struct dhcp6_timer *timer;
+dhcp6_set_timer(struct timeval *tm, 
+		struct dhcp6_timer *timer)
 {
 	struct timeval now;
 	timer->flag |= MARK_CLEAR;
@@ -122,7 +151,7 @@ dhcp6_set_timer(tm, timer)
  * Return the next interval for select() call.
  */
 struct timeval *
-dhcp6_check_timer()
+dhcp6_check_timer(void)
 {
 	static struct timeval returnval;
 	struct timeval now;
@@ -132,7 +161,7 @@ dhcp6_check_timer()
 
 	tm_sentinel = tm_max;
 
-	dprintf(LOG_DEBUG, "%s" " timer head is %x", FNAME, &timer_head);
+	dprintf(LOG_DEBUG, "%s" " timer head is %p", FNAME, &timer_head);
 
 	for (tm = LIST_FIRST(&timer_head); tm; tm = tm_next) {
 		tm_next = LIST_NEXT(tm, link);
@@ -163,8 +192,7 @@ dhcp6_check_timer()
 }
 
 struct timeval *
-dhcp6_timer_rest(timer)
-	struct dhcp6_timer *timer;
+dhcp6_timer_rest(struct dhcp6_timer *timer)
 {
 	struct timeval now;
 	static struct timeval returnval; /* XXX */
@@ -181,39 +209,3 @@ dhcp6_timer_rest(timer)
 	return (&returnval);
 }
 
-/* result = a + b */
-static void
-timeval_add(a, b, result)
-	struct timeval *a, *b, *result;
-{
-	long l;
-
-	if ((l = a->tv_usec + b->tv_usec) < MILLION) {
-		result->tv_usec = l;
-		result->tv_sec = a->tv_sec + b->tv_sec;
-	}
-	else {
-		result->tv_usec = l - MILLION;
-		result->tv_sec = a->tv_sec + b->tv_sec + 1;
-	}
-}
-
-/*
- * result = a - b
- * XXX: this function assumes that a >= b.
- */
-void
-timeval_sub(a, b, result)
-	struct timeval *a, *b, *result;
-{
-	long l;
-
-	if ((l = a->tv_usec - b->tv_usec) >= 0) {
-		result->tv_usec = l;
-		result->tv_sec = a->tv_sec - b->tv_sec;
-	}
-	else {
-		result->tv_usec = MILLION + l;
-		result->tv_sec = a->tv_sec - b->tv_sec - 1;
-	}
-}

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.7 2003/02/27 19:43:08 shemminger Exp $	*/
+/*	$Id: dhcp6s.c,v 1.8 2003/03/01 00:24:48 shemminger Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -531,7 +531,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 {
 	struct dhcp6_optinfo roptinfo;
 	struct host_conf *client_conf;
-	int addr_flag;
+	int addr_flag = 0;
 	int addr_request = 0;
 	int resptype = DH6_REPLY;
 	int num = DH6OPT_STCODE_SUCCESS;
@@ -603,7 +603,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	case DH6_RENEW:
 	case DH6_DECLINE:
 		if (!IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
-			int stcode = DH6OPT_STCODE_USEMULTICAST;
+			num = DH6OPT_STCODE_USEMULTICAST;
 			goto send;
 		}
 	default:
@@ -705,8 +705,10 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 				dhcp6_copy_list(&roptinfo.addr_list, &optinfo->addr_list);
 			} else {
 				if (optinfo->type == IAPD)
-					dhcp6_create_prefixlist(&roptinfo, optinfo, 
-							iaidaddr, subnet);
+					dhcp6_create_prefixlist(&roptinfo, 
+								optinfo, 
+								iaidaddr, 
+								subnet);
 				else
 					dhcp6_create_addrlist(&roptinfo, optinfo, 
 							iaidaddr, subnet);

@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.6 2003/02/27 19:43:08 shemminger Exp $	*/
+/*	$Id: server6_addr.c,v 1.7 2003/03/01 00:24:49 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -555,15 +555,16 @@ create_tempaddr(prefix, plen, tempaddr)
 }
 
 int
-dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
-	struct link_decl *subnet;
-	struct dhcp6_iaidaddr *iaidaddr;
-	struct dhcp6_optinfo *optinfo, *roptinfo;
+dhcp6_create_addrlist(
+	struct dhcp6_optinfo *roptinfo, 
+	const struct dhcp6_optinfo *optinfo, 
+	const struct dhcp6_iaidaddr *iaidaddr,
+	const struct link_decl *subnet)
 {
 	struct dhcp6_listval *v6addr;
 	struct v6addrseg *seg;
 	struct dhcp6_list *reply_list = &roptinfo->addr_list;
-	struct dhcp6_list *req_list = &optinfo->addr_list;
+	const struct dhcp6_list *req_list = &optinfo->addr_list;
 	int numaddr;
 	struct dhcp6_listval *lv, *lv_next = NULL;
 
@@ -742,10 +743,12 @@ server6_get_prefixpara(v6addr, seg)
 		seg->parainfo.valid_life_time = 2 * seg->parainfo.prefer_life_time;
 	}
 	dprintf(LOG_DEBUG, "%s" " preferlifetime %ld, validlifetime %ld", FNAME,
-			seg->parainfo.prefer_life_time, seg->parainfo.valid_life_time);
+		(long) seg->parainfo.prefer_life_time, 
+		(long) seg->parainfo.valid_life_time);
 
 	dprintf(LOG_DEBUG, "%s" " renewtime %ld, rebindtime %ld", FNAME,
-			seg->parainfo.renew_time, seg->parainfo.rebind_time);
+		(long) seg->parainfo.renew_time, 
+		(long) seg->parainfo.rebind_time);
 	v6addr->preferlifetime = seg->parainfo.prefer_life_time;
 	v6addr->validlifetime = seg->parainfo.valid_life_time;
 	v6addr->status_code = DH6OPT_STCODE_SUCCESS;
@@ -768,10 +771,12 @@ server6_get_addrpara(v6addr, seg)
 		seg->parainfo.valid_life_time = 2 * seg->parainfo.prefer_life_time;
 	}
 	dprintf(LOG_DEBUG, "%s" " preferlifetime %ld, validlifetime %ld", FNAME,
-			seg->parainfo.prefer_life_time, seg->parainfo.valid_life_time);
+		(long) seg->parainfo.prefer_life_time, 
+		(long) seg->parainfo.valid_life_time);
 
 	dprintf(LOG_DEBUG, "%s" " renewtime %ld, rebindtime %ld", FNAME,
-			seg->parainfo.renew_time, seg->parainfo.rebind_time);
+		(long) seg->parainfo.renew_time, 
+		(long) seg->parainfo.rebind_time);
 	v6addr->preferlifetime = seg->parainfo.prefer_life_time;
 	v6addr->validlifetime = seg->parainfo.valid_life_time;
 	v6addr->status_code = DH6OPT_STCODE_SUCCESS;
@@ -780,15 +785,16 @@ server6_get_addrpara(v6addr, seg)
 }
 
 int
-dhcp6_create_prefixlist(roptinfo, optinfo, iaidaddr, subnet)
-	struct link_decl *subnet;
-	struct dhcp6_iaidaddr *iaidaddr;
-	struct dhcp6_optinfo *optinfo, *roptinfo;
+dhcp6_create_prefixlist(
+	struct dhcp6_optinfo *roptinfo,
+	const struct dhcp6_optinfo *optinfo, 
+	const struct dhcp6_iaidaddr *iaidaddr,
+	const struct link_decl *subnet)
 {
 	struct dhcp6_listval *v6addr;
 	struct v6prefix *prefix6;
 	struct dhcp6_list *reply_list = &roptinfo->addr_list;
-	struct dhcp6_list *req_list = &optinfo->addr_list;
+	const struct dhcp6_list *req_list = &optinfo->addr_list;
 	struct dhcp6_listval *lv, *lv_next = NULL;
 
 	/* XXX: ToDo check hostdecl first */
@@ -798,7 +804,7 @@ dhcp6_create_prefixlist(roptinfo, optinfo, iaidaddr, subnet)
 	for (prefix6 = subnet->prefixlist; prefix6; prefix6 = prefix6->next) {
 		v6addr = (struct dhcp6_listval *)malloc(sizeof(*v6addr));
 		if (v6addr == NULL) {
-			dprintf(LOG_ERR, "%s" "fail to allocate memory", 
+			dprintf(LOG_ERR, "%s" "fail to allocate memory: %s", 
 				FNAME, strerror(errno));
 			return (-1);
 		}
@@ -813,8 +819,8 @@ dhcp6_create_prefixlist(roptinfo, optinfo, iaidaddr, subnet)
 			"preferlifetime %ld, validlifetime %ld", FNAME,
 			in6addr2str(&v6addr->val_dhcp6addr.addr, 0), 
 			v6addr->val_dhcp6addr.plen,
-			v6addr->val_dhcp6addr.preferlifetime, 
-			v6addr->val_dhcp6addr.validlifetime);
+			(long) v6addr->val_dhcp6addr.preferlifetime, 
+			(long) v6addr->val_dhcp6addr.validlifetime);
 		TAILQ_INSERT_TAIL(reply_list, v6addr, link);
 	}
 	for (prefix6 = subnet->prefixlist; prefix6; prefix6 = prefix6->next) {

@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.3 2003/02/25 00:31:52 shirleyma Exp $	*/
+/*	$Id: lease.h,v 1.4 2003/03/01 00:24:49 shemminger Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -103,18 +103,30 @@ extern struct dhcp6_lease *dhcp6_find_lease __P((struct dhcp6_iaidaddr *,
 			struct dhcp6_addr *));
 extern int dhcp6_remove_lease __P((struct dhcp6_lease *));
 extern int dhcp6_validate_bindings __P((struct dhcp6_optinfo *, struct dhcp6_iaidaddr *));
-extern int get_iaid __P((char *, struct iaid_table *));
+extern int get_iaid __P((const char *, const struct iaid_table *));
 extern int create_iaid __P((struct iaid_table *));
-extern FILE *init_leases __P((char *));
+extern FILE *init_leases __P((const char *));
 extern int lease_parse __P((FILE *));
 extern int do_iaidaddr_hash __P((struct dhcp6_lease *, struct client6_if *));
-extern int write_lease __P((struct dhcp6_lease *, FILE *));
-extern FILE *sync_leases __P((FILE *, char *, char *));
+extern int write_lease __P((const struct dhcp6_lease *, FILE *));
+extern FILE *sync_leases __P((FILE *, const char *, char *));
 extern struct dhcp6_timer *syncfile_timo __P((void *));
-extern unsigned int addr_hash __P((void *));
-extern unsigned int iaid_hash __P((void *));
-extern void * iaid_findkey __P((void *));
-extern int iaid_key_compare __P((void *, void *));
-extern void * lease_findkey __P((void *));
-extern int lease_key_compare __P((void *, void *));
+extern unsigned int addr_hash __P((const void *));
+extern unsigned int iaid_hash __P((const void *));
+extern void * iaid_findkey __P((const void *));
+extern int iaid_key_compare __P((const void *, const void *));
+extern void * lease_findkey __P((const void *));
+extern int lease_key_compare __P((const void *, const void *));
+extern int client6_ifaddrconf __P((ifaddrconf_cmd_t , struct dhcp6_addr *));
+
+
+struct link_decl;
+extern int dhcp6_create_prefixlist __P((struct dhcp6_optinfo *,
+					const struct dhcp6_optinfo *,
+					const struct dhcp6_iaidaddr *,
+					const struct link_decl *));
+extern int dhcp6_create_addrlist __P((	struct dhcp6_optinfo *,
+					const struct dhcp6_optinfo *,
+					const struct dhcp6_iaidaddr *,
+					const struct link_decl *));
 #endif

@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.8 2003/02/27 19:43:04 shemminger Exp $	*/
+/*	$Id: client6_addr.c,v 1.9 2003/03/01 00:24:45 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -78,15 +78,14 @@ extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern struct dhcp6_list request_list;
 
 void
-dhcp6_init_iaidaddr()
+dhcp6_init_iaidaddr(void)
 {
 	memset(&client6_iaidaddr, 0, sizeof(client6_iaidaddr));
 	TAILQ_INIT(&client6_iaidaddr.lease_list);
 }
 
 int
-dhcp6_add_iaidaddr(optinfo)
-	struct dhcp6_optinfo *optinfo;
+dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 {
 	struct dhcp6_listval *lv, *lv_next = NULL;
 	struct timeval timo;
@@ -99,7 +98,7 @@ dhcp6_add_iaidaddr(optinfo)
 	duidcpy(&client6_iaidaddr.client6_info.clientid, &optinfo->clientID);
 	if (duidcpy(&client6_iaidaddr.client6_info.serverid, &optinfo->serverID)) {
 		dprintf(LOG_ERR, "%s" "failed to copy server ID %s", 
-			FNAME, &optinfo->serverID);
+			FNAME, duidstr(&optinfo->serverID));
 		return (-1);
 	}
 	if ((client6_iaidaddr.timer = 
@@ -222,8 +221,7 @@ dhcp6_add_lease(addr)
 }
 
 int
-dhcp6_remove_iaidaddr(iaidaddr)
-	struct dhcp6_iaidaddr *iaidaddr;
+dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr)
 {
 	struct dhcp6_lease *lv, *lv_next;
 	for (lv = TAILQ_FIRST(&iaidaddr->lease_list); lv; lv = lv_next) { 
@@ -241,8 +239,7 @@ dhcp6_remove_iaidaddr(iaidaddr)
 }
 
 int
-dhcp6_remove_lease(sp)
-	struct dhcp6_lease *sp;
+dhcp6_remove_lease(struct dhcp6_lease *sp)
 {
 	dprintf(LOG_DEBUG, "%s" "removing address %s", FNAME,
 		in6addr2str(&sp->lease_addr.addr, 0));
@@ -275,9 +272,7 @@ dhcp6_remove_lease(sp)
 }
 
 int
-dhcp6_update_iaidaddr(optinfo, flag)
-	struct dhcp6_optinfo *optinfo;
-	int flag;
+dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 {
 	struct dhcp6_listval *lv, *lv_next = NULL;
 	struct dhcp6_lease *cl, *cl_next;
@@ -351,9 +346,7 @@ dhcp6_update_iaidaddr(optinfo, flag)
 }
 
 static int
-dhcp6_update_lease(addr, sp)
-	struct dhcp6_addr *addr;
-	struct dhcp6_lease *sp;
+dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp)
 {
 	struct timeval timo;
 	double d;
@@ -413,9 +406,8 @@ dhcp6_update_lease(addr, sp)
 }
 
 struct dhcp6_lease *
-dhcp6_find_lease(iaidaddr, ifaddr)
-	struct dhcp6_iaidaddr *iaidaddr;
-	struct dhcp6_addr *ifaddr;
+dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr, 
+		 struct dhcp6_addr *ifaddr)
 {
 	struct dhcp6_lease *sp;
 	for (sp = TAILQ_FIRST(&iaidaddr->lease_list); sp;
@@ -434,8 +426,7 @@ dhcp6_find_lease(iaidaddr, ifaddr)
 }
 
 struct dhcp6_timer *
-dhcp6_iaidaddr_timo(arg)
-	void *arg;
+dhcp6_iaidaddr_timo(void *arg)
 {
 	struct dhcp6_iaidaddr *sp = (struct dhcp6_iaidaddr *)arg;
 	struct dhcp6_event *ev;
@@ -489,6 +480,7 @@ dhcp6_iaidaddr_timo(arg)
 			return (NULL);
 		}
 	case REBIND:
+		/* BUG: d not set! */
 		ev->max_retrans_dur = d; 
 		break;
 	}
@@ -531,8 +523,7 @@ dhcp6_iaidaddr_timo(arg)
 
 
 struct dhcp6_timer *
-dhcp6_lease_timo(arg)
-	void *arg;
+dhcp6_lease_timo(void *arg)
 {
 	struct dhcp6_lease *sp = (struct dhcp6_lease *)arg;
 	struct timeval timeo;
@@ -565,9 +556,7 @@ dhcp6_lease_timo(arg)
 }
 
 int
-client6_ifaddrconf(cmd, ifaddr)
-	ifaddrconf_cmd_t cmd;
-	struct dhcp6_addr *ifaddr;
+client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr)
 {
 	struct in6_ifreq req;
 	struct dhcp6_if *ifp = client6_iaidaddr.ifp;
@@ -617,8 +606,7 @@ client6_ifaddrconf(cmd, ifaddr)
 }
 
 u_int32_t
-get_min_preferlifetime(sp)
-	struct dhcp6_iaidaddr *sp;
+get_min_preferlifetime(struct dhcp6_iaidaddr *sp)
 {
 	struct dhcp6_lease *lv, *first;
 	u_int32_t min;
@@ -633,8 +621,7 @@ get_min_preferlifetime(sp)
 }
 
 u_int32_t
-get_max_validlifetime(sp)
-	struct dhcp6_iaidaddr *sp;
+get_max_validlifetime(struct dhcp6_iaidaddr *sp)
 {
 	struct dhcp6_lease *lv, *first;
 	u_int32_t max;
@@ -649,9 +636,9 @@ get_max_validlifetime(sp)
 }
 
 int
-get_iaid(char *ifname, struct iaid_table *iaidtab)
+get_iaid(const char *ifname, const struct iaid_table *iaidtab)
 {
-	struct iaid_table *temp;
+	const struct iaid_table *temp;
 	struct hardware hdaddr;
 	hdaddr.len = gethwid(hdaddr.data, 17, ifname, &hdaddr.type);
 	for (temp = iaidtab; temp; temp++) {
@@ -691,7 +678,7 @@ create_iaid(struct iaid_table *iaidtab)
 		/* so far we only support ethernet hw */
 		if (if_hwaddr.ifr_hwaddr.sa_family == ARPHRD_ETHER) {
 			unsigned char *hwaddr = (unsigned char *)if_hwaddr.ifr_hwaddr.sa_data;
-			bcopy(hwaddr, iaidtab->hwaddr.data, sizeof(hwaddr));
+			memcpy(iaidtab->hwaddr.data, hwaddr, sizeof(hwaddr));
 			iaidtab->hwaddr.len = 6;
 			memcpy(&iaidtab->iaid, (unsigned char *)&hwaddr[3], 
 					sizeof(iaidtab->iaid));

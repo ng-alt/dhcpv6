@@ -1,4 +1,4 @@
-/*	$Id: server6_addr_token.l,v 1.4 2003/02/27 19:43:09 shemminger Exp $	*/
+/*	$Id: server6_addr_token.l,v 1.5 2003/03/01 00:24:49 shemminger Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -40,9 +40,8 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <linux/in6.h>
+#include <arpa/inet.h>
 #include <net/if.h>
-#include <linux/ipv6.h>
 
 #include "queue.h"
 #include "dhcp6.h"
@@ -56,6 +55,8 @@ int sfyyerrorcount = 0;
 int sfparse(char *filename);
 extern void sfyyerror(char *msg);
 extern struct rootgroup *globalgroup;
+
+extern int sfyyparse(void);
 
 %}
 
@@ -170,4 +171,5 @@ sfparse(conf)
         }
 	post_config(globalgroup);
 
+	return (0);
 }

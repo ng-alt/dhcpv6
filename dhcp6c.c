@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.9 2003/02/27 19:43:07 shemminger Exp $	*/
+/*	$Id: dhcp6c.c,v 1.10 2003/03/01 00:24:48 shemminger Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -781,7 +781,7 @@ client6_send(ev)
 		 * retransmissions of a message. [dhcpv6-26 15.1]
 		 */
 		ev->xid = random() & DH6_XIDMASK;
-		dprintf(LOG_DEBUG, "%s" "ifp %x event %x a new XID (%x) is generated",
+		dprintf(LOG_DEBUG, "%s" "ifp %p event %p a new XID (%x) is generated",
 			FNAME, ifp, ev, ev->xid);
 	}
 	dh6->dh6_xid &= ~ntohl(DH6_XIDMASK);
@@ -1450,7 +1450,7 @@ client6_send_newstate(ifp, state)
 	for (ev_debug = TAILQ_FIRST(&ifp->event_list); ev_debug;
 			ev_debug = ev_debug_next) {
 	     ev_debug_next = TAILQ_NEXT(ev_debug, link);
-		dprintf(LOG_DEBUG, "%s" "ifp %x event %x id is %x", 
+		dprintf(LOG_DEBUG, "%s" "ifp %p event %p id is %x", 
 				FNAME, ifp, ev_debug, ev_debug->xid);
 	}
 	ev->timeouts = 0;
@@ -1469,7 +1469,8 @@ find_event_withid(ifp, xid)
 
 	for (ev = TAILQ_FIRST(&ifp->event_list); ev;
 	     ev = TAILQ_NEXT(ev, link)) {
-		dprintf(LOG_DEBUG, "%s" "ifp %x event %x id is %x", FNAME, ifp, ev, ev->xid);
+		dprintf(LOG_DEBUG, "%s" "ifp %p event %p id is %x", 
+			FNAME, ifp, ev, ev->xid);
 		if (ev->xid == xid)
 			return (ev);
 	}
