@@ -1,4 +1,4 @@
-/*	$Id: radvd_token.l,v 1.1 2003/05/22 23:00:30 shirleyma Exp $	*/
+/*	$Id: radvd_token.l,v 1.2 2003/05/28 21:12:48 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -184,7 +184,8 @@ comment		\#.*
 		lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
 		/* remove the prefix list for release */
 		if (update_flag == ADDR_REMOVE && 
-		    !addr_on_addrlist(&client6iaid->lease_list, &lv->val_dhcp6addr)) { 
+		    !addr_on_addrlist((struct dhcp6_list *)&client6iaid->lease_list, 
+		    &lv->val_dhcp6addr)) { 
 			dprintf(LOG_DEBUG, "remove radvd.conf DHCPv6 prefixe");
 			restart = 1;
 		} else {
