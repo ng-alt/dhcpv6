@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.5 2003/02/12 19:57:13 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.6 2003/02/12 20:52:04 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -1392,7 +1392,7 @@ client6_recvreply(ifp, dh6, len, optinfo)
 			}
 			if (client6_iaidaddr.client6_info.iaidinfo.rebindtime == 0) {
 				client6_iaidaddr.client6_info.iaidinfo.rebindtime 
-					= get_min_preferlifetime(&client6_iaidaddr)/3;
+					= (get_min_preferlifetime(&client6_iaidaddr)*4)/5;
 			}
 			offset = now.time - client6_iaidaddr.start_date;
 			if ( offset > client6_iaidaddr.client6_info.iaidinfo.renewtime) 
