@@ -35,29 +35,27 @@ A. Validated Features:
 	 on the same link. 
       4. Supported Options: Rapid commit, Server Preference, Information Request, 
 	 ClientID, ServerID , IA_NA , IA_TA , IA_ADDR , Status support. 
-      5. Solicit/Request/Advertise/Reply/Infomation-request messages support 
+      5. Solicit/Request/Advertise/Reply/Infomation-request messages/Renew/Rebind
+      	 /Release/Confirm/ messages support for IPv6 address binding. 
+      8. Client configuration file support for IPv6 address assignment. 
+      9. Client lease file support for saving individual client ipv6address binding info. 
 
 B. Support available but not validated yet 
 
-      1. Renew/Rebind messages 
-      2. Prefix delegation option support 
-      3. DNS server option support 
-      4. Request option support 
+      1. Prefix delegation option support 
+      2. DNS server option support 
+      3. Request option support 
 
 C. Under development and testing 
 
-      1. Timer out events support for IPv6 address binding. T1(renew)/T2(rebind)/expired
-	 (address preferlifetime reached)/deleted(address validlifetime reached) 
-      2. Release/Decline/Confirm/ messages support for IPv6 address binding. 
-      3. Client configuration file support for IPv6 address assignment. 
-      4. Client lease file support for saving individual client ipv6address binding info. 
-      5. Prefix delegation configuration file supports relay. 
-      6. Merge prefix delegation configuration file parser and IPv6 address assignment file 
+      1. Prefix delegation configuration file supports relay. 
+      2. Merge prefix delegation configuration file parser and IPv6 address assignment file 
 	 parser into one parser. 
 
 D. ToDo List: 
 
-      1. Unicast/elapsed time/Authentication/User class/Vendor class/Interface-ID option support 
+      1. Unicast/elapsed time/Authentication/User class/Vendor class/Interface-ID option 
+         support 
       2. Relay agent support. 
       3. Reconfig/Relay messages support. 
 
