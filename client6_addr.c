@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.9 2003/03/01 00:24:45 shemminger Exp $	*/
+/*	$Id: client6_addr.c,v 1.10 2003/03/11 23:52:22 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -136,6 +136,9 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 		dhcp6_remove_timer(client6_iaidaddr.timer);
 		return 0;
 	}
+	dprintf(LOG_INFO, "renew time %d, rebind time %d", 
+		client6_iaidaddr.client6_info.iaidinfo.renewtime,
+		client6_iaidaddr.client6_info.iaidinfo.rebindtime);
 	/* set up start date, and renew timer */
 	time(&client6_iaidaddr.start_date);
 	client6_iaidaddr.state = ACTIVE;
@@ -191,7 +194,6 @@ dhcp6_add_lease(addr)
 	sp->iaidaddr = &client6_iaidaddr;
 	time(&sp->start_date);
 	sp->state = ACTIVE;
-	sp->addr_type = sp->iaidaddr->client6_info.type;
 	d = sp->lease_addr.preferlifetime;
 	timo.tv_sec = (long)d;
 	timo.tv_usec = 0;
@@ -205,7 +207,7 @@ dhcp6_add_lease(addr)
 		return (-1);
 	}
 	/* XXX: ToDo: prefix delegation for client */
-	if (sp->addr_type == IAPD) {
+	if (sp->lease_addr.type == IAPD) {
 		dprintf(LOG_INFO, "request prefix is %s/%d", 
 			in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen);
 	} else if (client6_ifaddrconf(IFADDRCONF_ADD, addr) != 0) {
@@ -251,7 +253,7 @@ dhcp6_remove_lease(struct dhcp6_lease *sp)
 		return (-1);
 	}
 	/* XXX: ToDo: prefix delegation for client */
-	if (sp->addr_type == IAPD) {
+	if (sp->lease_addr.type == IAPD) {
 		dprintf(LOG_INFO, "request prefix is %s/%d", 
 			in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen);
 	} else if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
@@ -432,12 +434,13 @@ dhcp6_iaidaddr_timo(void *arg)
 	struct dhcp6_event *ev;
 	struct timeval timeo;
 	int dhcpstate;
-	double d;
+	double d = 0;
 
-	dprintf(LOG_DEBUG, "%s" "client6_iaidaddr timeout for %d, state=%d", FNAME,
+	dprintf(LOG_DEBUG, "client6_iaidaddr timeout for %d, state=%d", 
 		client6_iaidaddr.client6_info.iaidinfo.iaid, sp->state);
 
 	dhcp6_clear_list(&request_list);
+	TAILQ_INIT(&request_list);
 	/* ToDo: what kind of opiton Request value, client would like to pass? */
 	switch(sp->state) {
 	case ACTIVE:
@@ -483,10 +486,11 @@ dhcp6_iaidaddr_timo(void *arg)
 		/* BUG: d not set! */
 		ev->max_retrans_dur = d; 
 		break;
+	default:
+		break;
 	}
 	if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
-		dprintf(LOG_ERR, "%s" "failed to create a new event "
-	    	"timer", FNAME);
+		dprintf(LOG_ERR, "%s" "failed to create a new event timer", FNAME);
 		free(ev);
 		return (NULL); /* XXX */
 	}

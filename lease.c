@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.4 2003/03/01 00:24:49 shemminger Exp $	*/
+/*	$Id: lease.c,v 1.5 2003/03/11 23:52:23 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -60,7 +60,7 @@ extern char *server6_lease_temp;
 extern FILE *client6_lease_file;
 extern char *client6_lease_temp;
 static u_int32_t do_hash __P((const void *, u_int8_t ));
-static int init_lease_hashes(void);
+static int init_lease_hashes __P((void));
 
 int 
 write_lease(const struct dhcp6_lease *lease_ptr,
@@ -77,15 +77,17 @@ write_lease(const struct dhcp6_lease *lease_ptr,
 	}
 	gmtime_r(&lease_ptr->start_date, &brokendown_time);
 	fprintf(file, "lease %s/%d { \n", addr_str, lease_ptr->lease_addr.plen);
-
 	fprintf(file, "\t DUID: %s;\n", 
-				duidstr(&lease_ptr->iaidaddr->client6_info.clientid));
+		duidstr(&lease_ptr->iaidaddr->client6_info.clientid));
+	if (dhcp6_mode == DHCP6_MODE_CLIENT) 
+		fprintf(file, "\t SDUID: %s;\n", 
+			duidstr(&lease_ptr->iaidaddr->client6_info.serverid));
 	fprintf(file, "\t IAID: %d ", lease_ptr->iaidaddr->client6_info.iaidinfo.iaid);
 	fprintf(file, "\t type: %d;\n", lease_ptr->iaidaddr->client6_info.type);
-	fprintf(file, "\t RenewTime: %ld;\n", 
-			(long)lease_ptr->iaidaddr->client6_info.iaidinfo.renewtime);
-	fprintf(file, "\t RebindTime: %ld;\n",
-			(long) lease_ptr->iaidaddr->client6_info.iaidinfo.rebindtime);
+	fprintf(file, "\t RenewTime: %d;\n", 
+		lease_ptr->iaidaddr->client6_info.iaidinfo.renewtime);
+	fprintf(file, "\t RebindTime: %d;\n",
+		lease_ptr->iaidaddr->client6_info.iaidinfo.rebindtime);
 	if (!IN6_IS_ADDR_UNSPECIFIED(&lease_ptr->linklocal)) {
 		if ((inet_ntop(AF_INET6, &lease_ptr->linklocal, addr_str, 
 			sizeof(struct in6_addr))) == 0) {
@@ -106,10 +108,10 @@ write_lease(const struct dhcp6_lease *lease_ptr,
 		     brokendown_time.tm_min,
 		     brokendown_time.tm_sec);
 	fprintf(file, "\t start date: %ld;\n", lease_ptr->start_date);
-	fprintf(file, "\t PreferredLifeTime: %ld;\n",
-                             (long)lease_ptr->lease_addr.preferlifetime);
-	fprintf(file, "\t ValidLifeTime: %ld;\n",
-                             (long)lease_ptr->lease_addr.validlifetime);
+	fprintf(file, "\t PreferredLifeTime: %d;\n",
+                             lease_ptr->lease_addr.preferlifetime);
+	fprintf(file, "\t ValidLifeTime: %d;\n",
+                             lease_ptr->lease_addr.validlifetime);
 	fprintf(file, "}\n");
 	if (fflush(file) == EOF) {
 		dprintf(LOG_INFO, "%s" "write lease fflush failed %s", 
@@ -263,14 +265,20 @@ lease_findkey(const void *data)
 
 int 
 lease_key_compare(const void *data, const void *key)
-{ 	
-	const struct dhcp6_addr *lease_address = 
-		(const struct dhcp6_addr *) &(((const struct dhcp6_lease *)data)->lease_addr);
-	const struct dhcp6_addr *addr6 = (const struct dhcp6_addr *)key;
-
-	if (IN6_ARE_ADDR_EQUAL(&lease_address->addr, &addr6->addr) 
-	    && lease_address->plen == addr6->plen)
-		return MATCH;
+{ 
+	struct dhcp6_lease *lease = (struct dhcp6_lease *)data;	
+	struct dhcp6_addr *lease_address = &lease->lease_addr;
+	struct dhcp6_addr *addr6 = (struct dhcp6_addr *)key;
+	if (IN6_ARE_ADDR_EQUAL(&lease_address->addr, &addr6->addr)) {
+		/* prefix match */
+		if (addr6->type == IAPD) {
+			/* XXX: allow duplicated PD for the same DUID */
+		 	if (lease_address->plen == addr6->plen)
+	       			return MATCH;
+		/* ipv6 address match */
+		} else if (addr6->type == IANA || addr6->type == IATA)
+			return MATCH;
+	}
 	return MISCOMPARE;
 }
 
@@ -289,7 +297,8 @@ iaid_key_compare(const void *data,
 	const struct client6_if *client_key = (const struct client6_if *)key;
 
 	if (0 == duidcmp(&client_key->clientid, &iaidaddr->client6_info.clientid)){
-		if (client_key->iaidinfo.iaid == iaidaddr->client6_info.iaidinfo.iaid){
+		if ((client_key->type == iaidaddr->client6_info.type) &&
+		    (client_key->iaidinfo.iaid == iaidaddr->client6_info.iaidinfo.iaid)) {
 			return MATCH;
 		}
 	}

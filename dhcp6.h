@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.5 2003/02/25 00:31:52 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.6 2003/03/11 23:52:23 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -144,7 +144,7 @@ struct dhcp6_optinfo {
 	struct dhcp6_iaid_info iaidinfo;
 	iatype_t type;
 	u_int8_t flags;	/* flags for rapid commit, info_only, temp address */
-	int pref;		/* server preference */
+	int8_t pref;		/* server preference */
 	struct dhcp6_list addr_list; /* assigned ipv6 address list */
 	struct dhcp6_list reqopt_list; /*  options in option request */
 	struct dhcp6_list stcode_list; /* status code */

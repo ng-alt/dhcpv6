@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.10 2003/03/01 00:24:48 shemminger Exp $	*/
+/*	$Id: dhcp6c.c,v 1.11 2003/03/11 23:52:23 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -124,6 +124,7 @@ static void client6_signal __P((int));
 static struct dhcp6_event *find_event_withid __P((struct dhcp6_if *,
 						  u_int32_t));
 struct dhcp6_timer *client6_timo __P((void *));
+extern int client6_ifaddrconf __P((ifaddrconf_cmd_t, struct dhcp6_addr *));
 
 #define DHCP6C_CONF "/etc/dhcp6c.conf"
 #define DHCP6C_PIDFILE "/var/run/dhcpv6/dhcp6c.pid"
@@ -173,6 +174,7 @@ main(argc, argv)
 					usage();
 					exit(1);
 				}
+				lv->val_dhcp6addr.type = IAPD;
 				lv->val_dhcp6addr.plen = atoi(strtok(NULL, "/"));
 				lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
 				TAILQ_INSERT_TAIL(&request_list, lv, link);
@@ -198,6 +200,7 @@ main(argc, argv)
 					usage();
 					exit(1);
 				}
+				lv->val_dhcp6addr.type = IANA;
 				lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
 				TAILQ_INSERT_TAIL(&request_list, lv, link);
 			} 
@@ -222,6 +225,7 @@ main(argc, argv)
 						usage();
 						exit(1);
 					}
+					lv->val_dhcp6addr.type = IANA;
 					TAILQ_INSERT_TAIL(&request_list, lv, link);
 				}
 			} 
@@ -476,8 +480,8 @@ client6_ifinit()
 					lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
 					TAILQ_INSERT_TAIL(&request_list, lv, link);
 					/* config the interface for reboot */
-					if (cl->addr_type == IAPD) {
-						dprintf(LOG_INFO, "confirm prefix %s/%d",
+					if (cl->lease_addr.type == IAPD) {
+						dprintf(LOG_INFO, "get prefix %s/%d",
 							in6addr2str(&cl->lease_addr.addr, 0),
 							cl->lease_addr.plen);
 						/* XXX:	what to do for PD */
@@ -603,7 +607,8 @@ client6_timo(arg)
 
 	ifp = ev->ifp;
 	ev->timeouts++;
-	if (ev->max_retrans_cnt && ev->timeouts > ev->max_retrans_cnt) {
+	if (ev->max_retrans_cnt && ev->timeouts >= ev->max_retrans_cnt) {
+		/* XXX: check up the duration time for renew & rebind */
 		dprintf(LOG_INFO, "%s" "no responses were received", FNAME);
 		dhcp6_remove_event(ev);	/* XXX: should free event data? */
 		return (NULL);
@@ -621,12 +626,15 @@ client6_timo(arg)
 		if (ifp->send_flags & DHCIFF_INFO_ONLY) 
 			ev->state = DHCP6S_INFOREQ;
 		else if (client6_request_flag & CLIENT6_RELEASE_ADDR) 
-				/* do release */
-				ev->state = DHCP6S_RELEASE;
+			/* do release */
+			ev->state = DHCP6S_RELEASE;
 		else if (client6_request_flag & CLIENT6_CONFIRM_ADDR) {
 			struct dhcp6_listval *lv;
-			/* do confirm for reboot */
-			ev->state = DHCP6S_CONFIRM;
+			/* do confirm for reboot for IANA, IATA*/
+			if (client6_iaidaddr.client6_info.type == IAPD)
+				ev->state = DHCP6S_REBIND;
+			else
+				ev->state = DHCP6S_CONFIRM;
 			for (lv = TAILQ_FIRST(&request_list); lv; 
 					lv = TAILQ_NEXT(lv, link)) {
 				lv->val_dhcp6addr.preferlifetime = 0;
@@ -644,6 +652,11 @@ client6_timo(arg)
 					FNAME);
 				exit(1); /* XXX */
 			}
+			/* if get the address assginment break */
+			if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
+				dhcp6_remove_event(ev);
+				return (NULL);
+			}
 			ev->timeouts = 0;
 			ev->state = DHCP6S_REQUEST;
 			dhcp6_set_timeoparam(ev);
@@ -657,7 +670,7 @@ client6_timo(arg)
 	case DHCP6S_CONFIRM:
 	case DHCP6S_RENEW:
 	case DHCP6S_REBIND:
-		if (!TAILQ_EMPTY(&ev->data_list) || !TAILQ_EMPTY(&request_list))
+		if (!TAILQ_EMPTY(&request_list))
 			client6_send(ev);
 		else {
 			dprintf(LOG_INFO, "%s"
@@ -666,7 +679,6 @@ client6_timo(arg)
 			dhcp6_remove_event(ev);
 			return (NULL);
 		}
-		client6_send(ev);
 		break;
 	default:
 		break;
@@ -755,7 +767,7 @@ client6_send(ev)
 		}
 		dh6->dh6_msgtype = DH6_DECLINE;
 		break;
-	case DHCP6S_INFOREQ:
+	case DHCP6S_INFOREQ:	
 		dh6->dh6_msgtype = DH6_INFORM_REQ;
 		break;
 	case DHCP6S_REBIND:
@@ -808,8 +820,14 @@ client6_send(ev)
 			    FNAME);
 			goto end;
 		}
+		break;
+	case DHCP6S_RELEASE:
+		if (duidcpy(&optinfo.serverID, &client6_iaidaddr.client6_info.serverid)) {
+			dprintf(LOG_ERR, "%s" "failed to copy server ID", FNAME);
+			goto end;
+		}
+		break;
 	}
-
 	/* client ID */
 	if (duidcpy(&optinfo.clientID, &client_duid)) {
 		dprintf(LOG_ERR, "%s" "failed to copy client ID", FNAME);
@@ -863,15 +881,18 @@ client6_send(ev)
 	case DHCP6S_RELEASE:
 	case DHCP6S_CONFIRM:
 	case DHCP6S_DECLINE:
+		/*
 		if (ifp->send_flags & DHCIFF_PREFIX_DELEGATION)
 			optinfo.type = IAPD;
 		else if (ifp->send_flags & DHCIFF_TEMP_ADDRS)
 			optinfo.type = IATA;
 		else
 			optinfo.type = IANA;
+		*/
 		if (!TAILQ_EMPTY(&request_list)) {
 			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
 				sizeof(optinfo.iaidinfo));
+			optinfo.type = client6_iaidaddr.client6_info.type;
 			/* XXX: ToDo: seperate to prefix list and address list */
 			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
 				goto end;
@@ -990,7 +1011,9 @@ client6_recv()
 	ep = (struct dhcp6opt *)((char *)dh6 + len);
 	if (dhcp6_get_options(p, ep, &optinfo) < 0) {
 		dprintf(LOG_INFO, "%s" "failed to parse options", FNAME);
+#ifdef TEST
 		return;
+#endif
 	}
 
 	switch(dh6->dh6_msgtype) {
@@ -1042,7 +1065,7 @@ client6_recvadvert(ifp, dh6, len, optinfo0)
 		dprintf(LOG_INFO, "%s" "no server ID option", FNAME);
 		return -1;
 	} else {
-		dprintf(LOG_DEBUG, "%s" "server ID: %s, pref=%d", FNAME,
+		dprintf(LOG_DEBUG, "%s" "server ID: %s, pref=%2x", FNAME,
 			duidstr(&optinfo0->serverID),
 			optinfo0->pref);
 	}
@@ -1057,15 +1080,15 @@ client6_recvadvert(ifp, dh6, len, optinfo0)
 
 	/*
 	 * The client MUST ignore any Advertise message that includes a Status
-	 * Code option containing the value NoAddrsAvail.
-	 * [dhcpv6-26, Section 17.1.3].
+	 * Code option containing any error.
 	 */
 	for (lv = TAILQ_FIRST(&optinfo0->stcode_list); lv;
 	     lv = TAILQ_NEXT(lv, link)) {
 		dprintf(LOG_INFO, "%s" "status code: %s",
 		    FNAME, dhcp6_stcodestr(lv->val_num));
-		if (lv->val_num == DH6OPT_STCODE_NOTONLINK)
-			return -1;
+		if (lv->val_num != DH6OPT_STCODE_SUCCESS) {
+			return (-1);
+		}
 	}
 
 	/* ignore the server if it is known */
@@ -1115,8 +1138,9 @@ client6_recvadvert(ifp, dh6, len, optinfo0)
 		dhcp6_set_timer(&timo, ev->timer);
 	}
 	/* if the client send preferred addresses reqeust in SOLICIT */
+	/* XXX: client might have some local policy to select the addresses */
 	if (!TAILQ_EMPTY(&optinfo0->addr_list))
-		dhcp6_add_iaidaddr(optinfo0);
+		dhcp6_copy_list(&request_list, &optinfo0->addr_list);
 	return 0;
 }
 
@@ -1269,6 +1293,7 @@ client6_recvreply(ifp, dh6, len, optinfo)
 	 * status code option in the Reply message.
 	 * [dhcpv6-26 Section 18.1.8]
 	 */
+	addr_status_code = 0;
 	for (lv = TAILQ_FIRST(&optinfo->stcode_list); lv;
 	     lv = TAILQ_NEXT(lv, link)) {
 		dprintf(LOG_INFO, "%s" "status code: %s",
@@ -1277,6 +1302,7 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		case DH6OPT_STCODE_SUCCESS:
 		case DH6OPT_STCODE_UNSPECFAIL:
 		case DH6OPT_STCODE_NOADDRAVAIL:
+		case DH6OPT_STCODE_NOPREFIXAVAIL:
 		case DH6OPT_STCODE_NOBINDING:
 		case DH6OPT_STCODE_NOTONLINK:
 		case DH6OPT_STCODE_USEMULTICAST:
@@ -1285,16 +1311,16 @@ client6_recvreply(ifp, dh6, len, optinfo)
 			break;
 		}
 	}
-#ifdef TEST 
 	switch (addr_status_code) {
 	case DH6OPT_STCODE_UNSPECFAIL:
 	case DH6OPT_STCODE_USEMULTICAST:
+		dprintf(LOG_INFO, "%s" "status code: %s", FNAME, 
+			dhcp6_stcodestr(addr_status_code));
 		/* retransmit the message with multicast address */
-		client6_resend(ev, addr_status_code);
-		return 0;
+		/* how many time allow the retransmission with error status code? */
+		return -1;
 	}
 	
-#endif
 	/*
 	 * Update configuration information to be renewed or rebound
 	 * declined, confirmed, released.
@@ -1305,6 +1331,10 @@ client6_recvreply(ifp, dh6, len, optinfo)
 	case DHCP6S_SOLICIT:
 		if (optinfo->iaidinfo.iaid == 0)
 			break;
+		else if (!optinfo->flags & DHCIFF_RAPID_COMMIT) {
+			newstate = DHCP6S_REQUEST;
+			break;
+		}
 	case DHCP6S_REQUEST:
 		/* NotOnLink: 1. SOLICIT 
 		 * NoAddrAvail: Information Request */
@@ -1316,45 +1346,42 @@ client6_recvreply(ifp, dh6, len, optinfo)
 			newstate = DHCP6S_SOLICIT;
 			break;
 		case DH6OPT_STCODE_NOADDRAVAIL:
+		case DH6OPT_STCODE_NOPREFIXAVAIL:
 			dprintf(LOG_DEBUG, "%s" 
 			    "got a NoAddrAvail reply for request/rapid commit,"
 			    " sending inforeq.", FNAME);
+			optinfo->iaidinfo.iaid = 0;
 			newstate = DHCP6S_INFOREQ;
 			break;
+#ifdef TEST
 		case DH6OPT_STCODE_SUCCESS:
-			if (!TAILQ_EMPTY(&optinfo->addr_list))
-				dhcp6_add_iaidaddr(optinfo);
-			break;
+		case DH6OPT_STCODE_UNDEFINE:
+#endif
 		default:
+			if (!TAILQ_EMPTY(&optinfo->addr_list)) {
+				dhcp6_add_iaidaddr(optinfo);
+			}
 			break;
 		}
 		break;
 	case DHCP6S_RENEW:
 	case DHCP6S_REBIND:
-		/* NoBinding for RENEW, send REQUEST */
-		/* NoBinding for REBIND, send SOLICIT */
+		/* NoBinding for RENEW, REBIND, send REQUEST */
 		switch(addr_status_code) {
 		case DH6OPT_STCODE_NOBINDING:
-		case DH6OPT_STCODE_NOADDRAVAIL:
-		case DH6OPT_STCODE_UNSPECFAIL:
-			if (ev->state == DHCP6S_REBIND) {
-				dprintf(LOG_DEBUG, "%s" 
-			    	  "got a NoBinding reply for rebind, sending solicit.", FNAME);
-				newstate = DHCP6S_SOLICIT;
-				free_servers(ifp);
-			}
-			else {
-				newstate = DHCP6S_REQUEST;
-				/* remove event data list */
-				dprintf(LOG_DEBUG, "%s" 
-			    	  "got a NoBinding reply for renew, sending request.", FNAME);
-			}
+			newstate = DHCP6S_REQUEST;
+			dprintf(LOG_DEBUG, "%s" 
+			    	  "got a NoBinding reply, sending request.", FNAME);
 			dhcp6_remove_iaidaddr(&client6_iaidaddr);
 			break;
-		case DH6OPT_STCODE_SUCCESS:
-			dhcp6_update_iaidaddr(optinfo, ADDR_UPDATE);
+		case DH6OPT_STCODE_NOADDRAVAIL:
+		case DH6OPT_STCODE_NOPREFIXAVAIL:
+		case DH6OPT_STCODE_UNSPECFAIL:
 			break;
+		case DH6OPT_STCODE_SUCCESS:
+		case DH6OPT_STCODE_UNDEFINE:
 		default:
+			dhcp6_update_iaidaddr(optinfo, ADDR_UPDATE);
 			break;
 		}
 		break;
@@ -1422,9 +1449,9 @@ client6_recvreply(ifp, dh6, len, optinfo)
 	dhcp6_remove_event(ev);
 	if (newstate) {
 		client6_send_newstate(ifp, newstate);
-	}
-	else 
+	} else 
 		dprintf(LOG_DEBUG, "%s" "got an expected reply, sleeping.", FNAME);
+	TAILQ_INIT(&request_list);
 	return 0;
 }
 
@@ -1434,7 +1461,6 @@ client6_send_newstate(ifp, state)
 	int state;
 {
 	struct dhcp6_event *ev;
-	struct dhcp6_event *ev_debug, *ev_debug_next;
 	if ((ev = dhcp6_create_event(ifp, state)) == NULL) {
 		dprintf(LOG_ERR, "%s" "failed to create an event",
 			FNAME);
@@ -1447,12 +1473,6 @@ client6_send_newstate(ifp, state)
 		return(-1);
 	}
 	TAILQ_INSERT_TAIL(&ifp->event_list, ev, link);
-	for (ev_debug = TAILQ_FIRST(&ifp->event_list); ev_debug;
-			ev_debug = ev_debug_next) {
-	     ev_debug_next = TAILQ_NEXT(ev_debug, link);
-		dprintf(LOG_DEBUG, "%s" "ifp %p event %p id is %x", 
-				FNAME, ifp, ev_debug, ev_debug->xid);
-	}
 	ev->timeouts = 0;
 	dhcp6_set_timeoparam(ev);
 	dhcp6_reset_timer(ev);

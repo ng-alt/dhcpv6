@@ -1,4 +1,4 @@
-/*	$Id: server6_addr_token.l,v 1.5 2003/03/01 00:24:49 shemminger Exp $	*/
+/*	$Id: server6_addr_token.l,v 1.6 2003/03/11 23:52:23 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -104,18 +104,19 @@ prefix		{ return PREFIX; }
 address		{ return ADDRESS;}
 
 allow		{ BEGIN S_OPTION; return ALLOW; }
+send		{ BEGIN S_OPTION; return SEND; }
 option		{ BEGIN S_OPTION; return OPTION; }
 
 <S_OPTION>unicast	{ BEGIN INITIAL; return UNICAST; }
 <S_OPTION>rapid-commit	{ BEGIN INITIAL; return RAPIDCOMMIT; }
 <S_OPTION>temp-address	{ BEGIN INITIAL; return TEMPIPV6ADDR; }
-<S_OPTION>server-preference	{ BEGIN INITIAL; return PREFERENCE; }
 <S_OPTION>information-only	{ BEGIN INITIAL; return INFO_ONLY; }
 
 renew-time	{ return RENEWTIME; }
 rebind-time	{ return REBINDTIME; }
 valid-life-time	 { return VALIDLIFETIME; }
 prefer-life-time { return PREFERLIFETIME; }
+server-preference { return PREFERENCE; }
 
 to	{ return TO; }
 infinity	{ return INFINITY; }

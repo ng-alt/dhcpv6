@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.6 2003/03/01 00:24:47 shemminger Exp $	*/
+/*	$Id: config.c,v 1.7 2003/03/11 23:52:23 shirleyma Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -311,10 +311,8 @@ configure_host(const struct cf_namelist *hostlist)
 							sizeof(hconf->linklocal) );
 				break;
 			default:
-				dprintf(LOG_ERR, "%s" "%s:%d "
-					"invalid host configuration for %s",
-					FNAME, configfilename, cfl->line,
-					host->name);
+				dprintf(LOG_ERR, "%s: %d invalid host configuration for %s",
+					configfilename, cfl->line, host->name);
 				goto bad;
 			}
 		}

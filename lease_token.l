@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.4 2003/03/01 00:24:49 shemminger Exp $	*/
+/*	$Id: lease_token.l,v 1.5 2003/03/11 23:52:23 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -122,6 +122,7 @@ comment		\#.*
 %s S_HNAME
 %s S_LL
 %s S_DUID
+%s S_SDUID
 %s S_IAID
 %s S_IATYPE
 %s S_RNTIME
@@ -152,6 +153,7 @@ comment		\#.*
 "hostname:" {BEGIN S_HNAME;}
 "linklocal:" {BEGIN S_LL;}
 "DUID:" {BEGIN S_DUID;}
+"SDUID:" {BEGIN S_SDUID;}
 "IAID:" {BEGIN S_IAID;}
 "RenewTime:" {BEGIN S_RNTIME;}
 "RebindTime:" {BEGIN S_RBTIME;}
@@ -199,11 +201,13 @@ comment		\#.*
 <S_DUID>{duid_id} {configure_duid(yytext, &client6_info.clientid);
 		lease_flags |= LEASE_DUID_FLAG;}
 <S_DUID>. {ABORT;}
+<S_SDUID>{duid_id} {configure_duid(yytext, &client6_info.serverid);}
+<S_SDUID>. {ABORT;}
 <S_IAID>{number} {client6_info.iaidinfo.iaid = atoi(yytext);
 		lease_flags |= LEASE_IAID_FLAG;}
 <S_IAID>"type:" {BEGIN S_IATYPE;}
 <S_IAID>. {ABORT;}
-<S_IATYPE>{number} {lease_rec->addr_type = (u_int8_t)atoi(yytext);
+<S_IATYPE>{number} {lease_rec->lease_addr.type = (u_int8_t)atoi(yytext);
 		client6_info.type = (u_int8_t)atoi(yytext);}
 <S_IATYPE>. {ABORT;}
 <S_RNTIME>{number} {client6_info.iaidinfo.renewtime = (u_int32_t)strtoul(yytext, NULL, 10);
@@ -230,7 +234,7 @@ comment		\#.*
 %%
 
 
-int
+void
 lease_parse(file)
         FILE *file;
 {
@@ -238,7 +242,7 @@ lease_parse(file)
 	fseek(file, 0, 0);
 	yyin = file;
 	yylex(); 
-	return  (0);
+	return;
 }
 
 int 
@@ -272,6 +276,13 @@ do_iaidaddr_hash(lease_rec, key)
 		if (add_lease(&client6_iaidaddr, lease_rec) != 0)
 			return (-1);
 		else {
+			memcpy(&client6_iaidaddr.client6_info, &client6_info, 
+				sizeof(client6_iaidaddr.client6_info));
+			dprintf(LOG_DEBUG, "hash add client iaidaddr type %d for "
+				" duid %s for iaid %d",
+				client6_iaidaddr.client6_info.type, 
+				duidstr(&client6_iaidaddr.client6_info.clientid), 
+				client6_iaidaddr.client6_info.iaidinfo.iaid);
 			return (0);
 		}
 	}
@@ -318,8 +329,7 @@ do_iaidaddr_hash(lease_rec, key)
 		memset(iaidaddr, 0, sizeof(*iaidaddr));
 		TAILQ_INIT(&iaidaddr->lease_list);
 		/* get the client info */
-		memcpy(&iaidaddr->client6_info, &client6_info, 
-			sizeof(iaidaddr->client6_info));
+		memcpy(&iaidaddr->client6_info, &client6_info, sizeof(iaidaddr->client6_info));
 		iaidaddr->start_date = lease_rec->start_date;	
 		/* iaidaddr will be removed if no lease under lease_list */
 		iaidaddr->timer = NULL;
@@ -330,9 +340,10 @@ do_iaidaddr_hash(lease_rec, key)
 			free(iaidaddr);
 			return (-1);
 		}
-		dprintf(LOG_DEBUG, "hash add client iaidaddr for duid %s for iaid %ld",
-				   duidstr(&iaidaddr->client6_info.clientid), 
-				   (long) iaidaddr->client6_info.iaidinfo.iaid);
+		dprintf(LOG_DEBUG, "hash add client iaidaddr type %d for duid %s for iaid %d",
+			iaidaddr->client6_info.type, 
+			duidstr(&iaidaddr->client6_info.clientid), 
+			iaidaddr->client6_info.iaidinfo.iaid);
 	}
 	if (add_lease(iaidaddr, lease_rec) != 0)
 		return (-1);
@@ -439,9 +450,9 @@ add_lease(iaidaddr, lease)
 	lease_rec->iaidaddr = iaidaddr;
 	lease_rec->lease_addr.status_code = DH6OPT_STCODE_UNDEFINE;
 	TAILQ_INSERT_TAIL(&iaidaddr->lease_list, lease_rec, link);
-	dprintf(LOG_INFO, "%s" "add lease addr %s/%d to %d", 
-		FNAME, in6addr2str(&lease_rec->lease_addr.addr, 0), 
-		lease_rec->lease_addr.plen, lease_rec->iaidaddr->client6_info.iaidinfo.iaid);
+	dprintf(LOG_INFO, "%s" "add lease addr %s/%d type %d to %d", 
+		FNAME, in6addr2str(&lease_rec->lease_addr.addr, 0), lease_rec->lease_addr.plen,
+		lease_rec->lease_addr.type, lease_rec->iaidaddr->client6_info.iaidinfo.iaid);
 	return (0);
 }
 

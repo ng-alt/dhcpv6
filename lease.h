@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.4 2003/03/01 00:24:49 shemminger Exp $	*/
+/*	$Id: lease.h,v 1.5 2003/03/11 23:52:23 shirleyma Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -106,7 +106,7 @@ extern int dhcp6_validate_bindings __P((struct dhcp6_optinfo *, struct dhcp6_iai
 extern int get_iaid __P((const char *, const struct iaid_table *));
 extern int create_iaid __P((struct iaid_table *));
 extern FILE *init_leases __P((const char *));
-extern int lease_parse __P((FILE *));
+extern void lease_parse __P((FILE *));
 extern int do_iaidaddr_hash __P((struct dhcp6_lease *, struct client6_if *));
 extern int write_lease __P((const struct dhcp6_lease *, FILE *));
 extern FILE *sync_leases __P((FILE *, const char *, char *));

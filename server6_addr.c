@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.7 2003/03/01 00:24:49 shemminger Exp $	*/
+/*	$Id: server6_addr.c,v 1.8 2003/03/11 23:52:23 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -76,6 +76,9 @@ static void  server6_get_addrpara __P((struct dhcp6_addr *, struct v6addrseg *))
 static void  server6_get_prefixpara __P((struct dhcp6_addr *, struct v6prefix *));
 
 struct link_decl *dhcp6_allocate_link __P((struct rootgroup *, struct in6_addr *));
+struct host_decl *dhcp6_allocate_host __P((struct rootgroup *, struct dhcp6_optinfo *));
+int dhcp6_get_hostconf __P((struct dhcp6_optinfo *, struct dhcp6_optinfo *,
+			struct dhcp6_iaidaddr *, struct host_decl *)); 
 
 struct host_decl
 *find_hostdecl(duid, iaid, hostlist)
@@ -86,7 +89,7 @@ struct host_decl
 	struct host_decl *host;
 	dprintf(LOG_DEBUG, "%s" "called", FNAME);
 	for (host = hostlist; host; host = host->next) {
-		if (duidcmp(duid, &host->cid) && host->iaidinfo.iaid == iaid)
+		if (!duidcmp(duid, &host->cid) && host->iaidinfo.iaid == iaid)
 			return host;
 		continue;
 	}
@@ -189,6 +192,7 @@ struct dhcp6_iaidaddr
 	dprintf(LOG_DEBUG, "%s" "called", FNAME);
 	duidcpy(&client6_info.clientid, &optinfo->clientID);
 	client6_info.iaidinfo.iaid = optinfo->iaidinfo.iaid;
+	client6_info.type = optinfo->type;
 	if ((iaidaddr = hash_search(server6_hash_table, (void *)&client6_info)) == NULL) {
 		dprintf(LOG_DEBUG, "%s" "iaid %d iaidaddr for client duid %s doesn't exists", 
 			FNAME, client6_info.iaidinfo.iaid, 
@@ -296,7 +300,7 @@ dhcp6_validate_bindings(optinfo, iaidaddr)
 	dprintf(LOG_DEBUG, "%s" "called", FNAME);
 	/* XXX: confirm needs to update bindings ?? */
 	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
-		if (!dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr)) 
+		if (dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr) == NULL) 
 			return (-1);
 	}
 	return 0;
@@ -336,7 +340,6 @@ dhcp6_add_lease(iaidaddr, addr)
 	}
 	memset(sp, 0, sizeof(*sp));
 	memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
-	sp->addr_type = iaidaddr->client6_info.type;
 	sp->iaidaddr = iaidaddr;	
 	if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
 		dprintf(LOG_ERR, "%s" "failed to create a new event "
@@ -457,9 +460,12 @@ dhcp6_find_lease(iaidaddr, ifaddr)
 			in6addr2str(&ifaddr->addr, 0), ifaddr->plen);		
       		dprintf(LOG_DEBUG, "%s" "lease address is %s/%d ", FNAME,
 			in6addr2str(&sp->lease_addr.addr, 0), ifaddr->plen);		
-	      	if (IN6_ARE_ADDR_EQUAL(&sp->lease_addr.addr, &ifaddr->addr) &&
-		    sp->lease_addr.plen == ifaddr->plen) {
-			return (sp);
+	      	if (IN6_ARE_ADDR_EQUAL(&sp->lease_addr.addr, &ifaddr->addr)) {
+			if (ifaddr->type == IAPD) {
+				if (sp->lease_addr.plen == ifaddr->plen)
+					return (sp);
+			} else if (ifaddr->type == IANA || ifaddr->type == IATA)
+				return (sp);
 		}
 	}
 	return (NULL);
@@ -546,7 +552,7 @@ create_tempaddr(prefix, plen, tempaddr)
 		tempaddr->s6_addr[i] = prefix->s6_addr[i];
 	}
 	tempaddr->s6_addr[num_bytes] = (prefix->s6_addr[num_bytes] | (0xFF >> plen % 8)) 
-		& (seed[num_bytes] | (0xFF << 8 - plen % 8));
+		& (seed[num_bytes] | ((0xFF << 8) - plen % 8));
 	
 	for (i = num_bytes + 1; i < 16; i++) {
 		tempaddr->s6_addr[i] = seed[i];
@@ -555,11 +561,37 @@ create_tempaddr(prefix, plen, tempaddr)
 }
 
 int
-dhcp6_create_addrlist(
-	struct dhcp6_optinfo *roptinfo, 
-	const struct dhcp6_optinfo *optinfo, 
-	const struct dhcp6_iaidaddr *iaidaddr,
-	const struct link_decl *subnet)
+dhcp6_get_hostconf(roptinfo, optinfo, iaidaddr, host)
+	struct host_decl *host;
+	struct dhcp6_iaidaddr *iaidaddr;
+	struct dhcp6_optinfo *optinfo, *roptinfo;
+{
+	struct dhcp6_list *reply_list = &roptinfo->addr_list;
+	
+	if (!(host->hostscope.allow_flags & DHCIFF_TEMP_ADDRS)) {
+		roptinfo->iaidinfo.renewtime = host->hostscope.renew_time;
+		roptinfo->iaidinfo.rebindtime = host->hostscope.rebind_time;
+		roptinfo->type = optinfo->type;
+		switch (optinfo->type) {
+		case IANA:
+			dhcp6_copy_list(reply_list, &host->addrlist);
+			break;
+		case IATA:
+			break;
+		case IAPD:
+			dhcp6_copy_list(reply_list, &host->prefixlist);
+			break;
+		}
+	}
+	return 0;
+}
+
+int
+dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
+	struct dhcp6_optinfo *roptinfo;
+	const struct dhcp6_iaidaddr *iaidaddr;
+	const struct dhcp6_optinfo *optinfo; 
+	const struct link_decl *subnet;
 {
 	struct dhcp6_listval *v6addr;
 	struct v6addrseg *seg;
@@ -568,7 +600,6 @@ dhcp6_create_addrlist(
 	int numaddr;
 	struct dhcp6_listval *lv, *lv_next = NULL;
 
-	/* XXX: check hostdecl first */
 	roptinfo->iaidinfo.renewtime = subnet->linkscope.renew_time;
 	roptinfo->iaidinfo.rebindtime = subnet->linkscope.rebind_time;
 	roptinfo->type = optinfo->type;
@@ -590,14 +621,15 @@ dhcp6_create_addrlist(
 			if (IN6_IS_ADDR_RESERVED(&lv->val_dhcp6addr.addr) ||
 			    is_anycast(&lv->val_dhcp6addr.addr, seg->prefix.plen)) {
 				lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
-				dprintf(LOG_DEBUG, "%s" " %s address no on link", FNAME, 
+				dprintf(LOG_DEBUG, "%s" " %s address not on link", FNAME, 
 					in6addr2str(&lv->val_dhcp6addr.addr, 0));
 				continue;
 			}
 			if (addr_on_segment(seg, &lv->val_dhcp6addr.addr)) {
 				if (numaddr == 0) {
-					numaddr += 1;
+					lv->val_dhcp6addr.type = optinfo->type;
 					server6_get_addrpara(&lv->val_dhcp6addr, seg);
+					numaddr += 1;
 					continue;
 				} else {
 			/* check the addr count per seg, we only allow one address
@@ -608,7 +640,7 @@ dhcp6_create_addrlist(
 				}
 			} else {
 				lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
-				dprintf(LOG_DEBUG, "%s" " %s address no on link", FNAME, 
+				dprintf(LOG_DEBUG, "%s" " %s address not on link", FNAME, 
 					in6addr2str(&lv->val_dhcp6addr.addr, 0));
 				continue;
 			}
@@ -619,6 +651,7 @@ dhcp6_create_addrlist(
 		for (lv = TAILQ_FIRST(reply_list); lv; lv = lv_next) {
 				lv_next = TAILQ_NEXT(lv, link);
 			if (addr_on_segment(seg, &lv->val_dhcp6addr.addr)) {
+				lv->val_dhcp6addr.type = optinfo->type;
 				server6_get_addrpara(&lv->val_dhcp6addr, seg);
 				numaddr += 1;
 			}
@@ -642,7 +675,8 @@ dhcp6_create_addrlist(
 						}
 						memset(v6addr, 0, sizeof(*v6addr));
 						memcpy(&v6addr->val_dhcp6addr, &cl->lease_addr,
-							sizeof(v6addr->val_dhcp6addr));
+							sizeof(v6addr->val_dhcp6addr));	
+						v6addr->val_dhcp6addr.type = optinfo->type;
 						server6_get_addrpara(&v6addr->val_dhcp6addr, 
 									seg);
 						numaddr += 1;
@@ -698,6 +732,7 @@ server6_get_newaddr(type, v6addr, seg)
 	int round = 0;
 	memcpy(&current, &seg->free, sizeof(current));
 	do {
+		v6addr->type = type;
 		switch(type) {
 		case IATA:
 			/* assume the temp addr never being run out */
@@ -715,6 +750,8 @@ server6_get_newaddr(type, v6addr, seg)
 				memcpy(&seg->free, &seg->min, sizeof(seg->free));
 			}
 			break;
+		default:
+			break;
 		}
 
 	} while ((hash_search(lease_hash_table, (void *)v6addr) != NULL 
@@ -722,8 +759,7 @@ server6_get_newaddr(type, v6addr, seg)
 	if (IN6_IS_ADDR_UNSPECIFIED(&v6addr->addr)) {
 		return;
 	}
-	dprintf(LOG_DEBUG, "%s" "new address %s is got", FNAME,
-			in6addr2str(&v6addr->addr, 0));
+	dprintf(LOG_DEBUG, "new address %s is got", in6addr2str(&v6addr->addr, 0));
 	server6_get_addrpara(v6addr, seg);
 	return;
 }
@@ -742,13 +778,11 @@ server6_get_prefixpara(v6addr, seg)
 	} else if (seg->parainfo.valid_life_time == 0) {
 		seg->parainfo.valid_life_time = 2 * seg->parainfo.prefer_life_time;
 	}
-	dprintf(LOG_DEBUG, "%s" " preferlifetime %ld, validlifetime %ld", FNAME,
-		(long) seg->parainfo.prefer_life_time, 
-		(long) seg->parainfo.valid_life_time);
+	dprintf(LOG_DEBUG, " preferlifetime %d, validlifetime %d", 
+		seg->parainfo.prefer_life_time, seg->parainfo.valid_life_time);
 
-	dprintf(LOG_DEBUG, "%s" " renewtime %ld, rebindtime %ld", FNAME,
-		(long) seg->parainfo.renew_time, 
-		(long) seg->parainfo.rebind_time);
+	dprintf(LOG_DEBUG, " renewtime %d, rebindtime %d", 
+		seg->parainfo.renew_time, seg->parainfo.rebind_time);
 	v6addr->preferlifetime = seg->parainfo.prefer_life_time;
 	v6addr->validlifetime = seg->parainfo.valid_life_time;
 	v6addr->status_code = DH6OPT_STCODE_SUCCESS;
@@ -770,13 +804,11 @@ server6_get_addrpara(v6addr, seg)
 	} else if (seg->parainfo.valid_life_time == 0) {
 		seg->parainfo.valid_life_time = 2 * seg->parainfo.prefer_life_time;
 	}
-	dprintf(LOG_DEBUG, "%s" " preferlifetime %ld, validlifetime %ld", FNAME,
-		(long) seg->parainfo.prefer_life_time, 
-		(long) seg->parainfo.valid_life_time);
+	dprintf(LOG_DEBUG, " preferlifetime %d, validlifetime %d",
+		seg->parainfo.prefer_life_time, seg->parainfo.valid_life_time);
 
-	dprintf(LOG_DEBUG, "%s" " renewtime %ld, rebindtime %ld", FNAME,
-		(long) seg->parainfo.renew_time, 
-		(long) seg->parainfo.rebind_time);
+	dprintf(LOG_DEBUG, " renewtime %d, rebindtime %d", 
+		seg->parainfo.renew_time, seg->parainfo.rebind_time);
 	v6addr->preferlifetime = seg->parainfo.prefer_life_time;
 	v6addr->validlifetime = seg->parainfo.valid_life_time;
 	v6addr->status_code = DH6OPT_STCODE_SUCCESS;
@@ -785,11 +817,11 @@ server6_get_addrpara(v6addr, seg)
 }
 
 int
-dhcp6_create_prefixlist(
-	struct dhcp6_optinfo *roptinfo,
-	const struct dhcp6_optinfo *optinfo, 
-	const struct dhcp6_iaidaddr *iaidaddr,
-	const struct link_decl *subnet)
+dhcp6_create_prefixlist(roptinfo, optinfo, iaidaddr, subnet)
+	struct dhcp6_optinfo *roptinfo;
+	const struct dhcp6_optinfo *optinfo; 
+	const struct dhcp6_iaidaddr *iaidaddr;
+	const struct link_decl *subnet;
 {
 	struct dhcp6_listval *v6addr;
 	struct v6prefix *prefix6;
@@ -804,8 +836,7 @@ dhcp6_create_prefixlist(
 	for (prefix6 = subnet->prefixlist; prefix6; prefix6 = prefix6->next) {
 		v6addr = (struct dhcp6_listval *)malloc(sizeof(*v6addr));
 		if (v6addr == NULL) {
-			dprintf(LOG_ERR, "%s" "fail to allocate memory: %s", 
-				FNAME, strerror(errno));
+			dprintf(LOG_ERR, "%s" "fail to allocate memory", FNAME);
 			return (-1);
 		}
 		memset(v6addr, 0, sizeof(*v6addr));
@@ -815,12 +846,12 @@ dhcp6_create_prefixlist(
 		v6addr->val_dhcp6addr.plen = prefix6->prefix.plen;
 		v6addr->val_dhcp6addr.type = IAPD;
 		server6_get_prefixpara(&v6addr->val_dhcp6addr, prefix6);
-		dprintf(LOG_DEBUG, "%s" " get prefix %s/%d, "
-			"preferlifetime %ld, validlifetime %ld", FNAME,
+		dprintf(LOG_DEBUG, " get prefix %s/%d, "
+			"preferlifetime %d, validlifetime %d",
 			in6addr2str(&v6addr->val_dhcp6addr.addr, 0), 
 			v6addr->val_dhcp6addr.plen,
-			(long) v6addr->val_dhcp6addr.preferlifetime, 
-			(long) v6addr->val_dhcp6addr.validlifetime);
+			v6addr->val_dhcp6addr.preferlifetime, 
+			v6addr->val_dhcp6addr.validlifetime);
 		TAILQ_INSERT_TAIL(reply_list, v6addr, link);
 	}
 	for (prefix6 = subnet->prefixlist; prefix6; prefix6 = prefix6->next) {
@@ -830,7 +861,7 @@ dhcp6_create_prefixlist(
 			    is_anycast(&lv->val_dhcp6addr.addr, prefix6->prefix.plen) ||
 			    !addr_on_addrlist(reply_list, &lv->val_dhcp6addr)) {
 				lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
-				dprintf(LOG_DEBUG, "%s" " %s prefix not on link", FNAME, 
+				dprintf(LOG_DEBUG, " %s prefix not on link", 
 					in6addr2str(&lv->val_dhcp6addr.addr, 0));
 				lv->val_dhcp6addr.type = IAPD;
 				TAILQ_INSERT_TAIL(reply_list, lv, link);
@@ -840,8 +871,28 @@ dhcp6_create_prefixlist(
 	return (0);
 }
 
-struct link_decl 
-*dhcp6_allocate_link(rootgroup, relay)
+struct host_decl *
+dhcp6_allocate_host(rootgroup, optinfo)
+	struct rootgroup *rootgroup;
+	struct dhcp6_optinfo *optinfo;
+{
+	struct host_decl *host = NULL;
+	struct interface *ifnetwork;
+	struct duid *duid = &optinfo->clientID;
+	u_int32_t iaid = optinfo->iaidinfo.iaid;
+	for (ifnetwork = rootgroup->iflist; ifnetwork; ifnetwork = ifnetwork->next) {
+		if (strcmp(ifnetwork->name, device) != 0)
+			continue;
+		else {
+			host = find_hostdecl(duid, iaid, ifnetwork->hostlist);
+			break;
+		}
+	}
+	return host;
+}
+
+struct link_decl *
+dhcp6_allocate_link(rootgroup, relay)
 	struct rootgroup *rootgroup;
 	struct in6_addr *relay;
 {

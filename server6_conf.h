@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.h,v 1.5 2003/03/01 00:24:49 shemminger Exp $	*/
+/*	$Id: server6_conf.h,v 1.6 2003/03/11 23:52:23 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -134,11 +134,6 @@ struct pool_decl {
 	struct scope *group;
 };
 
-struct dhcp6_addrlist {
-	struct dhcp6_addrlist *next;
-	struct dhcp6_addr v6addr;
-};
-
 struct v6addrlist {
 	struct v6addrlist *next;
 	struct v6addr v6addr;
@@ -151,8 +146,8 @@ struct host_decl {
 	char name[IFNAMSIZ];
 	struct duid cid;
 	struct dhcp6_iaid_info iaidinfo;
-	struct dhcp6_addrlist *addrlist;
-	struct dhcp6_addrlist *prefixlist;
+	struct dhcp6_list addrlist;
+	struct dhcp6_list prefixlist;
 	struct interface *network;
 	struct scope hostscope;
 	struct scope *group;

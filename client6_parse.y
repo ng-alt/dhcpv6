@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.5 2003/02/27 19:43:04 shemminger Exp $	*/
+/*	$Id: client6_parse.y,v 1.6 2003/03/11 23:52:23 shirleyma Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -176,7 +176,7 @@ declaration:
 			/* no value */
 			$$ = l;
 		}
-	|	TEMP_ADDR EOS
+	|	REQUEST TEMP_ADDR EOS
 		{
 			struct cf_list *l;
 

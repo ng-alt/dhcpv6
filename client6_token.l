@@ -1,4 +1,4 @@
-/*	$Id: client6_token.l,v 1.5 2003/03/01 00:24:46 shemminger Exp $	*/
+/*	$Id: client6_token.l,v 1.6 2003/03/11 23:52:23 shirleyma Exp $	*/
 /*	ported from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -70,6 +70,7 @@ int cfdebug = 0;
 #endif
 
 static void cfdebug_print __P((char *, char *, int));
+extern int cf_post_config __P((void));
 
 extern int cpyyparse(void);
 extern int cf_post_config(void);

@@ -1,4 +1,4 @@
-/*	$Id: server6_addr_parse.y,v 1.6 2003/02/27 19:43:09 shemminger Exp $	*/
+/*	$Id: server6_addr_parse.y,v 1.7 2003/03/11 23:52:23 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -107,7 +107,7 @@ extern int sfyylex __P((void));
 
 %type	<str>	name
 %type   <num>	number_or_infinity
-%type	<v6list>	hostaddr6 hostprefix6 addr6para v6address
+%type	<dhcp6addr>	hostaddr6 hostprefix6 addr6para v6address
 
 %union {
 	int	num;
@@ -116,7 +116,7 @@ extern int sfyylex __P((void));
 	int 	dec;
 	int	bool;
 	struct in6_addr	addr;
-	struct dhcp6_addrlist *v6list;
+	struct dhcp6_addr *dhcp6addr;
 }
 %%
 statements	
@@ -580,6 +580,8 @@ hosthead
 			ABORT;
 		}
 		memset(host, 0, sizeof(*host));
+		TAILQ_INIT(&host->addrlist);
+		TAILQ_INIT(&host->prefixlist);
 		host->network = ifnetwork;
 		strncpy(host->name, $2, strlen($2));
 		/* enter host scope */
@@ -646,8 +648,7 @@ hostpara
 			dprintf(LOG_DEBUG, "address should be defined under host decl");
 			ABORT;
 		}
-		$1->next = host->addrlist;
-		host->addrlist = $1;
+		dhcp6_add_listval(&host->addrlist, $1, DHCP6_LISTVAL_DHCP6ADDR);
 	}
 	| hostprefix6
 	{
@@ -655,8 +656,7 @@ hostpara
 			dprintf(LOG_DEBUG, "prefix should be defined under host decl");
 			ABORT;
 		}
-		$1->next = host->prefixlist;
-		host->prefixlist = $1;
+		dhcp6_add_listval(&host->prefixlist, $1, DHCP6_LISTVAL_DHCP6ADDR);
 	}
 	| optiondecl
 	;
@@ -664,6 +664,7 @@ hostpara
 hostaddr6
 	: ADDRESS '{' addr6para '}' ';'
 	{
+		$3->type = IANA;
 		$$ = $3;
 	}
 	;
@@ -671,6 +672,7 @@ hostaddr6
 hostprefix6
 	: PREFIX '{' addr6para '}' ';'
 	{
+		$3->type = IAPD;
 		$$ = $3;
 	}
 	;
@@ -678,11 +680,11 @@ hostprefix6
 addr6para
 	: addr6para VALIDLIFETIME number_or_infinity ';'
 	{
-		$1->v6addr.validlifetime = $3;
+		$1->validlifetime = $3;
 	}
 	| addr6para PREFERLIFETIME number_or_infinity ';'
 	{
-		$1->v6addr.preferlifetime = $3;
+		$1->preferlifetime = $3;
 	}
 	| v6address
 	{
@@ -693,19 +695,19 @@ addr6para
 v6address
 	: IPV6ADDR '/' NUMBER ';'
 	{
-		struct dhcp6_addrlist *temp;
-		temp = (struct dhcp6_addrlist *)malloc(sizeof(*temp));
+		struct dhcp6_addr *temp;
+		temp = (struct dhcp6_addr *)malloc(sizeof(*temp));
 		if (temp == NULL) {
 			dprintf(LOG_ERR, "v6addr memory allocation failed");
 			ABORT;
 		}
 		memset(temp, 0, sizeof(*temp));
-		memcpy(&temp->v6addr.addr, &$1, sizeof(temp->v6addr.addr));
+		memcpy(&temp->addr, &$1, sizeof(temp->addr));
 		if ($3 > 128 || $3 < 0) {
 			dprintf(LOG_ERR, "invalid prefix length in line %d", num_lines);
 			ABORT;
 		}
-		temp->v6addr.plen = $3;
+		temp->plen = $3;
 		$$ = temp;
 	}
 	;
@@ -715,7 +717,7 @@ optiondecl
 	;
 
 optionhead	
-	: OPTION 
+	: SEND 
 	{		
 		if (!currentscope) { 
 			currentscope = push_double_list(currentscope, &globalgroup->scope);
@@ -762,10 +764,6 @@ optionpara
 			currentscope->scope->allow_flags |= DHCIFF_INFO_ONLY;
 		else
 			currentscope->scope->send_flags |= DHCIFF_INFO_ONLY;
-	}
-	| PREFERENCE NUMBER ';'
-	{
-		currentscope->scope->server_pref = $2;
 	}
 	;
 
@@ -824,6 +822,17 @@ paradecl
 				"validlifetime is less than(equal) preferlifetime", FNAME);
 			ABORT;
 		}
+	}
+	| PREFERENCE NUMBER ';'
+	{
+		if (!currentscope) {
+			currentscope = push_double_list(currentscope, &globalgroup->scope);
+			if (currentscope == NULL)
+				ABORT;
+		}
+		if ($2 < 0 || $2 > 255)
+			dprintf(LOG_ERR, "%s" "bad server preference number", FNAME);
+		currentscope->scope->server_pref = $2;
 	}
 	;
 

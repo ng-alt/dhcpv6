@@ -1,4 +1,4 @@
-/*    $Id: server6_conf.c,v 1.8 2003/03/01 00:24:49 shemminger Exp $   */
+/*    $Id: server6_conf.c,v 1.9 2003/03/11 23:52:23 shirleyma Exp $   */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -51,18 +51,6 @@
 #define NMASK(n) htonl((1<<(n))-1)
 
 static void download_scope __P((struct scope *, struct scope *));
-void printf_in6addr __P((struct in6_addr *));
-
-void 
-printf_in6addr(addr)
-	struct in6_addr *addr;
-{
-	char addr_str[100];
-	inet_ntop(AF_INET6, addr, addr_str, sizeof(struct in6_addr));
-	printf("addr is %s\n", addr_str);
-	return;
-}
-
 
 int 
 ipv6addrcmp(addr1, addr2)
@@ -99,7 +87,7 @@ struct v6addr
 	struct v6addr *prefix;
 	prefix = (struct v6addr *)malloc(sizeof(*prefix));
 	if (prefix == NULL) {
-		dprintf(LOG_ERR, "fail to malloc memory: %s", strerror(errno));
+		dprintf(LOG_ERR, "%s" "fail to malloc memory", FNAME);
 		return NULL;
 	}
 	memset(prefix, 0, sizeof(*prefix));
@@ -108,7 +96,7 @@ struct v6addr
 	for (i = 0; i < num_bytes; i++) {
 		prefix->addr.s6_addr[i] = 0xFF;
 	}
-	prefix->addr.s6_addr[num_bytes] = 0xFF << 8 - len % 8 ;
+	prefix->addr.s6_addr[num_bytes] = (0xFF << 8) - len % 8 ;
 	for (i = 0; i <= num_bytes; i++) {
 		prefix->addr.s6_addr[i] &= addr->s6_addr[i];
 	}
@@ -141,7 +129,7 @@ prefixcmp(addr, prefix, len)
 	for (i = 0; i < num_bytes; i++) {
 		mask.s6_addr[i] = 0xFF;
 	}
-	mask.s6_addr[num_bytes] = 0xFF << 8 - len % 8 ;
+	mask.s6_addr[num_bytes] = (0xFF << 8) - len % 8 ;
 	for (i = 0; i < num_bytes; i++) {
 		if (addr->s6_addr[i] != prefix->s6_addr[i]) return -1;
 	}
@@ -168,7 +156,7 @@ struct scopelist
 	struct scopelist *item;
 	item = (struct scopelist *)malloc(sizeof(*item));
 	if (item == NULL) {
-		dprintf(LOG_ERR, "fail to allocate memory");
+		dprintf(LOG_ERR, "%s" "fail to allocate memory", FNAME);
 		return NULL;
 	}
 	memset(item, 0, sizeof(*item));
@@ -312,12 +300,13 @@ download_scope(up, current)
 		current->renew_time = up->renew_time;
 	if (current->rebind_time == 0 && up->rebind_time != 0)
 		current->rebind_time = up->rebind_time;
-	if (current->server_pref == 0) {
+	if (current->server_pref == 0 || current->server_pref == DH6OPT_PREF_UNDEF) {
 		if (up->server_pref != 0)
 			current->server_pref = up->server_pref;
 		else
 			current->server_pref = DH6OPT_PREF_UNDEF;
 	}
+	dprintf(LOG_DEBUG, "server preference is %2x", current->server_pref);
 	current->allow_flags |= up->allow_flags;
 	current->send_flags |= up->send_flags;
 	return;

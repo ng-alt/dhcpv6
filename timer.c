@@ -1,4 +1,4 @@
-/*	$Id: timer.c,v 1.6 2003/03/01 00:24:49 shemminger Exp $	*/
+/*	$Id: timer.c,v 1.7 2003/03/11 23:52:23 shirleyma Exp $	*/
 /*	ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp	*/
 
 /*
@@ -160,8 +160,6 @@ dhcp6_check_timer(void)
 	gettimeofday(&now, NULL);
 
 	tm_sentinel = tm_max;
-
-	dprintf(LOG_DEBUG, "%s" " timer head is %p", FNAME, &timer_head);
 
 	for (tm = LIST_FIRST(&timer_head); tm; tm = tm_next) {
 		tm_next = LIST_NEXT(tm, link);
