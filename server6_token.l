@@ -1,4 +1,4 @@
-/*	$Id: server6_token.l,v 1.3 2003/04/12 00:25:33 shirleyma Exp $	*/
+/*	$Id: server6_token.l,v 1.4 2003/04/18 20:33:17 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -73,7 +73,7 @@ addr_head       ("::"|{hexdigit}{1,4}(":"|"::"))
 addr_tail       ({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})?
 addr_body       ({hexdigit}{1,4}(":"|"::"))*
 ipv6addr        {addr_head}{addr_body}{addr_tail}
-string		[a-zA-Z0-9:\._][a-zA-Z0-9:\._]*
+string		[a-zA-Z0-9:\._-][a-zA-Z0-9:\._-]*
 ifname		[a-zA-Z]+[0-9]+
 
 %s S_IFACE
