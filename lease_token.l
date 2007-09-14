@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.14 2004/02/04 23:29:24 shemminger Exp $	*/
+/*	$Id: lease_token.l,v 1.15 2007/09/14 20:17:59 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -184,7 +184,7 @@ comment		\#.*
 <S_PLEN>{number} {lease_rec->lease_addr.plen = (u_int8_t)atoi(yytext);} 
 <S_PLEN>{lbrace} {;}
 <S_PLEN>. {ABORT;}
-<S_HNAME>{string} {strncpy(lease_rec->hostname, yytext, sizeof(yytext)); 
+<S_HNAME>{string} {strncpy(lease_rec->hostname, yytext, sizeof(lease_rec->hostname)-1); 
 		lease_flags |= LEASE_HNAME_FLAG;}
 <S_HNAME>. {ABORT;}
 <S_LL>{ipv6addr} { 
