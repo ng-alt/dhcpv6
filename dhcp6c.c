@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.38 2007/09/25 06:52:57 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.39 2007/09/25 06:57:35 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -1754,8 +1754,8 @@ static struct dhcp6_timer
 			 * send confirm for ipv6address or 
 			 * rebind for prefix delegation */
 			dhcp6_remove_timer(client6_iaidaddr.timer);
-			client6_request_flag &= CLIENT6_CONFIRM_ADDR;
-			create_request_list(0);
+			client6_request_flag |= CLIENT6_CONFIRM_ADDR;
+			create_request_list(1);
 			if (client6_iaidaddr.client6_info.type == IAPD)
 				newstate = DHCP6S_REBIND;
 			else
