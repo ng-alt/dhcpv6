@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.25 2005/02/25 17:51:55 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.26 2007/09/25 07:02:04 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -92,8 +92,7 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	struct dhcp6_lease *cl_lease;
 	double d;
 	/* ignore IA with T1 > T2 */
-	if (client6_iaidaddr.client6_info.iaidinfo.renewtime >
-	    client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
+	if (optinfo->iaidinfo.renewtime > optinfo->iaidinfo.rebindtime) {
 		dprintf(LOG_INFO, " T1 time is greater than T2 time");
 		return (0);
 	}
