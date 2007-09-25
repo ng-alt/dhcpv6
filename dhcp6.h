@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.19 2005/03/10 00:39:03 shemminger Exp $	*/
+/*	$Id: dhcp6.h,v 1.20 2007/09/25 06:49:29 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -88,7 +88,7 @@
 #define REC_TIMEOUT	2000
 #define REC_MAX_RC	8
 #define CNF_TIMEOUT	1000
-#define CNF_MAX_RD	10000
+#define CNF_MAX_RD	10
 #define CNF_MAX_RT	4000
 
 #define DHCP6_DURATITION_INFINITE 0xffffffff
