@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.24 2007/09/25 07:11:49 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.25 2007/09/25 07:16:18 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -655,8 +655,8 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		dprintf(LOG_DEBUG, "%s" "client ID %s", FNAME,
 			duidstr(&optinfo->clientID));
 	}
-	/* the message must include a Server Identifier option in below messages*/
 	switch (dh6->dh6_msgtype) {
+	/* the message must include a Server Identifier option in below messages */
 	case DH6_REQUEST:
 	case DH6_RENEW:
         case DH6_DECLINE:
@@ -672,6 +672,14 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			return -1;
 		}
 		break;
+	/* the message must not include a Server Identifier option in below messages */
+	case DH6_SOLICIT:
+	case DH6_CONFIRM:
+	case DH6_REBIND:
+		if (optinfo->serverID.duid_len != 0) {
+			dprintf(LOG_INFO, "%s" "found server ID option in message Solicit/Confirm/Rebind", FNAME);
+			return -1;
+		}
 	default:
 		break;
 	}
