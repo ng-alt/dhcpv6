@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.23 2007/09/25 07:07:38 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.24 2007/09/25 07:11:49 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -920,8 +920,12 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 				}
 			}
 			num = DH6OPT_STCODE_SUCCESS;
-		} else 
+		} else if (dh6->dh6_msgtype == DH6_CONFIRM) {
+			dprintf(LOG_DEBUG, "no addresses in confirm message");
+			goto fail;
+		} else {
 			num = DH6OPT_STCODE_NOADDRAVAIL;
+		}
 	} else 
 		dprintf(LOG_ERR, "invalid message type");
 		break;
