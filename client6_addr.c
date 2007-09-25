@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.26 2007/09/25 07:02:04 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.27 2007/09/25 07:37:48 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -355,6 +355,7 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 		}
 		continue;
 	}
+#if 0
 	/* remove leases that not on the updated list */
 	for (cl = TAILQ_FIRST(&client6_iaidaddr.lease_list); cl; cl = cl_next) { 
 			cl_next = TAILQ_NEXT(cl, link);
@@ -364,6 +365,7 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 		if (lv == NULL)
 			dhcp6_remove_lease(cl);
 	}	
+#endif
 	/* update server id */
 	if (client6_iaidaddr.state == REBIND) {
 		if (duidcpy(&client6_iaidaddr.client6_info.serverid, &optinfo->serverID)) {
