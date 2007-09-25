@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.25 2007/09/25 07:16:18 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.26 2007/09/25 07:20:55 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -899,8 +899,9 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 								iaidaddr, 
 								subnet);
 				else
-					dhcp6_create_addrlist(&roptinfo, optinfo, 
-							iaidaddr, subnet);
+					dhcp6_create_addrlist(dh6->dh6_msgtype,
+							      &roptinfo, optinfo, 
+							      iaidaddr, subnet);
 				/* in case there is not bindings available */
 				if (TAILQ_EMPTY(&roptinfo.addr_list)) {
 					num = DH6OPT_STCODE_NOBINDING;
@@ -968,7 +969,8 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		if (optinfo->type == IAPD)
 			dhcp6_create_prefixlist(&roptinfo, optinfo, iaidaddr, subnet);
 		else
-			dhcp6_create_addrlist(&roptinfo, optinfo, iaidaddr, subnet);
+			dhcp6_create_addrlist(dh6->dh6_msgtype, &roptinfo,
+					      optinfo, iaidaddr, subnet);
 		if (TAILQ_EMPTY(&roptinfo.addr_list)) {
 			num = DH6OPT_STCODE_NOADDRAVAIL;
 		} else if (sending_hint == 0) {

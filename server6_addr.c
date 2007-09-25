@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.24 2005/03/10 00:39:09 shemminger Exp $	*/
+/*	$Id: server6_addr.c,v 1.25 2007/09/25 07:20:55 shirleyma Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -598,7 +598,8 @@ dhcp6_get_hostconf(roptinfo, optinfo, iaidaddr, host)
 }
 
 int
-dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
+dhcp6_create_addrlist(msgtype, roptinfo, optinfo, iaidaddr, subnet)
+	int msgtype;
 	struct dhcp6_optinfo *roptinfo;
 	struct dhcp6_optinfo *optinfo; 
 	const struct dhcp6_iaidaddr *iaidaddr;
@@ -655,9 +656,20 @@ dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
 							= DH6OPT_STCODE_NOADDRAVAIL;
 				}
 			} else {
-				lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
-				dprintf(LOG_DEBUG, "%s" " %s address not on link", FNAME, 
-					in6addr2str(&lv->val_dhcp6addr.addr, 0));
+				if (msgtype == DH6_RENEW) {
+					/* returns with lifetimes of 0
+					 * [RFC3315, Section 18.2.3]
+					 */
+					lv->val_dhcp6addr.validlifetime = 0;
+					lv->val_dhcp6addr.preferlifetime = 0;
+					numaddr += 1;
+					dprintf(LOG_DEBUG, "%s" " %s address not appropriate", FNAME, 
+						in6addr2str(&lv->val_dhcp6addr.addr, 0));
+				} else {
+					lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
+					dprintf(LOG_DEBUG, "%s" " %s address not on link", FNAME, 
+						in6addr2str(&lv->val_dhcp6addr.addr, 0));
+				}
 			}
 		}
 		if (iaidaddr != NULL) {

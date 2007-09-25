@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.14 2005/03/10 00:57:46 shemminger Exp $	*/
+/*	$Id: lease.h,v 1.15 2007/09/25 07:20:55 shirleyma Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -121,7 +121,8 @@ extern int dhcp6_create_prefixlist __P((struct dhcp6_optinfo *,
 					const struct dhcp6_optinfo *,
 					const struct dhcp6_iaidaddr *,
 					const struct link_decl *));
-extern int dhcp6_create_addrlist __P((	struct dhcp6_optinfo *,
+extern int dhcp6_create_addrlist __P((	int msgtype,
+					struct dhcp6_optinfo *,
 					struct dhcp6_optinfo *,
 					const struct dhcp6_iaidaddr *,
 					const struct link_decl *));
