@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.37 2005/03/10 00:57:46 shemminger Exp $	*/
+/*	$Id: dhcp6c.c,v 1.38 2007/09/25 06:52:57 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -875,12 +875,10 @@ client6_send(ev)
 		unsigned int etime;
 		gettimeofday(&now, NULL);
 		timeval_sub(&now, &(ev->start_time), &duration);
-		optinfo.elapsed_time = 
 		etime = (duration.tv_sec) * 100 + (duration.tv_usec) / 10000;
 		if (etime > DHCP6_ELAPSEDTIME_MAX)
-			optinfo.elapsed_time = DHCP6_ELAPSEDTIME_MAX;
-		else
-			optinfo.elapsed_time = etime;
+			etime = DHCP6_ELAPSEDTIME_MAX;
+		optinfo.elapsed_time = htons((uint16_t)etime);
 	}
 	dh6->dh6_xid &= ~ntohl(DH6_XIDMASK);
 	dh6->dh6_xid |= htonl(ev->xid);
