@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.22 2005/03/17 20:55:27 shemminger Exp $	*/
+/*	$Id: dhcp6s.c,v 1.23 2007/09/25 07:07:38 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -755,6 +755,23 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 				goto send;
 			} else
 				break;
+		}
+		break;
+	case DH6_SOLICIT:
+	case DH6_CONFIRM:
+	case DH6_REBIND:
+	case DH6_INFORM_REQ:
+		/* A server MUST discard any Solicit, Confirm, Rebind or
+		 * Information-request * messages it receives with a unicast
+		 * destination address.
+		 * [RFC3315 Section 15]
+		 */
+		if (TAILQ_EMPTY(&optinfo->relay_list) && 
+		    !IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
+			dprintf(LOG_DEBUG, "reply no message as %s received "
+					   "with unicast destination address",
+					   dhcp6msgstr(num));
+			goto fail;
 		}
 		break;
 	default:
