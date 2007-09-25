@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.25 2005/03/17 20:55:09 shemminger Exp $	*/
+/*	$Id: common.c,v 1.26 2007/09/25 07:28:42 shirleyma Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -853,6 +853,7 @@ dhcp6_init_options(optinfo)
 	/* for safety */
 	optinfo->clientID.duid_id = NULL;
 	optinfo->serverID.duid_id = NULL;
+	optinfo->ia_stcode = DH6OPT_STCODE_UNDEFINE;
 	optinfo->pref = DH6OPT_PREF_UNDEF;
 	TAILQ_INIT(&optinfo->addr_list);
 	TAILQ_INIT(&optinfo->reqopt_list);
@@ -893,6 +894,7 @@ dhcp6_copy_options(dst, src)
 		goto fail;
 	if (duidcpy(&dst->serverID, &src->serverID))
 		goto fail;
+	dst->ia_stcode = src->ia_stcode;
 	dst->flags = src->flags;
 	
 	if (dhcp6_copy_list(&dst->addr_list, &src->addr_list))
@@ -1196,13 +1198,14 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 				goto malformed;
 			memcpy(&val16, cp, sizeof(val16));
 			num = ntohs(val16);
-			dprintf(LOG_INFO, "status code for this address is: %s",
+			dprintf(LOG_INFO, "status code for this IA is: %s",
 				dhcp6_stcodestr(num));
 			if (optlen > sizeof(val16)) {
 				dprintf(LOG_INFO, 
-					"status message for this address is: %-*s",
+					"status message for this IA is: %-*s",
 					(int)(optlen-sizeof(val16)), p+(val16));
 			}
+			optinfo->ia_stcode = num;
 			/* XXX: need to check duplication? */
 			if (dhcp6_add_listval(&optinfo->stcode_list,
 			    &num, DHCP6_LISTVAL_NUM) == NULL) {
@@ -1413,7 +1416,7 @@ dhcp6_set_options(bp, ep, optinfo)
 			opt_iana.rebindtime = htonl(optinfo->iaidinfo.rebindtime);
 		}
 		buflen = sizeof(opt_iana) + dhcp6_count_list(&optinfo->addr_list) *
-				(sizeof(ai) + sizeof(status));
+				(sizeof(ai) + sizeof(status)) + sizeof(status);
 		tmpbuf = NULL;
 		if ((tmpbuf = malloc(buflen)) == NULL) {
 			dprintf(LOG_ERR, "%s"
@@ -1465,16 +1468,33 @@ dhcp6_set_options(bp, ep, optinfo)
 				}
 			}
 		} else if (dhcp6_mode == DHCP6_MODE_SERVER) {
-			int num;
-			num = DH6OPT_STCODE_NOADDRAVAIL;
-			dprintf(LOG_DEBUG, "  status code: %s",
-			    dhcp6_stcodestr(num));
-			/* XXX: need to check duplication? */
-			if (dhcp6_add_listval(&optinfo->stcode_list,
-			    &num, DHCP6_LISTVAL_NUM) == NULL) {
-				dprintf(LOG_ERR, "%s" "failed to copy "
-				    "status code", FNAME);
-				goto fail;
+			if (optinfo->ia_stcode != DH6OPT_STCODE_UNDEFINE &&
+					optinfo->ia_stcode != DH6OPT_STCODE_SUCCESS) {
+				/* set up IA status code in error case */
+				status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
+				status.dh6_status_len = 
+					htons(sizeof(status.dh6_status_code));
+				status.dh6_status_code = htons(optinfo->ia_stcode);
+				memcpy(tp, &status, sizeof(status));
+				dprintf(LOG_DEBUG, "this IA status code: %s",
+						dhcp6_stcodestr(ntohs(status.dh6_status_code)));
+				optlen += sizeof(status);
+				tp += sizeof(status);
+				dprintf(LOG_DEBUG, "set IA status len %d optlen: %d",
+						sizeof(status), optlen);
+				/* XXX: copy status message if any */
+			} else {
+				int num;
+				num = DH6OPT_STCODE_NOADDRAVAIL;
+				dprintf(LOG_DEBUG, "  status code: %s",
+						dhcp6_stcodestr(num));
+				/* XXX: need to check duplication? */
+				if (dhcp6_add_listval(&optinfo->stcode_list,
+						&num, DHCP6_LISTVAL_NUM) == NULL) {
+					dprintf(LOG_ERR, "%s" "failed to copy "
+							"status code", FNAME);
+					goto fail;
+				}
 			}
 		}
 		if (optinfo->type == IATA)
@@ -1543,16 +1563,33 @@ dhcp6_set_options(bp, ep, optinfo)
 				}
 			}
 		} else if (dhcp6_mode == DHCP6_MODE_SERVER) {
-			int num;
-			num = DH6OPT_STCODE_NOPREFIXAVAIL;
-			dprintf(LOG_DEBUG, "  status code: %s",
-			    dhcp6_stcodestr(num));
-			/* XXX: need to check duplication? */
-			if (dhcp6_add_listval(&optinfo->stcode_list,
-			    &num, DHCP6_LISTVAL_NUM) == NULL) {
-				dprintf(LOG_ERR, "%s" "failed to copy "
-				    "status code", FNAME);
-				goto fail;
+			if (optinfo->ia_stcode != DH6OPT_STCODE_UNDEFINE &&
+					optinfo->ia_stcode != DH6OPT_STCODE_SUCCESS) {
+				/* set up IA status code in error case */
+				status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
+				status.dh6_status_len = 
+					htons(sizeof(status.dh6_status_code));
+				status.dh6_status_code = htons(optinfo->ia_stcode);
+				memcpy(tp, &status, sizeof(status));
+				dprintf(LOG_DEBUG, "this IA status code: %s",
+						dhcp6_stcodestr(ntohs(status.dh6_status_code)));
+				optlen += sizeof(status);
+				tp += sizeof(status);
+				dprintf(LOG_DEBUG, "set IA status len %d optlen: %d",
+						sizeof(status), optlen);
+				/* XXX: copy status message if any */
+			} else {
+				int num;
+				num = DH6OPT_STCODE_NOPREFIXAVAIL;
+				dprintf(LOG_DEBUG, "  status code: %s",
+						dhcp6_stcodestr(num));
+				/* XXX: need to check duplication? */
+				if (dhcp6_add_listval(&optinfo->stcode_list,
+							&num, DHCP6_LISTVAL_NUM) == NULL) {
+					dprintf(LOG_ERR, "%s" "failed to copy "
+							"status code", FNAME);
+					goto fail;
+				}
 			}
 		}
 		COPY_OPTION(DH6OPT_IA_PD, optlen, tmpbuf, p);

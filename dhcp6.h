@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.20 2007/09/25 06:49:29 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.21 2007/09/25 07:28:42 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -220,6 +220,7 @@ struct dhcp6_optinfo {
 	struct duid serverID;	/* DUID */
 	u_int16_t elapsed_time;
 	struct dhcp6_iaid_info iaidinfo;
+	u_int16_t ia_stcode;	/* status code associated with iaidinfo */
 	iatype_t type;
 	u_int8_t flags;	/* flags for rapid commit, info_only, temp address */
 	u_int8_t pref;		/* server preference */

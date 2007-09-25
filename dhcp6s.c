@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.26 2007/09/25 07:20:55 shirleyma Exp $	*/
+/*	$Id: dhcp6s.c,v 1.27 2007/09/25 07:28:42 shirleyma Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -878,9 +878,15 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			roptinfo.type = optinfo->type;
 			/* find bindings */
 			if ((iaidaddr = dhcp6_find_iaidaddr(&roptinfo)) == NULL) {
-				if (dh6->dh6_msgtype == DH6_REBIND)
+				if (dh6->dh6_msgtype == DH6_REBIND) {
 					goto fail;
-				num = DH6OPT_STCODE_NOBINDING;
+				} else if (dh6->dh6_msgtype == DH6_CONFIRM) {
+					num = DH6OPT_STCODE_NOTONLINK;
+				} else { 
+					/* Set status code in IA */
+					roptinfo.ia_stcode = DH6OPT_STCODE_NOBINDING;
+					num = DH6OPT_STCODE_UNDEFINE;
+				}
 				dprintf(LOG_INFO, "%s" "Nobinding for client %s iaid %u",
 					FNAME, duidstr(&optinfo->clientID), 
 						optinfo->iaidinfo.iaid);
@@ -914,7 +920,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			}
 			if (addr_flag == ADDR_VALIDATE) {
 				if (dhcp6_validate_bindings(&roptinfo, iaidaddr))
-					num = DH6OPT_STCODE_NOBINDING;
+					num = DH6OPT_STCODE_NOTONLINK;
 				break;
 			} else {
 				/* do update if this is not a confirm */
@@ -972,7 +978,15 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			dhcp6_create_addrlist(dh6->dh6_msgtype, &roptinfo,
 					      optinfo, iaidaddr, subnet);
 		if (TAILQ_EMPTY(&roptinfo.addr_list)) {
-			num = DH6OPT_STCODE_NOADDRAVAIL;
+			if (resptype == DH6_ADVERTISE) {
+				/* Omit IA option */
+				roptinfo.iaidinfo.iaid = 0;
+				num = DH6OPT_STCODE_NOADDRAVAIL;
+			} else if (resptype == DH6_REPLY) {
+				/* Set status code in IA */
+				roptinfo.ia_stcode = DH6OPT_STCODE_NOADDRAVAIL;
+				num = DH6OPT_STCODE_UNDEFINE;
+			}
 		} else if (sending_hint == 0) {
 		/* valid client request address list */
 			if (found_binding) {
@@ -1003,11 +1017,13 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	/* add address status code */
   send:
 	dprintf(LOG_DEBUG, " status code: %s", dhcp6_stcodestr(num));
-	if (dhcp6_add_listval(&roptinfo.stcode_list,
-	   	&num, DHCP6_LISTVAL_NUM) == NULL) {
-		dprintf(LOG_ERR, "%s" "failed to copy "
-	    		"status code", FNAME);
-		goto fail;
+	if (num != DH6OPT_STCODE_UNDEFINE) {
+		if (dhcp6_add_listval(&roptinfo.stcode_list,
+					&num, DHCP6_LISTVAL_NUM) == NULL) {
+			dprintf(LOG_ERR, "%s" "failed to copy "
+					"status code", FNAME);
+			goto fail;
+		}
 	}
 	/* send a reply message. */
 	(void)server6_send(resptype, ifp, dh6, optinfo, from, fromlen,
