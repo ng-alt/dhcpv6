@@ -163,10 +163,25 @@ int
 set_sock_opt() 
 {
     int on = 1;
+    int hop_limit;
     struct interface *device;
 	int flag; 
 	struct cifaces *iface;
 	struct ipv6_mreq  sock_opt;    
+
+	/* If the relay agent relays messages to the All_DHCP_Servers
+	 * multicast address or other multicast addresses, it sets the
+	 * Hop Limit field to 32.
+	 * [RFC3315 Section 20]
+	 */
+	hop_limit = 32;
+	if (setsockopt(sendsock->send_sock_desc, IPPROTO_IPV6,
+		IPV6_MULTICAST_HOPS, &hop_limit, sizeof(hop_limit)) < 0) {
+		TRACE(dump, "%s - %s, %s\n", dhcp6r_clock(), 
+				"Failed to set socket for IPV6_MULTICAST_HOPS",
+				strerror(errno));
+		return 0;
+	}
 
 	if (setsockopt(recvsock->recv_sock_desc, IPPROTO_IPV6, IPV6_2292PKTINFO,
 	               &on, sizeof(on) ) < 0) {
@@ -435,14 +450,21 @@ send_message()
 		iface = get_interface(mesg->if_index);
 
 		if (iface != NULL) {
-			if (inet_pton(AF_INET6, iface->ipv6addr->gaddr, 
+			char *src_addr;
+
+			if (IN6_IS_ADDR_LINKLOCAL(&sin6.sin6_addr))
+				src_addr = iface->link_local;
+			else
+				src_addr = iface->ipv6addr->gaddr;
+
+			if (inet_pton(AF_INET6, src_addr,
 			              &in6_pkt->ipi6_addr) <= 0) {  /* source address */
 				TRACE(dump, "%s - %s", dhcp6r_clock(),
 				      "inet_pton failed in send_message()\n");
 				exit(1);
 			}
 			TRACE(dump, "%s - SOURCE ADDRESS: %s\n", dhcp6r_clock(), 
-			      iface->ipv6addr->gaddr);
+			      src_addr);
         }
 		else {
 			/* the kernel will choose the source address */
