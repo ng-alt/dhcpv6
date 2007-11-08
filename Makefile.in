@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.15 2007/11/08 21:16:52 dlc-atl Exp $
+# $Id: Makefile.in,v 1.16 2007/11/08 21:36:55 dlc-atl Exp $
 #
 
 include Makefile.inc
@@ -119,6 +119,7 @@ clean::
 
 distclean:: clean
 	/bin/rm -f Makefile config.cache config.log config.status .depend 
+	/bin/rm -f Makefile.inc lex.*.c y.tab.h y.tab.c
 
 depend:
 	mkdep ${CFLAGS:M-[ID]*} $(srcdir)/*.c
