@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.29 2007/11/08 21:44:47 dlc-atl Exp $	*/
+/*	$Id: common.c,v 1.30 2007/11/08 21:51:41 dlc-atl Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -84,7 +84,7 @@ int debug_thresh;
 struct dhcp6_if *dhcp6_if;
 struct dns_list dnslist;
 static struct host_conf *host_conflist;
-static int in6_matchflags __P((struct sockaddr *, char *, int));
+static int in6_matchflags __P((struct sockaddr *, size_t, char *, int));
 ssize_t gethwid __P((unsigned char *, int, const char *, u_int16_t *));
 static int get_assigned_ipv6addrs __P((unsigned char *, unsigned char *,
 					struct dhcp6_optinfo *));
@@ -400,7 +400,7 @@ getifaddr(addr, ifnam, prefix, plen, strong, ignoreflags)
 		if (sizeof(*(ifa->ifa_addr)) > sizeof(sin6))
 			continue;
 
-		if (in6_matchflags(ifa->ifa_addr, ifa->ifa_name, ignoreflags))
+		if (in6_matchflags(ifa->ifa_addr, sizeof(sin6), ifa->ifa_name, ignoreflags))
 			continue;
 
 		memcpy(&sin6, ifa->ifa_addr, sizeof(sin6));
@@ -593,7 +593,7 @@ in6addr2str(in6, scopeid)
 	sa6.sin6_addr = *in6;
 	sa6.sin6_scope_id = scopeid;
 
-	return (addr2str((struct sockaddr *)&sa6, sizeof (*in6)));
+	return (addr2str((struct sockaddr *)&sa6, sizeof (sa6)));
 }
 
 /* return IPv6 address scope type. caller assumes that smaller is narrower. */
@@ -634,8 +634,9 @@ in6_scope(addr)
 }
 
 static int
-in6_matchflags(addr, ifnam, flags)
+in6_matchflags(addr, addrlen, ifnam, flags)
 	struct sockaddr *addr;
+	size_t addrlen;
 	char *ifnam;
 	int flags;
 {
@@ -652,7 +653,7 @@ in6_matchflags(addr, ifnam, flags)
 
 	if (ioctl(s, SIOCGIFFLAGS, &ifr) < 0) {
 		warn("in6_matchflags: ioctl(SIOCGIFFLAGS, %s)",
-		     addr2str(addr, sizeof (addr->sa_data)));
+		     addr2str(addr, addrlen));
 		close(s);
 		return (-1);
 	}

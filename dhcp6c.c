@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.40 2007/11/08 21:16:52 dlc-atl Exp $	*/
+/*	$Id: dhcp6c.c,v 1.41 2007/11/08 21:51:41 dlc-atl Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -1137,7 +1137,7 @@ client6_recv()
 
 	dprintf(LOG_DEBUG, "%s" "receive %s from %s scope id %d %s", FNAME,
 		dhcp6msgstr(dh6->dh6_msgtype),
-		addr2str((struct sockaddr *)&from, sizeof (((struct sockaddr *)&from)->sa_data)),
+		addr2str((struct sockaddr *)&from, sizeof (from)),
 		((struct sockaddr_in6 *)&from)->sin6_scope_id,
 		ifp->ifname);
 
@@ -1162,7 +1162,7 @@ client6_recv()
 	default:
 		dprintf(LOG_INFO, "%s" "received an unexpected message (%s) "
 			"from %s", FNAME, dhcp6msgstr(dh6->dh6_msgtype),
-			addr2str((struct sockaddr *)&from, sizeof(((struct sockaddr *)&from)->sa_data)));
+			addr2str((struct sockaddr *)&from, sizeof(from)));
 		break;
 	}
 

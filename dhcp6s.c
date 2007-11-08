@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.29 2007/11/08 21:30:14 dlc-atl Exp $	*/
+/*	$Id: dhcp6s.c,v 1.30 2007/11/08 21:51:41 dlc-atl Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -1117,15 +1117,15 @@ server6_send(type, ifp, origmsg, optinfo, from, fromlen, roptinfo)
 
 	dst.sin6_scope_id = ((struct sockaddr_in6 *)from)->sin6_scope_id;
 	dprintf(LOG_DEBUG, "send destination address is %s, scope id is %d", 
-		addr2str((struct sockaddr *)&dst, sizeof(dst.sin6_addr)), dst.sin6_scope_id);
+		addr2str((struct sockaddr *)&dst, sizeof(dst)), dst.sin6_scope_id);
 	if (transmit_sa(outsock, &dst, replybuf, len) != 0) {
 		dprintf(LOG_ERR, "%s" "transmit %s to %s failed", FNAME,
-			dhcp6msgstr(type), addr2str((struct sockaddr *)&dst, sizeof(dst.sin6_addr)));
+			dhcp6msgstr(type), addr2str((struct sockaddr *)&dst, sizeof(dst)));
 		return (-1);
 	}
 
 	dprintf(LOG_DEBUG, "%s" "transmit %s to %s", FNAME,
-		dhcp6msgstr(type), addr2str((struct sockaddr *)&dst, sizeof(dst.sin6_addr)));
+		dhcp6msgstr(type), addr2str((struct sockaddr *)&dst, sizeof(dst)));
 
 	return 0;
 }
