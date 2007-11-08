@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.14 2007/11/08 21:16:52 dlc-atl Exp $	*/
+/*	$Id: lease.c,v 1.15 2007/11/08 21:53:22 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -180,9 +180,19 @@ FILE *
 init_leases(const char *name)
 {
 	FILE *file;
-	file = fopen(name, "a+");
+	struct stat stbuf;
+	if (name != NULL) {
+		file = fopen(name, "a+");
+	} else {
+		dprintf(LOG_ERR, "%s" "no lease file specified", FNAME);
+		return (NULL);
+	}
 	if(!file) {
 		dprintf(LOG_ERR, "%s" "could not open lease file", FNAME);
+		return (NULL);
+	}
+	if (stat(name, &stbuf)) {
+		dprintf(LOG_ERR, "%s" "could not stat lease file", FNAME);
 		return (NULL);
 	}
 	if (dhcp6_mode == DHCP6_MODE_SERVER) {
@@ -191,7 +201,9 @@ init_leases(const char *name)
 			return (NULL);
 		}
 	}
-	lease_parse(file);
+	if (stbuf.st_size > 0 ) {
+		lease_parse(file);
+	}
 	return file;
 } 
 

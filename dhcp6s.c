@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.30 2007/11/08 21:51:41 dlc-atl Exp $	*/
+/*	$Id: dhcp6s.c,v 1.31 2007/11/08 21:53:22 dlc-atl Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -1137,13 +1137,14 @@ static struct dhcp6_timer
 	struct timeval timo;
 	struct stat buf;
 	FILE *file;
-	stat(PATH_SERVER6_LEASE, &buf);
 	strcpy(server6_lease_temp, PATH_SERVER6_LEASE);
-	strcat(server6_lease_temp, "XXXXXX");	
-	if (buf.st_size > MAX_FILE_SIZE) {
-		file = sync_leases(server6_lease_file, PATH_SERVER6_LEASE, server6_lease_temp);
-		if (file != NULL)
-			server6_lease_file = file;
+	strcat(server6_lease_temp, "XXXXXX");
+	if (!stat(PATH_SERVER6_LEASE, &buf)) {
+		if (buf.st_size > MAX_FILE_SIZE) {
+			file = sync_leases(server6_lease_file, PATH_SERVER6_LEASE, server6_lease_temp);
+			if (file != NULL)
+				server6_lease_file = file;
+		}
 	}
 	d = DHCP6_SYNCFILE_TIME;
 	timo.tv_sec = (long)d;
