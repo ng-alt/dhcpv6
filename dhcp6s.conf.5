@@ -1,4 +1,4 @@
-.\" $Id: dhcp6s.conf.5,v 1.4 2005/03/10 00:39:04 shemminger Exp $
+.\" $Id: dhcp6s.conf.5,v 1.5 2007/11/08 21:47:22 dlc-atl Exp $
 .\"
 .\" Copyright (C) International Business Machines  Corp., 2003
 .\" All rights reserved.
@@ -135,12 +135,13 @@ This statement allows administrators to specify the prefix.
 This parameter is needed when configuring dhcp6s as the Delegation Router for
 the Prefix Delegation. dhcp6s assigns the specified prefixes 
 to the requesting routers.
+
 .nf
 .B relay\ <relay>/<prefix\ length>;
 .fi
 This statement specifies the prefix that the relay agent will put in the link
 address field of the RELAY-FORW message to indicate the link the client is
-+attached to. If the link-address matches this prefix, this link declaration
+attached to. If the link-address matches this prefix, this link declaration
 will be used. This statement is only valid in the link declaration.
 
 .nf
@@ -222,7 +223,7 @@ agents. This declaration specifies that dhcp6s will accept unicast messages
 from DHCPv6 clients if they include a Server Unicast option.
 
 .nf
-\fIsend\ server-preference\ <server\ preference\ value>;\fR
+\fIserver-preference\ <server\ preference\ value>;\fR
 .fi
 This declaration enables dhcp6s to include a Preference option for sending
 DHCPv6 messages. DHCPv6 clients will pick up the DHCPv6 server which has
@@ -260,6 +261,16 @@ client. Usually DHCPv6 clients must use multicast addresses to contact DHCPv6
 server and agents. With this declaration, dhcp6s accepts unicast 
 messages from DHCPv6 clients if they include a Server Unicast option.
 
+
+.nf
+\fIuse-ra-prefix;\fR
+.fi
+This declaration tells the server not to send clients the address prefix configured
+in address or range statements. With this option, client address prefixes can
+be set only by router advertisements, and the prefix configured in address or
+range statements will be ignored. This is a Red Hat extension; previously, the
+only way to set client address prefixes was by router advertisement.
+
 .SH EXAMPLES
 .PP
 This is a sample of the dhcp6s.conf file.
@@ -274,7 +285,7 @@ This is a sample of the dhcp6s.conf file.
 .B \t\tallow unicast;
 .B \t\tsend unicast;
 .B \t\tallow rapid-commit;
-.B \t\tsend server-preference 5;
+.B \t\tserver-preference 5;
 .B \t\trenew-time 1000;
 .B \t\trebind-time 2400;
 .B \t\tprefer-life-time 2000;

@@ -1,4 +1,4 @@
-.\" $Id: dhcp6c.conf.5,v 1.4 2005/03/10 00:49:26 shemminger Exp $
+.\" $Id: dhcp6c.conf.5,v 1.5 2007/11/08 21:47:22 dlc-atl Exp $
 .\"
 .\" Copyright (C) International Business Machines  Corp., 2003
 .\" All rights reserved.
@@ -177,6 +177,15 @@ Specifies the name of the interface definition in radvd.conf
 that dhcp6c will write the 'prefix' declaration for. By default,
 dhcp6c will write a radvd.conf prefix declaration for the interface
 on which it receives the prefix delegation lease.
+
+.nf
+\fIuse-ra-prefix;\fR
+.fi
+This declaration tells the client not to request the address prefix configured
+in the server's address or range statements. With this option, client address
+prefixes can be set only by router advertisements, and the prefix configured in
+server address or range statements will be ignored. This is a Red Hat extension;
+previously, the only way to set client address prefixes was by router advertisement.
 
 .SH EXAMPLES
 .PP
