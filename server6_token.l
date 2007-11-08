@@ -1,4 +1,4 @@
-/*	$Id: server6_token.l,v 1.6 2007/11/08 21:16:52 dlc-atl Exp $	*/
+/*	$Id: server6_token.l,v 1.7 2007/11/08 21:54:32 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -79,7 +79,7 @@ addr_tail       ({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})?
 addr_body       ({hexdigit}{1,4}(":"|"::"))*
 ipv6addr        {addr_head}{addr_body}{addr_tail}
 string		[a-zA-Z0-9:\._-][a-zA-Z0-9:\._-]*
-ifname		[a-zA-Z]+[0-9]+
+ifname		({string})+
 
 %s S_IFACE
 %s S_DUID
