@@ -1,4 +1,4 @@
-/*	$Id: client6_token.l,v 1.8 2005/03/10 00:49:26 shemminger Exp $	*/
+/*	$Id: client6_token.l,v 1.9 2007/11/08 21:16:52 dlc-atl Exp $	*/
 /*	ported from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -48,7 +48,8 @@
 #include <varargs.h>
 #endif
 
-#include "queue.h"
+#include <sys/queue.h>
+
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
@@ -60,7 +61,11 @@ int lineno = 1;
 static int cpyy_first_time = 1;
 static int cpyyerrorcount = 0;
 
- 
+#define YY_NO_UNPUT 1
+#define ECHO if (fwrite(yytext, yyleng, 1, yyout) != 1) { \
+                 YY_FATAL_ERROR("error performing ECHO on yytext"); \
+             }
+
 #ifndef NOCONFIG_DEBUG
 #define YYDEBUG 1
 
@@ -158,6 +163,7 @@ ecl		\}
 	/* generic options */
 <S_CNF>information-only { DECHO; return (INFO_ONLY); }
 <S_CNF>temp-address { DECHO; return (TEMP_ADDR); }
+<S_CNF>use-ra-prefix { DECHO; return (USE_RA_PREFIX); }
 	/* duration */
 <S_CNF>infinity { DECHO; return (INFINITY); }
 

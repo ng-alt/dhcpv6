@@ -1,0 +1,32 @@
+srcdir=	@srcdir@
+CFLAGS=	-fPIC -fno-strict-aliasing -fvisibility=hidden @CFLAGS@ @DEFS@
+LDFLAGS=@LDFLAGS@
+LIBOBJS=@LIBOBJS@
+LIBS=	@LIBS@
+CC=	@CC@
+YACC=	@YACC@
+LEX=	@LEX@
+DESTDIR ?=
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+INSTALL_USER ?= root
+INSTALL_GROUP ?= root
+prefix=	@prefix@
+exec_prefix=	@exec_prefix@
+bindir=	@bindir@
+sbindir=@sbindir@
+mandir=	@mandir@
+initdir=/etc/rc.d/init.d
+etc=/etc
+sysconfigdir=/etc/sysconfig
+CHKCONFIG=/sbin/chkconfig
+LIBDIR ?= /usr/lib
+INCLUDEDIR ?= /usr/include
+PKGCFGDIR ?= /usr/lib/pkgconfig
+
+CFLAGS+= -Wall -DCONF_DH6OPT_DNS_RESOLVERS=@dhcpopt_dns_resolvers@ \
+	-DCONF_DH6OPT_DOMAIN_LIST=@dhcpopt_domain_list@ \
+	-DCONF_DH6OPT_IA_PD=@dhcpopt_pdel@ \
+	-DCONF_DH6OPT_IAPREFIX=@dhcpopt_pinfo@ 

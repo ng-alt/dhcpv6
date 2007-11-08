@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.11 2005/03/10 00:49:26 shemminger Exp $	*/
+/*	$Id: config.c,v 1.12 2007/11/08 21:16:52 dlc-atl Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -41,8 +41,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <ifaddrs.h>
+#include <sys/queue.h>
 
-#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
@@ -194,6 +194,16 @@ configure_interface(const struct cf_namelist *iflist)
 						FNAME, ifc->ifname);
 					goto bad;
 				}
+				break;
+			case DECL_PREFIX_DELEGATION_INTERFACE:
+			        if (add_option(&ifc->option_list, cfl)){
+					dprintf(LOG_ERR, "%s failed to configure prefix-delegation-interface for %s",
+						FNAME, ifc->ifname);
+					goto bad;
+				}
+				break;
+			case DECL_USE_RA_PREFIX:
+			        ifc->use_ra_prefix = 1;
 				break;
 			default:
 				dprintf(LOG_ERR, "%s" "%s:%d "
@@ -477,6 +487,8 @@ configure_commit(void)
 			TAILQ_INIT(&ifc->option_list);
 
 			ifp->server_pref = ifc->server_pref;
+
+			ifp->use_ra_prefix = ifc->use_ra_prefix;
 
 			memcpy(&ifp->iaidinfo, &ifc->iaidinfo, sizeof(ifp->iaidinfo));
 		}

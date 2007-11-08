@@ -1,4 +1,4 @@
-/*	$Id: resolv_token.l,v 1.7 2004/04/06 21:18:30 shirleyma Exp $	*/
+/*	$Id: resolv_token.l,v 1.8 2007/11/08 21:16:52 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -37,6 +37,7 @@
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -44,13 +45,18 @@
 #include <errno.h>
 #include <syslog.h>
 #include <string.h>
+#include <sys/queue.h>
 
-#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
 
 #undef yywrap
+
+#define YY_NO_UNPUT 1
+#define ECHO if (fwrite(yytext, yyleng, 1, yyout) != 1) { \
+                 YY_FATAL_ERROR("error performing ECHO on yytext"); \
+             }
 
 #define YYABORT(msg) dprintf(LOG_ERR, msg " %s lineno %d.", \
 	yytext, num_lines)
@@ -139,7 +145,43 @@ nl              \n
 .	{fprintf(dhcp6_resolv_file, yytext);}
 
 %%
+int change_resolv_conf
+(   char *new_rscf
+)
+{
+    char *argv[] = { "/bin/bash", "-c", 0L, 0L };
+    char *cmd;
+    int l, pid, status;
+    extern char **environ;
 
+    if( new_rscf == 0L )
+	return -1;
+    
+    if( getuid() != 0 )
+	return 1;
+    
+    l = strlen(new_rscf) + 73;
+    cmd = (char*)malloc(l);
+    strcpy(cmd, ". /etc/sysconfig/network-scripts/network-functions; change_resolv_conf ");
+    strcpy(cmd+71, new_rscf);
+    argv[2] = cmd;
+    
+    if( (pid = fork()) < 0 )
+	return -1;
+    else
+    if( pid > 0 )
+    {
+	status = 0;
+	if(waitpid(pid, &status, 0L) == pid)
+	    return(   ((status & 0x7f)==0) 
+		    ? ((status >> 8) & 0xff)
+		    : -(status & 0x7f)
+		  );
+    }else
+	execve( argv[0], argv, environ );
+
+    return -1;
+}
 /* parse resolv.conf
  * create a new resolv.conf.dhcpv6
  * mv /etc/resolv.conf to /etc/resolv.conf.V6BAK
@@ -203,7 +245,7 @@ resolv_parse(struct dns_list *dnslist)
 			" failed to fdopen resolv.conf.dhcpv6 file", FNAME);
 		return (-1);
 	}
-	yylex();
+	return yylex();
 	return 0;
 }
 
@@ -311,9 +353,9 @@ update_resolver(struct dns_list *dns_list)
 			}
 		}
 	}
-	if (rename(resolv_dhcpv6_file, RESOLV_CONF_FILE)) {
-		dprintf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
-		return(-1);
+	if (change_resolv_conf(resolv_dhcpv6_file)!=0) {
+//		dprintf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
+//              needs initscripts patch!		return(-1);
 	}
 	return (0);
 }
@@ -321,7 +363,8 @@ update_resolver(struct dns_list *dns_list)
 static int 
 yywrap()
 {
-	update_resolver(new_dns_list);
+        update_resolver(new_dns_list);
 	fclose(yyin);
 	close(oldfd);
+	return 1;
 }

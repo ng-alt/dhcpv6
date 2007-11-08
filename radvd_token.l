@@ -1,4 +1,4 @@
-/*	$Id: radvd_token.l,v 1.9 2005/03/10 00:49:26 shemminger Exp $	*/
+/*	$Id: radvd_token.l,v 1.10 2007/11/08 21:16:52 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -47,8 +47,8 @@
 #include <errno.h>
 #include <syslog.h>
 #include <string.h>
+#include <sys/queue.h>
 
-#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
@@ -57,6 +57,11 @@
 #ifndef PATH_RADVD_PID
 #define	PATH_RADVD_PID "/var/run/radvd/radvd.pid"
 #endif
+
+#define YY_NO_UNPUT 1
+#define ECHO if (fwrite(yytext, yyleng, 1, yyout) != 1) { \
+                 YY_FATAL_ERROR("error performing ECHO on yytext"); \
+             }
 
 #define YYABORT(msg) dprintf(LOG_ERR, msg " %s lineno %d.", \
 	yytext, num_lines)
@@ -114,15 +119,10 @@ comment		\#.*
 <S_INTERFACE>{string} {
 		char *requested_if;
 		fprintf(dhcp6_radvd_file, yytext);
-		if ( ( ( (requested_if = get_if_option(&(dhcp6_if->option_list), 
-							DECL_PREFIX_DELEGATION_INTERFACE
-						       )
-			   ) != 0L
-			 )
-		       &&( strcmp(yytext, requested_if) == 0)
-		     )		     
-                   ||((requested_if == 0L) && (strcmp(yytext, dhcp6_if->ifname)==0))
-		   )
+		if ((((requested_if = get_if_option(&(dhcp6_if->option_list),
+			DECL_PREFIX_DELEGATION_INTERFACE)) != NULL) &&
+			(strcmp(yytext, requested_if) == 0)) ||
+			((requested_if == NULL) && (strcmp(yytext, dhcp6_if->ifname) == 0)))
 		{
 			TAILQ_INIT(&ori_prefix_list);
 			TAILQ_INIT(&previous_prefix_list);

@@ -1,4 +1,4 @@
-/*	$Id: server6_token.l,v 1.5 2003/07/16 19:09:53 shirleyma Exp $	*/
+/*	$Id: server6_token.l,v 1.6 2007/11/08 21:16:52 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -42,13 +42,18 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <net/if.h>
+#include <sys/queue.h>
 
-#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
 #include <server6_conf.h>
 #include "sf.tab.h"
+
+#define YY_NO_UNPUT 1
+#define ECHO if (fwrite(yytext, yyleng, 1, yyout) != 1) { \
+                 YY_FATAL_ERROR("error performing ECHO on yytext"); \
+             }
 
 int num_lines = 1;
 int sfyyerrorcount = 0;
@@ -118,6 +123,7 @@ rebind-time	{ return REBINDTIME; }
 valid-life-time	 { return VALIDLIFETIME; }
 prefer-life-time { return PREFERLIFETIME; }
 server-preference { return PREFERENCE; }
+use-ra-prefix     { return USE_RA_PREFIX; }
 
 to	{ return TO; }
 infinity	{ return INFINITY; }

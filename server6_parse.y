@@ -1,4 +1,4 @@
-/*	$Id: server6_parse.y,v 1.11 2005/03/10 00:39:09 shemminger Exp $	*/
+/*	$Id: server6_parse.y,v 1.12 2007/11/08 21:16:52 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -33,15 +33,18 @@
 
 %{
 
+#include <sys/types.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <syslog.h>
 #include <errno.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
 #include <net/if.h>
-#include <netinet/in.h>
-#include "queue.h"
+#include <malloc.h>
+#include <sys/queue.h>
+
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
@@ -105,6 +108,7 @@ extern int sfyylex __P((void));
 %token	<str>	IAID IAIDINFO
 %token  <str>	INFO_ONLY
 %token	<str>	TO
+%token  <str>   USE_RA_PREFIX
 
 %token	<str>	BAD_TOKEN
 %type	<str>	name
@@ -355,6 +359,7 @@ poolparas
 	| rangedef
 	| prefixdef
 	| confdecl
+	| relaylist
 	;
 
 prefixdef
@@ -900,6 +905,15 @@ paradecl
 		if ($2 < 0 || $2 > 255)
 			dprintf(LOG_ERR, "%s" "bad server preference number", FNAME);
 		currentscope->scope->server_pref = $2;
+	}
+        | USE_RA_PREFIX ';'
+        {
+	       if (!currentscope) {
+			currentscope = push_double_list(currentscope, &globalgroup->scope);
+			if (currentscope == NULL)
+				ABORT;
+	       }
+	       currentscope->scope->use_ra_prefix = 1;
 	}
 	;
 

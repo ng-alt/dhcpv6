@@ -29,21 +29,22 @@
 
 /* Author: Shirley Ma, xma@us.ibm.com */
 
+#include <sys/types.h>
+#include <unistd.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 #include <malloc.h>
 #include <errno.h>
 #include <syslog.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <asm/types.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/queue.h>
 
-#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
@@ -121,7 +122,7 @@ get_if_prefix(struct nlmsghdr *nlm, int nlm_len, int request,
 		break;
 	case RTA_CACHEINFO:
 		dprintf(LOG_DEBUG, "prefix route life time is %d\n",
-		      ((struct rta_cacheinfo *)rtadata)->rta_expires);
+		      (unsigned long)((struct rta_cacheinfo *)rtadata)->rta_expires);
 		break;
 	default:
 		break;
@@ -160,7 +161,6 @@ get_if_flags(struct nlmsghdr *nlm, int nlm_len, int request,
 		for (rta1 = (struct rtattr *)rtadata; RTA_OK(rta1, rtasize1);
 		     rta1 = RTA_NEXT(rta1, rtasize1)) {
 			void *rtadata1 = RTA_DATA(rta1);
-			size_t rtapayload1= RTA_PAYLOAD(rta1);
 			switch(rta1->rta_type) {
 			case IFLA_INET6_CACHEINFO:
 				break;
@@ -313,8 +313,11 @@ netlink_recv_rtgenmsg(int sd, int request, int seq, struct dhcp6_if *ifp)
 		     nlm = (struct nlmsghdr *)NLMSG_NEXT(nlm, msg_len)) {
 			if (nlm->nlmsg_type == NLMSG_DONE ||
 			    nlm->nlmsg_type == NLMSG_ERROR) {
-				dprintf(LOG_ERR, "netlink_recv_rtgenmsg error");
-				goto out;
+			    if ( nlm->nlmsg_type == NLMSG_ERROR)
+				dprintf(LOG_ERR, "netlink_recv_rtgenmsg error, %d %d %d",
+					request, RTM_GETROUTE, RTM_GETLINK 
+				    );
+			    goto out;
 			}
 			if (nlm->nlmsg_pid != getpid() ||
 			    nlm->nlmsg_seq != seq)

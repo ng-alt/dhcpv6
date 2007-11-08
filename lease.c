@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.13 2004/03/03 20:11:16 shirleyma Exp $	*/
+/*	$Id: lease.c,v 1.14 2007/11/08 21:16:52 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -47,8 +47,8 @@
 #include <net/if.h>
 #include <linux/sockios.h>
 #include <ifaddrs.h>
+#include <sys/queue.h>
 
-#include "queue.h"
 #include "dhcp6.h"
 #include "hash.h"
 #include "config.h"
@@ -354,8 +354,8 @@ int
 get_linklocal(const char *ifname,
 	      struct in6_addr *linklocal)
 {	
-	struct ifaddrs *ifa, *ifap;
-	struct sockaddr *sd;
+	struct ifaddrs *ifa = 0, *ifap = 0;
+	struct sockaddr *sd = 0;
 	if (getifaddrs(&ifap) < 0) {
 		dprintf(LOG_ERR, "getifaddrs error");
 		return -1;

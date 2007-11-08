@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.15 2007/09/14 20:17:59 shirleyma Exp $	*/
+/*	$Id: lease_token.l,v 1.16 2007/11/08 21:16:52 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -44,10 +44,10 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-
 #include <net/if.h>
 #include <linux/sockios.h>
-#include "queue.h"
+#include <sys/queue.h>
+
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
@@ -73,6 +73,11 @@
 	 (a & LEASE_VTIME_FLAG) && (a & LEASE_PTIME_FLAG) &&	\
 	 (a & LEASE_IAID_FLAG) && (a & LEASE_RNTIME_FLAG) &&	\
 	 (a & LEASE_RBTIME_FLAG) && (a & LEASE_DUID_FLAG))
+
+#define YY_NO_UNPUT 1
+#define ECHO if (fwrite(yytext, yyleng, 1, yyout) != 1) { \
+                 YY_FATAL_ERROR("error performing ECHO on yytext"); \
+             }
 
 #define YYABORT(msg) dprintf(LOG_ERR, msg " %s lineno %d.", \
 		yytext, num_lines)
@@ -241,6 +246,8 @@ lease_parse(file)
 	
 	fseek(file, 0, 0);
 	yyin = file;
+	yy_init = 1;
+	yy_start = 0;
 	yylex(); 
 	return;
 }

@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.39 2007/09/25 06:57:35 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.40 2007/11/08 21:16:52 dlc-atl Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -66,8 +66,9 @@
 #include <string.h>
 #include <err.h>
 #include <ifaddrs.h>
+#include <sys/ioctl.h>
+#include <sys/queue.h>
 
-#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
@@ -102,9 +103,9 @@ static	char leasename[100];
 
 #define CLIENT6_INFO_REQ	0x10
 
-int insock;	/* inbound udp port */
-int outsock;	/* outbound udp port */
-int nlsock;	
+int insock = -1;	/* inbound udp port */
+int outsock = -1;	/* outbound udp port */
+int nlsock = -1;	
 
 extern char *raproc_file;
 extern char *ifproc_file;
@@ -113,6 +114,7 @@ extern FILE *client6_lease_file;
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 FILE *dhcp6_resolv_file;
 static const struct sockaddr_in6 *sa6_allagent;
+static socklen_t sa6_alen;
 static struct duid client_duid;
 
 static void usage __P((void));
@@ -146,6 +148,7 @@ struct dhcp6_timer *client6_timo __P((void *));
 extern int client6_ifaddrconf __P((ifaddrconf_cmd_t, struct dhcp6_addr *));
 extern struct dhcp6_timer *syncfile_timo __P((void *));
 extern int radvd_parse (struct dhcp6_iaidaddr *, int);
+extern int dad_parse(const char *file);
 
 #define DHCP6C_CONF "/etc/dhcp6c.conf"
 #define DHCP6C_PIDFILE "/var/run/dhcpv6/dhcp6c.pid"
@@ -288,6 +291,7 @@ main(argc, argv)
 	}
 
 	ifinit(device);
+	setup_interface(device);
 
 	if ((cfparse(conffile)) != 0) {
 		dprintf(LOG_ERR, "%s" "failed to parse configuration file",
@@ -322,6 +326,8 @@ client6_init(device)
 	int ifidx;
 	char linklocal[64];
 	struct in6_addr lladdr;
+	time_t retry, now;
+	int bound;
 	
 	ifidx = if_nametoindex(device);
 	if (ifidx == 0) {
@@ -376,12 +382,34 @@ client6_init(device)
 	}
 #endif
 	((struct sockaddr_in6 *)(res->ai_addr))->sin6_scope_id = ifidx;
-	dprintf(LOG_DEBUG, "res addr is %s/%d", addr2str(res->ai_addr), res->ai_addrlen);
-	if (bind(insock, res->ai_addr, res->ai_addrlen) < 0) {
-		dprintf(LOG_ERR, "%s" "bind(inbound): %s",
-			FNAME, strerror(errno));
-		exit(1);
+	dprintf(LOG_DEBUG, "res addr is %s/%d", addr2str(res->ai_addr, res->ai_addrlen), res->ai_addrlen);
+
+	/*
+	 * If the interface has JUST been brought up, the kernel may not have
+	 * enough time to allow the bind to the linklocal address - it will
+	 * then return EADDRNOTAVAIL. The bind will succeed if we try again.
+	 */
+	retry = now = time(0);
+	bound = 0;
+	do {
+		if (bind(insock, res->ai_addr, res->ai_addrlen) < 0) {
+			bound = -errno;
+			retry = time(0);
+			if ((bound != -EADDRNOTAVAIL) || ((retry - now) > 5))
+				break;
+			struct timespec tv = { 0, 200000000 };
+			nanosleep(&tv, 0);
+		} else {
+			bound = 1;
+			break;
+		}
+	} while ((retry - now) < 5);
+
+	if (bound < 0) {
+		dprintf(LOG_ERR, "%s" "bind(inbound): %s", FNAME, strerror(-bound));
+		exit(bound);
 	}
+
 	freeaddrinfo(res);
 
 	hints.ai_flags = 0;
@@ -411,12 +439,6 @@ client6_init(device)
 		exit(1);
 	}
 	freeaddrinfo(res);
-	/* open a socket to watch the off-on link for confirm messages */
-	if ((nlsock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		dprintf(LOG_ERR, "%s" "open a socket: %s",
-			FNAME, strerror(errno));
-		exit(1);
-	}
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_INET6;
 	hints.ai_socktype = SOCK_DGRAM;
@@ -429,6 +451,7 @@ client6_init(device)
 	}
 	memcpy(&sa6_allagent_storage, res->ai_addr, res->ai_addrlen);
 	sa6_allagent = (const struct sockaddr_in6 *)&sa6_allagent_storage;
+	sa6_alen = res->ai_addrlen;
 	freeaddrinfo(res);
 
 	/* client interface configuration */
@@ -521,7 +544,6 @@ client6_ifinit(char *device)
 		dprintf(LOG_INFO, "no ipv6 addresses are leased by client");
 		exit(0);
 	}
-	setup_interface(ifp->ifname);
 	ifp->link_flag |= IFF_RUNNING;
 
 	/* get addrconf prefix from kernel */
@@ -806,6 +828,7 @@ client6_send(ev)
 	struct dhcp6_optinfo optinfo;
 	ssize_t optlen, len;
 	struct timeval duration, now;
+	socklen_t salen;
 
 	ifp = ev->ifp;
 
@@ -942,8 +965,14 @@ client6_send(ev)
 			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
 				goto end;
 		}
+		/* support for server assigned prefix */
+		if ( ! ifp->use_ra_prefix )
+		    optinfo.flags |= DHCIFF_REQUEST_PREFIX;
 		break;
 	case DHCP6S_REQUEST:
+		/* support for server assigned prefix */
+		if ( ! ifp->use_ra_prefix )
+		    optinfo.flags |= DHCIFF_REQUEST_PREFIX;
 		if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
 			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
 					sizeof(optinfo.iaidinfo));
@@ -1027,15 +1056,17 @@ client6_send(ev)
 				exit(1);
 			}
 			memcpy(&dst, res->ai_addr, res->ai_addrlen);
+			salen = res->ai_addrlen;
 			break;
 		}
 	default:
 		dst = *sa6_allagent;
+		salen = sa6_alen;
 		break;
 	}
 	dst.sin6_scope_id = ifp->linkid;
 	dprintf(LOG_DEBUG, "send dst if %s addr is %s scope id is %d", 
-		ifp->ifname, addr2str((struct sockaddr *)&dst), ifp->linkid);
+		ifp->ifname, addr2str((struct sockaddr *)&dst, salen), ifp->linkid);
 	if (sendto(ifp->outsock, buf, len, MSG_DONTROUTE, (struct sockaddr *)&dst,
 	    sizeof(dst)) == -1) {
 		dprintf(LOG_ERR, FNAME "transmit failed: %s", strerror(errno));
@@ -1044,7 +1075,7 @@ client6_send(ev)
 
 	dprintf(LOG_DEBUG, "%s" "send %s to %s", FNAME,
 		dhcp6msgstr(dh6->dh6_msgtype),
-		addr2str((struct sockaddr *)&dst));
+		addr2str((struct sockaddr *)&dst, salen));
 
   end:
 	dhcp6_clear_options(&optinfo);
@@ -1106,7 +1137,7 @@ client6_recv()
 
 	dprintf(LOG_DEBUG, "%s" "receive %s from %s scope id %d %s", FNAME,
 		dhcp6msgstr(dh6->dh6_msgtype),
-		addr2str((struct sockaddr *)&from),
+		addr2str((struct sockaddr *)&from, sizeof (((struct sockaddr *)&from)->sa_data)),
 		((struct sockaddr_in6 *)&from)->sin6_scope_id,
 		ifp->ifname);
 
@@ -1131,7 +1162,7 @@ client6_recv()
 	default:
 		dprintf(LOG_INFO, "%s" "received an unexpected message (%s) "
 			"from %s", FNAME, dhcp6msgstr(dh6->dh6_msgtype),
-			addr2str((struct sockaddr *)&from));
+			addr2str((struct sockaddr *)&from, sizeof(((struct sockaddr *)&from)->sa_data)));
 		break;
 	}
 
@@ -1781,30 +1812,51 @@ static void
 setup_interface(char *ifname)
 {
 	struct ifreq ifr;
+	int retries = 0;
 	/* check the interface */
+
+	/* open a socket to watch the off-on link for confirm messages */
+	if ((nlsock == -1) && ((nlsock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)) {
+		dprintf(LOG_ERR, "%s" "open a socket: %s", FNAME, strerror(errno));
+		exit(1);
+	}
+
+	memset(&ifr,'\0', sizeof(struct ifreq));
 	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
-again:
+
 	if (ioctl(nlsock, SIOCGIFFLAGS, &ifr) < 0) {
 		dprintf(LOG_ERR, "ioctl SIOCGIFFLAGS failed");
 		exit(1);
 	}
-	if (!ifr.ifr_flags & IFF_UP) {
-		ifr.ifr_flags |= IFF_UP;
+
+	while ((ifr.ifr_flags & (IFF_UP | IFF_RUNNING)) != (IFF_UP | IFF_RUNNING)) {
+		if (retries++ > 1) {
+			dprintf(LOG_INFO, "NIC is not connected to the network, please connect it.");
+			exit(1);
+		}
+
+		memset(&ifr, '\0', sizeof(struct ifreq));
+		strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
+		ifr.ifr_flags |= (IFF_UP | IFF_RUNNING) ;
 		if (ioctl(nlsock, SIOCSIFFLAGS, &ifr) < 0) {
 			dprintf(LOG_ERR, "ioctl SIOCSIFFLAGS failed");
 			exit(1);
 		}
+
+		/*
+		 * give kernel time to assign link local address and to find/respond
+		 * to IPv6 routers...
+		 */
+		sleep(2);
+
+		memset(&ifr, '\0', sizeof(struct ifreq));
+		strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
 		if (ioctl(nlsock, SIOCGIFFLAGS, &ifr) < 0) {
 			dprintf(LOG_ERR, "ioctl SIOCGIFFLAGS failed");
 			exit(1);
 		}
 	}
-	if (!ifr.ifr_flags & IFF_RUNNING) {
-		dprintf(LOG_INFO, "NIC is not connected to the network, "
-			"please connect it. dhcp6c is sleeping ...");
-		sleep(10);
-		goto again;
-	}
+
 	return;
 }
 

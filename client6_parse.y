@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.12 2005/03/10 00:49:25 shemminger Exp $	*/
+/*	$Id: client6_parse.y,v 1.13 2007/11/08 21:16:52 dlc-atl Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -40,7 +40,8 @@
 #include <arpa/inet.h>
 
 #include <malloc.h>
-#include "queue.h"
+#include <sys/queue.h>
+
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
@@ -94,7 +95,7 @@ static void cleanup_cflist __P((struct cf_list *));
 %token INTERFACE IFNAME IPV6ADDR
 %token REQUEST SEND 
 %token RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS 
-%token INFO_ONLY TEMP_ADDR
+%token INFO_ONLY TEMP_ADDR USE_RA_PREFIX
 %token ADDRESS PREFIX IAID RENEW_TIME REBIND_TIME V_TIME P_TIME PREFIX_DELEGATION_INTERFACE
 %token NUMBER SLASH EOS BCL ECL STRING INFINITY
 %token COMMA OPTION
@@ -243,6 +244,15 @@ declaration:
 			strcpy(pp,$2);
 			MAKE_CFLIST(l, DECL_PREFIX_DELEGATION_INTERFACE, pp, NULL );
 			
+			$$ = l;
+                }
+
+        |       USE_RA_PREFIX EOS
+                {
+			struct cf_list *l;
+			MAKE_CFLIST(l, DECL_USE_RA_PREFIX, NULL, NULL);
+			/* no value */
+
 			$$ = l;
                 }
 	;

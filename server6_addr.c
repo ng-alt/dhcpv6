@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.25 2007/09/25 07:20:55 shirleyma Exp $	*/
+/*	$Id: server6_addr.c,v 1.26 2007/11/08 21:16:52 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -36,21 +36,18 @@
 #include <time.h>
 //#include <openssl/md5.h>
 
+#include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-
-
 #include <net/if.h>
-#include <netinet/in.h>
-
 #include <errno.h>
 #include <syslog.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/queue.h>
 
-#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"

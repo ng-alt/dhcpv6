@@ -1,4 +1,4 @@
-/*	$Id: ifaddrs.c,v 1.4 2003/04/22 18:05:33 shemminger Exp $	*/
+/*	$Id: ifaddrs.c,v 1.5 2007/11/08 21:16:52 dlc-atl Exp $	*/
 /* 	from USAGI: ifaddrs.c,v 1.20.2.1 2002/12/08 08:22:23 yoshfuji Exp */
 
 /* 
@@ -44,6 +44,8 @@
 #ifdef _USAGI_LIBINET6
 #include "libc-compat.h"
 #endif
+
+extern int __close( int );
 
 /* ====================================================================== */
 struct nlmsg_list

@@ -1,4 +1,4 @@
-/*	$Id: common.h,v 1.11 2005/03/17 20:55:09 shemminger Exp $	*/
+/*	$Id: common.h,v 1.12 2007/11/08 21:16:52 dlc-atl Exp $	*/
 /*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*
@@ -67,7 +67,7 @@ extern int transmit_sa __P((int, struct sockaddr_in6 *, char *, size_t));
 extern long random_between __P((long, long));
 extern int prefix6_mask __P((struct in6_addr *, int));
 extern int sa6_plen2mask __P((struct sockaddr_in6 *, int));
-extern char *addr2str __P((struct sockaddr *));
+extern char *addr2str __P((struct sockaddr *, socklen_t));
 extern char *in6addr2str __P((struct in6_addr *, int));
 extern const char *getdev __P((struct sockaddr_in6 *));
 extern int in6_addrscopebyif __P((struct in6_addr *, char *));

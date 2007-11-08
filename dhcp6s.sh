@@ -5,11 +5,10 @@
 #               dhcp6s.
 #
 # chkconfig: - 66 36
-# description: dhcp6s supports server side of  Dynamic Host Configuration
+# description: dhcp6s supports server side of  Dynamic Host Configuration \
 #              Protocol for IPv6.
 # processname: dhcp6s
 # config: /etc/dhcp6s.conf
-# config: /etc/server6_addr.conf
 # config: /etc/sysconfig/dhcp6s
 
 # Source function library.
@@ -20,13 +19,19 @@
 . /etc/sysconfig/dhcp6s
 
 # Check that networking is up.
-[ ${NETWORKING} = "no" ] && exit 0
+# networking is not up, return 1 for generic error
+[ ${NETWORKING} = "no" ] && exit 1
 
 # Check that files exist
-[ -f /usr/local/sbin/dhcp6s ] || exit 0
-[ -f /etc/dhcp6s.conf ] || exit 0
-[ -f /etc/server6_addr.conf ] || exit 0
-[ ${DHCP6SIF} = "" ] && exit 0
+# return 5 if program is not installed
+[ -x /usr/sbin/dhcp6s ] || exit 5
+
+# return 6 if program is not configured
+[ -f /etc/dhcp6s.conf ] || exit 6
+
+if [ "x$DHCP6SIF" =  "x" ]; then
+	logger -s -t "dhcp6s" -p "daemon.info" "Warning: dhcp6s listening on ALL interfaces - set DHCP6SIF in /etc/sysconfig/dhcp6s"
+fi
 
 RETVAL=0
 prog="dhcp6s"
@@ -34,7 +39,7 @@ prog="dhcp6s"
 start() {
 	# Start daemons.
 	echo -n $"Starting $prog: "
-	daemon /usr/local/sbin/dhcp6s -c /etc/dhcp6s.conf ${DHCP6SARGS} ${DHCP6SIF}
+	daemon /usr/sbin/dhcp6s -c /etc/dhcp6s.conf ${DHCP6SARGS} ${DHCP6SIF}
 	RETVAL=$?
 	echo
 	[ $RETVAL -eq 0 ] && touch /var/lock/subsys/dhcp6s
@@ -55,14 +60,20 @@ stop() {
 case "$1" in
   start)
 	start
+	RETVAL=$?
 	;;
   stop)
 	stop
+	RETVAL=$?
 	;;
-  restart|reload)
+  restart|force-reload)
 	stop
 	start
 	RETVAL=$?
+	;;
+  reload)
+	# unimplemented
+	RETVAL=3
 	;;
   condrestart)
 	if [ -f /var/lock/subsys/dhcp6s ]; then
@@ -81,4 +92,3 @@ case "$1" in
 esac
 
 exit $RETVAL
-

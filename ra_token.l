@@ -1,4 +1,4 @@
-/*	$Id: ra_token.l,v 1.9 2004/04/06 21:18:30 shirleyma Exp $	*/
+/*	$Id: ra_token.l,v 1.10 2007/11/08 21:16:52 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -43,11 +43,16 @@
 #include <errno.h>
 #include <syslog.h>
 #include <string.h>
+#include <sys/queue.h>
 
-#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
+
+#define YY_NO_UNPUT 1
+#define ECHO if (fwrite(yytext, yyleng, 1, yyout) != 1) { \
+                 YY_FATAL_ERROR("error performing ECHO on yytext"); \
+             }
 
 #define YYABORT(msg) dprintf(LOG_ERR, msg " %s lineno %d.", \
 	rayytext, num_lines)
@@ -119,7 +124,7 @@ nl              \n
 			strcat(buff, ":0");
 			len += 2;
 		} 
-		strcat(buff, "\0");
+		buff[len]='\0';
 		if (inet_pton(AF_INET6, buff, &addr) < 1) 
 			ABORT;
 		memcpy(&rainfo->prefix, &addr, sizeof(rainfo->prefix));
@@ -171,6 +176,5 @@ ra_parse(const char *raname)
 			raname, strerror(errno));
 		return (-1);
 	}
-	yylex();
-	return 0;
+	return yylex();
 }

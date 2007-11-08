@@ -1,4 +1,4 @@
-/*	$Id: timer.c,v 1.7 2003/03/11 23:52:23 shirleyma Exp $	*/
+/*	$Id: timer.c,v 1.8 2007/11/08 21:16:52 dlc-atl Exp $	*/
 /*	ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp	*/
 
 /*
@@ -42,8 +42,8 @@
 #if defined(__NetBSD__) || defined(__OpenBSD__)
 #include <search.h>
 #endif
+#include <sys/queue.h>
 
-#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"

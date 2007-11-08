@@ -1,4 +1,4 @@
-/*	$Id: dad_token.l,v 1.5 2004/04/06 21:18:30 shirleyma Exp $	*/
+/*	$Id: dad_token.l,v 1.6 2007/11/08 21:16:52 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -34,19 +34,24 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <net/if.h>
-
+#include <arpa/inet.h>
 #include <errno.h>
 #include <syslog.h>
 #include <string.h>
+#include <sys/queue.h>
 
-#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
 #include "lease.h"
+
+#define YY_NO_UNPUT 1
+#define ECHO if (fwrite(yytext, yyleng, 1, yyout) != 1) { \
+                 YY_FATAL_ERROR("error performing ECHO on yytext"); \
+             }
 
 #define YYABORT(msg) dprintf(LOG_ERR, msg " %s lineno %d.", \
 	ifyytext, num_lines)
@@ -195,6 +200,5 @@ dad_parse(const char *file)
 			file, strerror(errno));
 		return (-1);
 	}
-	yylex();
-	return 0;
+	return yylex();
 }

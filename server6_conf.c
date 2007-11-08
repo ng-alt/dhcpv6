@@ -1,4 +1,4 @@
-/*    $Id: server6_conf.c,v 1.14 2004/03/15 22:03:52 shemminger Exp $   */
+/*    $Id: server6_conf.c,v 1.15 2007/11/08 21:16:52 dlc-atl Exp $   */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -40,8 +40,8 @@
 #include <sys/socket.h>
 #include <net/if.h>
 //#include <openssl/md5.h>
+#include <sys/queue.h>
 
-#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
@@ -293,6 +293,8 @@ download_scope(up, current)
 		dhcp6_copy_list(&current->dnslist.addrlist, &up->dnslist.addrlist);
 	if (current->dnslist.domainlist == NULL)
 		current->dnslist.domainlist = up->dnslist.domainlist;
+	if ( current->use_ra_prefix )
+	    up->use_ra_prefix = 1;
 	return;
 }
 

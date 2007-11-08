@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.21 2007/09/25 07:28:42 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.22 2007/11/08 21:16:52 dlc-atl Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -123,7 +123,12 @@ typedef enum { ACTIVE, RENEW,
 
 struct duid {
 	u_int8_t duid_len;	/* length */
-	char *duid_id;		/* variable length ID value (must be opaque) */
+	unsigned char *duid_id;		/* variable length ID value (must be opaque) */
+};
+
+struct intf_id {
+	u_int16_t intf_len;	/* length */
+	char *intf_id;		/* variable length ID value (must be opaque) */
 };
 
 struct intf_id {
@@ -192,6 +197,28 @@ struct dns_list {
 	struct dhcp6_list addrlist;
 	struct domain_list *domainlist;
 };
+
+/* DHCP6 relay agent base packet format */
+struct dhcp6_relay {
+	u_int8_t dh6_msg_type;
+	u_int8_t dh6_hop_count;
+	struct in6_addr link_addr;
+	struct in6_addr peer_addr;
+	/* options follow */
+} __attribute__ ((__packed__));
+
+
+struct relay_listval {
+	TAILQ_ENTRY(relay_listval) link;
+	
+	struct dhcp6_relay relay;
+	struct intf_id *intf_id;
+
+	/* pointer to the Relay Message option in the RELAY-REPL */
+	struct dhcp6opt *option;
+};
+
+TAILQ_HEAD (relay_list, relay_listval);
 
 /* DHCP6 relay agent base packet format */
 struct dhcp6_relay {
@@ -293,6 +320,7 @@ struct dhcp6 {
 
 #define DH6OPT_IA_PD 25
 #define DH6OPT_IAPREFIX 26
+#define DH6OPT_REQUEST_PREFIX 28
 
 struct dhcp6opt {
 	u_int16_t dh6opt_type;

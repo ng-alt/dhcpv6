@@ -42,8 +42,8 @@ address binding
 assignment support
 	 on the same link. 
       4. Supported Options: Rapid commit, Server Preference,  Information 
-         Request, Unicast, Elapsed Time, ClientID, ServerID , IA_NA , IA_TA ,
-	 IA_ADDR , IA_PD, Status, Relay Message, Interface Identifier. 
+         Request, Unicast, Elapsed Time, ClientID, ServerID, IA_NA, IA_TA,
+         IA_ADDR, IA_PD, Status, Relay Message, Interface Identifier.
      5. Solicit/Request/Advertise/Reply/Infomation-request 
          messages/Renew/Rebind/Release/Confirm/ messages support 
 	 for IPv6 address binding. 
@@ -63,9 +63,9 @@ B. Support available but not validated yet
 
 C. ToDo List: 
 
-      1. Authentication/User class/Vendor class/Interface-ID option 
-         support 
-      2. Reconfig message support. 
+      1. Authentication/User class/Vendor class/Interface-ID option
+         support
+      2. Reconfig message support.
 
 D. INSTALLATTION:
 

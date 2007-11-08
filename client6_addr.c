@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.27 2007/09/25 07:37:48 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.28 2007/11/08 21:16:52 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -47,8 +47,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <net/if_arp.h>
+#include <ifaddrs.h>
+#include <sys/queue.h>
 
-#include "queue.h"
 #include "dhcp6.h"
 #include "config.h"
 #include "common.h"
@@ -70,7 +71,7 @@ extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern struct dhcp6_timer *client6_timo __P((void *));
 extern void client6_send __P((struct dhcp6_event *));
 extern void free_servers __P((struct dhcp6_if *));
-extern ssize_t gethwid __P((char *, int, const char *, u_int16_t *));
+extern ssize_t gethwid __P((unsigned char *, int, const char *, u_int16_t *));
 
 extern int nlsock;
 extern FILE *client6_lease_file;
@@ -108,7 +109,7 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	/* add new address */
 	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
 		lv_next = TAILQ_NEXT(lv, link);
-		if (lv->val_dhcp6addr.type != IAPD) {	
+		if ((lv->val_dhcp6addr.type != IAPD) &&(lv->val_dhcp6addr.plen == 0)) {
 			lv->val_dhcp6addr.plen = 
 				dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
 			if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
@@ -213,7 +214,7 @@ dhcp6_add_lease(addr)
 	sp->iaidaddr = &client6_iaidaddr;
 	time(&sp->start_date);
 	sp->state = ACTIVE;
-	if (write_lease(sp, client6_lease_file) != 0) {
+	if (client6_lease_file && (write_lease(sp, client6_lease_file) != 0)) {
 		dprintf(LOG_ERR, "%s" "failed to write a new lease address %s to lease file", 
 			FNAME, in6addr2str(&sp->lease_addr.addr, 0));
 		if (sp->timer)
@@ -333,7 +334,7 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	/* flag == ADDR_UPDATE */
 	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
 		lv_next = TAILQ_NEXT(lv, link);
-		if (lv->val_dhcp6addr.type != IAPD) {	
+		if ((lv->val_dhcp6addr.type != IAPD) && (lv->val_dhcp6addr.plen == 0)) {
 			lv->val_dhcp6addr.plen = 
 				dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
 			if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
@@ -703,41 +704,38 @@ int
 create_iaid(struct iaid_table *iaidtab, int num_device)
 {
 	struct iaid_table *temp = iaidtab;
-	char buff[1024];
-	struct ifconf ifc;
-	struct ifreq *ifr;
+	struct ifaddrs *ifa = NULL, *ifap = NULL;
 	int i;
 	
-	ifc.ifc_len = sizeof(buff);
-	ifc.ifc_buf = buff;
-	if (ioctl(nlsock, SIOCGIFCONF, &ifc) < 0) {
-		dprintf(LOG_ERR, "%s" "ioctl SIOCGIFCONF", FNAME);
+	if (getifaddrs(&ifap) != 0) {
+		dprintf(LOG_ERR, "%s" "getifaddrs", FNAME);
 		return -1;
 	}
 
-	ifr = ifc.ifc_req;
-	for (i = ifc.ifc_len / sizeof(struct ifreq); --i >= 0 && num_device < MAX_DEVICE; 
-	     ifr++) {
-		if (!strcmp(ifr->ifr_name, "lo")) continue;
-		temp->hwaddr.len = gethwid(temp->hwaddr.data, sizeof(temp->hwaddr.data), ifr->ifr_name, &temp->hwaddr.type);
+	for (i=0, ifa=ifap;
+		 (ifa != NULL) && (i < MAX_DEVICE);
+		 i++, ifa=ifa->ifa_next) {
+		if (!strcmp(ifa->ifa_name, "lo")) continue;
+		temp->hwaddr.len = gethwid(temp->hwaddr.data, sizeof(temp->hwaddr.data), ifa->ifa_name, &temp->hwaddr.type);
 		switch (temp->hwaddr.type) {
 		case ARPHRD_ETHER:
 		case ARPHRD_IEEE802:
 			memcpy(&temp->iaid, temp->hwaddr.data, sizeof(temp->iaid));
 			break;
 		case ARPHRD_PPP:
-			temp->iaid = do_hash(ifr->ifr_name,sizeof(ifr->ifr_name))
-				+ if_nametoindex(ifr->ifr_name);
+			temp->iaid = do_hash(ifa->ifa_name,sizeof(ifa->ifa_name))
+				+ if_nametoindex(ifa->ifa_name);
 			break;
 		default:
 			dprintf(LOG_INFO, "doesn't support %s address family %d", 
-				ifr->ifr_name, temp->hwaddr.type);
+				ifa->ifa_name, temp->hwaddr.type);
 			continue;
 		}
 		dprintf(LOG_DEBUG, "%s"" create iaid %u for interface %s", 
-			FNAME, temp->iaid, ifr->ifr_name);
+			FNAME, temp->iaid, ifa->ifa_name);
 		num_device++;
 		temp++;
 	}
+	freeifaddrs(ifap);
 	return num_device;
 }

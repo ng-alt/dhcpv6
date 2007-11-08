@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.h,v 1.9 2003/04/30 19:04:14 shirleyma Exp $	*/
+/*	$Id: server6_conf.h,v 1.10 2007/11/08 21:16:52 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -50,6 +50,7 @@ struct scope {
 	u_int8_t send_flags;
 	u_int8_t allow_flags;
 	struct dns_list dnslist;
+        u_int8_t use_ra_prefix;
 };
 
 struct scopelist {
