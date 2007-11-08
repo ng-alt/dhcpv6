@@ -3,3 +3,5 @@ config.log
 config.status
 Makefile
 ChangeLog*
+.*.swp
+autom4te.cache
