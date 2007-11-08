@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.17 2007/11/08 22:18:59 dlc-atl Exp $
+# $Id: Makefile.in,v 1.18 2007/11/08 22:25:40 dlc-atl Exp $
 #
 
 include Makefile.inc
@@ -23,7 +23,7 @@ RELEASE_FILES = Install Makefile.in Makefile.inc.in ReadMe client6_addr.c \
                 relay6_database.h relay6_parser.c relay6_parser.h \
                 relay6_socket.c relay6_socket.h resolv_token.l server6_addr.c \
                 server6_addr.conf server6_conf.c server6_conf.h \
-                server6_parse.y server6_token.l timer.c timer.h
+                server6_parse.y server6_token.l timer.c timer.h ChangeLog
 
 COMMONGENSRCS=lease_token.c
 CLIENTGENSRCS=client6_parse.c client6_token.c dad_token.c ra_token.c \
