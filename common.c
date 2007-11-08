@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.28 2007/11/08 21:30:13 dlc-atl Exp $	*/
+/*	$Id: common.c,v 1.29 2007/11/08 21:44:47 dlc-atl Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -821,11 +821,15 @@ gethwid(buf, len, ifname, hwtypep)
 		close(skfd);
 		return -1;
 	}
-	close(skfd);
 
 	strcpy(if_hwaddr.ifr_name, ifname);
-	if (ioctl(skfd, SIOCGIFHWADDR, &if_hwaddr) < 0)
+	if (ioctl(skfd, SIOCGIFHWADDR, &if_hwaddr) < 0) {
+		close(skfd);
 		return -1;
+	}
+
+	close(skfd);
+
 	/* only support Ethernet */
 	switch (if_hwaddr.ifr_hwaddr.sa_family) {
 	case ARPHRD_ETHER:
