@@ -69,7 +69,6 @@ kame)	AC_DEFINE(INET6)
 esac
 
 dnl Checks for header files.
-AC_REPLACE_FUNCS(strlcpy strlcat)
 AC_HEADER_STDC
 AC_CHECK_HEADERS(fcntl.h sys/ioctl.h sys/time.h syslog.h unistd.h ifaddrs.h)
 AC_MSG_CHECKING(for socklen_t)
@@ -130,5 +129,5 @@ esac
 
 AC_CHECK_HEADERS(stdarg.h)
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile Makefile.inc])
 AC_OUTPUT

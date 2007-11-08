@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.27 2007/11/08 21:16:52 dlc-atl Exp $	*/
+/*	$Id: common.c,v 1.28 2007/11/08 21:30:13 dlc-atl Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -234,25 +234,6 @@ relayfree(head)
 	return;
 }
 
-void
-relayfree(head)
-	struct relay_list *head;
-{
-	struct relay_listval *v;
-
-	while ((v = TAILQ_FIRST(head)) != NULL) {
-		TAILQ_REMOVE(head, v, link);
-		if (v->intf_id != NULL) {
-			if (v->intf_id->intf_id != NULL) 
-				free(v->intf_id->intf_id);
-			free (v->intf_id);
-		}
-		free(v);
-	}
-
-	return;
-}
-
 int
 dhcp6_count_list(head)
 	struct dhcp6_list *head;
@@ -293,7 +274,9 @@ dhcp6_find_listval(head, val, type)
 				return (lv);
 			}
 			break;
-		/* DHCP6_LISTVAL_DHCP6LEASE is missing? */
+		case DHCP6_LISTVAL_DHCP6LEASE:
+			/* FIXME */
+			break;
 		}
 
 	}
@@ -633,8 +616,6 @@ in6_scope(addr)
 		default:
 			return 14; /* global: just in case */
 			break;
-		default:
-		        break;
 		}
 	}
 

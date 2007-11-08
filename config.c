@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.12 2007/11/08 21:16:52 dlc-atl Exp $	*/
+/*	$Id: config.c,v 1.13 2007/11/08 21:30:14 dlc-atl Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -187,13 +187,6 @@ configure_interface(const struct cf_namelist *iflist)
 				/* XX: ToDo */
 				break;
 			case DECL_PREFIX_INFO:
-				break;
-			case DECL_PREFIX_DELEGATION_INTERFACE:
-			        if (add_option(&ifc->option_list, cfl)){
-					dprintf(LOG_ERR, "%s failed to configure prefix-delegation-interface for %s",
-						FNAME, ifc->ifname);
-					goto bad;
-				}
 				break;
 			case DECL_PREFIX_DELEGATION_INTERFACE:
 			        if (add_option(&ifc->option_list, cfl)){
