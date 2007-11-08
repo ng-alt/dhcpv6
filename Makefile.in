@@ -1,9 +1,29 @@
 #
-# $Id: Makefile.in,v 1.16 2007/11/08 21:36:55 dlc-atl Exp $
+# $Id: Makefile.in,v 1.17 2007/11/08 22:18:59 dlc-atl Exp $
 #
 
 include Makefile.inc
+
+# version of dhcpv6 package
+PKG = dhcpv6
+VER = 0.99.0
+TAGNAME = $(PKG)-$(shell echo "$(VER)" | sed -e 's|\.|_|g')
+
 TARGET=	dhcp6c dhcp6s dhcp6r
+
+RELEASE_FILES = Install Makefile.in Makefile.inc.in ReadMe client6_addr.c \
+                client6_parse.y client6_token.l common.c common.h config.c \
+                config.guess config.h config.sub configure configure.in \
+                dad_token.l dhcp6.h dhcp6c.8 dhcp6c.c dhcp6c.conf \
+                dhcp6c.conf.5 dhcp6c.sh dhcp6c.sysconfig dhcp6r.8 dhcp6r.c \
+                dhcp6r.h dhcp6r.sh dhcp6r.sysconfig dhcp6relay.8 dhcp6s.8 \
+                dhcp6s.c dhcp6s.conf dhcp6s.conf.5 dhcp6s.sh dhcp6s.sysconfig \
+                hash.c hash.h install-sh lease.c lease.h lease_token.l \
+                netlink.c ra_token.l radvd_token.l relay6_database.c \
+                relay6_database.h relay6_parser.c relay6_parser.h \
+                relay6_socket.c relay6_socket.h resolv_token.l server6_addr.c \
+                server6_addr.conf server6_conf.c server6_conf.h \
+                server6_parse.y server6_token.l timer.c timer.h
 
 COMMONGENSRCS=lease_token.c
 CLIENTGENSRCS=client6_parse.c client6_token.c dad_token.c ra_token.c \
@@ -120,6 +140,16 @@ clean::
 distclean:: clean
 	/bin/rm -f Makefile config.cache config.log config.status .depend 
 	/bin/rm -f Makefile.inc lex.*.c y.tab.h y.tab.c
+	/bin/rm -rf $(PKG)-$(VER)* autom4te.cache
+	/bin/rm -f ChangeLog*
 
 depend:
 	mkdep ${CFLAGS:M-[ID]*} $(srcdir)/*.c
+
+release:
+	cvs tag -R $(TAGNAME)
+	cvs2cl
+	rm -rf $(PKG)-$(VER)
+	mkdir -p $(PKG)-$(VER)
+	cp -a $(RELEASE_FILES) docs $(PKG)-$(VER)
+	tar -cvf - $(PKG)-$(VER) | gzip -9c > $(PKG)-$(VER).tar.gz
