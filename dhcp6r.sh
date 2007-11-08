@@ -1,14 +1,29 @@
-#!/bin/bash
+#!/bin/sh
 #
-# chkconfig: - 66 36
-# description: dhcp6r supports the DHCPv6 relay agent protocol.
+### BEGIN INIT INFO
+# Provides: dhcp6r
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Should-Start: $network
+# Required-Start:
+# Required-Stop:
+# Short-Description: Start and stop the DHCPv6 relay agent
+# Description: dhcp6r acts as a DHCPv6 relay agent forwarding DHCPv6 messages
+#              from clients to servers and vice versa.
+### END INIT INFO
+#
+# The fields below are left around for legacy tools (will remove later).
+#
+# chkconfig: 2345 66 36
+# description: dhcp6r acts as a DHCPv6 relay agent forwarding DHCPv6 messages \
+#              from clients to servers and vice versa.
 # processname: dhcp6r
 # config: /etc/sysconfig/dhcp6r
 
-# Source function library
 . /etc/init.d/functions
 
 RETVAL=0
+
 prog=dhcp6r
 dhcp6r=/usr/sbin/dhcp6r
 lockfile=/var/lock/subsys/dhcp6r
@@ -39,7 +54,9 @@ stop() {
     killproc $prog -TERM
     RETVAL=$?
     echo
-    [ $RETVAL -eq 0 ] && rm -f $lockfile
+    [ $RETVAL -eq 0 ] && success || failure
+    echo
+    rm -f $lockfile
     return $RETVAL
 }
 
@@ -47,21 +64,22 @@ stop() {
 case "$1" in
     start)
         start
+        RETVAL=$?
         ;;
     stop)
         stop
+        RETVAL=$?
         ;;
-    restart)
-        stop
-        start
+    restart|force-reload)
+        stop && start
+        RETVAL=$?
         ;;
-    reload)
+    try-restart|reload)
         RETVAL=3
         ;;
     condrestart)
         if [ -f $lockfile ]; then
-            stop
-            start
+            stop && start
         fi
         ;;
     status)
@@ -69,7 +87,7 @@ case "$1" in
         RETVAL=$?
         ;;
     *)
-        echo $"Usage: $0 {start|stop|restart|condrestart|status}"
+        echo $"Usage: $0 {start|stop|restart|try-restart|reload|force-reload|status}"
         RETVAL=3
         ;;
 esac

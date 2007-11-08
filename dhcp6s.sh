@@ -1,16 +1,36 @@
-#!/bin/bash
+#!/bin/sh
 #
-# chkconfig: - 66 36
-# description: dhcp6s supports the server side of Dynamic Host Configuration \
-#              Protocol for IPv6.
+### BEGIN INIT INFO
+# Provides: dhcp6s
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Should-Start: $network
+# Required-Start:
+# Required-Stop:
+# Short-Description: Start and stop the DHCPv6 server agent
+# Description: dhcp6s provides IPv6 addresses and prefix assignment
+#              administrative policy and configuration information for
+#              DHCPv6 clients.  dhcp6s also manages those addresses and
+#              prefixes, such as IPv6 addresses, prefixes, DNS server
+#              addresses, or ntp server addresses.
+### END INIT INFO
+#
+# The fields below are left around for legacy tools (will remove later).
+#
+# chkconfig: 2345 66 36
+# description: dhcp6s provides IPv6 addresses and prefix assignment \
+#              administrative policy and configuration information for \
+#              DHCPv6 clients.  dhcp6s also manages those addresses and \
+#              prefixes, such as IPv6 addresses, prefixes, DNS server \
+#              addresses, or ntp server addresses.
 # processname: dhcp6s
 # config: /etc/dhcp6s.conf
 # config: /etc/sysconfig/dhcp6s
 
-# Source function library
 . /etc/init.d/functions
 
 RETVAL=0
+
 prog=dhcp6s
 dhcp6s=/usr/sbin/dhcp6s
 lockfile=/var/lock/subsys/dhcp6s
@@ -46,7 +66,9 @@ stop() {
     killproc $prog -TERM
     RETVAL=$?
     echo
-    [ $RETVAL -eq 0 ] && rm -f $lockfile
+    [ $RETVAL -eq 0 ] && success || failure
+    echo
+    rm -f $lockfile
     return $RETVAL
 }
 
@@ -54,21 +76,22 @@ stop() {
 case "$1" in
     start)
         start
+        RETVAL=$?
         ;;
     stop)
         stop
+        RETVAL=$?
         ;;
-    restart)
-        stop
-        start
+    restart|force-reload)
+        stop && start
+        RETVAL=$?
         ;;
-    reload)
+    try-restart|reload)
         RETVAL=3
         ;;
     condrestart)
         if [ -f $lockfile ]; then
-            stop
-            start
+            stop && start
         fi
         ;;
     status)
@@ -76,7 +99,7 @@ case "$1" in
         RETVAL=$?
         ;;
     *)
-        echo $"Usage: $0 {start|stop|restart|condrestart|status}"
+        echo $"Usage: $0 {start|stop|restart|try-restart|reload|force-reload|status}"
         RETVAL=3
         ;;
 esac
