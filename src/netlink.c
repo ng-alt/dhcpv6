@@ -46,7 +46,7 @@
 #include <sys/queue.h>
 
 #include "dhcp6.h"
-#include "config.h"
+#include "cfg.h"
 #include "common.h"
 
 static void

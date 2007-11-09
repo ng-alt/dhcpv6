@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.1 2007/11/09 01:46:26 dlc-atl Exp $	*/
+/*	$Id: client6_parse.y,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -43,7 +43,7 @@
 #include <sys/queue.h>
 
 #include "dhcp6.h"
-#include "config.h"
+#include "cfg.h"
 #include "common.h"
 
 extern int lineno;

@@ -1,4 +1,4 @@
-/*	$Id: ra_token.l,v 1.1 2007/11/09 01:46:26 dlc-atl Exp $	*/
+/*	$Id: ra_token.l,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -46,7 +46,7 @@
 #include <sys/queue.h>
 
 #include "dhcp6.h"
-#include "config.h"
+#include "cfg.h"
 #include "common.h"
 
 #define YY_NO_UNPUT 1

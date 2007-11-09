@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.1 2007/11/09 01:46:26 dlc-atl Exp $	*/
+/*	$Id: common.c,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -74,7 +74,7 @@
 #endif
 
 #include "dhcp6.h"
-#include "config.h"
+#include "cfg.h"
 #include "common.h"
 #include "timer.h"
 #include "lease.h"

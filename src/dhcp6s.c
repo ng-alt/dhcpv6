@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.1 2007/11/09 01:46:26 dlc-atl Exp $	*/
+/*	$Id: dhcp6s.c,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -71,7 +71,7 @@
 
 #include "timer.h"
 #include "dhcp6.h"
-#include "config.h"
+#include "cfg.h"
 #include "common.h"
 #include "server6_conf.h"
 #include "lease.h"

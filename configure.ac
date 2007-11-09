@@ -12,6 +12,8 @@ AC_DEFINE_UNQUOTED([BUILD_DATE], ["`date +%m%d%Y`"], [Date of dhcpv6 build])
 
 AC_PROG_CPP
 AC_PROG_CC
+AC_PROG_LEX
+AC_PROG_YACC
 
 AC_HEADER_STDC
 
