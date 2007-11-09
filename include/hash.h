@@ -1,8 +1,7 @@
-/*	$Id: timer.h,v 1.2 2003/02/10 23:47:09 shirleyma Exp $	*/
-/*	ported from KAME: timer.h,v 1.1 2002/05/16 06:04:08 jinmei Exp	*/
+/*	$Id: hash.h,v 1.1 2007/11/09 01:02:30 dlc-atl Exp $	*/
 
 /*
- * Copyright (C) 2002 WIDE Project.
+ * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,38 +29,41 @@
  * SUCH DAMAGE.
  */
 
-/* a < b */
-#define TIMEVAL_LT(a, b) (((a).tv_sec < (b).tv_sec) ||\
-			  (((a).tv_sec == (b).tv_sec) && \
-			    ((a).tv_usec < (b).tv_usec)))
-/* a <= b */
-#define TIMEVAL_LEQ(a, b) (((a).tv_sec < (b).tv_sec) ||\
-			   (((a).tv_sec == (b).tv_sec) &&\
- 			    ((a).tv_usec <= (b).tv_usec)))
-/* a == b */
-#define TIMEVAL_EQUAL(a, b) ((a).tv_sec == (b).tv_sec &&\
-			     (a).tv_usec == (b).tv_usec)
+/* Author: Elizabeth Kon, beth@us.ibm.com */
 
-#define MARK_CLEAR 0x00
-#define MARK_REMOVE 0x01
-	
-struct dhcp6_timer {
-	LIST_ENTRY(dhcp6_timer) link;
+#ifndef DHCPV6_HASH_H
+#define DHCPV6_HASH_H
 
-	struct timeval tm;
-	int flag;
+#define DEFAULT_HASH_SIZE 4096-1
 
-	struct dhcp6_timer *(*expire) __P((void *));
-	void *expire_data;
+#define MATCH 0
+#define MISCOMPARE 1
+#define HASH_COLLISION        2
+#define HASH_ITEM_NOT_FOUND   3
+
+struct hashlist_element {
+        struct hashlist_element *next;
+        void *data;
 };
 
-void dhcp6_timer_init __P((void));
-struct dhcp6_timer *dhcp6_add_timer __P((struct dhcp6_timer *(*) __P((void *)),
-					 void *));
-void dhcp6_set_timer __P((struct timeval *, struct dhcp6_timer *));
-void dhcp6_remove_timer __P((struct dhcp6_timer *));
-struct timeval * dhcp6_check_timer __P((void));
-struct timeval * dhcp6_timer_rest __P((struct dhcp6_timer *));
+struct hash_table {
+        unsigned int hash_count;
+        unsigned int hash_size;
+        struct hashlist_element **hash_list;
+        unsigned int (*hash_function)(const void *hash_key);
+	void * (*find_hashkey)(const void *data);
+        int (*compare_hashkey)(const void *data, const void *key);
+};
 
-void timeval_sub __P((struct timeval *, struct timeval *,
-			     struct timeval *));
+ 
+extern int init_hashes(void);
+extern struct hash_table * hash_table_create(unsigned int hash_size,
+	unsigned int (*hash_function)(const void *hash_key),
+	void * (*find_hashkey)(const void *data),
+	int (*compare_hashkey)(const void *data, const void *hashkey));
+extern int  hash_add(struct hash_table *table, const void *key, void *data);
+extern int hash_delete(struct hash_table *table, const void *key);
+extern void * hash_search(struct hash_table *table, const void *key);
+extern int hash_full(struct hash_table *table);
+extern int grow_hash(struct hash_table *table);
+#endif

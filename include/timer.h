@@ -1,7 +1,8 @@
-/*	$Id: hash.h,v 1.3 2003/03/01 00:24:49 shemminger Exp $	*/
+/*	$Id: timer.h,v 1.1 2007/11/09 01:02:30 dlc-atl Exp $	*/
+/*	ported from KAME: timer.h,v 1.1 2002/05/16 06:04:08 jinmei Exp	*/
 
 /*
- * Copyright (C) International Business Machines  Corp., 2003
+ * Copyright (C) 2002 WIDE Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,41 +30,38 @@
  * SUCH DAMAGE.
  */
 
-/* Author: Elizabeth Kon, beth@us.ibm.com */
+/* a < b */
+#define TIMEVAL_LT(a, b) (((a).tv_sec < (b).tv_sec) ||\
+			  (((a).tv_sec == (b).tv_sec) && \
+			    ((a).tv_usec < (b).tv_usec)))
+/* a <= b */
+#define TIMEVAL_LEQ(a, b) (((a).tv_sec < (b).tv_sec) ||\
+			   (((a).tv_sec == (b).tv_sec) &&\
+ 			    ((a).tv_usec <= (b).tv_usec)))
+/* a == b */
+#define TIMEVAL_EQUAL(a, b) ((a).tv_sec == (b).tv_sec &&\
+			     (a).tv_usec == (b).tv_usec)
 
-#ifndef DHCPV6_HASH_H
-#define DHCPV6_HASH_H
+#define MARK_CLEAR 0x00
+#define MARK_REMOVE 0x01
+	
+struct dhcp6_timer {
+	LIST_ENTRY(dhcp6_timer) link;
 
-#define DEFAULT_HASH_SIZE 4096-1
+	struct timeval tm;
+	int flag;
 
-#define MATCH 0
-#define MISCOMPARE 1
-#define HASH_COLLISION        2
-#define HASH_ITEM_NOT_FOUND   3
-
-struct hashlist_element {
-        struct hashlist_element *next;
-        void *data;
+	struct dhcp6_timer *(*expire) __P((void *));
+	void *expire_data;
 };
 
-struct hash_table {
-        unsigned int hash_count;
-        unsigned int hash_size;
-        struct hashlist_element **hash_list;
-        unsigned int (*hash_function)(const void *hash_key);
-	void * (*find_hashkey)(const void *data);
-        int (*compare_hashkey)(const void *data, const void *key);
-};
+void dhcp6_timer_init __P((void));
+struct dhcp6_timer *dhcp6_add_timer __P((struct dhcp6_timer *(*) __P((void *)),
+					 void *));
+void dhcp6_set_timer __P((struct timeval *, struct dhcp6_timer *));
+void dhcp6_remove_timer __P((struct dhcp6_timer *));
+struct timeval * dhcp6_check_timer __P((void));
+struct timeval * dhcp6_timer_rest __P((struct dhcp6_timer *));
 
- 
-extern int init_hashes(void);
-extern struct hash_table * hash_table_create(unsigned int hash_size,
-	unsigned int (*hash_function)(const void *hash_key),
-	void * (*find_hashkey)(const void *data),
-	int (*compare_hashkey)(const void *data, const void *hashkey));
-extern int  hash_add(struct hash_table *table, const void *key, void *data);
-extern int hash_delete(struct hash_table *table, const void *key);
-extern void * hash_search(struct hash_table *table, const void *key);
-extern int hash_full(struct hash_table *table);
-extern int grow_hash(struct hash_table *table);
-#endif
+void timeval_sub __P((struct timeval *, struct timeval *,
+			     struct timeval *));

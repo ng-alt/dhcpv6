@@ -1,4 +1,4 @@
-/*	$Id: common.h,v 1.12 2007/11/08 21:16:52 dlc-atl Exp $	*/
+/*	$Id: common.h,v 1.1 2007/11/09 01:02:30 dlc-atl Exp $	*/
 /*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*

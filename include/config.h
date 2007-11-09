@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.17 2007/11/08 21:16:52 dlc-atl Exp $	*/
+/*	$Id: config.h,v 1.1 2007/11/09 01:02:30 dlc-atl Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*

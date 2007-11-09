@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.h,v 1.10 2007/11/08 21:16:52 dlc-atl Exp $	*/
+/*	$Id: server6_conf.h,v 1.1 2007/11/09 01:02:30 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
