@@ -16,6 +16,8 @@ AC_PROG_LEX
 AC_PROG_YACC
 
 AC_HEADER_STDC
+AC_CHECK_HEADERS([sys/timeb.h], [],
+    [AC_MSG_FAILURE([*** Header file $ac_header not found.])])
 
 AC_PROG_LIBTOOL
 
