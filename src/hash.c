@@ -1,4 +1,4 @@
-/*	$Id: hash.c,v 1.8 2004/02/04 23:28:04 shemminger Exp $	*/
+/*	$Id: hash.c,v 1.1 2007/11/09 01:46:26 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003

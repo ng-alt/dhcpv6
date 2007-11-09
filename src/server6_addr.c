@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.26 2007/11/08 21:16:52 dlc-atl Exp $	*/
+/*	$Id: server6_addr.c,v 1.1 2007/11/09 01:46:26 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003

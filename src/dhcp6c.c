@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.41 2007/11/08 21:51:41 dlc-atl Exp $	*/
+/*	$Id: dhcp6c.c,v 1.1 2007/11/09 01:46:26 dlc-atl Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*

@@ -1,4 +1,4 @@
-/*	$Id: server6_token.l,v 1.7 2007/11/08 21:54:32 dlc-atl Exp $	*/
+/*	$Id: server6_token.l,v 1.1 2007/11/09 01:46:26 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
