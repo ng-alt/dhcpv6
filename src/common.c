@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
+/*	$Id: common.c,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -29,6 +29,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+
+#include "config.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>

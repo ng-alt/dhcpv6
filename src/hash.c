@@ -1,4 +1,4 @@
-/*	$Id: hash.c,v 1.1 2007/11/09 01:46:26 dlc-atl Exp $	*/
+/*	$Id: hash.c,v 1.2 2007/11/09 06:47:01 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -30,6 +30,8 @@
  */
 
 /* Author: Elizabeth Kon, beth@us.ibm.com */
+
+#include "config.h"
 
 #include <stdint.h>
 #include <stdlib.h>

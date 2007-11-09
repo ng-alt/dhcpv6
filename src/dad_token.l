@@ -1,4 +1,4 @@
-/*	$Id: dad_token.l,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
+/*	$Id: dad_token.l,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -31,6 +31,8 @@
 %option noyywrap
 
 %{
+#include "config.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -54,7 +56,7 @@
              }
 
 #define YYABORT(msg) dprintf(LOG_ERR, msg " %s lineno %d.", \
-	ifyytext, num_lines)
+	dadtext, num_lines)
 
 #define ABORT   do {    \
 	YYABORT("/proc/net/if_inet6 file parse error");   \
@@ -103,7 +105,7 @@ nl              \n
 	char buff[64];
 	int i, len = 0;
 	for (i = 0; i < 32; i += 4) {
-		strncpy(buff+len, &ifyytext[i], 4);
+		strncpy(buff+len, &dadtext[i], 4);
 		len += 4;
 		if (i < 28) {
 			strcpy(buff+len, ":");
@@ -121,13 +123,13 @@ nl              \n
 		memcpy(&ifinfo->addr, &addr, sizeof(ifinfo->addr));
 		BEGIN S_INDEX;}
 	}
-<S_INDEX>{hexpair} {ifinfo->index = strtol(ifyytext, NULL, 16);
+<S_INDEX>{hexpair} {ifinfo->index = strtol(dadtext, NULL, 16);
 		BEGIN S_PLEN;}
-<S_PLEN>{hexpair} {ifinfo->plen = strtol(ifyytext, NULL, 16); 
+<S_PLEN>{hexpair} {ifinfo->plen = strtol(dadtext, NULL, 16); 
 		BEGIN S_SCOPE;}
-<S_SCOPE>{hexpair} {ifinfo->scope = strtol(ifyytext, NULL, 16);
+<S_SCOPE>{hexpair} {ifinfo->scope = strtol(dadtext, NULL, 16);
 		BEGIN S_FLAGS;}
-<S_FLAGS>{hexpair} {ifinfo->flags = strtol(ifyytext, NULL, 16);
+<S_FLAGS>{hexpair} {ifinfo->flags = strtol(dadtext, NULL, 16);
 		if (ifinfo->flags == DAD_FLAGS) {
 			dprintf(LOG_INFO, "duplicated ipv6 address %s detected",
 				in6addr2str(&ifinfo->addr, 0));
@@ -138,13 +140,13 @@ nl              \n
 		}
 		}
 <S_NAME>{ifname} {
-		if (strcmp(ifyytext, dhcp6_if->ifname)) {
+		if (strcmp(dadtext, dhcp6_if->ifname)) {
 			free(ifinfo);
 			BEGIN S_CNF;
 		} else {
 			struct dhcp6_listval *lv;
 			struct dhcp6_lease *cl;
-			strncpy(ifinfo->name, ifyytext, IFNAMSIZ);
+			strncpy(ifinfo->name, dadtext, IFNAMSIZ);
 			ifinfo->next = NULL;
 			if (dadlist == NULL) {
 				TAILQ_INIT(&request_list);
@@ -193,7 +195,7 @@ nl              \n
 int
 dad_parse(const char *file)
 {
-	if ((ifyyin = fopen(file, "r")) == NULL) {
+	if ((dadin = fopen(file, "r")) == NULL) {
 		if (errno == ENOENT)
 			return (0);
 		dprintf(LOG_ERR, "dad_parse: fopen(%s): %s",

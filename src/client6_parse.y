@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
+/*	$Id: client6_parse.y,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -29,16 +29,16 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-%{
-#include <string.h>
 
+%{
+#include "config.h"
+
+#include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-
 #include <arpa/inet.h>
-
 #include <malloc.h>
 #include <sys/queue.h>
 
@@ -51,7 +51,7 @@ extern int cfdebug;
 
 extern void cpyywarn __P((char *, ...))
 	__attribute__((__format__(__printf__, 1, 2)));
-extern void cpyyerror __P((char *, ...))
+extern void client6error __P((char *, ...))
 	__attribute__((__format__(__printf__, 1, 2)));
 
 #define MAKE_NAMELIST(l, n, p) do { \

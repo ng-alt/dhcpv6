@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
+/*	$Id: dhcp6c.c,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -30,6 +30,8 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
@@ -37,26 +39,18 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <errno.h>
-#if TIME_WITH_SYS_TIME
-# include <sys/time.h>
-# include <sys/timeb.h>
-# include <time.h>
-#else
-# if HAVE_SYS_TIME_H
-#  include <sys/time.h>
-# else
-#  include <time.h>
-# endif
-#endif
+#include <sys/time.h>
+#include <sys/timeb.h>
+#include <time.h>
 #include <net/if.h>
 #include <linux/sockios.h>
+
 #if defined(__FreeBSD__) && __FreeBSD__ >= 3
-#include <net/if_var.h>
+# include <net/if_var.h>
 #endif
 
 #include <arpa/inet.h>
 #include <netdb.h>
-
 #include <signal.h>
 #include <stdio.h>
 #include <stdarg.h>

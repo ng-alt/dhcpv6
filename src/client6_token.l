@@ -1,4 +1,4 @@
-/*	$Id: client6_token.l,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
+/*	$Id: client6_token.l,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
 /*	ported from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -33,33 +33,28 @@
 %option noyywrap
 
 %{
+#include "config.h"
+
 #include <sys/types.h>
 #include <sys/socket.h>
-
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
 #include <errno.h>
 #include <syslog.h>
 #include <string.h>
-#ifdef HAVE_STDARG_H
 #include <stdarg.h>
-#else
-#include <varargs.h>
-#endif
-
 #include <sys/queue.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
-#include "cp.tab.h"
+#include "client6_parse.h"
 
 const char *configfilename;
 int lineno = 1;
 
 static int cpyy_first_time = 1;
-static int cpyyerrorcount = 0;
+static int client6errorcount = 0;
 
 #define YY_NO_UNPUT 1
 #define ECHO if (fwrite(yytext, yyleng, 1, yyout) != 1) { \
@@ -77,11 +72,11 @@ int cfdebug = 0;
 static void cfdebug_print __P((char *, char *, int));
 extern int cf_post_config __P((void));
 
-extern int cpyyparse(void);
+extern int client6parse(void);
 extern int cf_post_config(void);
 
-#define DP(str) if (cfdebug) cfdebug_print(str, cpyytext, cpyyleng)
-#define DECHO if (cfdebug) cfdebug_print(NULL, cpyytext, cpyyleng);
+#define DP(str) if (cfdebug) cfdebug_print(str, client6text, client6leng)
+#define DECHO if (cfdebug) cfdebug_print(NULL, client6text, client6leng);
 %}
 
 /* abbreviations */
@@ -124,7 +119,7 @@ ecl		\}
 <S_CNF>interface { DECHO; BEGIN S_IFACE; return (INTERFACE); }
 <S_IFACE>{ifname} {
 	DECHO;
-	cpyylval.str = strdup(cpyytext);
+	client6lval.str = strdup(client6text);
 	BEGIN S_CNF;
 	return (IFNAME);
 }
@@ -135,11 +130,11 @@ ecl		\}
 <S_ADDR>{ipv6addr} {
 	struct in6_addr addr;
 	DECHO;
-	if (inet_pton(AF_INET6, cpyytext, &addr) < 1) {
+	if (inet_pton(AF_INET6, client6text, &addr) < 1) {
 		dprintf(LOG_ERR, "invalid address in line %d", lineno);
 		return (-1);
 	}
-	cpyylval.addr = addr;
+	client6lval.addr = addr;
 	BEGIN S_CNF;
 	return (IPV6ADDR);
 }
@@ -173,7 +168,7 @@ ecl		\}
 {comment}	{ DP("comment"); }
 {number} 	{
 	DECHO;
-	cpyylval.num = strtoll(cpyytext, NULL, 10);
+	client6lval.num = strtoll(client6text, NULL, 10);
 	return (NUMBER);
 }
 {slash} { DECHO; return (SLASH); }
@@ -185,7 +180,7 @@ ecl		\}
 	/* generic string */
 {string} {
 		DECHO;
-		cpyylval.str = strdup(cpyytext);
+		client6lval.str = strdup(client6text);
 		return (STRING);
 	}
 
@@ -202,7 +197,7 @@ cfdebug_print(w, t, l)
 }
 
 static void
-cpyyerror0(int level, char *s, va_list ap)
+client6error0(int level, char *s, va_list ap)
 {
 	char ebuf[BUFSIZ], *bp, *ep;
 
@@ -216,29 +211,21 @@ cpyyerror0(int level, char *s, va_list ap)
 }
 
 void
-cpyyerror(char *s, ...)
+client6error(char *s, ...)
 {
 	va_list ap;
-#ifdef HAVE_STDARG_H
 	va_start(ap, s);
-#else
-	va_start(ap);
-#endif
-	cpyyerror0(LOG_ERR, s, ap);
+	client6error0(LOG_ERR, s, ap);
 	va_end(ap);
-	cpyyerrorcount++;
+	client6errorcount++;
 }
 
 void
 cpyywarn(char *s, ...)
 {
 	va_list ap;
-#ifdef HAVE_STDARG_H
 	va_start(ap, s);
-#else
-	va_start(ap);
-#endif
-	cpyyerror0(LOG_WARNING, s, ap);
+	client6error0(LOG_WARNING, s, ap);
 	va_end(ap);
 }
 
@@ -246,7 +233,7 @@ int
 cfparse(const char *conf)
 {
 	configfilename = conf;
-	if ((cpyyin = fopen(configfilename, "r")) == NULL) {
+	if ((client6in = fopen(configfilename, "r")) == NULL) {
 		if (errno == ENOENT)
 			return (0);
 		dprintf(LOG_ERR, "cfparse: fopen(%s): %s",
@@ -254,12 +241,12 @@ cfparse(const char *conf)
 		return (-1);
 	}
 
-	if (cpyyparse() || cpyyerrorcount) {
-		if (cpyyerrorcount) {
-			cpyyerror("fatal parse failure: exiting (%d errors)",
-				cpyyerrorcount);
+	if (client6parse() || client6errorcount) {
+		if (client6errorcount) {
+			client6error("fatal parse failure: exiting (%d errors)",
+				client6errorcount);
 		} else
-			cpyyerror("fatal parse failure: exiting");
+			client6error("fatal parse failure: exiting");
 		return (-1);
 	}
 

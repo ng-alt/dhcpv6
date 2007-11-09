@@ -29,6 +29,8 @@
 
 /* Author: Shirley Ma, xma@us.ibm.com */
 
+#include "config.h"
+
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>

@@ -1,4 +1,4 @@
-/*	$Id: server6_token.l,v 1.2 2007/11/09 03:56:34 dlc-atl Exp $	*/
+/* $Id: server6_token.l,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -34,6 +34,8 @@
 %option noyywrap
 
 %{
+#include "config.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <syslog.h>
@@ -47,8 +49,8 @@
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
-#include <server6_conf.h>
-#include "sf.tab.h"
+#include "server6_conf.h"
+#include "server6_parse.h"
 
 #define YY_NO_UNPUT 1
 #define ECHO if (fwrite(yytext, yyleng, 1, yyout) != 1) { \
@@ -56,12 +58,10 @@
              }
 
 int num_lines = 1;
-int sfyyerrorcount = 0;
-int sfparse(char *filename);
-extern void sfyyerror(char *msg);
+int server6errorcount = 0;
+extern int client6parse(void);
+extern void server6error(char *msg);
 extern struct rootgroup *globalgroup;
-
-extern int sfyyparse(void);
 
 %}
 
@@ -90,7 +90,7 @@ ifname		({string})+
 group		{ return GROUP; }
 
 interface	{ BEGIN S_IFACE; return INTERFACE; }
-<S_IFACE>{ifname} 	{ BEGIN INITIAL; sfyylval.str = strdup(sfyytext); return IFNAME;}
+<S_IFACE>{ifname} 	{ BEGIN INITIAL; server6lval.str = strdup(yytext); return IFNAME;}
 
 link		{ return LINK; }
 relay		{ return RELAY; }
@@ -103,7 +103,7 @@ iaid		{ return IAID; }
 iaidinfo 	{ return IAIDINFO; }
 
 duid		{ BEGIN S_DUID; return DUID; }
-<S_DUID>{duid_id} { BEGIN INITIAL; sfyylval.str = strdup(sfyytext); return DUID_ID; } 
+<S_DUID>{duid_id} { BEGIN INITIAL; server6lval.str = strdup(yytext); return DUID_ID; } 
 
 prefix		{ return PREFIX; }
 address		{ return ADDRESS;}
@@ -135,49 +135,28 @@ infinity	{ return INFINITY; }
 			struct in6_addr addr;
 			int i;
 				
-			i = inet_pton(AF_INET6, sfyytext, &addr);
+			i = inet_pton(AF_INET6, yytext, &addr);
 			if (i < 1) {
 				dprintf(LOG_ERR, "invalid address in line %d", num_lines); 
 				return BAD_TOKEN;
 			}
 
-			sfyylval.addr = addr;
+			server6lval.addr = addr;
 			return IPV6ADDR;
 		}
 
-{number}	{ sfyylval.num = strtoll(sfyytext, NULL, 10); return NUMBER; }
-{snum}	{ sfyylval.snum = strtoll(sfyytext, NULL, 10); return SIGNEDNUMBER; }
-{decimal} { sfyylval.dec = atof(sfyytext); return DECIMAL; }
+{number}	{ server6lval.num = strtoll(yytext, NULL, 10); return NUMBER; }
+{snum}	{ server6lval.snum = strtoll(yytext, NULL, 10); return SIGNEDNUMBER; }
+{decimal} { server6lval.dec = atof(yytext); return DECIMAL; }
 {string}	{
 			static char name[MAXDNAME];
-			strncpy(name, sfyytext, MAXDNAME-1);
+			strncpy(name, yytext, MAXDNAME-1);
 			name[MAXDNAME-1] = '\0';
-			sfyylval.str = name;
+			server6lval.str = name;
 			return STRING;
 		}
-"{"|"}"|";"|"/"	{ return *sfyytext; }
+"{"|"}"|";"|"/"	{ return *yytext; }
 .		{ return BAD_TOKEN; }
 
 %%
 
-int
-sfparse(conf)
-        char *conf;
-{
-        if ((sfyyin = fopen(conf, "r")) == NULL) {
-                if (errno == ENOENT)
-                        return(0);
-                dprintf(LOG_ERR, "sfparse: fopen(%s): %s",
-                        conf, strerror(errno));
-		printf("open error\n");
-                return(-1);
-        }
-
-        if (sfyyparse() || sfyyerrorcount) {
-                sfyyerror("fatal parse failure: exiting");
-                return(-1);
-        }
-	post_config(globalgroup);
-
-	return (0);
-}

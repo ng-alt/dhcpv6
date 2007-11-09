@@ -1,4 +1,4 @@
-/*	$Id: ra_token.l,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
+/*	$Id: ra_token.l,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -33,13 +33,13 @@
 %option noyywrap
 
 %{
+#include "config.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
-
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
 #include <errno.h>
 #include <syslog.h>
 #include <string.h>
@@ -55,7 +55,7 @@
              }
 
 #define YYABORT(msg) dprintf(LOG_ERR, msg " %s lineno %d.", \
-	rayytext, num_lines)
+	ratext, num_lines)
 
 #define ABORT   do {    \
 	YYABORT("/proc/net/ra6 file parse error");   \
@@ -90,7 +90,7 @@ nl              \n
 	BEGIN S_CNF;
 %}
 
-<S_CNF>{ifname} {if (strcmp(rayytext, dhcp6_if->ifname))
+<S_CNF>{ifname} {if (strcmp(ratext, dhcp6_if->ifname))
 			BEGIN S_CNF;
 		else {
 			rainfo = (struct ra_info *)malloc(sizeof(*rainfo));
@@ -98,12 +98,12 @@ nl              \n
 				ABORT;
 			BEGIN S_INDEX;}
 		}
-<S_INDEX>{number} {if (atoi(rayytext) != dhcp6_if->ifid)
+<S_INDEX>{number} {if (atoi(ratext) != dhcp6_if->ifid)
 			ABORT;
 		BEGIN S_PLEN;}
-<S_PLEN>{number} {rainfo->plen = atoi(rayytext); 
+<S_PLEN>{number} {rainfo->plen = atoi(ratext); 
 		BEGIN S_FLAGS;}
-<S_FLAGS>{flags} {if (strchr(rayytext, 'M') != NULL)
+<S_FLAGS>{flags} {if (strchr(ratext, 'M') != NULL)
 			rainfo->flags |= IF_RA_MANAGED;
 		else 
 			rainfo->flags |= IF_RA_OTHERCONF;
@@ -113,7 +113,7 @@ nl              \n
 		char buff[128];
 		int i, len = 0;
 		for (i = 0; i < rainfo->plen/4; i ++) {
-			strncpy(buff+len, &rayytext[i*4], 4);
+			strncpy(buff+len, &ratext[i*4], 4);
 			len += 4;
 			if (i < 7) {
 				strcpy(buff+len, ":");
@@ -168,7 +168,7 @@ nl              \n
 int
 ra_parse(const char *raname)
 {
-	if ((rayyin = fopen(raname, "r")) == NULL) {
+	if ((rain = fopen(raname, "r")) == NULL) {
 		if (errno == ENOENT) {
 			return (1);
 		}

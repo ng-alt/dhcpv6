@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
+/*	$Id: lease.c,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -30,6 +30,8 @@
  */
 
 /* Author: Shirley Ma, xma@us.ibm.com */
+
+#include "config.h"
 
 #include <stdio.h>
 #include <string.h>

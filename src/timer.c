@@ -1,4 +1,4 @@
-/*	$Id: timer.c,v 1.2 2007/11/09 03:56:34 dlc-atl Exp $	*/
+/*	$Id: timer.c,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
 /*	ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp	*/
 
 /*
@@ -29,12 +29,13 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+
+#include "config.h"
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
-
 #include <netinet/in.h>
-
 #include <unistd.h>
 #include <syslog.h>
 #include <stdlib.h>

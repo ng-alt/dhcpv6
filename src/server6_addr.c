@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
+/*	$Id: server6_addr.c,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -31,11 +31,11 @@
 
 /* Author: Shirley Ma, xma@us.ibm.com */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-//#include <openssl/md5.h>
-
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/time.h>

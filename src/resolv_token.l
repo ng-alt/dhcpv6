@@ -1,4 +1,4 @@
-/*	$Id: resolv_token.l,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
+/*	$Id: resolv_token.l,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -31,6 +31,8 @@
 %option noyywrap
 
 %{
+#include "config.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -38,10 +40,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/wait.h>
-
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
 #include <errno.h>
 #include <syslog.h>
 #include <string.h>

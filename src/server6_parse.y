@@ -1,4 +1,4 @@
-/*	$Id: server6_parse.y,v 1.2 2007/11/09 03:56:34 dlc-atl Exp $	*/
+/* $Id: server6_parse.y,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -32,6 +32,7 @@
 /* Author: Shirley Ma, xma@us.ibm.com */
 
 %{
+#include "config.h"
 
 #include <sys/types.h>
 #include <stdio.h>
@@ -53,7 +54,6 @@
 #include "lease.h"
 
 extern int num_lines;
-extern char *sfyytext;
 extern int sock;
 static struct interface *ifnetworklist = NULL;
 static struct link_decl *linklist = NULL;
@@ -69,11 +69,11 @@ static struct scopelist *currentgroup = NULL;
 static int allow = 0;
 
 static void cleanup(void);
-void sfyyerror(char *msg);
+void server6error(char *msg);
 
 #define ABORT	do { cleanup(); YYABORT; } while (0)
 
-extern int sfyylex __P((void));
+extern int server6_tokenlex __P((void));
 %}
 %token	<str>	INTERFACE IFNAME
 %token	<str>	PREFIX
@@ -947,9 +947,9 @@ void cleanup(void)
 }
 
 void
-sfyyerror(char *msg)
+server6error(char *msg)
 {
 	cleanup();
-	dprintf(LOG_ERR, "%s in line %d: %s ", msg, num_lines, sfyytext);
+	dprintf(LOG_ERR, "%s in line %d", msg, num_lines);
 }
 

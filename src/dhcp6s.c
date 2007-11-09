@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.2 2007/11/09 03:56:33 dlc-atl Exp $	*/
+/*	$Id: dhcp6s.c,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -30,13 +30,14 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <linux/sockios.h>
 #include <sys/ioctl.h>
 #include <sys/file.h>
-
 #include <sys/uio.h>
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -49,14 +50,11 @@
 # endif
 #endif
 #include <errno.h>
-
 #include <net/if.h>
 #if defined(__FreeBSD__) && __FreeBSD__ >= 3
 #include <net/if_var.h>
 #endif
-
 #include <netinet/in.h>
-
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -250,7 +248,7 @@ main(argc, argv)
 	}
 	memset(globalgroup, 0, sizeof(*globalgroup));
 	TAILQ_INIT(&globalgroup->scope.dnslist.addrlist);
-	if ((sfparse(conffile)) != 0) {
+	if ((server6parse(conffile)) != 0) {
 		dprintf(LOG_ERR, "%s" "failed to parse addr configuration file",
 			FNAME);
 		exit(1);
