@@ -1,4 +1,4 @@
-/*	$Id: cfg.h,v 1.1 2007/11/09 03:56:33 dlc-atl Exp $	*/
+/*	$Id: cfg.h,v 1.2 2007/11/12 22:36:11 dlc-atl Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -29,6 +29,10 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/queue.h>
 
 #define MAX_DEVICE 100
 

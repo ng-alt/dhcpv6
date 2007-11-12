@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.1 2007/11/09 01:02:30 dlc-atl Exp $	*/
+/*	$Id: lease.h,v 1.2 2007/11/12 22:36:11 dlc-atl Exp $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -29,6 +29,8 @@
  */
 
 /* Author: Shirley Ma, xma@us.ibm.com */
+
+#include <stdio.h>
 
 #ifndef __LEASE_H_DEFINED
 #define __LEASE_H_DEFINED

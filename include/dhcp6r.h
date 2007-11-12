@@ -30,9 +30,6 @@
 #ifndef __DHCP6R_H_DEFINED
 #define __DHCP6R_H_DEFINED
 
-#include <stdio.h>
-#include <stdint.h>
-
 #define MAX_DHCP_MSG_LENGTH     1400
 #define MESSAGE_HEADER_LENGTH   4
 #define ALL_DHCP_SERVERS           "FF05::1:3"

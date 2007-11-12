@@ -30,9 +30,6 @@
 #ifndef __RELAY6_DATABASE_H_DEFINED
 #define __RELAY6_DATABASE_H_DEFINED
 
-#include "dhcp6r.h"
-#include "relay6_parser.h"
-
 struct cifaces {
 	struct cifaces *next;
 	char *ciface;

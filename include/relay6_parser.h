@@ -30,9 +30,6 @@
 #ifndef __RELAY6_PARSER_H_DEFINED
 #define __RELAY6_PARSER_H_DEFINED
 
-#include "dhcp6r.h"
-#include "relay6_socket.h"
-
 struct msg_parser {
 	struct msg_parser *next;
 	struct msg_parser *prev;

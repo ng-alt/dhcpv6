@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.h,v 1.1 2007/11/09 01:02:30 dlc-atl Exp $	*/
+/*	$Id: server6_conf.h,v 1.2 2007/11/12 22:36:11 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -36,7 +36,6 @@
 
 #define DEFAULT_PREFERRED_LIFE_TIME 360000
 #define DEFAULT_VALID_LIFE_TIME 720000
-
 
 struct rootgroup *globalgroup;
 

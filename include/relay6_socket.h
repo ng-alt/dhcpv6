@@ -30,12 +30,6 @@
 #ifndef __RELAY6_SOCKET_H_DEFINED
 #define __RELAY6_SOCKET_H_DEFINED
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-
-#include "dhcp6r.h"
-
 fd_set readfd;
 int fdmax;  
 
