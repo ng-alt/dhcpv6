@@ -1,4 +1,4 @@
-/*	$Id: timer.c,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
+/*	$Id: timer.c,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
 /*	ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp	*/
 
 /*
@@ -32,6 +32,7 @@
 
 #include "config.h"
 
+/*
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -49,6 +50,7 @@
 #include "cfg.h"
 #include "common.h"
 #include "timer.h"
+*/
 
 #define MILLION 1000000
 

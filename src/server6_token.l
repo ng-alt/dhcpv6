@@ -1,4 +1,4 @@
-/* $Id: server6_token.l,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $ */
+/* $Id: server6_token.l,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -36,6 +36,7 @@
 %{
 #include "config.h"
 
+/*
 #include <stdio.h>
 #include <string.h>
 #include <syslog.h>
@@ -51,6 +52,7 @@
 #include "common.h"
 #include "server6_conf.h"
 #include "server6_parse.h"
+*/
 
 #define YY_NO_UNPUT 1
 #define ECHO if (fwrite(yytext, yyleng, 1, yyout) != 1) { \

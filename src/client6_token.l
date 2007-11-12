@@ -1,4 +1,4 @@
-/*	$Id: client6_token.l,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
+/*	$Id: client6_token.l,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
 /*	ported from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -35,6 +35,7 @@
 %{
 #include "config.h"
 
+/*
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -49,6 +50,7 @@
 #include "cfg.h"
 #include "common.h"
 #include "client6_parse.h"
+*/
 
 const char *configfilename;
 int lineno = 1;

@@ -31,6 +31,7 @@
 
 #include "config.h"
 
+/*
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
@@ -50,6 +51,7 @@
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
+*/
 
 static void
 get_if_prefix(struct nlmsghdr *nlm, int nlm_len, int request,

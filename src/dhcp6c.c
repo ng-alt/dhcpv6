@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
+/*	$Id: dhcp6c.c,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -32,6 +32,7 @@
 
 #include "config.h"
 
+/*
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
@@ -68,6 +69,7 @@
 #include "common.h"
 #include "timer.h"
 #include "lease.h"
+*/
 
 static int debug = 0;
 static u_long sig_flags = 0;

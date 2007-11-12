@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
+/*	$Id: lease.c,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -33,6 +33,7 @@
 
 #include "config.h"
 
+/*
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -56,6 +57,7 @@
 #include "cfg.h"
 #include "common.h"
 #include "lease.h"
+*/
 
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern FILE *server6_lease_file;

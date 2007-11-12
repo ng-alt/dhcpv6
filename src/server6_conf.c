@@ -1,4 +1,4 @@
-/*    $Id: server6_conf.c,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $   */
+/* $Id: server6_conf.c,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -33,7 +33,6 @@
 
 #include "config.h"
 
-#include <stdio.h>
 #include <string.h>
 #include <syslog.h>
 #include <stdlib.h>
@@ -41,7 +40,6 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <net/if.h>
-#include <sys/queue.h>
 
 #include "dhcp6.h"
 #include "cfg.h"

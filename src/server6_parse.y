@@ -1,4 +1,4 @@
-/* $Id: server6_parse.y,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $ */
+/* $Id: server6_parse.y,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -34,6 +34,7 @@
 %{
 #include "config.h"
 
+/*
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>
@@ -52,6 +53,7 @@
 #include "server6_conf.h"
 #include "hash.h"
 #include "lease.h"
+*/
 
 extern int num_lines;
 extern int sock;

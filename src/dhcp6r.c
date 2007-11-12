@@ -29,6 +29,7 @@
 
 #include "config.h"
 
+/*
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -51,6 +52,7 @@
 #include "relay6_parser.h"
 #include "relay6_socket.h"
 #include "relay6_database.h"
+*/
 
 int 
 main(argc, argv)

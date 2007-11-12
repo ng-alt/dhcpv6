@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
+/*	$Id: lease_token.l,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -36,6 +36,7 @@
 %{
 #include "config.h"
 
+/*
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -55,6 +56,7 @@
 #include "lease.h"
 #include "hash.h"
 #include "timer.h"
+*/
 
 #define LEASE_ADDR_FLAG 0x01
 #define LEASE_DUID_FLAG 0x02

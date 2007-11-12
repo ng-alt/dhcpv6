@@ -29,6 +29,7 @@
 
 #include "config.h"
 
+/*
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -36,6 +37,7 @@
 #include <arpa/inet.h>
 
 #include "relay6_database.h"
+*/
 
 void  
 init_relay(void)

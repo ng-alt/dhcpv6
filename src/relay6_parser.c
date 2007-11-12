@@ -29,11 +29,13 @@
 
 #include "config.h"
 
+/*
 #include <stdlib.h>
 #include <string.h>
 
 #include "relay6_parser.h"
 #include "relay6_database.h"
+*/
 
 struct msg_parser *create_parser_obj() 
 {

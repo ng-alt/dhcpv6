@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
+/*	$Id: client6_parse.y,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -33,6 +33,7 @@
 %{
 #include "config.h"
 
+/*
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -45,6 +46,7 @@
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
+*/
 
 extern int lineno;
 extern int cfdebug;

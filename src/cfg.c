@@ -1,4 +1,4 @@
-/*	$Id: cfg.c,v 1.2 2007/11/09 06:47:01 dlc-atl Exp $	*/
+/*	$Id: cfg.c,v 1.3 2007/11/12 22:36:49 dlc-atl Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -33,17 +33,10 @@
 #include "config.h"
 
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <net/if.h>
-#include <netinet/in.h>
-#include <syslog.h>
 #include <stdlib.h>
-#include <stdio.h>
+#include <syslog.h>
 #include <string.h>
-#include <ifaddrs.h>
-#include <sys/queue.h>
 
-#include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
 

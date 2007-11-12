@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
+/*	$Id: dhcp6s.c,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -32,47 +32,31 @@
 
 #include "config.h"
 
-#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <getopt.h>
+#include <string.h>
+#include <syslog.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
-#include <linux/sockios.h>
-#include <sys/ioctl.h>
-#include <sys/file.h>
-#include <sys/uio.h>
-#if TIME_WITH_SYS_TIME
-# include <sys/time.h>
-# include <time.h>
-#else
-# if HAVE_SYS_TIME_H
-#  include <sys/time.h>
-# else
-#  include <time.h>
-# endif
-#endif
-#include <errno.h>
-#include <net/if.h>
-#if defined(__FreeBSD__) && __FreeBSD__ >= 3
-#include <net/if_var.h>
-#endif
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <syslog.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <err.h>
+#include <linux/if.h>
 #include <netdb.h>
-#include <limits.h>
-#include <sys/queue.h>
+#include <linux/sockios.h>
+#include <time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <err.h>
+#include <arpa/inet.h>
+#include <sys/ioctl.h>
 
-#include "timer.h"
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
-#include "server6_conf.h"
 #include "lease.h"
+#include "server6_conf.h"
+#include "timer.h"
 
 typedef enum { DHCP6_CONFINFO_PREFIX, DHCP6_CONFINFO_ADDRS } dhcp6_conftype_t;
 
@@ -1314,6 +1298,7 @@ dhcp6_parse_relay(relay_msg, endptr, optinfo, relay_addr)
 			return NULL;
 		}
 	}
+	return NULL;
 }
 
 /*

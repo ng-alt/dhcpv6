@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.3 2007/11/09 06:47:01 dlc-atl Exp $	*/
+/*	$Id: server6_addr.c,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -33,27 +33,16 @@
 
 #include "config.h"
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#include <netinet/in.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
-#include <errno.h>
-#include <syslog.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/queue.h>
+#include <syslog.h>
+#include <time.h>
+#include <errno.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
-#include "common.h"
-#include "server6_conf.h"
 #include "lease.h"
-#include "timer.h"
+#include "server6_conf.h"
 #include "hash.h"
 
 extern FILE *server6_lease_file;
