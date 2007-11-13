@@ -3,6 +3,9 @@
 # Author: David Cantrell <dcantrell@redhat.com>
 #
 
-sysconf_DATA = dhcp6c.sysconfig dhcp6r.sysconfig dhcp6s.sysconfig
-
 MAINTAINERCLEANFILES = Makefile.in
+
+install-data-local:
+	$(MKDIR_P) $(sysconfdir)/sysconfig
+	$(install_sh_DATA) dhcp6s.sysconfig $(sysconfdir)/sysconfig/dhcp6s
+	$(install_sh_DATA) dhcp6r.sysconfig $(sysconfdir)/sysconfig/dhcp6r
