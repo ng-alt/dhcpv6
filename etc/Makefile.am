@@ -5,4 +5,6 @@
 
 SUBDIRS = sysconfig init.d
 
+EXTRA_DIST = dhcp6c.conf dhcp6s.conf
+
 MAINTAINERCLEANFILES = Makefile.in
