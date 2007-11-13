@@ -2,7 +2,7 @@ dnl configure.ac for dhcpv6
 dnl Author: David Cantrell <dcantrell@redhat.com>
 
 AC_PREREQ(2.59)
-AC_INIT([dhcpv6], [0.99.1], [dcantrell@redhat.com])
+AC_INIT([dhcpv6], [0.99.2], [dcantrell@redhat.com])
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/dhcp6s.c])
 AC_CONFIG_HEADER([config.h])
