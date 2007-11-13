@@ -20,3 +20,7 @@ MOSTLYCLEANDIRS = m4
 ChangeLog:
 	rm -f ChangeLog ChangeLog.bak
 	cvs2cl
+
+CVSTAG = $(shell echo "$(PACKAGE)-$(VERSION)" | sed -e 's|\.|_|g')
+tag:
+	cvs tag -R $(CVSTAG)
