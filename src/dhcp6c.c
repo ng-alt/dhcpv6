@@ -1,4 +1,4 @@
-/* $Id: dhcp6c.c,v 1.5 2007/11/13 02:15:20 dlc-atl Exp $ */
+/* $Id: dhcp6c.c,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
 /* ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -38,11 +38,18 @@
 #include <signal.h>
 #include <net/if.h>
 #include <linux/sockios.h>
+#include <sys/time.h>
 #include <sys/timeb.h>
 #include <errno.h>
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/stat.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <err.h>
+#include <sys/ioctl.h>
 
 #include "dhcp6.h"
 #include "cfg.h"

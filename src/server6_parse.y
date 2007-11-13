@@ -1,4 +1,4 @@
-/* $Id: server6_parse.y,v 1.5 2007/11/13 02:15:20 dlc-atl Exp $ */
+/* $Id: server6_parse.y,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -34,10 +34,12 @@
 %{
 #include "config.h"
 
+#include <string.h>
 #include <sys/types.h>
 #include <stdlib.h>
 #include <syslog.h>
 #include <netinet/in.h>
+#include <net/if.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
@@ -45,6 +47,8 @@
 #include "common.h"
 #include "lease.h"
 #include "hash.h"
+
+extern int server6lex (void);
 
 extern int num_lines;
 extern int sock;

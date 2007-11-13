@@ -1,4 +1,4 @@
-/* $Id: lease.c,v 1.5 2007/11/13 02:15:20 dlc-atl Exp $ */
+/* $Id: lease.c,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -33,11 +33,15 @@
 
 #include "config.h"
 
+#include <string.h>
+#include <stdlib.h>
 #include <syslog.h>
 #include <errno.h>
 #include <ifaddrs.h>
 #include <time.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <netinet/in.h>

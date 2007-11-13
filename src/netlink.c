@@ -39,6 +39,11 @@
 #include <netinet/in.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <time.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
@@ -116,7 +121,7 @@ get_if_prefix(struct nlmsghdr *nlm, int nlm_len, int request,
 		dprintf(LOG_DEBUG, "get prefix plen %d",rtm->rtm_dst_len);
 		break;
 	case RTA_CACHEINFO:
-		dprintf(LOG_DEBUG, "prefix route life time is %d\n",
+		dprintf(LOG_DEBUG, "prefix route life time is %ld\n",
 		      (unsigned long)((struct rta_cacheinfo *)rtadata)->rta_expires);
 		break;
 	default:

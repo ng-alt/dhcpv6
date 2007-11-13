@@ -1,4 +1,4 @@
-/* $Id: common.c,v 1.5 2007/11/13 02:15:20 dlc-atl Exp $ */
+/* $Id: common.c,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
 /* ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp */
 
 /*
@@ -34,11 +34,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 #include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <stdarg.h>
+#include <err.h>
 #include <errno.h>
 #include <net/if_arp.h>
 #include <sys/ioctl.h>
@@ -48,14 +50,13 @@
 #include <netinet/in.h>
 #include <arpa/nameser.h>
 #include <resolv.h>
+#include <unistd.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
 #include "timer.h"
 #include "lease.h"
-
-#define IFNAMSIZ 16
 
 int foreground;
 int debug_thresh;

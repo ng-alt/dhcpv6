@@ -1,4 +1,4 @@
-/* $Id: dad_token.l,v 1.5 2007/11/13 02:15:20 dlc-atl Exp $ */
+/* $Id: dad_token.l,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -36,6 +36,9 @@
 #include <syslog.h>
 #include <netinet/in.h>
 #include <linux/if.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 #include "dhcp6.h"
 #include "cfg.h"

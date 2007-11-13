@@ -1,4 +1,4 @@
-/* $Id: dhcp6s.c,v 1.5 2007/11/13 02:15:20 dlc-atl Exp $ */
+/* $Id: dhcp6s.c,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
 /* ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -41,7 +41,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
-#include <linux/if.h>
+#include <net/if.h>
 #include <netdb.h>
 #include <linux/sockios.h>
 #include <time.h>
@@ -57,6 +57,8 @@
 #include "lease.h"
 #include "server6_conf.h"
 #include "timer.h"
+
+extern int server6parse (void *YYPARSE_PARAM);
 
 typedef enum { DHCP6_CONFINFO_PREFIX, DHCP6_CONFINFO_ADDRS } dhcp6_conftype_t;
 

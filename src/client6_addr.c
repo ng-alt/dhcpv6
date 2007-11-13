@@ -1,4 +1,4 @@
-/* $Id: client6_addr.c,v 1.5 2007/11/13 02:15:19 dlc-atl Exp $ */
+/* $Id: client6_addr.c,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -33,15 +33,20 @@
 
 #include "config.h"
 
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <syslog.h>
+#include <net/if.h>
 #include <linux/sockios.h>
 #include <net/if_arp.h>
 #include <ifaddrs.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <linux/ipv6.h>
+#include <time.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
@@ -305,7 +310,7 @@ int
 dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 {
 	struct dhcp6_listval *lv, *lv_next = NULL;
-	struct dhcp6_lease *cl, *cl_next;
+	struct dhcp6_lease *cl;
 	struct timeval timo;
 	double d;
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime >

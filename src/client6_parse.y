@@ -1,4 +1,4 @@
-/* $Id: client6_parse.y,v 1.5 2007/11/13 02:15:19 dlc-atl Exp $ */
+/* $Id: client6_parse.y,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
 /* ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -41,6 +41,8 @@
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
+
+extern int client6lex (void);
 
 extern int lineno;
 extern int cfdebug;

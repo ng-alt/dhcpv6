@@ -1,4 +1,4 @@
-/* $Id: timer.c,v 1.5 2007/11/13 02:15:20 dlc-atl Exp $ */
+/* $Id: timer.c,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
 /* ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -32,8 +32,11 @@
 
 #include "config.h"
 
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 #include <netinet/in.h>
+#include <sys/time.h>
 
 #include "dhcp6.h"
 #include "cfg.h"

@@ -1,4 +1,4 @@
-/* $Id: cfg.c,v 1.4 2007/11/13 02:15:19 dlc-atl Exp $ */
+/* $Id: cfg.c,v 1.5 2007/11/13 03:13:32 dlc-atl Exp $ */
 /* ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -681,6 +681,7 @@ int clear_option_list (struct dhcp6_option_list *opts)
 		TAILQ_REMOVE(opts, opt, link);
 		free(opt);
 	}
+	return 0;
 }
 
 void *get_if_option( struct dhcp6_option_list *opts, int type )
