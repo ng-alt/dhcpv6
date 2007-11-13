@@ -1,4 +1,4 @@
-/* $Id: resolv_token.l,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
+/* $Id: resolv_token.l,v 1.7 2007/11/13 04:34:55 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -241,7 +241,6 @@ resolv_parse(struct dns_list *dnslist)
 		return (-1);
 	}
 	return yylex();
-	return 0;
 }
 
 static int
