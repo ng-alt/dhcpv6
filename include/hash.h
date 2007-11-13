@@ -1,4 +1,4 @@
-/*	$Id: hash.h,v 1.1 2007/11/09 01:02:30 dlc-atl Exp $	*/
+/* $Id: hash.h,v 1.2 2007/11/13 02:15:19 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003

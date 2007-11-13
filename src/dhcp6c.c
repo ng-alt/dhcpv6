@@ -1,5 +1,5 @@
-/*	$Id: dhcp6c.c,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
-/*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
+/* $Id: dhcp6c.c,v 1.5 2007/11/13 02:15:20 dlc-atl Exp $ */
+/* ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
  * Copyright (C) 1998 and 1999 WIDE Project.
@@ -32,44 +32,23 @@
 
 #include "config.h"
 
-/*
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/uio.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/time.h>
-#include <sys/timeb.h>
-#include <time.h>
+#include <stdlib.h>
+#include <syslog.h>
+#include <string.h>
+#include <signal.h>
 #include <net/if.h>
 #include <linux/sockios.h>
-
-#if defined(__FreeBSD__) && __FreeBSD__ >= 3
-# include <net/if_var.h>
-#endif
-
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <syslog.h>
-#include <stdlib.h>
+#include <sys/timeb.h>
+#include <errno.h>
 #include <unistd.h>
-#include <string.h>
-#include <err.h>
-#include <ifaddrs.h>
-#include <sys/ioctl.h>
-#include <sys/queue.h>
+#include <netdb.h>
+#include <sys/stat.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
 #include "timer.h"
 #include "lease.h"
-*/
 
 static int debug = 0;
 static u_long sig_flags = 0;

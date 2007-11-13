@@ -1,4 +1,4 @@
-/*	$Id: resolv_token.l,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
+/* $Id: resolv_token.l,v 1.5 2007/11/13 02:15:20 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -33,25 +33,15 @@
 %{
 #include "config.h"
 
-/*
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/file.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <errno.h>
+#include <fcntl.h>
 #include <syslog.h>
-#include <string.h>
-#include <sys/queue.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
-*/
 
 #undef yywrap
 

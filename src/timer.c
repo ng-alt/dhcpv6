@@ -1,5 +1,5 @@
-/*	$Id: timer.c,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
-/*	ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp	*/
+/* $Id: timer.c,v 1.5 2007/11/13 02:15:20 dlc-atl Exp $ */
+/* ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp */
 
 /*
  * Copyright (C) 2002 WIDE Project.
@@ -32,25 +32,13 @@
 
 #include "config.h"
 
-/*
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
 #include <syslog.h>
-#include <stdlib.h>
-#include <string.h>
-#if defined(__NetBSD__) || defined(__OpenBSD__)
-#include <search.h>
-#endif
-#include <sys/queue.h>
+#include <netinet/in.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
 #include "timer.h"
-*/
 
 #define MILLION 1000000
 

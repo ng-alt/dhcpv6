@@ -1,4 +1,4 @@
-/*	$Id: hash.c,v 1.3 2007/11/12 22:36:49 dlc-atl Exp $	*/
+/* $Id: hash.c,v 1.4 2007/11/13 02:15:20 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -33,14 +33,10 @@
 
 #include "config.h"
 
-/*
-#include <stdint.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <syslog.h>
 
 #include "hash.h"
-*/
 
 #ifdef	__GNUC__
 extern void dprintf(int, const char *, ...)

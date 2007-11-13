@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
+/* $Id: client6_addr.c,v 1.5 2007/11/13 02:15:19 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -33,30 +33,21 @@
 
 #include "config.h"
 
-/*
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <linux/ipv6.h>
-#include <net/if.h>
-#include <time.h>
+#include <string.h>
 #include <errno.h>
 #include <syslog.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <linux/sockios.h>
 #include <net/if_arp.h>
 #include <ifaddrs.h>
-#include <sys/queue.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <linux/ipv6.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
 #include "timer.h"
 #include "lease.h"
-*/
 
 static int dhcp6_update_lease __P((struct dhcp6_addr *, struct dhcp6_lease *));
 static int dhcp6_add_lease __P((struct dhcp6_addr *));

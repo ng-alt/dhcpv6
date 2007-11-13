@@ -30,6 +30,10 @@
 #ifndef __RELAY6_PARSER_H_DEFINED
 #define __RELAY6_PARSER_H_DEFINED
 
+#include <sys/types.h>
+#include <stdint.h>
+#include <netinet/in.h>
+
 struct msg_parser {
 	struct msg_parser *next;
 	struct msg_parser *prev;

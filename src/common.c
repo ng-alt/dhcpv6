@@ -1,5 +1,5 @@
-/*	$Id: common.c,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
-/*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
+/* $Id: common.c,v 1.5 2007/11/13 02:15:20 dlc-atl Exp $ */
+/* ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp */
 
 /*
  * Copyright (C) 1998 and 1999 WIDE Project.
@@ -32,56 +32,30 @@
 
 #include "config.h"
 
-/*
+#include <stdio.h>
+#include <stdlib.h>
+#include <syslog.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <linux/sockios.h>
-#include <sys/ioctl.h>
-
-#if TIME_WITH_SYS_TIME
-# include <sys/time.h>
-# include <time.h>
-#else
-# if HAVE_SYS_TIME_H
-#  include <sys/time.h>
-# else
-#  include <time.h>
-# endif
-#endif
-#include <net/if.h>
-#if defined(__FreeBSD__) && __FreeBSD__ >= 3
-#include <net/if_var.h>
-#endif
-#include <net/if_arp.h>
-
-#include <netinet/in.h>
-#include <errno.h>
-#include <limits.h>
-#include <stdio.h>
 #include <stdarg.h>
-#include <syslog.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <err.h>
+#include <errno.h>
+#include <net/if_arp.h>
+#include <sys/ioctl.h>
 #include <netdb.h>
 #include <ifaddrs.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <arpa/nameser.h>
 #include <resolv.h>
-#include <sys/queue.h>
-
-#ifdef HAVE_GETIFADDRS 
-# ifdef HAVE_IFADDRS_H
-#  define USE_GETIFADDRS
-#  include <ifaddrs.h>
-# endif
-#endif
 
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
 #include "timer.h"
 #include "lease.h"
-*/
+
+#define IFNAMSIZ 16
 
 int foreground;
 int debug_thresh;

@@ -1,5 +1,5 @@
-/*	$Id: dhcp6s.c,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
-/*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
+/* $Id: dhcp6s.c,v 1.5 2007/11/13 02:15:20 dlc-atl Exp $ */
+/* ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
  * Copyright (C) 1998 and 1999 WIDE Project.

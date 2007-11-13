@@ -1,5 +1,5 @@
-/*	$Id: cfg.c,v 1.3 2007/11/12 22:36:49 dlc-atl Exp $	*/
-/*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
+/* $Id: cfg.c,v 1.4 2007/11/13 02:15:19 dlc-atl Exp $ */
+/* ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
  * Copyright (C) 2002 WIDE Project.
@@ -36,7 +36,9 @@
 #include <stdlib.h>
 #include <syslog.h>
 #include <string.h>
+#include <netinet/in.h>
 
+#include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
 

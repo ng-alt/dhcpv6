@@ -1,5 +1,5 @@
-/*	$Id: common.h,v 1.1 2007/11/09 01:02:30 dlc-atl Exp $	*/
-/*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
+/* $Id: common.h,v 1.2 2007/11/13 02:15:19 dlc-atl Exp $ */
+/* ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*
  * Copyright (C) 1998 and 1999 WIDE Project.

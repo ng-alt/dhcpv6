@@ -29,16 +29,13 @@
 
 #include "config.h"
 
-/*
 #include <stdlib.h>
-#include <string.h>
-#include <arpa/inet.h>
-#include <net/if.h>
 #include <errno.h>
 
+#include "dhcp6r.h"
 #include "relay6_socket.h"
 #include "relay6_database.h"
-*/
+#include "relay6_parser.h"
 
 #ifndef IPV6_2292PKTINFO
 #define IPV6_2292PKTINFO IPV6_PKTINFO

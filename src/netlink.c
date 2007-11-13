@@ -31,27 +31,18 @@
 
 #include "config.h"
 
-/*
-#include <sys/types.h>
-#include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <malloc.h>
-#include <errno.h>
 #include <syslog.h>
+#include <errno.h>
 #include <sys/socket.h>
-#include <asm/types.h>
+#include <netinet/in.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/queue.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
-*/
 
 static void
 get_if_prefix(struct nlmsghdr *nlm, int nlm_len, int request,

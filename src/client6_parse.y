@@ -1,5 +1,5 @@
-/*	$Id: client6_parse.y,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
-/*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
+/* $Id: client6_parse.y,v 1.5 2007/11/13 02:15:19 dlc-atl Exp $ */
+/* ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp */
 
 /*
  * Copyright (C) 2002 WIDE Project.
@@ -33,20 +33,14 @@
 %{
 #include "config.h"
 
-/*
+#include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <malloc.h>
-#include <sys/queue.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
-*/
 
 extern int lineno;
 extern int cfdebug;

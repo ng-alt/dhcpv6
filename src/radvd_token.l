@@ -1,4 +1,4 @@
-/*	$Id: radvd_token.l,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $	*/
+/* $Id: radvd_token.l,v 1.5 2007/11/13 02:15:20 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -35,26 +35,17 @@
 %{
 #include "config.h"
 
-/*
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/file.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include <fcntl.h>
 #include <signal.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <errno.h>
 #include <syslog.h>
-#include <string.h>
-#include <sys/queue.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
 #include "lease.h"
-*/
 
 #ifndef PATH_RADVD_PID
 #define	PATH_RADVD_PID "/var/run/radvd/radvd.pid"
