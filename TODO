@@ -2,10 +2,9 @@
       AUTHORS file current?
 
 - autoconf/automake stuff
-      src/, include/, and etc/ subdirectory installation targets
       make some upload targets for release simplification
       fix macro test for netlink.h and rtnetlink.h
-      add some typedef checks
-      check library functions for API compliance (?)
-      make sure no header tests are duplicated
-      detect -lresolv and -lcrypto
+
+- Clean up usage() screens in the command line programs
+
+- Add libdhcp6client patches from RH pkg cvs
