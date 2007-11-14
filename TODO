@@ -8,3 +8,4 @@
       add some typedef checks
       check library functions for API compliance (?)
       make sure no header tests are duplicated
+      detect -lresolv and -lcrypto
