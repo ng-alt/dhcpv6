@@ -17,10 +17,19 @@ CLEANFILES = *~ ChangeLog
 
 MOSTLYCLEANDIRS = m4
 
+CVSTAG = $(shell echo "$(PACKAGE)-$(VERSION)" | sed -e 's|\.|_|g')
+FTPURL = ftp://upload.sourceforge.net/incoming/
+
 ChangeLog:
 	rm -f ChangeLog ChangeLog.bak
 	cvs2cl
 
-CVSTAG = $(shell echo "$(PACKAGE)-$(VERSION)" | sed -e 's|\.|_|g')
 tag:
 	cvs tag -R $(CVSTAG)
+
+release: dist-gzip
+	rm -rf $(PACKAGE)-$(VERSION)
+	gzip -dc $(PACKAGE)-$(VERSION).tar.gz | tar -xvf -
+	( cd $(PACKAGE)-$(VERSION) && ./configure && make ) || exit 1
+	$(MAKE) tag
+	curl --upload-file $(PACKAGE)-$(VERSION).tar.gz $(FTPURL)
