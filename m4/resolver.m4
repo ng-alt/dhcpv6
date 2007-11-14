@@ -19,18 +19,38 @@ dnl
 dnl Red Hat Author(s): David Cantrell <dcantrell@redhat.com>
 
 AC_DEFUN([AM_CHECK_RESOLVER],[
-AC_SUBST(RESOLVER_LIBS)
+AC_SUBST(LIBS)
 
-AC_CHECK_LIB([resolv], [dh_comp], [:],
-             [AC_MSG_FAILURE([*** Unable to find dn_comp() in libresolv])])
+saved_LIBS="$LIBS"
+LIBS="-lresolv"
 
-AC_CHECK_LIB([resolv], [dh_expand], [:]
-             [AC_MSG_FAILURE([*** Unable to find dn_expand() in libresolv])])
+AC_CHECK_DECL(
+    [dn_comp],
+    AC_LINK_IFELSE(
+        [AC_LANG_PROGRAM(
+            [#include <resolv.h>],
+            [int i = dn_comp(NULL, NULL, 0, NULL, NULL);]
+        )],
+        [],
+        [AC_MSG_FAILURE([*** Unable to find dn_comp() in libresolv])]
+    ),
+    [AC_MSG_FAILURE([*** Symbol dn_comp is not declared])],
+    [#include <resolv.h>]
+)
 
-AC_CHECK_HEADERS([resolv.h], [],
-                 [AC_MSG_FAILURE([*** Header file $ac_header not found.])])
+AC_CHECK_DECL(
+    [dn_expand],
+    AC_LINK_IFELSE(
+        [AC_LANG_PROGRAM(
+            [#include <resolv.h>],
+            [int i = dn_expand(NULL, NULL, 0, NULL, NULL);]
+        )],
+        [],
+        [AC_MSG_FAILURE([*** Unable to find dn_expand() in libresolv])]
+    ),
+    [AC_MSG_FAILURE([*** Symbol dn_expand is not declared])],
+    [#include <resolv.h>]
+)
 
-dnl libresolv is a system library, so the headers should already be available,
-dnl we just need to set the library flags
-RESOLVER_LIBS = -lresolv
+LIBS="$saved_LIBS -lresolv"
 ])
