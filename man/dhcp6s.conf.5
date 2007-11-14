@@ -1,4 +1,4 @@
-.\" $Id: dhcp6s.conf.5,v 1.1 2007/11/09 00:54:34 dlc-atl Exp $
+.\" $Id: dhcp6s.conf.5,v 1.2 2007/11/14 15:48:32 dlc-atl Exp $
 .\"
 .\" Copyright (C) International Business Machines  Corp., 2003
 .\" All rights reserved.
@@ -205,7 +205,7 @@ This statement allows administrators to specify the Valid Life Time for
 each address.
 
 .nf
-.BI option\ dns_server\ <ipv6\ addresses\ or\ domain\ name\ list>;
+.BI option\ dns_servers\ <ipv6\ addresses\ or\ domain\ name\ list>;
 .fi
 This statement allows administrators to specify the DNS servers.
 
@@ -275,7 +275,7 @@ only way to set client address prefixes was by router advertisement.
 .PP
 This is a sample of the dhcp6s.conf file.
 .nf
-.B option dns\_server 2003::6:1 ibm.com;
+.B option dns\_servers 2003::6:1 ibm.com;
 .B prefer\-life\-time 10000;
 .B valid\-life\-time 20000;
 .B renew\-time 5000;
