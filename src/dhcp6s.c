@@ -1,4 +1,4 @@
-/* $Id: dhcp6s.c,v 1.8 2007/11/14 15:53:24 dlc-atl Exp $ */
+/* $Id: dhcp6s.c,v 1.9 2007/11/14 15:55:53 dlc-atl Exp $ */
 /* ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -795,8 +795,9 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		}
 		break;
 	case DH6_INFORM_REQ:
-		/* don't response to info-req if there is any IA option */
-		if (optinfo->iaidinfo.iaid != 0)
+		/* don't response to info-req if there is any IA
+		 * or server ID option */
+		if (optinfo->iaidinfo.iaid != 0 || optinfo->serverID.duid_len)
 			goto fail;
 		/* DNS server */
 		if (dhcp6_copy_list(&roptinfo.dns_list.addrlist, &dnslist.addrlist)) {
