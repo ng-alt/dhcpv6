@@ -1,4 +1,4 @@
-/* $Id: dhcp6s.c,v 1.9 2007/11/14 15:55:53 dlc-atl Exp $ */
+/* $Id: dhcp6s.c,v 1.10 2007/11/14 15:57:03 dlc-atl Exp $ */
 /* ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -831,7 +831,9 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			addr_flag = ADDR_UPDATE;
 		if (dh6->dh6_msgtype == DH6_RELEASE)
 			addr_flag = ADDR_REMOVE;
-		if (dh6->dh6_msgtype == DH6_CONFIRM) {
+		if (dh6->dh6_msgtype == DH6_CONFIRM ||
+			dh6->dh6_msgtype == DH6_RENEW ||
+			dh6->dh6_msgtype == DH6_REBIND) {
 			/* DNS server */
 			addr_flag = ADDR_VALIDATE;
 			if (dhcp6_copy_list(&roptinfo.dns_list.addrlist, &dnslist.addrlist)) {
