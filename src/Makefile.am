@@ -5,8 +5,7 @@
 
 INCLUDES = -I$(top_srcdir)/include
 
-# FIXME: this needs to become part of the configure script
-LIBS = -lresolv -lcrypto
+LIBS = $(RESOLVER_LIBS)
 
 COMMONSRCS = common.c timer.c hash.c lease.c lease_token.l
 
