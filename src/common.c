@@ -1,4 +1,4 @@
-/* $Id: common.c,v 1.7 2007/11/14 15:50:03 dlc-atl Exp $ */
+/* $Id: common.c,v 1.8 2007/11/14 20:04:35 dlc-atl Exp $ */
 /* ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp */
 
 /*
@@ -34,12 +34,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <syslog.h>
 #include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <stdarg.h>
 #include <err.h>
 #include <errno.h>
 #include <net/if_arp.h>
