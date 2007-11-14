@@ -11,7 +11,7 @@ EXTRA_DIST = AUTHORS LICENSE README TODO docs ChangeLog
 
 MAINTAINERCLEANFILES = Makefile.in config.guess config.h.in config.sub \
                        depcomp install-sh ltmain.sh missing ABOUT-NLS \
-                       INSTALL aclocal.m4 configure ylwrap
+                       INSTALL aclocal.m4 configure ylwrap $(DIST_ARCHIVES)
 
 CLEANFILES = *~ ChangeLog
 
