@@ -1,4 +1,4 @@
-/* $Id: common.c,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
+/* $Id: common.c,v 1.7 2007/11/14 15:50:03 dlc-atl Exp $ */
 /* ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp */
 
 /*
@@ -943,7 +943,7 @@ dhcp6_get_options(p, ep, optinfo)
 				goto malformed;
 			duid0.duid_len = optlen;
 			duid0.duid_id = cp;
-			dprintf(LOG_DEBUG, "  DUID: %s", duidstr(&duid0));
+			dprintf(LOG_DEBUG, "  client DUID: %s", duidstr(&duid0));
 			if (duidcpy(&optinfo->clientID, &duid0)) {
 				dprintf(LOG_ERR, "%s" "failed to copy DUID",
 					FNAME);
@@ -955,7 +955,7 @@ dhcp6_get_options(p, ep, optinfo)
 				goto malformed;
 			duid0.duid_len = optlen;
 			duid0.duid_id = cp;
-			dprintf(LOG_DEBUG, "  DUID: %s", duidstr(&duid0));
+			dprintf(LOG_DEBUG, "  server DUID: %s", duidstr(&duid0));
 			if (duidcpy(&optinfo->serverID, &duid0)) {
 				dprintf(LOG_ERR, "%s" "failed to copy DUID",
 					FNAME);
@@ -975,8 +975,8 @@ dhcp6_get_options(p, ep, optinfo)
 				goto malformed;
 			memcpy(&val16, cp, sizeof(val16));
 			num = ntohs(val16);
-			dprintf(LOG_DEBUG, "  this message status code: %s",
-			    dhcp6_stcodestr(num));
+			dprintf(LOG_DEBUG, "  this message status code: %d %s",
+			    num, dhcp6_stcodestr(num));
 			
 			/* XXX: status message */
 			
@@ -1025,13 +1025,15 @@ dhcp6_get_options(p, ep, optinfo)
 			if (optlen != 1)
 				goto malformed;
 			optinfo->pref = (u_int8_t)*(u_char *)cp;
-			dprintf(LOG_DEBUG, "%s" "get option preferrence is %2x", 
+			dprintf(LOG_DEBUG, "%s" "get option preference is %2x", 
 					FNAME, optinfo->pref);
 			break;
 		case DH6OPT_RAPID_COMMIT:
 			if (optlen != 0)
 				goto malformed;
 			optinfo->flags |= DHCIFF_RAPID_COMMIT;
+			dprintf(LOG_DEBUG, "%s" "get option rapid-commit",
+					FNAME);
 			break;
 		case DH6OPT_REQUEST_PREFIX:
 			if (optlen != 0)
@@ -1099,6 +1101,12 @@ dhcp6_get_options(p, ep, optinfo)
 					    "DNS address", FNAME);
 					goto fail;
 				}
+
+				dprintf(LOG_INFO, "%s" " get  "
+				    "DNS address (%s)", FNAME,
+				    in6addr2str((struct in6_addr *)val,
+					0));
+
 			nextdns: ;
 			}
 			break;
