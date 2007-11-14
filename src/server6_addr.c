@@ -1,4 +1,4 @@
-/* $Id: server6_addr.c,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
+/* $Id: server6_addr.c,v 1.7 2007/11/14 15:53:24 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -316,8 +316,14 @@ dhcp6_validate_bindings(optinfo, iaidaddr)
 
 	/* XXX: confirm needs to update bindings ?? */
 	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
-		if (dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr) == NULL) 
+		if (dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr) == NULL) {
+			/* returns with lifetimes of 0
+			 * [RFC3315, Section 18.2.3]
+			 */
+			lv->val_dhcp6addr.validlifetime = 0;
+			lv->val_dhcp6addr.preferlifetime = 0;
 			return (-1);
+		}
 	}
 	return 0;
 }
@@ -588,8 +594,7 @@ dhcp6_get_hostconf(roptinfo, optinfo, iaidaddr, host)
 }
 
 int
-dhcp6_create_addrlist(msgtype, roptinfo, optinfo, iaidaddr, subnet)
-	int msgtype;
+dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
 	struct dhcp6_optinfo *roptinfo;
 	struct dhcp6_optinfo *optinfo; 
 	const struct dhcp6_iaidaddr *iaidaddr;
@@ -646,20 +651,9 @@ dhcp6_create_addrlist(msgtype, roptinfo, optinfo, iaidaddr, subnet)
 							= DH6OPT_STCODE_NOADDRAVAIL;
 				}
 			} else {
-				if (msgtype == DH6_RENEW) {
-					/* returns with lifetimes of 0
-					 * [RFC3315, Section 18.2.3]
-					 */
-					lv->val_dhcp6addr.validlifetime = 0;
-					lv->val_dhcp6addr.preferlifetime = 0;
-					numaddr += 1;
-					dprintf(LOG_DEBUG, "%s" " %s address not appropriate", FNAME, 
+				lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
+				dprintf(LOG_DEBUG, "%s" " %s address not on link", FNAME, 
 						in6addr2str(&lv->val_dhcp6addr.addr, 0));
-				} else {
-					lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
-					dprintf(LOG_DEBUG, "%s" " %s address not on link", FNAME, 
-						in6addr2str(&lv->val_dhcp6addr.addr, 0));
-				}
 			}
 		}
 		if (iaidaddr != NULL) {

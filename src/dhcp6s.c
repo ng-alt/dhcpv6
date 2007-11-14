@@ -1,4 +1,4 @@
-/* $Id: dhcp6s.c,v 1.7 2007/11/14 15:51:30 dlc-atl Exp $ */
+/* $Id: dhcp6s.c,v 1.8 2007/11/14 15:53:24 dlc-atl Exp $ */
 /* ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -876,8 +876,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 								iaidaddr, 
 								subnet);
 				else
-					dhcp6_create_addrlist(dh6->dh6_msgtype,
-							      &roptinfo, optinfo, 
+					dhcp6_create_addrlist(&roptinfo, optinfo, 
 							      iaidaddr, subnet);
 				/* in case there is not bindings available */
 				if (TAILQ_EMPTY(&roptinfo.addr_list)) {
@@ -946,8 +945,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		if (optinfo->type == IAPD)
 			dhcp6_create_prefixlist(&roptinfo, optinfo, iaidaddr, subnet);
 		else
-			dhcp6_create_addrlist(dh6->dh6_msgtype, &roptinfo,
-					      optinfo, iaidaddr, subnet);
+			dhcp6_create_addrlist(&roptinfo, optinfo, iaidaddr, subnet);
 		if (TAILQ_EMPTY(&roptinfo.addr_list)) {
 			if (resptype == DH6_ADVERTISE) {
 				/* Omit IA option */
