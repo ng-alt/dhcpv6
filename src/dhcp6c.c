@@ -1,4 +1,4 @@
-/* $Id: dhcp6c.c,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
+/* $Id: dhcp6c.c,v 1.7 2007/11/14 15:51:30 dlc-atl Exp $ */
 /* ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -85,8 +85,7 @@ static	char leasename[100];
 
 #define CLIENT6_INFO_REQ	0x10
 
-int insock = -1;	/* inbound udp port */
-int outsock = -1;	/* outbound udp port */
+int iosock = -1;	/* inbound/outbound udp port */
 int nlsock = -1;	
 
 extern char *raproc_file;
@@ -341,13 +340,13 @@ client6_init(device)
 			FNAME, strerror(error));
 		exit(1);
 	}
-	insock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-	if (insock < 0) {
-		dprintf(LOG_ERR, "%s" "socket(inbound)", FNAME);
+	iosock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+	if (iosock < 0) {
+		dprintf(LOG_ERR, "%s" "socket", FNAME);
 		exit(1);
 	}
 #ifdef IPV6_RECVPKTINFO
-	if (setsockopt(insock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on,
+	if (setsockopt(iosock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on,
 		       sizeof(on)) < 0) {
 		dprintf(LOG_ERR, "%s"
 			"setsockopt(inbound, IPV6_RECVPKTINFO): %s",
@@ -355,7 +354,7 @@ client6_init(device)
 		exit(1);
 	}
 #else
-	if (setsockopt(insock, IPPROTO_IPV6, IPV6_PKTINFO, &on,
+	if (setsockopt(iosock, IPPROTO_IPV6, IPV6_PKTINFO, &on,
 		       sizeof(on)) < 0) {
 		dprintf(LOG_ERR, "%s"
 			"setsockopt(inbound, IPV6_PKTINFO): %s",
@@ -374,7 +373,7 @@ client6_init(device)
 	retry = now = time(0);
 	bound = 0;
 	do {
-		if (bind(insock, res->ai_addr, res->ai_addrlen) < 0) {
+		if (bind(iosock, res->ai_addr, res->ai_addrlen) < 0) {
 			bound = -errno;
 			retry = time(0);
 			if ((bound != -EADDRNOTAVAIL) || ((retry - now) > 5))
@@ -388,12 +387,13 @@ client6_init(device)
 	} while ((retry - now) < 5);
 
 	if (bound < 0) {
-		dprintf(LOG_ERR, "%s" "bind(inbound): %s", FNAME, strerror(-bound));
+		dprintf(LOG_ERR, "%s" "bind: %s", FNAME, strerror(-bound));
 		exit(bound);
 	}
 
 	freeaddrinfo(res);
 
+	/* initiallize socket address structure for outbound packets */
 	hints.ai_flags = 0;
 	error = getaddrinfo(linklocal, DH6PORT_UPSTREAM, &hints, &res);
 	if (error) {
@@ -401,25 +401,14 @@ client6_init(device)
 			FNAME, gai_strerror(error));
 		exit(1);
 	}
-	outsock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-	if (outsock < 0) {
-		dprintf(LOG_ERR, "%s" "socket(outbound): %s",
-			FNAME, strerror(errno));
-		exit(1);
-	}
-	if (setsockopt(outsock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
+	if (setsockopt(iosock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
 			&ifidx, sizeof(ifidx)) < 0) {
 		dprintf(LOG_ERR, "%s"
-			"setsockopt(outbound, IPV6_MULTICAST_IF): %s",
+			"setsockopt(iosock, IPV6_MULTICAST_IF): %s",
 			FNAME, strerror(errno));
 		exit(1);
 	}
 	((struct sockaddr_in6 *)(res->ai_addr))->sin6_scope_id = ifidx;
-	if (bind(outsock, res->ai_addr, res->ai_addrlen) < 0) {
-		dprintf(LOG_ERR, "%s" "bind(outbound): %s",
-			FNAME, strerror(errno));
-		exit(1);
-	}
 	freeaddrinfo(res);
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_INET6;
@@ -442,7 +431,7 @@ client6_init(device)
 			FNAME, device);
 		exit(1);
 	}
-	ifp->outsock = outsock;
+	ifp->outsock = iosock;
 
 	if (signal(SIGHUP, client6_signal) == SIG_ERR) {
 		dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
@@ -631,9 +620,9 @@ client6_mainloop()
 		w = dhcp6_check_timer();
 
 		FD_ZERO(&r);
-		FD_SET(insock, &r);
+		FD_SET(iosock, &r);
 
-		ret = select(insock + 1, &r, NULL, NULL, w);
+		ret = select(iosock + 1, &r, NULL, NULL, w);
 		switch (ret) {
 		case -1:
 			if (errno != EINTR) {
@@ -1090,7 +1079,7 @@ client6_recv()
 	mhdr.msg_iovlen = 1;
 	mhdr.msg_control = (caddr_t)cmsgbuf;
 	mhdr.msg_controllen = sizeof(cmsgbuf);
-	if ((len = recvmsg(insock, &mhdr, 0)) < 0) {
+	if ((len = recvmsg(iosock, &mhdr, 0)) < 0) {
 		dprintf(LOG_ERR, "%s" "recvmsg: %s", FNAME, strerror(errno));
 		return;
 	}

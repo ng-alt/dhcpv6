@@ -37,7 +37,7 @@
 fd_set readfd;
 int fdmax;  
 
-struct receive {
+struct relay_socket {
 	struct msghdr msg;
 	struct iovec iov[1];
 	struct cmsghdr *cmsgp;
@@ -50,15 +50,10 @@ struct receive {
 	int buflength;
 	int dst_addr_type ;
 	char *databuf;
-	int recv_sock_desc;
+	int sock_desc;
 };
 
-struct send {
-	int send_sock_desc;
-};
-
-struct send  *sendsock;
-struct receive *recvsock;
+struct relay_socket *relaysock;
 
 int send_message __P((void));
 int fill_addr_struct __P((void));

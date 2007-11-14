@@ -54,16 +54,16 @@ struct msg_parser *create_parser_obj()
 		exit(1);
 	}
 
-	memcpy(msg->buffer, recvsock->databuf, MAX_DHCP_MSG_LENGTH);
+	memcpy(msg->buffer, relaysock->databuf, MAX_DHCP_MSG_LENGTH);
 
 	msg->sent = 0;
 	msg->if_index = 0;
 
-	msg->interface_in = recvsock->pkt_interface;
-	memcpy(msg->src_addr, recvsock->src_addr, sizeof(recvsock->src_addr));
-	msg->datalength = recvsock->buflength;
+	msg->interface_in = relaysock->pkt_interface;
+	memcpy(msg->src_addr, relaysock->src_addr, sizeof(relaysock->src_addr));
+	msg->datalength = relaysock->buflength;
 	msg->pointer_start = msg->buffer;
-	msg->dst_addr_type = recvsock->dst_addr_type;
+	msg->dst_addr_type = relaysock->dst_addr_type;
   
 	msg->prev = &msg_parser_list;
 	msg->next =  msg_parser_list.next;

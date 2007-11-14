@@ -338,8 +338,7 @@ dhcp6r_clock()
 }
 
 void  handler(int signo) {
-	close(recvsock->recv_sock_desc);
-	close(sendsock->send_sock_desc);
+	close(relaysock->sock_desc);
 	TRACE(dump, "%s - %s", dhcp6r_clock(), 
 	      "RELAY AGENT IS STOPPING............\n");  
 	fflush(dump);

@@ -1,4 +1,4 @@
-/* $Id: dhcp6s.c,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
+/* $Id: dhcp6s.c,v 1.7 2007/11/14 15:51:30 dlc-atl Exp $ */
 /* ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -77,8 +77,7 @@ static char *device[100];
 static int num_device = 0;
 static int debug = 0;
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_SERVER;
-int insock;	/* inbound udp port */
-int outsock;	/* outbound udp port */
+int iosock = -1;	/* inbound/outbound udp port */
 extern FILE *server6_lease_file;
 char server6_lease_temp[100];
 
@@ -269,7 +268,7 @@ server6_init()
 	struct ifreq *ifr;
 	double d;
 	struct timeval timo;
-	/* initialize inbound socket */
+	/* initialize socket for inbound packets */
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_INET6;
 	hints.ai_socktype = SOCK_DGRAM;
@@ -281,14 +280,14 @@ server6_init()
 			FNAME, gai_strerror(error));
 		exit(1);
 	}
-	insock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-	if (insock < 0) {
-		dprintf(LOG_ERR, "%s" "socket(insock): %s",
+	iosock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+	if (iosock < 0) {
+		dprintf(LOG_ERR, "%s" "socket: %s",
 			FNAME, strerror(errno));
 		exit(1);
 	}
 #ifdef IPV6_RECVPKTINFO
-	if (setsockopt(insock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on,
+	if (setsockopt(iosock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on,
 		       sizeof(on)) < 0) {
 		dprintf(LOG_ERR, "%s"
 			"setsockopt(inbound, IPV6_RECVPKTINFO): %s",
@@ -296,7 +295,7 @@ server6_init()
 		exit(1);
 	}
 #else
-	if (setsockopt(insock, IPPROTO_IPV6, IPV6_PKTINFO, &on,
+	if (setsockopt(iosock, IPPROTO_IPV6, IPV6_PKTINFO, &on,
 		       sizeof(on)) < 0) {
 		dprintf(LOG_ERR, "%s"
 			"setsockopt(inbound, IPV6_PKTINFO): %s",
@@ -304,15 +303,15 @@ server6_init()
 		exit(1);
 	}
 #endif
-	if (bind(insock, res->ai_addr, res->ai_addrlen) < 0) {
-		dprintf(LOG_ERR, "%s" "bind(insock): %s",
+	if (bind(iosock, res->ai_addr, res->ai_addrlen) < 0) {
+		dprintf(LOG_ERR, "%s" "bind: %s",
 			FNAME, strerror(errno));
 		exit(1);
 	}
 	upstream_port = ((struct sockaddr_in6 *) res->ai_addr)->sin6_port;
 	freeaddrinfo(res);
 
-	/* initiallize outbound interface */
+	/* initiallize socket address structure for outbound packets */
 	hints.ai_flags = AI_PASSIVE;
 	error = getaddrinfo(NULL, DH6PORT_DOWNSTREAM, &hints, &res);
 	if (error) {
@@ -320,18 +319,6 @@ server6_init()
 			FNAME, gai_strerror(error));
 		exit(1);
 	}
-	outsock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-	if (outsock < 0) {
-		dprintf(LOG_ERR, "%s" "socket(outsock): %s",
-			FNAME, strerror(errno));
-		exit(1);
-	}
-	if (bind(outsock, res->ai_addr, res->ai_addrlen) < 0) {
-		dprintf(LOG_ERR, "%s" "bind(outsock): %s",
-			FNAME, strerror(errno));
-		exit(1);
-	}
-
 	memcpy(&sa6_any_downstream_storage, res->ai_addr, res->ai_addrlen);
 	sa6_any_downstream =
 		(const struct sockaddr_in6*)&sa6_any_downstream_storage;
@@ -411,9 +398,9 @@ server6_init()
 		memcpy(&mreq6.ipv6mr_multiaddr,
 	    		&((struct sockaddr_in6 *)res2->ai_addr)->sin6_addr,
 	    		sizeof(mreq6.ipv6mr_multiaddr));
-		if (setsockopt(insock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
+		if (setsockopt(iosock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
 		    &mreq6, sizeof(mreq6))) {
-			dprintf(LOG_ERR, "%s" "setsockopt(insock, IPV6_JOIN_GROUP) %s",
+			dprintf(LOG_ERR, "%s" "setsockopt(iosock, IPV6_JOIN_GROUP) %s",
 				FNAME, strerror(errno));
 			exit(1);
 		}
@@ -432,20 +419,20 @@ server6_init()
 		memcpy(&mreq6.ipv6mr_multiaddr,
 	    		&((struct sockaddr_in6 *)res2->ai_addr)->sin6_addr,
 	    		sizeof(mreq6.ipv6mr_multiaddr));
-		if (setsockopt(insock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
+		if (setsockopt(iosock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
 		    &mreq6, sizeof(mreq6))) {
 			dprintf(LOG_ERR,
-				"%s" "setsockopt(insock, IPV6_JOIN_GROUP): %s",
+				"%s" "setsockopt(iosock, IPV6_JOIN_GROUP): %s",
 				FNAME, strerror(errno));
 			exit(1);
 		}
 		freeaddrinfo(res2);
 
 		/* set outgoing interface of multicast packets for DHCP reconfig */
-		if (setsockopt(outsock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
+		if (setsockopt(iosock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
 		    &ifidx[i], sizeof(ifidx[i])) < 0) {
 			dprintf(LOG_ERR,
-				"%s" "setsockopt(outsock, IPV6_MULTICAST_IF): %s",
+				"%s" "setsockopt(iosock, IPV6_MULTICAST_IF): %s",
 				FNAME, strerror(errno));
 			exit(1);
 		}
@@ -472,8 +459,8 @@ server6_mainloop()
 		w = dhcp6_check_timer();
 
 		FD_ZERO(&r);
-		FD_SET(insock, &r);
-		ret = select(insock + 1, &r, NULL, NULL, w);
+		FD_SET(iosock, &r);
+		ret = select(iosock + 1, &r, NULL, NULL, w);
 		switch (ret) {
 		case -1:
 			dprintf(LOG_ERR, "%s" "select: %s",
@@ -485,8 +472,8 @@ server6_mainloop()
 		default:
 			break;
 		}
-		if (FD_ISSET(insock, &r))
-			server6_recv(insock);
+		if (FD_ISSET(iosock, &r))
+			server6_recv(iosock);
 	}
 }
 
@@ -518,7 +505,7 @@ server6_recv(s)
 	mhdr.msg_control = (caddr_t)cmsgbuf;
 	mhdr.msg_controllen = sizeof(cmsgbuf);
 
-	if ((len = recvmsg(insock, &mhdr, 0)) < 0) {
+	if ((len = recvmsg(iosock, &mhdr, 0)) < 0) {
 		dprintf(LOG_ERR, "%s" "recvmsg: %s", FNAME, strerror(errno));
 		return -1;
 	}
@@ -1102,7 +1089,7 @@ server6_send(type, ifp, origmsg, optinfo, from, fromlen, roptinfo)
 	dst.sin6_scope_id = ((struct sockaddr_in6 *)from)->sin6_scope_id;
 	dprintf(LOG_DEBUG, "send destination address is %s, scope id is %d", 
 		addr2str((struct sockaddr *)&dst, sizeof(dst)), dst.sin6_scope_id);
-	if (transmit_sa(outsock, &dst, replybuf, len) != 0) {
+	if (transmit_sa(iosock, &dst, replybuf, len) != 0) {
 		dprintf(LOG_ERR, "%s" "transmit %s to %s failed", FNAME,
 			dhcp6msgstr(type), addr2str((struct sockaddr *)&dst, sizeof(dst)));
 		return (-1);

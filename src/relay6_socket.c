@@ -49,31 +49,24 @@
 void 
 init_socket()
 {
-	recvsock = (struct receive *) malloc(sizeof(struct receive));
-	sendsock = (struct send *) malloc(sizeof(struct send)); 
+	relaysock = (struct relay_socket *) malloc(sizeof(struct relay_socket));
    
-	if ((recvsock == NULL) || (sendsock == NULL)) {
+	if (relaysock == NULL) {
 		TRACE(dump, "%s - %s", dhcp6r_clock(),
 		      "init_socket--> ERROR NO MORE MEMORY AVAILABLE\n");
 		exit(1);
 	}	
 
-	memset(recvsock, 0, sizeof(struct receive));
-	memset(sendsock, 0, sizeof(struct send));
+	memset(relaysock, 0, sizeof(struct relay_socket));
    
-	recvsock->databuf = (char *) malloc(MAX_DHCP_MSG_LENGTH*sizeof(char));
-	if (recvsock->databuf == NULL) {
+	relaysock->databuf = (char *) malloc(MAX_DHCP_MSG_LENGTH*sizeof(char));
+	if (relaysock->databuf == NULL) {
 		TRACE(dump, "%s - %s", dhcp6r_clock(),
 		      "init_socket--> ERROR NO MORE MEMORY AVAILABLE\n");
 		exit(1);
 	}	  
 
-	if ((recvsock->recv_sock_desc = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
-		printf("Failed to get new socket with socket()\n");
-		exit(0);
-	}
-
-	if ((sendsock->send_sock_desc = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+	if ((relaysock->sock_desc = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
 		printf("Failed to get new socket with socket()\n");
 		exit(0);
 	}
@@ -86,35 +79,35 @@ get_recv_data()
 	struct in6_pktinfo *pi;
 	struct sockaddr_in6 dst;
 
-	memset(recvsock->src_addr, 0, sizeof(recvsock->src_addr));
+	memset(relaysock->src_addr, 0, sizeof(relaysock->src_addr));
 
-	for(cm = (struct cmsghdr *) CMSG_FIRSTHDR(&recvsock->msg); cm; 
-	    cm = (struct cmsghdr *) CMSG_NXTHDR(&recvsock->msg, cm)) {
+	for(cm = (struct cmsghdr *) CMSG_FIRSTHDR(&relaysock->msg); cm; 
+	    cm = (struct cmsghdr *) CMSG_NXTHDR(&relaysock->msg, cm)) {
 		if ((cm->cmsg_level == IPPROTO_IPV6) && (cm->cmsg_type == IPV6_2292PKTINFO)
 		    && (cm->cmsg_len == CMSG_LEN(sizeof(struct in6_pktinfo)))) {
 			pi = (struct in6_pktinfo *)(CMSG_DATA(cm));
 			dst.sin6_addr = pi->ipi6_addr;
-			recvsock->pkt_interface = pi->ipi6_ifindex; /* the interface index 
-			                                               the packet got in */
+			relaysock->pkt_interface = pi->ipi6_ifindex; /* the interface index 
+			                                                the packet got in */
 
-			if (IN6_IS_ADDR_LOOPBACK(&recvsock->from.sin6_addr)) {
+			if (IN6_IS_ADDR_LOOPBACK(&relaysock->from.sin6_addr)) {
 				TRACE(dump, "%s - %s", dhcp6r_clock(), 
 				      "get_recv_data()-->SOURCE ADDRESS IS LOOPBACK!\n");
 				return 0;
 			}
 
-			if (inet_ntop(AF_INET6, &recvsock->from.sin6_addr, 
-			              recvsock->src_addr, INET6_ADDRSTRLEN) <= 0) {
+			if (inet_ntop(AF_INET6, &relaysock->from.sin6_addr, 
+			              relaysock->src_addr, INET6_ADDRSTRLEN) <= 0) {
 				TRACE(dump, "%s - %s", dhcp6r_clock(),
 				      "inet_ntop failed in get_recv_data()\n");
 				return 0;
        		}
 
 			if (IN6_IS_ADDR_LOOPBACK(&dst.sin6_addr)) {
-				recvsock->dst_addr_type = 1;
+				relaysock->dst_addr_type = 1;
 			}
 			else if (IN6_IS_ADDR_MULTICAST(&dst.sin6_addr)) {
-				recvsock->dst_addr_type = 2;
+				relaysock->dst_addr_type = 2;
 				if (multicast_off == 1) {
 					TRACE(dump, "%s - %s", dhcp6r_clock(), 
 					      "RECEIVED MULTICAST PACKET IS DROPPED, ONLY UNICAST "
@@ -123,10 +116,10 @@ get_recv_data()
 				}
 			}
 			else if (IN6_IS_ADDR_LINKLOCAL(&dst.sin6_addr)) {
-				recvsock->dst_addr_type = 3;
+				relaysock->dst_addr_type = 3;
 			}
 			else if (IN6_IS_ADDR_SITELOCAL(&dst.sin6_addr))
-          		recvsock->dst_addr_type = 4;
+          		relaysock->dst_addr_type = 4;
 
 			return 1;
 		}
@@ -146,8 +139,8 @@ check_select(void)
 	tv.tv_usec = 0;
 
 	FD_ZERO(&readfd);
-	fdmax = recvsock->recv_sock_desc; /* check the max of them if many 
-	                                     desc used */
+	fdmax = relaysock->sock_desc;	/* check the max of them if many 
+					   desc used */
 	FD_SET(fdmax, &readfd);
 
 	if ((i = select(fdmax+1, &readfd, NULL, NULL, &tv)) == -1) {
@@ -181,7 +174,7 @@ set_sock_opt()
 	 * [RFC3315 Section 20]
 	 */
 	hop_limit = 32;
-	if (setsockopt(sendsock->send_sock_desc, IPPROTO_IPV6,
+	if (setsockopt(relaysock->sock_desc, IPPROTO_IPV6,
 		IPV6_MULTICAST_HOPS, &hop_limit, sizeof(hop_limit)) < 0) {
 		TRACE(dump, "%s - %s, %s\n", dhcp6r_clock(), 
 				"Failed to set socket for IPV6_MULTICAST_HOPS",
@@ -189,7 +182,7 @@ set_sock_opt()
 		return 0;
 	}
 
-	if (setsockopt(recvsock->recv_sock_desc, IPPROTO_IPV6, IPV6_2292PKTINFO,
+	if (setsockopt(relaysock->sock_desc, IPPROTO_IPV6, IPV6_2292PKTINFO,
 	               &on, sizeof(on) ) < 0) {
 		TRACE(dump, "%s - %s, %s\n", dhcp6r_clock(), 
 		      "Failed to set socket for IPV6_2292PKTINFO",
@@ -221,7 +214,7 @@ set_sock_opt()
 			return 0;
 		}
 
-		if (setsockopt(recvsock->recv_sock_desc, IPPROTO_IPV6, IPV6_JOIN_GROUP, 
+		if (setsockopt(relaysock->sock_desc, IPPROTO_IPV6, IPV6_JOIN_GROUP,
 		               (char *) &sock_opt, sizeof(sock_opt)) < 0) {
 			TRACE(dump, "%s - %s", dhcp6r_clock(), 
 			      "Failed to set socket option for IPV6_JOIN_GROUP \n");
@@ -239,25 +232,25 @@ set_sock_opt()
 int 
 fill_addr_struct() 
 {
-	bzero((char *)&recvsock->from, sizeof(struct sockaddr_in6));
-	recvsock->from.sin6_family = AF_INET6;
-	recvsock->from.sin6_addr = in6addr_any;
-	recvsock->from.sin6_port = htons(547);
+	memset((char *)&relaysock->from, 0, sizeof(struct sockaddr_in6));
+	relaysock->from.sin6_family = AF_INET6;
+	relaysock->from.sin6_addr = in6addr_any;
+	relaysock->from.sin6_port = htons(SERVER_PORT);
 
-	recvsock->iov[0].iov_base = recvsock->databuf;
-	recvsock->iov[0].iov_len = MAX_DHCP_MSG_LENGTH;
-	recvsock->msg.msg_name = (void *) &recvsock->from;
-	recvsock->msg.msg_namelen = sizeof(recvsock->from);
-	recvsock->msg.msg_iov = &recvsock->iov[0];
-	recvsock->msg.msg_iovlen = 1;
+	relaysock->iov[0].iov_base = relaysock->databuf;
+	relaysock->iov[0].iov_len = MAX_DHCP_MSG_LENGTH;
+	relaysock->msg.msg_name = (void *) &relaysock->from;
+	relaysock->msg.msg_namelen = sizeof(relaysock->from);
+	relaysock->msg.msg_iov = &relaysock->iov[0];
+	relaysock->msg.msg_iovlen = 1;
 
-	recvsock->recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-	recvsock->recvp = (char *) malloc(recvsock->recvmsglen*sizeof(char));
-	recvsock->msg.msg_control = (void *) recvsock->recvp;
-	recvsock->msg.msg_controllen = recvsock->recvmsglen;
+	relaysock->recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
+	relaysock->recvp = (char *) malloc(relaysock->recvmsglen*sizeof(char));
+	relaysock->msg.msg_control = (void *) relaysock->recvp;
+	relaysock->msg.msg_controllen = relaysock->recvmsglen;
 
-    if (bind(recvsock->recv_sock_desc, (struct sockaddr *)&recvsock->from, 
-	         sizeof(recvsock->from)) < 0) {
+    if (bind(relaysock->sock_desc, (struct sockaddr *)&relaysock->from,
+	         sizeof(relaysock->from)) < 0) {
 		perror("bind");
 		return 0;
 	}
@@ -270,15 +263,15 @@ recv_data()
 {
 	int count = -1;
 
-	memset(recvsock->databuf, 0, (MAX_DHCP_MSG_LENGTH*sizeof(char)));
+	memset(relaysock->databuf, 0, (MAX_DHCP_MSG_LENGTH*sizeof(char)));
 
-	if ((count = recvmsg(recvsock->recv_sock_desc, &recvsock->msg, 0)) < 0) {
+	if ((count = recvmsg(relaysock->sock_desc, &relaysock->msg, 0)) < 0) {
 		TRACE(dump, "%s - %s", dhcp6r_clock(), 
 		      "Failed to receive data with recvmsg()-->Receive::recv_data()\n");
 		return -1;
 	}
 
-	recvsock->buflength = count;
+	relaysock->buflength = count;
 
 	return 1;
 }
@@ -491,7 +484,7 @@ send_message()
 		msg.msg_iov = &iov[0];
 		msg.msg_iovlen = 1;
 
-		if ((count = sendmsg(sendsock->send_sock_desc, &msg, 0)) < 0) { 
+		if ((count = sendmsg(relaysock->sock_desc, &msg, 0)) < 0) {
 			perror("sendmsg");
 			return 0;
 		}
@@ -562,7 +555,7 @@ send_message()
 			msg.msg_iov = &iov[0];
 			msg.msg_iovlen = 1;
 
-			if ((count = sendmsg(sendsock->send_sock_desc, &msg, 0)) < 0) {     
+			if ((count = sendmsg(relaysock->sock_desc, &msg, 0)) < 0) {
 				perror("sendmsg");	
 				return 0;
 			}
@@ -641,7 +634,7 @@ send_message()
 				msg.msg_iov = &iov[0];
 				msg.msg_iovlen = 1;
 
-				if ((count = sendmsg(sendsock->send_sock_desc, &msg, 0)) < 0) {
+				if ((count = sendmsg(relaysock->sock_desc, &msg, 0)) < 0) {
 					perror("sendmsg");	
 					return 0;
 				}
@@ -726,7 +719,7 @@ send_message()
 			msg.msg_iov = &iov[0];
 			msg.msg_iovlen = 1;
 
-			if ((count = sendmsg(sendsock->send_sock_desc, &msg, 0)) < 0) {
+			if ((count = sendmsg(relaysock->sock_desc, &msg, 0)) < 0) {
 				perror("sendmsg");	    
 				return 0;
 			}
@@ -809,7 +802,7 @@ send_message()
 				msg.msg_iov = &iov[0];
 				msg.msg_iovlen = 1;
 
-				if ((count = sendmsg(sendsock->send_sock_desc, &msg, 0))< 0) {
+				if ((count = sendmsg(relaysock->sock_desc, &msg, 0))< 0) {
 					perror("sendmsg");            
 					return 0;
 				}
