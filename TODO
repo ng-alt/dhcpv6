@@ -2,7 +2,6 @@
       AUTHORS file current?
 
 - autoconf/automake stuff
-      make some upload targets for release simplification
       fix macro test for netlink.h and rtnetlink.h
 
 - Clean up usage() screens in the command line programs
