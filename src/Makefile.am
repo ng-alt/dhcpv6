@@ -5,8 +5,6 @@
 
 INCLUDES = -I$(top_srcdir)/include
 
-LIBS = $(RESOLVER_LIBS)
-
 COMMONSRCS = common.c timer.c hash.c lease.c lease_token.l
 
 AM_YFLAGS = -d -p `echo $* | cut -d '_' -f 1`
