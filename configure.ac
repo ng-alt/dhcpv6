@@ -33,9 +33,6 @@ AC_PROG_YACC
 AC_PROG_LIBTOOL
 
 # check for required headers
-# fix header checks for:
-# linux/rtnetlink.h
-# linux/netlink.h
 AC_HEADER_RESOLV
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
@@ -43,9 +40,14 @@ AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h \
                   linux/ipv6.h linux/sockios.h net/if.h net/if_arp.h \
                   netdb.h netinet/in.h signal.h stdint.h stdlib.h \
                   string.h sys/ioctl.h sys/queue.h sys/socket.h sys/time.h \
-                  sys/timeb.h syslog.h unistd.h],
+                  sys/timeb.h syslog.h unistd.h \
+                  linux/netlink.h linux/rtnetlink.h],
                  [],
-                 [AC_MSG_FAILURE([*** Header file $ac_header not found.])])
+                 [AC_MSG_FAILURE([*** Header file $ac_header not found.])],
+                 [[#ifdef HAVE_SYS_SOCKET_H
+                   # include <sys/socket.h>
+                   #endif
+                 ]])
 
 AC_HEADER_STDBOOL
 AC_C_CONST

@@ -1,9 +1,6 @@
 - documentation
       AUTHORS file current?
 
-- autoconf/automake stuff
-      fix macro test for netlink.h and rtnetlink.h
-
 - Clean up usage() screens in the command line programs
 
 - Add libdhcp6client patches from RH pkg cvs
