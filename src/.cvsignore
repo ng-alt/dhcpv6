@@ -16,3 +16,5 @@ resolv_token.c
 server6_parse.c
 server6_parse.h
 server6_token.c
+*.lo
+*.la
