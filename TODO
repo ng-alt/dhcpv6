@@ -1,6 +1,6 @@
 - Clean up usage() screens in the command line programs
 
-- Add libdhcp6client patches from RH pkg cvs
+- Do all of the headers that get installed need to be installed?
 
 - Move project from dhcpv6.sourceforge.net to hosted.fedoraproject.org
       use Trac
