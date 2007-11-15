@@ -7,18 +7,24 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = include src man etc
 
-EXTRA_DIST = AUTHORS LICENSE README TODO docs ChangeLog
+EXTRA_DIST = AUTHORS LICENSE README TODO docs libdhcp6client.pc.in ChangeLog
 
 MAINTAINERCLEANFILES = Makefile.in config.guess config.h.in config.sub \
                        depcomp install-sh ltmain.sh missing ABOUT-NLS \
                        INSTALL aclocal.m4 configure ylwrap $(DIST_ARCHIVES)
 
-CLEANFILES = *~ ChangeLog
+CLEANFILES = *~ ChangeLog libdhcp6client.pc
 
 MOSTLYCLEANDIRS = m4
 
 CVSTAG = $(shell echo "$(PACKAGE)-$(VERSION)" | sed -e 's|\.|_|g')
 FTPURL = ftp://upload.sourceforge.net/incoming/
+
+pcdir = $(libdir)/pkgconfig
+pc_DATA = libdhcp6client.pc
+
+libdhcp6client.pc: libdhcp6client.pc.in
+	sed -e 's|\@DHCPV6_VERSION\@|$(DHCPV6_VERSION)|g' < $< > $@
 
 ChangeLog:
 	rm -f ChangeLog ChangeLog.bak
