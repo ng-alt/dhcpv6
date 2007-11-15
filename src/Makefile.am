@@ -3,8 +3,6 @@
 # Author: David Cantrell <dcantrell@redhat.com>
 #
 
-includedir = $(includedir)/dhcp6client
-
 INCLUDES = -I$(top_srcdir)/include
 
 COMMONSRCS = common.c timer.c hash.c lease.c lease_token.l

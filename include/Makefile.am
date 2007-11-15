@@ -3,8 +3,6 @@
 # Author: David Cantrell <dcantrell@redhat.com>
 #
 
-includedir = $(includedir)/dhcp6client
-
 noinst_HEADERS = dhcp6r.h relay6_database.h relay6_parser.h relay6_socket.h \
                  server6_conf.h
 
