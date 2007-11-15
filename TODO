@@ -1,6 +1,3 @@
-- documentation
-      AUTHORS file current?
-
 - Clean up usage() screens in the command line programs
 
 - Add libdhcp6client patches from RH pkg cvs
