@@ -1,4 +1,4 @@
-/* $Id: dhcp6s.c,v 1.10 2007/11/14 15:57:03 dlc-atl Exp $ */
+/* $Id: dhcp6s.c,v 1.11 2007/11/15 19:11:23 dlc-atl Exp $ */
 /* ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -57,8 +57,6 @@
 #include "lease.h"
 #include "server6_conf.h"
 #include "timer.h"
-
-extern int server6parse (void *YYPARSE_PARAM);
 
 typedef enum { DHCP6_CONFINFO_PREFIX, DHCP6_CONFINFO_ADDRS } dhcp6_conftype_t;
 
@@ -233,7 +231,7 @@ main(argc, argv)
 	}
 	memset(globalgroup, 0, sizeof(*globalgroup));
 	TAILQ_INIT(&globalgroup->scope.dnslist.addrlist);
-	if ((server6parse(conffile)) != 0) {
+	if ((sfparse(conffile)) != 0) {
 		dprintf(LOG_ERR, "%s" "failed to parse addr configuration file",
 			FNAME);
 		exit(1);

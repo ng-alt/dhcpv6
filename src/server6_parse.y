@@ -1,4 +1,4 @@
-/* $Id: server6_parse.y,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
+/* $Id: server6_parse.y,v 1.7 2007/11/15 19:11:23 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -66,7 +66,8 @@ static struct scopelist *currentgroup = NULL;
 static int allow = 0;
 
 static void cleanup(void);
-void server6error(char *msg);
+extern void server6error __P((char *, ...))
+        __attribute__((__format__(__printf__, 1, 2)));
 
 #define ABORT	do { cleanup(); YYABORT; } while (0)
 
@@ -942,11 +943,3 @@ void cleanup(void)
 	 * exit will free them automatically.
 	 */
 }
-
-void
-server6error(char *msg)
-{
-	cleanup();
-	dprintf(LOG_ERR, "%s in line %d", msg, num_lines);
-}
-

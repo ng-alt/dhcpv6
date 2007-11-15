@@ -1,4 +1,4 @@
-/* $Id: server6_token.l,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
+/* $Id: server6_token.l,v 1.7 2007/11/15 19:11:23 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -36,6 +36,7 @@
 %{
 #include "config.h"
 
+#include <stdarg.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -54,10 +55,10 @@
                  YY_FATAL_ERROR("error performing ECHO on yytext"); \
              }
 
+const char *configfilename;
 int num_lines = 1;
 int server6errorcount = 0;
-extern int client6parse(void);
-extern void server6error(char *msg);
+extern int server6parse(void);
 extern struct rootgroup *globalgroup;
 
 %}
@@ -157,3 +158,51 @@ infinity	{ return INFINITY; }
 
 %%
 
+static void
+server6error0(int level, char *s, va_list ap)
+{
+	char ebuf[BUFSIZ], *bp, *ep;
+
+	bp = ebuf;
+	ep = ebuf + sizeof(ebuf);
+	bp += snprintf(bp, ep - bp, "%s %d: ", configfilename, num_lines);
+	if (bp < ep)
+		bp += vsnprintf(bp, ep - bp, s, ap);
+
+	dprintf(level, ebuf);
+}
+
+void
+server6error(char *s, ...)
+{
+	va_list ap;
+	va_start(ap, s);
+	server6error0(LOG_ERR, s, ap);
+	va_end(ap);
+	server6errorcount++;
+}
+
+int
+sfparse(const char *conf)
+{
+	configfilename = conf;
+	if ((server6in = fopen(configfilename, "r")) == NULL) {
+		if (errno == ENOENT)
+			return (0);
+		dprintf(LOG_ERR, "sfparse: fopen(%s): %s",
+				configfilename, strerror(errno));
+		return (-1);
+	}
+
+	if (server6parse() || server6errorcount) {
+		if (server6errorcount) {
+			server6error("fatal parse failure: exiting (%d errors)",
+					server6errorcount);
+		} else
+			server6error("fatal parse failure: exiting");
+		return (-1);
+	}
+	post_config(globalgroup);
+
+	return (0);
+}

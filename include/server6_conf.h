@@ -1,4 +1,4 @@
-/* $Id: server6_conf.h,v 1.4 2007/11/13 03:12:12 dlc-atl Exp $ */
+/* $Id: server6_conf.h,v 1.5 2007/11/15 19:11:22 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -157,7 +157,7 @@ struct host_decl {
 int is_anycast __P((struct in6_addr *, int));	
 extern void printf_in6addr __P((struct in6_addr *));
 void post_config(struct rootgroup *);
-int sfparse __P((char *));
+int sfparse __P((const char *));
 int ipv6addrcmp __P((struct in6_addr *, struct in6_addr *));
 struct v6addr *getprefix __P((struct in6_addr *, int));
 struct in6_addr *inc_ipv6addr __P((struct in6_addr *));
