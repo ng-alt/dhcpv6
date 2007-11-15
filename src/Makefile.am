@@ -19,12 +19,23 @@ BUILT_SOURCES = server6_parse.c server6_parse.h client6_parse.c \
 # Target executables
 sbin_PROGRAMS = dhcp6s dhcp6r dhcp6c
 
+lib_LTLIBRARIES = libdhcp6client.la
+
 dhcp6s_SOURCES = dhcp6s.c server6_conf.c server6_addr.c server6_parse.y \
                  server6_token.l $(COMMONSRCS)
 dhcp6r_SOURCES = dhcp6r.c relay6_database.c relay6_parser.c relay6_socket.c
 dhcp6c_SOURCES = dhcp6c.c cfg.c netlink.c client6_addr.c client6_parse.y \
                  client6_token.l dad_token.l ra_token.l resolv_token.l \
                  radvd_token.l $(COMMONSRCS)
+
+libdhcp6client_la_CFLAGS = -DLIBDHCP
+libdhcp6client_la_LDFLAGS = -version-info \
+                                $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
+                            -release $(LT_RELEASE)
+libdhcp6client_la_SOURCES = dhcp6c.c cfg.c client6_addr.c netlink.c \
+                            client6_parse.y client6_token.l dad_token.l \
+                            ra_token.l resolv_token.l radvd_token.l \
+                            dhc6_alloc.c $(COMMONSRCS)
 
 CLEANFILES = $(BUILT_SOURCES)
 
