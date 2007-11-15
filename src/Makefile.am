@@ -16,8 +16,8 @@ BUILT_SOURCES = server6_parse.c server6_parse.h client6_parse.c \
                 client6_parse.h server6_token.c client6_token.c dad_token.c \
                 ra_token.c resolv_token.c radvd_token.c lease_token.c
 
-# Target executables
 sbin_PROGRAMS = dhcp6s dhcp6r dhcp6c
+include_HEADERS = client6_parse.h
 
 lib_LTLIBRARIES = libdhcp6client.la
 
