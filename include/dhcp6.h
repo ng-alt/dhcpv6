@@ -1,4 +1,4 @@
-/* $Id: dhcp6.h,v 1.3 2007/11/13 02:15:19 dlc-atl Exp $ */
+/* $Id: dhcp6.h,v 1.4 2007/11/15 21:14:09 dlc-atl Exp $ */
 /* ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp */
 
 /*
@@ -118,9 +118,24 @@ char radvd_dhcpv6_file[254];
 
 typedef enum { IANA, IATA, IAPD} iatype_t;
 
-typedef enum { ACTIVE, RENEW,
+#ifdef LIBDHCP
+typedef enum { DHCP6_ACTIVE=1, DHCP6_RENEW,
+               DHCP6_REBIND, DHCP6_EXPIRED,
+               DHCP6_INVALID } state_t;
+
+#define ACTIVE DHCP6_ACTIVE
+#define RENEW DHCP6_RENEW
+#define REBIND DHCP6_REBIND
+#define EXPIRED DHCP6_EXPIRED
+#define INVALID DHCP6_INVALID
+#include <isc-dhcp/libdhcp_control.h>
+extern LIBDHCP_Control *libdhcp_control;
+#include <dhc6_alloc.h>
+#else
+typedef enum { ACTIVE=1, RENEW,
 	       REBIND, EXPIRED,
 	       INVALID } state_t;
+#endif
 /* Internal data structure */
 
 struct duid {

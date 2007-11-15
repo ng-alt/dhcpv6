@@ -1,4 +1,4 @@
-/* $Id: common.c,v 1.8 2007/11/14 20:04:35 dlc-atl Exp $ */
+/* $Id: common.c,v 1.9 2007/11/15 21:14:09 dlc-atl Exp $ */
 /* ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp */
 
 /*
@@ -58,11 +58,19 @@
 #include "timer.h"
 #include "lease.h"
 
+#ifdef LIBDHCP
+#include <isc-dhcp/libdhcp_control.h>
+#endif
+
 int foreground;
 int debug_thresh;
 struct dhcp6_if *dhcp6_if;
 struct dns_list dnslist;
+#ifdef LIBDHCP
+struct host_conf *host_conflist;
+#else
 static struct host_conf *host_conflist;
+#endif
 static int in6_matchflags __P((struct sockaddr *, size_t, char *, int));
 ssize_t gethwid __P((unsigned char *, int, const char *, u_int16_t *));
 static int get_assigned_ipv6addrs __P((unsigned char *, unsigned char *,
@@ -127,7 +135,7 @@ ifinit(const char *ifname)
 
 	TAILQ_INIT(&ifp->event_list);
 
-	if ((ifp->ifname = strdup(ifname)) == NULL) {
+	if ((ifp->ifname = strdup((char *) ifname)) == NULL) {
 		dprintf(LOG_ERR, "%s" "failed to copy ifname", FNAME);
 		goto die;
 	}
@@ -700,6 +708,9 @@ get_duid(const 	char *idfile, const char *ifname,
 	struct dhcp6_duid_type1 *dp; /* we only support the type1 DUID */
 	unsigned char tmpbuf[256];	/* DUID should be no more than 256 bytes */
 
+#ifdef LIBDHCP
+	if (libdhcp_control && (libdhcp_control->capability & DHCP_USE_LEASE_DATABASE))
+#endif
 	if ((fp = fopen(idfile, "r")) == NULL && errno != ENOENT)
 		dprintf(LOG_NOTICE, "%s" "failed to open DUID file: %s",
 		    FNAME, idfile);
@@ -754,6 +765,9 @@ get_duid(const 	char *idfile, const char *ifname,
 	}
 
 	/* save the (new) ID to the file for next time */
+#ifdef LIBDHCP
+	if (libdhcp_control && (libdhcp_control->capability & DHCP_USE_LEASE_DATABASE))
+#endif
 	if (!fp) {
 		if ((fp = fopen(idfile, "w+")) == NULL) {
 			dprintf(LOG_ERR, "%s"
@@ -2057,8 +2071,16 @@ dprintf(int level, const char *fmt, ...)
 	va_list ap;
 	char logbuf[LINE_MAX];
 
+#ifdef LIBDHCP
+	va_start(ap, fmt);
+	if (libdhcp_control && libdhcp_control->eh)
+		libdhcp_control->eh(libdhcp_control, level, fmt, ap);
+	va_end(ap);
+	return;
+#endif
 	va_start(ap, fmt);
 	vsnprintf(logbuf, sizeof(logbuf), fmt, ap);
+	va_end(ap);
 
 	if (foreground && debug_thresh >= level) {
 		time_t now;
