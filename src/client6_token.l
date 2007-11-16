@@ -1,4 +1,4 @@
-/* $Id: client6_token.l,v 1.7 2007/11/14 20:04:35 dlc-atl Exp $ */
+/* $Id: client6_token.l,v 1.8 2007/11/16 15:57:57 dlc-atl Exp $ */
 /* ported from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -152,6 +152,7 @@ ecl		\}
 <S_CNF>rapid-commit { DECHO; return (RAPID_COMMIT); }
 <S_CNF>prefix-delegation { DECHO; return (PREFIX_DELEGATION); }
 <S_CNF>domain-name-servers { DECHO; return (DNS_SERVERS); }
+<S_CNF>domain-search-list { DECHO; return (DOMAIN_LIST); }
 	/* generic options */
 <S_CNF>information-only { DECHO; return (INFO_ONLY); }
 <S_CNF>temp-address { DECHO; return (TEMP_ADDR); }

@@ -1,4 +1,4 @@
-.\" $Id: dhcp6c.conf.5,v 1.1 2007/11/09 00:54:33 dlc-atl Exp $
+.\" $Id: dhcp6c.conf.5,v 1.2 2007/11/16 15:57:57 dlc-atl Exp $
 .\"
 .\" Copyright (C) International Business Machines  Corp., 2003
 .\" All rights reserved.
@@ -80,6 +80,12 @@ are defined.
 The DHCPv6 mechanism provides a way to obtain configuration information
 such as a list of available DNS servers or NTP servers. This declaration
 enables dhcp6c to request a DNS server address from the DHCPv6 server. 
+
+.nf
+\fIrequest domain\-search\-list;\fR
+.fi
+This declaration enables dhcp6c to request a domain search list which
+dhcp6c uses when resolving hostnames with DNS.
 
 .nf
 \fIrequest prefix\-delegation;\fR

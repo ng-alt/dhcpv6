@@ -1,4 +1,4 @@
-/* $Id: cfg.c,v 1.5 2007/11/13 03:13:32 dlc-atl Exp $ */
+/* $Id: cfg.c,v 1.6 2007/11/16 15:57:57 dlc-atl Exp $ */
 /* ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -597,6 +597,26 @@ add_options(int opcode,	struct dhcp6_ifconf *ifc,
 				break;
 			}
 			break;
+
+		case DHCPOPT_DOMAIN_LIST:
+			switch(opcode) {
+			case DHCPOPTCODE_REQUEST:
+				opttype = DH6OPT_DOMAIN_LIST;
+				if (dhcp6_add_listval(&ifc->reqopt_list,
+				    &opttype, DHCP6_LISTVAL_NUM) == NULL) {
+					dprintf(LOG_ERR, "%s" "failed to "
+						"configure an option", FNAME);
+					return (-1);
+				}
+				break;
+			default:
+                               dprintf(LOG_ERR, "%s" "invalid operation (%d) "
+                                       "for option type (%d)",
+                                       FNAME, opcode, cfl->type);
+                               break;
+                       }
+                       break;
+
 		default:
 			dprintf(LOG_ERR, "%s"
 				"unknown option type: %d", FNAME, cfl->type);

@@ -1,4 +1,4 @@
-/* $Id: common.c,v 1.9 2007/11/15 21:14:09 dlc-atl Exp $ */
+/* $Id: common.c,v 1.10 2007/11/16 15:57:57 dlc-atl Exp $ */
 /* ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp */
 
 /*
@@ -1931,6 +1931,8 @@ dhcp6optstr(type)
 		return "rapid commit";
 	case DH6OPT_DNS_SERVERS:
 		return "DNS_SERVERS";
+	case DH6OPT_DOMAIN_LIST:
+		return "domain search list";
 	case DH6OPT_RELAY_MSG:
 		return "relay message";
 	case DH6OPT_INTERFACE_ID:

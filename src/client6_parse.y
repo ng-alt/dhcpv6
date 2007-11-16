@@ -1,4 +1,4 @@
-/* $Id: client6_parse.y,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
+/* $Id: client6_parse.y,v 1.7 2007/11/16 15:57:57 dlc-atl Exp $ */
 /* ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -92,7 +92,7 @@ static void cleanup_cflist __P((struct cf_list *));
 
 %token INTERFACE IFNAME IPV6ADDR
 %token REQUEST SEND 
-%token RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS 
+%token RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS DOMAIN_LIST
 %token INFO_ONLY TEMP_ADDR USE_RA_PREFIX
 %token ADDRESS PREFIX IAID RENEW_TIME REBIND_TIME V_TIME P_TIME PREFIX_DELEGATION_INTERFACE
 %token NUMBER SLASH EOS BCL ECL STRING INFINITY
@@ -277,6 +277,14 @@ dhcpoption:
 			struct cf_list *l;
 
 			MAKE_CFLIST(l, DHCPOPT_DNS, NULL, NULL);
+			/* currently no value */
+			$$ = l;
+		}
+	|	DOMAIN_LIST     
+		{
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DHCPOPT_DOMAIN_LIST, NULL, NULL);
 			/* currently no value */
 			$$ = l;
 		}
