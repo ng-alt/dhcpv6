@@ -1,4 +1,4 @@
-/* $Id: dhcp6c.c,v 1.8 2007/11/15 21:14:09 dlc-atl Exp $ */
+/* $Id: dhcp6c.c,v 1.9 2007/11/16 15:58:53 dlc-atl Exp $ */
 /* ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -684,7 +684,11 @@ process_signals()
 		dprintf(LOG_INFO, FNAME "exiting");
 		free_resources(dhcp6_if);
 		unlink(DHCP6C_PIDFILE);
+#ifdef LIBDHCP
 		return;
+#else
+		exit(0);
+#endif
 	}
 	if ((sig_flags & SIGF_HUP)) {
 		dprintf(LOG_INFO, FNAME "restarting");
@@ -693,7 +697,11 @@ process_signals()
 	}
 	if ((sig_flags & SIGF_CLEAN)) {
 		free_resources(dhcp6_if);
+#ifdef LIBDHCP
 		return;
+#else
+		exit(0);
+#endif
 	}
 	sig_flags = 0;
 }
