@@ -68,10 +68,12 @@ AC_PROG_LIBTOOL
 AC_HEADER_RESOLV
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
+
+# Check for headers we must have on the system
 AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h \
                   linux/ipv6.h linux/sockios.h net/if.h net/if_arp.h \
                   netdb.h netinet/in.h signal.h stdint.h stdlib.h \
-                  string.h sys/ioctl.h sys/queue.h sys/socket.h sys/time.h \
+                  string.h sys/ioctl.h sys/socket.h sys/time.h \
                   sys/timeb.h syslog.h unistd.h \
                   linux/netlink.h linux/rtnetlink.h],
                  [],
@@ -80,6 +82,9 @@ AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h \
                    # include <sys/socket.h>
                    #endif
                  ]])
+
+# Check for headers that are nice, but we don't absolutely have to have
+AC_CHECK_HEADERS([sys/queue.h])
 
 AC_HEADER_STDBOOL
 AC_C_CONST

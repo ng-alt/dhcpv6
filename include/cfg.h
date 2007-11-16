@@ -1,4 +1,4 @@
-/* $Id: cfg.h,v 1.3 2007/11/13 02:15:19 dlc-atl Exp $ */
+/* $Id: cfg.h,v 1.4 2007/11/16 15:57:01 dlc-atl Exp $ */
 /* ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -31,7 +31,7 @@
  */
 
 #include <sys/types.h>
-#include <sys/queue.h>
+#include "queue.h"
 
 #define MAX_DEVICE 100
 

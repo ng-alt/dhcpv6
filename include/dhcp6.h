@@ -1,4 +1,4 @@
-/* $Id: dhcp6.h,v 1.4 2007/11/15 21:14:09 dlc-atl Exp $ */
+/* $Id: dhcp6.h,v 1.5 2007/11/16 15:57:01 dlc-atl Exp $ */
 /* ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp */
 
 /*
@@ -33,7 +33,7 @@
  * draft-ietf-dhc-dhcpv6-26
  */
 
-#include <sys/queue.h>
+#include "queue.h"
 
 #ifndef __DHCP6_H_DEFINED
 #define __DHCP6_H_DEFINED
