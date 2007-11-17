@@ -3,6 +3,8 @@
 # Author: David Cantrell <dcantrell@redhat.com>
 #
 
+dhcp6clientincludedir = $(includedir)/dhcp6client
+
 INCLUDES = -I$(top_srcdir)/include
 
 COMMONSRCS = common.c timer.c hash.c lease.c lease_token.l
@@ -17,7 +19,7 @@ BUILT_SOURCES = server6_parse.c server6_parse.h client6_parse.c \
                 ra_token.c resolv_token.c radvd_token.c lease_token.c
 
 sbin_PROGRAMS = dhcp6s dhcp6r dhcp6c
-include_HEADERS = client6_parse.h
+dhcp6clientinclude_HEADERS = client6_parse.h
 
 lib_LTLIBRARIES = libdhcp6client.la
 
