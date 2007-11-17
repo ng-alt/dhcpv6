@@ -23,6 +23,9 @@ FTPURL = ftp://upload.sourceforge.net/incoming/
 pcdir = $(libdir)/pkgconfig
 pc_DATA = libdhcp6client.pc
 
+dist-hook:
+	rm -rf `find $(distdir)/docs -type d -name CVS`
+
 libdhcp6client.pc: libdhcp6client.pc.in
 	sed -e 's|\@DHCPV6_VERSION\@|$(DHCPV6_VERSION)|g' < $< > $@
 
