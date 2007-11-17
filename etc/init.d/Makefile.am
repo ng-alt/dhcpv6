@@ -7,7 +7,9 @@ MAINTAINERCLEANFILES = Makefile.in
 
 EXTRA_DIST = dhcp6r.sh dhcp6s.sh
 
+rc_d_dir = $(DESTDIR)$(sysconfdir)/rc.d/init.d
+
 install-data-local:
-	$(MKDIR_P) $(DESTDIR)$(sysconfdir)/init.d
-	$(install_sh_SCRIPT) -m 0755 dhcp6s.sh $(DESTDIR)$(sysconfdir)/init.d/dhcp6s
-	$(install_sh_SCRIPT) -m 0755 dhcp6r.sh $(DESTDIR)$(sysconfdir)/init.d/dhcp6r
+	$(MKDIR_P) $(rc_d_dir)
+	$(install_sh_SCRIPT) -m 0755 dhcp6s.sh $(rc_d_dir)/dhcp6s
+	$(install_sh_SCRIPT) -m 0755 dhcp6r.sh $(rc_d_dir)/dhcp6r
