@@ -1,4 +1,4 @@
-/* $Id: dhcp6.h,v 1.5 2007/11/16 15:57:01 dlc-atl Exp $ */
+/* $Id: dhcp6.h,v 1.6 2007/11/30 21:08:02 dlc-atl Exp $ */
 /* ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp */
 
 /*
@@ -128,7 +128,7 @@ typedef enum { DHCP6_ACTIVE=1, DHCP6_RENEW,
 #define REBIND DHCP6_REBIND
 #define EXPIRED DHCP6_EXPIRED
 #define INVALID DHCP6_INVALID
-#include <isc-dhcp/libdhcp_control.h>
+#include "libdhcp_control.h"
 extern LIBDHCP_Control *libdhcp_control;
 #include <dhc6_alloc.h>
 #else

@@ -1,4 +1,4 @@
-/* $Id: common.c,v 1.10 2007/11/16 15:57:57 dlc-atl Exp $ */
+/* $Id: common.c,v 1.11 2007/11/30 21:08:02 dlc-atl Exp $ */
 /* ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp */
 
 /*
@@ -59,7 +59,7 @@
 #include "lease.h"
 
 #ifdef LIBDHCP
-#include <isc-dhcp/libdhcp_control.h>
+#include "libdhcp_control.h"
 #endif
 
 int foreground;

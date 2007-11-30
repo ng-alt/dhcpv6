@@ -1,4 +1,4 @@
-/* $Id: dhcp6c.c,v 1.9 2007/11/16 15:58:53 dlc-atl Exp $ */
+/* $Id: dhcp6c.c,v 1.10 2007/11/30 21:08:03 dlc-atl Exp $ */
 /* ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -57,7 +57,7 @@
 #include "timer.h"
 #include "lease.h"
 #ifdef LIBDHCP
-#include <isc-dhcp/libdhcp_control.h>
+#include "libdhcp_control.h"
 #endif
 
 static int debug = 0;

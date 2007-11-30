@@ -84,7 +84,7 @@ AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h \
                  ]])
 
 # Check for headers that are nice, but we don't absolutely have to have
-AC_CHECK_HEADERS([sys/queue.h])
+AC_CHECK_HEADERS([sys/queue.h isc-dhcp/libdhcp_control.h])
 
 AC_HEADER_STDBOOL
 AC_C_CONST

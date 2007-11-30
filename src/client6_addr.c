@@ -1,4 +1,4 @@
-/* $Id: client6_addr.c,v 1.8 2007/11/30 20:14:19 dlc-atl Exp $ */
+/* $Id: client6_addr.c,v 1.9 2007/11/30 21:08:02 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -55,7 +55,7 @@
 #include "lease.h"
 
 #ifdef LIBDHCP
-#include <isc-dhcp/libdhcp_control.h>
+#include "libdhcp_control.h"
 #endif
 
 static int dhcp6_update_lease __P((struct dhcp6_addr *, struct dhcp6_lease *));
