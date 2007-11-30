@@ -1,4 +1,4 @@
-/* $Id: client6_addr.c,v 1.7 2007/11/15 21:14:09 dlc-atl Exp $ */
+/* $Id: client6_addr.c,v 1.8 2007/11/30 20:14:19 dlc-atl Exp $ */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -515,11 +515,24 @@ dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr,
 	return (NULL);
 }
 
+static struct dhcp6_event *
+dhcp6_iaidaddr_find_event(struct dhcp6_iaidaddr *sp, int state)
+{
+	struct dhcp6_event *ev;
+
+	TAILQ_FOREACH(ev, &sp->ifp->event_list, link) {
+		if (ev->state == state)
+			return ev;
+	}
+
+	return NULL;
+}
+
 struct dhcp6_timer *
 dhcp6_iaidaddr_timo(void *arg)
 {
 	struct dhcp6_iaidaddr *sp = (struct dhcp6_iaidaddr *)arg;
-	struct dhcp6_event *ev;
+	struct dhcp6_event *ev, *prev_ev = NULL;
 	struct timeval timeo;
 	int dhcpstate;
 	double d = 0;
@@ -541,6 +554,7 @@ dhcp6_iaidaddr_timo(void *arg)
 	case RENEW:
 		sp->state = REBIND;
 		dhcpstate = DHCP6S_REBIND;
+		prev_ev = dhcp6_iaidaddr_find_event(sp, DHCP6S_RENEW);
 		d = get_max_validlifetime(&client6_iaidaddr) -
 				sp->client6_info.iaidinfo.rebindtime; 
 		timeo.tv_sec = (long)d;
@@ -554,16 +568,27 @@ dhcp6_iaidaddr_timo(void *arg)
 		    FNAME, client6_iaidaddr.client6_info.iaidinfo.iaid);
 		sp->state = INVALID;
 		dhcpstate = DHCP6S_SOLICIT;
+		prev_ev = dhcp6_iaidaddr_find_event(sp, DHCP6S_REBIND);
 		free_servers(sp->ifp);
 		break;
 	default:
 		return (NULL);
 	}
+
+	/* Remove the event for the previous state */
+	if (prev_ev) {
+		dprintf(LOG_DEBUG, "%s" "remove previous event for state=%d", 
+				FNAME, prev_ev->state);
+		dhcp6_remove_event(prev_ev);
+	}
+
+	/* Create a new event for the new state */
 	if ((ev = dhcp6_create_event(sp->ifp, dhcpstate)) == NULL) {
 		dprintf(LOG_ERR, "%s" "failed to create a new event",
 		    FNAME);
 		return (NULL); /* XXX: should try to recover reserve memory?? */
 	}
+
 	switch(sp->state) {
 	case RENEW:
 		if (duidcpy(&ev->serverid, &sp->client6_info.serverid)) {
