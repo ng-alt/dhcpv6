@@ -19,7 +19,7 @@ dnl
 dnl Red Hat Author: David Cantrell <dcantrell@redhat.com>
 
 AC_PREREQ(2.61)
-AC_INIT([dhcpv6], [1.0.1], [dcantrell@redhat.com])
+AC_INIT([dhcpv6], [1.0.2], [dcantrell@redhat.com])
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/dhcp6s.c])
 AC_CONFIG_HEADER([config.h])
@@ -36,7 +36,7 @@ dnl function signatures changed),
 dnl set DHCPV6_BINARY_AGE and DHCPV6_INTERFACE_AGE to 0.
 DHCPV6_MAJOR_VERSION=1
 DHCPV6_MINOR_VERSION=0
-DHCPV6_MICRO_VERSION=1
+DHCPV6_MICRO_VERSION=2
 DHCPV6_INTERFACE_AGE=0
 DHCPV6_BINARY_AGE=0
 DHCPV6_VERSION_SUFFIX=
