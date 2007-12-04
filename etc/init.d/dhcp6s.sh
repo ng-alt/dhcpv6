@@ -2,10 +2,10 @@
 #
 ### BEGIN INIT INFO
 # Provides: dhcp6s
-# Default-Start: 2 3 4 5
-# Default-Stop: 0 1 6
-# Should-Start: $network
-# Required-Start:
+# Default-Start:
+# Default-Stop:
+# Should-Start:
+# Required-Start: $network
 # Required-Stop:
 # Short-Description: Start and stop the DHCPv6 server agent
 # Description: dhcp6s provides IPv6 addresses and prefix assignment
@@ -17,7 +17,7 @@
 #
 # The fields below are left around for legacy tools (will remove later).
 #
-# chkconfig: 2345 66 36
+# chkconfig: - 66 36
 # description: dhcp6s provides IPv6 addresses and prefix assignment \
 #              administrative policy and configuration information for \
 #              DHCPv6 clients.  dhcp6s also manages those addresses and \
