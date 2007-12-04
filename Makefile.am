@@ -31,7 +31,7 @@ libdhcp6client.pc: libdhcp6client.pc.in
 
 ChangeLog:
 	rm -f ChangeLog ChangeLog.bak
-	cvs2cl
+	cvs2cl -U usermap
 
 tag:
 	cvs tag -R $(CVSTAG)
