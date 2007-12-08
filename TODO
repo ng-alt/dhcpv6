@@ -8,3 +8,9 @@
 - Move project from dhcpv6.sourceforge.net to hosted.fedoraproject.org
       use Trac
       put source in git
+
+- Do we need dad_token.l?  It reads /proc/net/if_inet6
+
+- Update the README file and other documentation
+
+- Update man pages
