@@ -1,4 +1,4 @@
-/* $Id: dhcp6c.c,v 1.10 2007/11/30 21:08:03 dlc-atl Exp $ */
+/* $Id: dhcp6c.c,v 1.11 2007/12/08 20:07:50 dlc-atl Exp $ */
 /* ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -198,7 +198,7 @@ int dhcpv6_client
 				    &lv->val_dhcp6addr.addr) < 1) {
 					dprintf(LOG_ERR, 
 						"invalid ipv6address for release");
-					usage();
+					usage(argv[0]);
 					exit(1);
 				}
 				lv->val_dhcp6addr.type = IAPD;
@@ -221,7 +221,7 @@ int dhcpv6_client
 				if (inet_pton(AF_INET6, addr, &lv->val_dhcp6addr.addr) < 1) {
 					dprintf(LOG_ERR, 
 						"invalid ipv6address for release");
-					usage();
+					usage(argv[0]);
 					exit(1);
 				}
 				lv->val_dhcp6addr.type = IANA;
@@ -245,7 +245,7 @@ int dhcpv6_client
 					    &lv->val_dhcp6addr.addr) < 1) {
 						dprintf(LOG_ERR, 
 							"invalid ipv6address for release");
-						usage();
+						usage(argv[0]);
 						exit(1);
 					}
 					lv->val_dhcp6addr.type = IANA;
@@ -266,7 +266,7 @@ int dhcpv6_client
 			foreground++;
 			break;
 		default:
-			usage();
+			usage(argv[0]);
 			exit(0);
 		}
 	}
@@ -274,7 +274,7 @@ int dhcpv6_client
 	argv += optind;
 
 	if (argc != 1) {
-		usage();
+		usage(argv[0]);
 		exit(0);
 	}
 	device = argv[0];
@@ -361,12 +361,12 @@ int dhcpv6_client
 }
 
 static void
-usage()
+usage(char *name)
 {
-
-	fprintf(stderr, 
-	"usage: dhcpc [-c configfile] [-r all or (ipv6address ipv6address...)]\n"
-	"       [-R (ipv6 address ipv6address...) [-dDIf] interface\n");
+	fprintf(stderr,
+		"Usage: %s [-c configfile] [-r all or (ipv6address ipv6address...)]\n"
+		"       [-R (ipv6 address ipv6address...) [-dDIf] interface\n",
+		basename(name));
 }
 
 /*------------------------------------------------------------*/

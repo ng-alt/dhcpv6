@@ -1,4 +1,4 @@
-/* $Id: dhcp6s.c,v 1.11 2007/11/15 19:11:23 dlc-atl Exp $ */
+/* $Id: dhcp6s.c,v 1.12 2007/12/08 20:07:50 dlc-atl Exp $ */
 /* ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -196,7 +196,8 @@ main(argc, argv)
 			TAILQ_INSERT_TAIL(&arg_dnslist.addrlist, dlv, link);
 			break;
 		default:
-			usage();
+			usage(argv[0]);
+			exit(0);
 			/* NOTREACHED */
 		}
 	}
@@ -241,11 +242,11 @@ main(argc, argv)
 }
 
 static void
-usage()
+usage(char *name)
 {
 	fprintf(stderr,
-		"usage: dhcp6s [-c configfile] [-dDf] [interface]\n");
-	exit(0);
+		"Usage: %s [-c configfile] [-dDf] [interface]\n",
+		basename(name));
 }
 
 /*------------------------------------------------------------*/
