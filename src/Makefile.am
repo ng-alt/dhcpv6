@@ -18,17 +18,17 @@ BUILT_SOURCES = server6_parse.c server6_parse.h client6_parse.c \
                 client6_parse.h server6_token.c client6_token.c dad_token.c \
                 resolv_token.c radvd_token.c lease_token.c
 
-sbin_PROGRAMS = dhcp6s dhcp6r dhcp6c
+sbin_PROGRAMS = dhcpv6d dv6relayd dv6client
 dhcp6clientinclude_HEADERS = client6_parse.h
 
 lib_LTLIBRARIES = libdhcp6client.la
 
-dhcp6s_SOURCES = dhcp6s.c server6_conf.c server6_addr.c server6_parse.y \
-                 server6_token.l $(COMMONSRCS)
-dhcp6r_SOURCES = dhcp6r.c relay6_database.c relay6_parser.c relay6_socket.c
-dhcp6c_SOURCES = dhcp6c.c cfg.c netlink.c client6_addr.c client6_parse.y \
-                 client6_token.l dad_token.l resolv_token.l radvd_token.l \
-                 $(COMMONSRCS)
+dhcpv6d_SOURCES = dhcp6s.c server6_conf.c server6_addr.c server6_parse.y \
+                  server6_token.l $(COMMONSRCS)
+dv6relayd_SOURCES = dhcp6r.c relay6_database.c relay6_parser.c relay6_socket.c
+dv6client_SOURCES = dhcp6c.c cfg.c netlink.c client6_addr.c client6_parse.y \
+                    client6_token.l dad_token.l resolv_token.l radvd_token.l \
+                    $(COMMONSRCS)
 
 libdhcp6client_la_CFLAGS = -DLIBDHCP
 libdhcp6client_la_LDFLAGS = -version-info \
