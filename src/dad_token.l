@@ -1,5 +1,3 @@
-/* $Id: dad_token.l,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
-
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.

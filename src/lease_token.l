@@ -1,5 +1,3 @@
-/* $Id: lease_token.l,v 1.7 2007/11/15 19:14:21 dlc-atl Exp $ */
-
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.

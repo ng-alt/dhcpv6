@@ -1,4 +1,3 @@
-/* $Id: timer.c,v 1.6 2007/11/13 03:13:32 dlc-atl Exp $ */
 /* ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp */
 
 /*

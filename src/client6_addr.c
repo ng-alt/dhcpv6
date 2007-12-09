@@ -1,5 +1,3 @@
-/* $Id: client6_addr.c,v 1.9 2007/11/30 21:08:02 dlc-atl Exp $ */
-
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.

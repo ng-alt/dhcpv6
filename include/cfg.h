@@ -1,4 +1,3 @@
-/* $Id: cfg.h,v 1.5 2007/11/16 15:57:57 dlc-atl Exp $ */
 /* ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*

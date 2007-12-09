@@ -1,5 +1,3 @@
-/* $Id: hash.h,v 1.2 2007/11/13 02:15:19 dlc-atl Exp $ */
-
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.

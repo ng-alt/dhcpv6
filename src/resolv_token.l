@@ -1,5 +1,3 @@
-/* $Id: resolv_token.l,v 1.7 2007/11/13 04:34:55 dlc-atl Exp $ */
-
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.

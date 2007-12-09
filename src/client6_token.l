@@ -1,4 +1,3 @@
-/* $Id: client6_token.l,v 1.8 2007/11/16 15:57:57 dlc-atl Exp $ */
 /* ported from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp */
 
 /*

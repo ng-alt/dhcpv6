@@ -1,4 +1,3 @@
-/* $Id: common.c,v 1.11 2007/11/30 21:08:02 dlc-atl Exp $ */
 /* ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp */
 
 /*

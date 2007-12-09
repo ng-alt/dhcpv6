@@ -1,4 +1,3 @@
-/* $Id: client6_parse.y,v 1.7 2007/11/16 15:57:57 dlc-atl Exp $ */
 /* ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp */
 
 /*

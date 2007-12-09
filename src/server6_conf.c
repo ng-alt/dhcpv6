@@ -1,5 +1,3 @@
-/* $Id: server6_conf.c,v 1.4 2007/11/12 22:36:49 dlc-atl Exp $ */
-
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.

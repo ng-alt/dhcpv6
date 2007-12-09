@@ -1,4 +1,3 @@
-/* $Id: queue.h,v 1.1 2007/11/16 15:57:01 dlc-atl Exp $ */
 /* from FreeBSD: src/sys/sys/queue.h,v 1.54 2002/08/05 05:18:43 alfred Exp */
 
 /* Copyright (c) 1991, 1993
