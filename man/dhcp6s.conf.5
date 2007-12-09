@@ -1,5 +1,3 @@
-.\" $Id: dhcp6s.conf.5,v 1.2 2007/11/14 15:48:32 dlc-atl Exp $
-.\"
 .\" Copyright (C) International Business Machines  Corp., 2003
 .\" All rights reserved.
 .\"
@@ -27,7 +25,7 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.TH dhcp6s.conf 5 "17 March 2003" "dhcp6s.conf" "Linux System Manager's Manual"
+.TH dhcp6s.conf 5
 
 .SH NAME
 dhcp6s.conf \- configuration file of the DHCPv6 server daemon, dhcp6s
@@ -56,7 +54,7 @@ must be terminated by a semicolon. Additional details of the declarations
 are specified below.
 
 .PP
-.BI DECLARATIONS
+.SH DECLARATIONS
 .PP
 .nf
 .B interface\ <interface\ name>
@@ -332,9 +330,11 @@ This is a sample of the dhcp6s.conf file.
 .fi
 
 .SH SEE ALSO
-Dynamic Host Configuration Protocol for IPv6 (DHCPv6), IPv6 Prefix Options
-for DHCPv6, dhcp6s(5)
+dhcp6s(8)
+
+.SH BUGS
+Report bugs via http://hosted.fedoraproject.org/projects/dhcpv6/
 
 .SH AUTHORS
 .LP
-Kazuo Hiekata <hiekata@yamato.ibm.com>
+See http://hosted.fedoraproject.org/projects/dhcpv6/wiki/Authors
