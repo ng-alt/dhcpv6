@@ -1,16 +1,24 @@
 - dhcp6c can pull an IA_NA and an IA_TA, but doesn't configure the interface
   with that information
 
-- Clean up usage() screens in the command line programs
-
 - Do all of the headers that get installed need to be installed?
-
-- Move project from dhcpv6.sourceforge.net to hosted.fedoraproject.org
-      use Trac
-      put source in git
 
 - Do we need dad_token.l?  It reads /proc/net/if_inet6
 
 - Update the README file and other documentation
 
 - Update man pages
+
+- Replace netlink.c with libnl
+
+- Replace hash.c and TAILQ junk with glib
+
+- Replace all .l files with a single lexer with multiple state paths depending
+  on what we're reading.
+
+- Replace both .y files with a single parser with multiple state paths for
+  the tokens we're parsing.
+
+- Fix up Makefile for git (for ChangeLog and release).
+
+- Do we need radvd_token.l?  Why does dhcp6c modify radvd.conf?
