@@ -38,19 +38,21 @@
 #include "relay6_database.h"
 #include "relay6_socket.h"
 
+extern FILE *dump;
+
 struct msg_parser *create_parser_obj() 
 {
 	struct msg_parser *msg;
   
 	msg = (struct msg_parser *) malloc (sizeof(struct msg_parser));
 	if (msg == NULL) {
-		printf("create_parser_obj()--> NO MORE MEMORY AVAILABLE\n"); 
+		TRACE(dump, "create_parser_obj()--> NO MORE MEMORY AVAILABLE\n");
 		exit(1);
 	}  
   
 	msg->buffer = (uint8_t *) malloc(MAX_DHCP_MSG_LENGTH*sizeof(uint8_t));
 	if (msg->buffer == NULL) {
-		printf("create_parser_obj()--> NO MORE MEMORY AVAILABLE\n"); 
+		TRACE(dump, "create_parser_obj()--> NO MORE MEMORY AVAILABLE\n");
 		exit(1);
 	}
 
@@ -101,7 +103,7 @@ put_msg_in_store(mesg)
 	mesg->pstart = mesg->buffer;
     
 	if (check_buffer(MESSAGE_HEADER_LENGTH, mesg) == 0) {
-		printf("put_msg_in_store()--> opt_length has 0 value for "
+		TRACE(dump, "put_msg_in_store()--> opt_length has 0 value for "
 		       "MESSAGE_HEADER_LENGTH, DROPING... \n");
 		return 0;
 	}

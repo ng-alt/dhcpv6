@@ -44,6 +44,8 @@
 #include "relay6_socket.h"
 #include "relay6_database.h"
 
+FILE *dump;
+
 int 
 main(argc, argv)
 	int argc;
@@ -62,9 +64,10 @@ main(argc, argv)
 	struct server *sa;
 	struct msg_parser *mesg;
 
+	dump = stderr;
 	fp = fopen(PIDFILE, "w+");
 	if (fp == NULL) {
-		printf("COULD NOT WRITE PID FILE\n");
+		TRACE(dump, "COULD NOT WRITE PID FILE\n");
 		exit(1);
 	}
 	fprintf(fp, "%d", getpid());
@@ -73,173 +76,166 @@ main(argc, argv)
 	signal(SIGINT, handler);
 	init_relay();
 
+	/* Specify a file stream for logging */
 	if (argc > 1) {
 		for (i = 1; i < argc; ++i) {
 			if (strcmp(argv[i], "-d") == 0)
 				du = 1;
 		}
-		if (du == 0) {        
-			dump = fopen(DUMPFILE, "w+");
-			if (dump == NULL) {
-				printf("COULD NOT WRITE DUMP FILE: %s\n", DUMPFILE);
+	}
+	if (du == 0) {
+		FILE *tmp_dump;
+		tmp_dump = fopen(DUMPFILE, "w+");
+		if (tmp_dump == NULL) {
+			TRACE(dump, "COULD NOT WRITE DUMP FILE: %s\n",
+					DUMPFILE);
+			exit(1);
+		}
+		dump = tmp_dump;
+	}
+
+	if (get_interface_info() == 0)
+		goto ERROR;
+
+	for(i = 1; i < argc; ++i) {
+		if (strcmp(argv[i], "-d") == 0) {
+			continue;
+		}
+		else if (strcmp(argv[i], "-cm") == 0) {
+			i++;
+			if (get_interface_s(argv[i]) == NULL) {
+				err = 5;
+				goto ERROR;
+			}
+
+			sw = 1;
+			ci = (struct cifaces *) malloc(sizeof(struct cifaces));
+			if (ci == NULL) {
+				TRACE(dump, "%s - %s ", dhcp6r_clock(),
+				    "Main--> ERROR NO MORE MEMORY AVAILABLE\n");
 				exit(1);
-			}               
-    	}
-		else {
-			dump = stderr;
-    	}
+			}
+			ci->ciface = strdup(argv[i]);
+			ci->next = cifaces_list.next;
+			cifaces_list.next = ci;
 
-		if (get_interface_info() == 0)
-			goto ERROR;
-     
-		for(i = 1; i < argc; ++i) {     	
-			if (strcmp(argv[i], "-cm") == 0) {
-				i++;
-				if (get_interface_s(argv[i]) == NULL) {
-					err = 5;
-					goto ERROR;	
-				}     
+			TRACE(dump, "%s - %s'%s'\n", dhcp6r_clock(),
+				"SETTING UP CLIENT INTERFACE: ", argv[i]);
+			continue;
+		}
+		else if (strcmp(argv[i], "-cu") == 0) {
+			multicast_off = 1;
+		}
+		else if (strcmp(argv[i], "-sm") == 0) {
+			i++;
+			if (get_interface_s(argv[i]) == NULL) {
+				err = 5;
+				goto ERROR;
+			}
+			si = (struct sifaces *) malloc(sizeof(struct sifaces));
+			if (si == NULL) {
+				TRACE(dump, "%s - %s", dhcp6r_clock(),
+				    "Main--> ERROR NO MORE MEMORY AVAILABLE\n");
+				exit(1);
+			}
+			si->siface = strdup(argv[i]);
+			si->next = sifaces_list.next;
+			sifaces_list.next = si;
 
-				sw = 1;
-				ci = (struct cifaces *) malloc(sizeof(struct cifaces));
-				if (ci == NULL) {
-					TRACE(dump, "%s - %s ", dhcp6r_clock(),  
-					      "Main--> ERROR NO MORE MEMORY AVAILABLE\n");
+			TRACE(dump, "%s - %s'%s'\n", dhcp6r_clock(),
+				"SETTING UP SERVER INTERFACE: ", argv[i]);
+
+			continue;
+		}
+		else if (strcmp(argv[i], "-su") == 0) {
+			i++;
+			/* destination address */
+			if (inet_pton(AF_INET6, argv[i] , &sin6.sin6_addr) <= 0) {
+				err = 3;
+				goto ERROR;
+			}
+
+			if (IN6_IS_ADDR_UNSPECIFIED(&sin6.sin6_addr)) {
+				err = 3;
+				goto ERROR;
+			}
+
+			unia = (struct IPv6_uniaddr *)
+				malloc(sizeof(struct IPv6_uniaddr));
+			if (unia == NULL) {
+				TRACE(dump, "%s - %s", dhcp6r_clock(),
+				    "Main--> ERROR NO MORE MEMORY AVAILABLE\n");
+				exit(1);
+			}
+			unia->uniaddr = strdup(argv[i]);
+			unia->next = IPv6_uniaddr_list.next;
+			IPv6_uniaddr_list.next = unia;
+
+			TRACE(dump, "%s - %s'%s'\n", dhcp6r_clock(),
+					"SETTING UP SERVER ADDRESS: ", argv[i]);
+			nr_of_uni_addr += 1;
+
+			continue;
+		}
+		else if (strcmp(argv[i], "-sf") == 0) {
+			i++;
+			sf = strdup(argv[i]);
+
+			eth = strtok(sf, "+");
+			if (eth == NULL) {
+				err = 4;
+				goto ERROR;
+			}
+			addr = strtok((sf+strlen(eth)+1), "\0");
+			if (addr == NULL) {
+				err = 4;
+				goto ERROR;
+			}
+
+			/* destination address	*/
+			if (inet_pton(AF_INET6, addr , &sin6.sin6_addr) <= 0) {
+				err = 3;
+				goto ERROR;
+			}
+
+			if (IN6_IS_ADDR_UNSPECIFIED(&sin6.sin6_addr) ) {
+				err = 3;
+				goto ERROR;
+			}
+
+			if ((iface = get_interface_s(eth)) != NULL) {
+				sa = (struct server *) malloc(sizeof(struct server));
+				if (sa == NULL) {
+					TRACE(dump, "%s - %s", dhcp6r_clock(),
+						"Main--> ERROR NO MORE MEMORY AVAILABLE\n");
 					exit(1);
 				}
-				ci->ciface = strdup(argv[i]);
-				ci->next = cifaces_list.next;
-				cifaces_list.next = ci;	
-          	
-				TRACE(dump, "%s - %s'%s'\n", dhcp6r_clock(), 
-				      "SETTING UP CLIENT INTERFACE: ", argv[i]);
-				continue;  	
-			}
-			else if (strcmp(argv[i], "-cu") == 0) {
-				multicast_off = 1;          		         		
-			}
-			else if (strcmp(argv[i], "-sm") == 0) {
-          		i++;
-          		if (get_interface_s(argv[i]) == NULL) {
-					err = 5;
-					goto ERROR;	
-          		} 
-				si = (struct sifaces *) malloc(sizeof(struct sifaces));
-				if (si == NULL) {
-					TRACE(dump, "%s - %s", dhcp6r_clock(), 
-					      "Main--> ERROR NO MORE MEMORY AVAILABLE\n");
-					exit(1);
-				}
-				si->siface = strdup(argv[i]);
-				si->next = sifaces_list.next;
-				sifaces_list.next = si;	
-          	
-				TRACE(dump, "%s - %s'%s'\n", dhcp6r_clock(), 
-				      "SETTING UP SERVER INTERFACE: ", argv[i]);         	    
-          	
-				continue;
-			}
-			else if (strcmp(argv[i], "-d") == 0) {
-				continue; 
-			}
-			else if (strcmp(argv[i], "-su") == 0) {	
-				i++;
-				/* destination address */
-				if (inet_pton(AF_INET6, argv[i] , &sin6.sin6_addr) <= 0) { 
-					err = 3;
-					goto ERROR;	
-				}   
-          	               
-				if (IN6_IS_ADDR_UNSPECIFIED(&sin6.sin6_addr)) {
-					err = 3;
-					goto ERROR;
-				} 
-          	
-				unia = (struct IPv6_uniaddr *) 
-				       malloc(sizeof(struct IPv6_uniaddr));
-				if (unia == NULL) {
-					TRACE(dump, "%s - %s", dhcp6r_clock(), 
-				      	"Main--> ERROR NO MORE MEMORY AVAILABLE\n");
-   	            	exit(1);
-				}
-				unia->uniaddr = strdup(argv[i]);
-				unia->next = IPv6_uniaddr_list.next;
-				IPv6_uniaddr_list.next = unia;	
-          	
-				TRACE(dump, "%s - %s'%s'\n", dhcp6r_clock(),
-				      "SETTING UP SERVER ADDRESS: ", argv[i]); 
-				nr_of_uni_addr += 1;    
-
-          		continue;  		  
-			}
-			else if (strcmp(argv[i], "-sf") == 0) {
-				i++;
-				sf = strdup(argv[i]);
-
-				eth = strtok(sf, "+");
-				if (eth == NULL) {
-					err = 4;
-					goto ERROR;
-				}
-				addr = strtok((sf+strlen(eth)+1), "\0");
-				if (addr == NULL) {
-					err = 4;
-					goto ERROR;
-				}               
-              
-			 	/* destination address	*/
-				if (inet_pton(AF_INET6, addr , &sin6.sin6_addr) <= 0) { 
-					err = 3;
-					goto ERROR;
-				}
-
-				if (IN6_IS_ADDR_UNSPECIFIED(&sin6.sin6_addr) ) {
-					err = 3;
-					goto ERROR;
-				}
-
-				if ((iface = get_interface_s(eth)) != NULL) {
-					sa = (struct server *) malloc(sizeof(struct server));
-					if (sa == NULL) {
-						TRACE(dump, "%s - %s", dhcp6r_clock(), 
-						      "Main--> ERROR NO MORE MEMORY AVAILABLE\n");
-						exit(1);
-					}
-					sa->serv = strdup(addr);
-					sa->next = NULL;
-					if (iface->sname != NULL)
-						sa->next = iface->sname;                   
-					iface->sname = sa;                                                       
-					TRACE(dump, "%s - %s%s FOR INTERFACE: %s\n", dhcp6r_clock(),
-					      "SETTING UP SERVER ADDRESS: ", addr, eth);
-					free(sf);
-				}
-				else {
-					err = 5;
-					goto ERROR;
-				}
-
-				continue;
-			}
-			else if ((strcmp(argv[i], "-h") == 0) || 
-			         (strcmp(argv[i], "--help") == 0)) {
-				command_text();
+				sa->serv = strdup(addr);
+				sa->next = NULL;
+				if (iface->sname != NULL)
+					sa->next = iface->sname;
+				iface->sname = sa;
+				TRACE(dump, "%s - %s%s FOR INTERFACE: %s\n",
+						dhcp6r_clock(),
+						"SETTING UP SERVER ADDRESS: ",
+						addr, eth);
+				free(sf);
 			}
 			else {
-				err = 4;
-				goto ERROR;	  
+				err = 5;
+				goto ERROR;
 			}
+
+			continue;
 		}
-	}
-	else {
-		dump = fopen(DUMPFILE, "w+");
-		if (dump == NULL) {
-			printf("COULD NOT WRITE DUMP FILE: %s\n", DUMPFILE);
-			exit(1);
-		}  
-             
-		if (get_interface_info() == 0)
+		else if ((strcmp(argv[i], "-h") == 0) ||
+				(strcmp(argv[i], "--help") == 0)) {
+			command_text();
+		}
+		else {
+			err = 4;
 			goto ERROR;
+		}
 	}
 
 	if (sw == 1)
@@ -283,21 +279,21 @@ main(argc, argv)
 ERROR:
 	
 	if (err == 3) {
-		printf("dhcp6r: malformed address '%s'\n", argv[i]); 
+		TRACE(dump, "dhcp6r: malformed address '%s'\n", argv[i]);
 		exit(1);
 	} 	
 
 	if (err == 4) {
-		printf("dhcp6r: option '%s' not recognized\n", argv[i]); 
+		TRACE(dump, "dhcp6r: option '%s' not recognized\n", argv[i]);
 		exit(1);
 	} 	
  
 	if (err == 5) {
-		printf("dhcp6r: interface '%s' does not exist \n", argv[i]);
+		TRACE(dump, "dhcp6r: interface '%s' does not exist \n", argv[i]);
 		exit(1);
 	}
  
-	printf("ERROR OCCURED IN THE RELAY AGENT LOOP, EXITING..........\n");
+	TRACE(dump, "ERROR OCCURED IN THE RELAY AGENT LOOP, EXITING..........\n");
 	exit(1);
 }
 

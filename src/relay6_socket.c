@@ -46,6 +46,8 @@
 #define IPV6_2292PKTINFO IPV6_PKTINFO
 #endif
 
+extern FILE *dump;
+
 void 
 init_socket()
 {
@@ -67,7 +69,7 @@ init_socket()
 	}	  
 
 	if ((relaysock->sock_desc = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
-		printf("Failed to get new socket with socket()\n");
+		TRACE(dump, "Failed to get new socket with socket()\n");
 		exit(0);
 	}
 }
@@ -291,7 +293,7 @@ get_interface_info()
 	struct IPv6_address *ipv6addr;
     
 	if ((f = fopen(INTERFACEINFO, "r")) == NULL) {
-		printf("FATAL ERROR-->COULD NOT OPEN FILE: %s\n", INTERFACEINFO);
+		TRACE(dump, "FATAL ERROR-->COULD NOT OPEN FILE: %s\n", INTERFACEINFO);
 		return 0;
 	}         
 
@@ -428,7 +430,7 @@ send_message()
 		recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
 		recvp = (char *) malloc(recvmsglen*sizeof(char));
 		if (recvp == NULL) {
-			printf("ERROR-->recvp NO MORE MEMORY AVAILABLE \n");
+			TRACE(dump, "ERROR-->recvp NO MORE MEMORY AVAILABLE \n");
 			exit(1);
 		}
 		memset(recvp, 0, recvmsglen);

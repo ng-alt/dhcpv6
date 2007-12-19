@@ -39,6 +39,8 @@
 #include "relay6_parser.h"
 #include "relay6_database.h"
 
+extern FILE *dump;
+
 void  
 init_relay(void)
 {
@@ -72,7 +74,7 @@ check_interface_semafor(int index)
 
 	device = get_interface(index);
 	if (device == NULL) {
-		printf("FATAL ERROR IN CheckInterfaceSemafor()\n");
+		TRACE(dump, "FATAL ERROR IN CheckInterfaceSemafor()\n");
 		exit(1);   	
 	}	
      
@@ -159,7 +161,7 @@ process_RELAY_FORW(struct msg_parser *msg)
 	int len, hop;
 
 	if ((head == NULL) || (newbuff == NULL)) {
-		printf("ProcessRELAYFORW--> ERROR, NO MORE MEMRY AVAILABLE  \n");	
+		TRACE(dump, "ProcessRELAYFORW--> ERROR, NO MORE MEMRY AVAILABLE  \n");
 		exit(1);	
 	}	
  
@@ -201,14 +203,14 @@ process_RELAY_FORW(struct msg_parser *msg)
 
 	device = get_interface(msg->interface_in);
 	if (device == NULL) {
-		printf("ProcessRELAYFORW--->ERROR NO INTERFACE FOUND!\n");
+		TRACE(dump, "ProcessRELAYFORW--->ERROR NO INTERFACE FOUND!\n");
 		exit(1);
 	}
 
 	/* fill in link-address */
 
 	if (inet_pton(AF_INET6, msg->src_addr , &sap.sin6_addr) <= 0) {
-		printf("ProcessRELAYFORW1--->ERROR IN  inet_pton !\n");
+		TRACE(dump, "ProcessRELAYFORW1--->ERROR IN  inet_pton !\n");
 		exit(1);
 	}
 
@@ -223,7 +225,7 @@ process_RELAY_FORW(struct msg_parser *msg)
 		memset(&sap.sin6_addr, 0, sizeof(sap.sin6_addr));
 
 		if (inet_pton(AF_INET6, device->ipv6addr->gaddr, &sap.sin6_addr) <= 0) {
-			printf("ProcessRELAYFORW1--->ERROR IN  inet_pton !\n");
+			TRACE(dump, "ProcessRELAYFORW1--->ERROR IN  inet_pton !\n");
 			exit(1);
 		}
 
@@ -236,7 +238,7 @@ process_RELAY_FORW(struct msg_parser *msg)
 	memset(&sap.sin6_addr, 0, sizeof(sap.sin6_addr));
 
 	if (inet_pton(AF_INET6, msg->src_addr , &sap.sin6_addr) <= 0) {
-		printf("ProcessRELAYFORW--->ERROR2 IN  inet_pton !\n");
+		TRACE(dump, "ProcessRELAYFORW--->ERROR2 IN  inet_pton !\n");
 		exit(1);
 	}
 
@@ -268,7 +270,7 @@ process_RELAY_FORW(struct msg_parser *msg)
 	      msg->datalength );
 	
 	if ((len+ msg->datalength) > MAX_DHCP_MSG_LENGTH) {
-		printf(" ERROR FRAGMENTATION WILL OCCUR IF SENT, DROP THE PACKET"
+		TRACE(dump, " ERROR FRAGMENTATION WILL OCCUR IF SENT, DROP THE PACKET"
 		       "......\n");
 		return 0;
 	}
@@ -301,7 +303,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 	char *s; 
  
 	if (newbuff == NULL) {
-		printf("ProcessRELAYREPL--> ERROR, NO MORE MEMRY AVAILABLE  \n");	
+		TRACE(dump, "ProcessRELAYREPL--> ERROR, NO MORE MEMRY AVAILABLE  \n");
 		exit(1);	
 	}
 
@@ -310,7 +312,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 
 	if (( ((int) msg->buffer) - ((int) (pointer - pstart)) ) < 
 	    MESSAGE_HEADER_LENGTH ) {
-		printf("ProcessRELAYREPL()--> opt_length has 0 value for "
+		TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 		       "MESSAGE_HEADER_LENGTH, DROPING... \n");
 		return 0;
 	}
@@ -324,7 +326,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 	msg->msg_type = RELAY_REPL;
 
 	if (( ((int) msg->buffer) - ((int) (pointer - pstart)) ) < (2*INET6_LEN) ) {
-		printf("ProcessRELAYREPL()--> opt_length has 0 value for "
+		TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 		       "INET6_LEN, DROPING... \n");
 		return 0;
 	}
@@ -337,7 +339,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 
 	if (inet_ntop(AF_INET6, &sap.sin6_addr, msg->link_addr, 
 	              INET6_ADDRSTRLEN ) <=0 ) {
-		printf("ProcessRELAYREPL1--->ERROR IN inet_ntop  !\n");
+		TRACE(dump, "ProcessRELAYREPL1--->ERROR IN inet_ntop  !\n");
 		exit(1);
 	}
 
@@ -349,13 +351,13 @@ process_RELAY_REPL(struct msg_parser *msg)
 
 	if (inet_ntop(AF_INET6, &sap.sin6_addr, msg->peer_addr, 
 	              INET6_ADDRSTRLEN ) <=0 ) {         
-		printf("ProcessRELAYREPL1--->ERROR IN inet_ntop  !\n");
+		TRACE(dump, "ProcessRELAYREPL1--->ERROR IN inet_ntop  !\n");
 		exit(1);
 	}
 
 	if (( ((int) msg->buffer) - ((int) (pointer - pstart)) ) < 
 	    MESSAGE_HEADER_LENGTH ) {
-		printf("ProcessRELAYREPL()--> opt_length has 0 value for "
+		TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 		       "MESSAGE_HEADER_LENGTH, DROPING... \n");
 		return 0;
 	}
@@ -370,7 +372,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 		pointer += 2;
 
 		if (( ((int) msg->buffer) - ((int) (pointer - pstart)) ) <  opaqlen) {
-			printf("ProcessRELAYREPL()--> opt_length has 0 value for "
+			TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 			       "opaqlen, DROPING... \n");
 			return 0;
 		}
@@ -381,7 +383,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 
 		if (( ((int) msg->buffer) - ((int) (pointer - pstart)) ) < 
 		    MESSAGE_HEADER_LENGTH ) {
-			printf("ProcessRELAYREPL()--> opt_length has 0 value for "
+			TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 			       "MESSAGE_HEADER_LENGTH, DROPING... \n");
 			return 0;
 		}
@@ -395,7 +397,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 			msglen = ntohs(*p16);
 			pointer += 2;
 			if (( ((int) msg->buffer) - ((int)(pointer - pstart)) ) < msglen ) {
-				printf("ProcessRELAYREPL()--> opt_length has 0 value for "
+				TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 				       "msglen, DROPING... \n");
 				return 0;
 			}
@@ -444,7 +446,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 				}
 
 				if (check == 0) {
-					printf("ProcessRELAYREPL--->ERROR NO INTERFACE FOUND!\n");
+					TRACE(dump, "ProcessRELAYREPL--->ERROR NO INTERFACE FOUND!\n");
 					return 0;
 				}
 
@@ -459,7 +461,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 			}
 		}
 		else { /* OPTION_RELAY_MSG */
-			printf("ProcessRELAYREPL--->ERROR MESSAGE IS MALFORMED NO "
+			TRACE(dump, "ProcessRELAYREPL--->ERROR MESSAGE IS MALFORMED NO "
 			       "OPTION_RELAY_MSG FOUND, DROPING...!\n");
 			return 0;
 		}
@@ -472,7 +474,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 		pointer += 2;
 
 		if (( ((int) msg->buffer) - ((int) (pointer - pstart)) ) < msglen ) {
-			printf("ProcessRELAYREPL()--> opt_length has 0 value for "
+			TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 			       "msglen, DROPING... \n");
 			return 0;
 		}
@@ -491,7 +493,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 
 				if (( ((int) msg->buffer) - ((int) (psp - pstart)) ) <  
 				    opaqlen) {
-					printf("ProcessRELAYREPL()--> opt_length has 0 value "
+					TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value "
 					       "for opaqlen, DROPING... \n");
 					return 0;
 				}
@@ -545,7 +547,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 			}
   
 			if (check == 0) {
-				printf("ProcessRELAYREPL--->ERROR NO INTERFACE FOUND!\n");
+				TRACE(dump, "ProcessRELAYREPL--->ERROR NO INTERFACE FOUND!\n");
 				return 0;
 			}
 
@@ -560,7 +562,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 		}
 	}
 	else { /* OPTION_RELAY_MSG */
-		printf("ProcessRELAYREPL--->ERROR MESSAGE IS MALFORMED NO "
+		TRACE(dump, "ProcessRELAYREPL--->ERROR MESSAGE IS MALFORMED NO "
 		       "OPTION_RELAY_MSG FOUND, DROPING...!\n");
 		return 0;
 	}

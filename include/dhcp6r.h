@@ -66,7 +66,6 @@
 #define OPTION_INTERFACE_ID	18
 
 char *dhcp6r_clock __P((void));
-FILE  *dump;
 void  handler __P((int signo));
 
 
