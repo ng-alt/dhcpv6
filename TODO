@@ -11,14 +11,12 @@
 
 - Replace netlink.c with libnl
 
-- Replace hash.c and TAILQ junk with glib
+- Replace hash.c and TAILQ junk with glib calls
 
 - Replace all .l files with a single lexer with multiple state paths depending
   on what we're reading.
 
 - Replace both .y files with a single parser with multiple state paths for
   the tokens we're parsing.
-
-- Fix up Makefile for git (for ChangeLog and release).
 
 - Do we need radvd_token.l?  Why does dhcp6c modify radvd.conf?
