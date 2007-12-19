@@ -100,7 +100,7 @@ struct rootgroup *globalgroup = NULL;
 	 a == DH6_REBIND || a == DH6_CONFIRM || a == DH6_RELEASE || \
 	 a == DH6_DECLINE || a == DH6_INFORM_REQ)
 
-static void usage __P((void));
+static void usage __P((char *name));
 static void server6_init __P((void));
 static void server6_mainloop __P((void));
 static int server6_recv __P((int));

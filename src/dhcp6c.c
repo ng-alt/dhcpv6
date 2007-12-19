@@ -100,7 +100,7 @@ static const struct sockaddr_in6 *sa6_allagent;
 static socklen_t sa6_alen;
 static struct duid client_duid;
 
-static void usage __P((void));
+static void usage __P((char *name));
 static void client6_init __P((char *));
 static void client6_ifinit __P((char *));
 void free_servers __P((struct dhcp6_if *));
