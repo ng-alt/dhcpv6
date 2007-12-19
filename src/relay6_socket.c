@@ -285,7 +285,7 @@ get_interface_info()
 	int plen, scope, dad_status, if_idx;
 	char addr6p[8][5];
 	char src_addr[INET6_ADDRSTRLEN];
-	struct interface *device = NULL;
+	struct interface *device = NULL, *next_device;
 	int opaq = OPAQ;
 	int sw = 0;
 	struct IPv6_address *ipv6addr;
@@ -370,14 +370,21 @@ get_interface_info()
 	} /* while */
     
 	fflush(dump); 
-	for (device = interface_list.next; device != &interface_list;
-	     device = device->next) {	
-		if ( device->ipv6addr == NULL) {
-			TRACE(dump,"%s - ERROR--> ONE MUST ASSIGN SITE SCOPED IPv6 "
-			      "ADDRESS FOR INTERFACE: %s\n", dhcp6r_clock(), 
-			      device->ifname);
-			exit(1);	      	     
+	for (device = interface_list.next; device != &interface_list; ) {	
+		next_device = device->next;
+		if (device->ipv6addr == NULL) {
+			TRACE(dump, "%s - REMOVE INTERFACE %s AS IT DOES NOT "
+					"HAVE ANY GLOBAL ADDRESS\n",
+					dhcp6r_clock(), device->ifname);
+			--nr_of_devices;
+			device->prev->next = device->next;
+			device->next->prev = device->prev;
+			free(device->ifname);
+			if (device->link_local != NULL)
+				free(device->link_local);
+			free(device);
 		}
+		device = next_device;
 	}	
         
 	fclose(f);
