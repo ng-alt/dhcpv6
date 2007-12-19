@@ -109,7 +109,7 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	/* add new address */
 	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
 		lv_next = TAILQ_NEXT(lv, link);
-		if ((lv->val_dhcp6addr.type != IAPD) &&(lv->val_dhcp6addr.plen == 0)) {
+		if (lv->val_dhcp6addr.type != IAPD) {
 			lv->val_dhcp6addr.plen = 
 				dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
 			if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
@@ -349,7 +349,7 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	/* flag == ADDR_UPDATE */
 	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
 		lv_next = TAILQ_NEXT(lv, link);
-		if ((lv->val_dhcp6addr.type != IAPD) && (lv->val_dhcp6addr.plen == 0)) {
+		if (lv->val_dhcp6addr.type != IAPD) {
 			lv->val_dhcp6addr.plen = 
 				dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
 			if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {

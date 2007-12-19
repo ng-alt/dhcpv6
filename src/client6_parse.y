@@ -92,7 +92,7 @@ static void cleanup_cflist __P((struct cf_list *));
 %token INTERFACE IFNAME IPV6ADDR
 %token REQUEST SEND 
 %token RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS DOMAIN_LIST
-%token INFO_ONLY TEMP_ADDR USE_RA_PREFIX
+%token INFO_ONLY TEMP_ADDR
 %token ADDRESS PREFIX IAID RENEW_TIME REBIND_TIME V_TIME P_TIME PREFIX_DELEGATION_INTERFACE
 %token NUMBER SLASH EOS BCL ECL STRING INFINITY
 %token COMMA OPTION
@@ -244,14 +244,6 @@ declaration:
 			$$ = l;
                 }
 
-        |       USE_RA_PREFIX EOS
-                {
-			struct cf_list *l;
-			MAKE_CFLIST(l, DECL_USE_RA_PREFIX, NULL, NULL);
-			/* no value */
-
-			$$ = l;
-                }
 	;
 
 dhcpoption:

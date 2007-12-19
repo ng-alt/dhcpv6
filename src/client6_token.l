@@ -155,7 +155,6 @@ ecl		\}
 	/* generic options */
 <S_CNF>information-only { DECHO; return (INFO_ONLY); }
 <S_CNF>temp-address { DECHO; return (TEMP_ADDR); }
-<S_CNF>use-ra-prefix { DECHO; return (USE_RA_PREFIX); }
 	/* duration */
 <S_CNF>infinity { DECHO; return (INFINITY); }
 

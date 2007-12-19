@@ -1041,21 +1041,6 @@ server6_send(type, ifp, origmsg, optinfo, from, fromlen, roptinfo)
 	dh6->dh6_msgtypexid = origmsg->dh6_msgtypexid;
 	dh6->dh6_msgtype = (u_int8_t)type;
 
-	if (optinfo->flags & DHCIFF_REQUEST_PREFIX) {
-		if (!((subnet && (subnet->linkscope.use_ra_prefix)) ||
-			(host && (host->hostscope.use_ra_prefix)))) {
-			struct interface *ifnetwork;
-			int no_use_ra_prefix = 1;
-			for (ifnetwork = globalgroup->iflist; ifnetwork; ifnetwork = ifnetwork->next) {
-				if ((ifp->ifname && (strcmp(&(ifnetwork->name[0]), ifp->ifname) == 0 )) && (ifnetwork->ifscope.use_ra_prefix))
-					no_use_ra_prefix = 0;
-			}
-
-			if (no_use_ra_prefix)
-				roptinfo->flags |= DHCIFF_RESPOND_PREFIX;
-		}
-	}
-
 	/* set options in the reply message */
 	if ((optlen = dhcp6_set_options((struct dhcp6opt *)(dh6 + 1),
 					(struct dhcp6opt *)(replybuf +

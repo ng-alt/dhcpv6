@@ -309,7 +309,6 @@ struct dhcp6 {
 
 #define DH6OPT_IA_PD 25
 #define DH6OPT_IAPREFIX 26
-#define DH6OPT_REQUEST_PREFIX 28
 
 struct dhcp6opt {
 	u_int16_t dh6opt_type;

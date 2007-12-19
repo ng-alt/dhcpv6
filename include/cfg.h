@@ -98,12 +98,9 @@ struct dhcp6_if {
 #define DHCIFF_TEMP_ADDRS 0x4
 #define DHCIFF_PREFIX_DELEGATION 0x8
 #define DHCIFF_UNICAST 0x10
-#define DHCIFF_REQUEST_PREFIX 0x20
-#define DHCIFF_RESPOND_PREFIX 0x40
 
 	struct in6_addr linklocal;
 	int server_pref;	/* server preference (server only) */
-	int use_ra_prefix;
 	struct dhcp6_list reqopt_list;
 	/* request specific addresses list from client */
 	struct dhcp6_list addr_list;
@@ -179,8 +176,6 @@ struct dhcp6_ifconf {
 	struct dhcp6_list reqopt_list;
 
 	struct dhcp6_option_list option_list;
-
-	int use_ra_prefix;
 };
 
 struct prefix_ifconf {
@@ -288,8 +283,7 @@ enum {DECL_SEND, DECL_ALLOW, DECL_INFO_ONLY, DECL_TEMP_ADDR, DECL_REQUEST, DECL_
       DHCPOPT_PREFIX_DELEGATION, IFPARAM_SLA_ID, IFPARAM_SLA_LEN,
       DHCPOPT_RAPID_COMMIT, 
       DHCPOPT_DNS, ADDRESS_LIST_ENT,
-      DHCPOPT_DOMAIN_LIST,
-      DECL_USE_RA_PREFIX };
+      DHCPOPT_DOMAIN_LIST };
 
 typedef enum {DHCP6_MODE_SERVER, DHCP6_MODE_CLIENT, DHCP6_MODE_RELAY }
 dhcp6_mode_t;

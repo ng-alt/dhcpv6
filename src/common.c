@@ -1048,11 +1048,6 @@ dhcp6_get_options(p, ep, optinfo)
 			dprintf(LOG_DEBUG, "%s" "get option rapid-commit",
 					FNAME);
 			break;
-		case DH6OPT_REQUEST_PREFIX:
-			if (optlen != 0)
-				goto malformed;
-			optinfo->flags |= DHCIFF_REQUEST_PREFIX;
-			break;
 		case DH6OPT_UNICAST:
 			if (optlen != sizeof(struct in6_addr)
 			    && dhcp6_mode != DHCP6_MODE_CLIENT)
@@ -1228,7 +1223,8 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 			}
 			break;
 		case DH6OPT_IADDR:
-			if (optlen < sizeof(ai) - sizeof(u_int32_t))
+			if (optlen <
+			     sizeof(ai) - sizeof(u_int32_t) - sizeof(u_int8_t))
 				goto malformed;
 			memcpy(&ai, p, sizeof(ai));
 			/* copy the information into internal format */
@@ -1247,12 +1243,6 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 				    "(%d) is greater than valid life time"
 				    "(%d)", addr6.preferlifetime, addr6.validlifetime);
 				goto malformed;
-			}
-			if ( optlen & 1 )
-			{ 
-			    addr6.plen = *(p + sizeof(ai));
-			    optlen -= 1;
-			    p++;
 			}
 			if (optlen == sizeof(ai) - sizeof(u_int32_t)) {
 				addr6.status_code = DH6OPT_STCODE_UNDEFINE;
@@ -1399,9 +1389,6 @@ dhcp6_set_options(bp, ep, optinfo)
 	if (optinfo->flags & DHCIFF_RAPID_COMMIT)
 		COPY_OPTION(DH6OPT_RAPID_COMMIT, 0, "", p);
 
-	if (optinfo->flags & DHCIFF_REQUEST_PREFIX)
-		COPY_OPTION(DH6OPT_REQUEST_PREFIX, 0, "", p);
-
 	if ((dhcp6_mode == DHCP6_MODE_SERVER) && (optinfo->flags & DHCIFF_UNICAST)) {
 		if (!IN6_IS_ADDR_UNSPECIFIED(&optinfo->server_addr)) {
 			COPY_OPTION(DH6OPT_UNICAST, sizeof(optinfo->server_addr),
@@ -1454,17 +1441,14 @@ dhcp6_set_options(bp, ep, optinfo)
 		if (!TAILQ_EMPTY(&optinfo->addr_list)) {
 			for (dp = TAILQ_FIRST(&optinfo->addr_list); dp; 
 			     dp = TAILQ_NEXT(dp, link)) {
-				int iaddr_len = 
-				 (dp->val_dhcp6addr.plen &&
-				 ( optinfo->flags & DHCIFF_RESPOND_PREFIX )
-				  ) ? 1 : 0; 
+				int iaddr_len = 0;
 				memset(&ai, 0, sizeof(ai));
 				ai.dh6_ai_type = htons(DH6OPT_IADDR);
 				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) 
-					iaddr_len += sizeof(ai) - sizeof(u_int32_t) 
+					iaddr_len = sizeof(ai) - sizeof(u_int32_t) 
 								+ sizeof(status);
 				else 
-					iaddr_len += sizeof(ai) - sizeof(u_int32_t);
+					iaddr_len = sizeof(ai) - sizeof(u_int32_t);
 				ai.dh6_ai_len = htons(iaddr_len);
 				ai.preferlifetime = htonl(dp->val_dhcp6addr.preferlifetime);
 				ai.validlifetime = htonl(dp->val_dhcp6addr.validlifetime);
@@ -1472,22 +1456,11 @@ dhcp6_set_options(bp, ep, optinfo)
 			       		sizeof(ai.addr));
 				memcpy(tp, &ai, sizeof(ai));
 				tp += sizeof(ai);
-				if(  dp->val_dhcp6addr.plen &&
-				   ( optinfo->flags & DHCIFF_RESPOND_PREFIX )
-				  )
-				{
-				    *tp = dp->val_dhcp6addr.plen;
-				    optlen += 1;				    
-				    ++tp;
-				}
 				dprintf(LOG_DEBUG, "set IADDR address option len %d: "
-			    		"%s preferlifetime %d validlifetime %d prefix:%d", 
+			    		"%s preferlifetime %d validlifetime %d",
 			    		iaddr_len, in6addr2str(&ai.addr, 0), 
 			    		ntohl(ai.preferlifetime), 
-					ntohl(ai.validlifetime),
-					( optinfo->flags & DHCIFF_RESPOND_PREFIX )
-					? dp->val_dhcp6addr.plen : 0
-				       );
+					ntohl(ai.validlifetime));
 				/* set up address status code if any */
 				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
 					status.dh6_status_type = htons(DH6OPT_STATUS_CODE);

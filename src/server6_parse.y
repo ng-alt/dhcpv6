@@ -104,7 +104,6 @@ extern int server6_tokenlex __P((void));
 %token	<str>	IAID IAIDINFO
 %token  <str>	INFO_ONLY
 %token	<str>	TO
-%token  <str>   USE_RA_PREFIX
 
 %token	<str>	BAD_TOKEN
 %type	<str>	name
@@ -901,15 +900,6 @@ paradecl
 		if ($2 < 0 || $2 > 255)
 			dprintf(LOG_ERR, "%s" "bad server preference number", FNAME);
 		currentscope->scope->server_pref = $2;
-	}
-        | USE_RA_PREFIX ';'
-        {
-	       if (!currentscope) {
-			currentscope = push_double_list(currentscope, &globalgroup->scope);
-			if (currentscope == NULL)
-				ABORT;
-	       }
-	       currentscope->scope->use_ra_prefix = 1;
 	}
 	;
 

@@ -189,9 +189,6 @@ configure_interface(const struct cf_namelist *iflist)
 					goto bad;
 				}
 				break;
-			case DECL_USE_RA_PREFIX:
-			        ifc->use_ra_prefix = 1;
-				break;
 			default:
 				dprintf(LOG_ERR, "%s" "%s:%d "
 					"invalid interface configuration",
@@ -474,8 +471,6 @@ configure_commit(void)
 			TAILQ_INIT(&ifc->option_list);
 
 			ifp->server_pref = ifc->server_pref;
-
-			ifp->use_ra_prefix = ifc->use_ra_prefix;
 
 			memcpy(&ifp->iaidinfo, &ifc->iaidinfo, sizeof(ifp->iaidinfo));
 		}

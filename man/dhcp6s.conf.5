@@ -259,16 +259,6 @@ client. Usually DHCPv6 clients must use multicast addresses to contact DHCPv6
 server and agents. With this declaration, dhcp6s accepts unicast 
 messages from DHCPv6 clients if they include a Server Unicast option.
 
-
-.nf
-\fIuse-ra-prefix;\fR
-.fi
-This declaration tells the server not to send clients the address prefix configured
-in address or range statements. With this option, client address prefixes can
-be set only by router advertisements, and the prefix configured in address or
-range statements will be ignored. This is a Red Hat extension; previously, the
-only way to set client address prefixes was by router advertisement.
-
 .SH EXAMPLES
 .PP
 This is a sample of the dhcp6s.conf file.

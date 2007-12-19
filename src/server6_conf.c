@@ -290,8 +290,6 @@ download_scope(up, current)
 		dhcp6_copy_list(&current->dnslist.addrlist, &up->dnslist.addrlist);
 	if (current->dnslist.domainlist == NULL)
 		current->dnslist.domainlist = up->dnslist.domainlist;
-	if ( current->use_ra_prefix )
-	    up->use_ra_prefix = 1;
 	return;
 }
 

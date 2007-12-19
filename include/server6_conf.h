@@ -47,7 +47,6 @@ struct scope {
 	u_int8_t send_flags;
 	u_int8_t allow_flags;
 	struct dns_list dnslist;
-        u_int8_t use_ra_prefix;
 };
 
 struct scopelist {

@@ -119,7 +119,6 @@ rebind-time	{ return REBINDTIME; }
 valid-life-time	 { return VALIDLIFETIME; }
 prefer-life-time { return PREFERLIFETIME; }
 server-preference { return PREFERENCE; }
-use-ra-prefix     { return USE_RA_PREFIX; }
 
 to	{ return TO; }
 infinity	{ return INFINITY; }

@@ -1077,14 +1077,8 @@ client6_send(ev)
 			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
 				goto end;
 		}
-		/* support for server assigned prefix */
-		if ( ! ifp->use_ra_prefix )
-		    optinfo.flags |= DHCIFF_REQUEST_PREFIX;
 		break;
 	case DHCP6S_REQUEST:
-		/* support for server assigned prefix */
-		if ( ! ifp->use_ra_prefix )
-		    optinfo.flags |= DHCIFF_REQUEST_PREFIX;
 		if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
 			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
 					sizeof(optinfo.iaidinfo));
