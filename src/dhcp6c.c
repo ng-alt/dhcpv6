@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <syslog.h>
 #include <string.h>
+#include <libgen.h>
 #include <signal.h>
 #include <net/if.h>
 #include <linux/sockios.h>
