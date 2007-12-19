@@ -17,24 +17,23 @@ CLEANFILES = *~ ChangeLog libdhcp6client.pc
 
 MOSTLYCLEANDIRS = m4
 
-CVSTAG = $(shell echo "$(PACKAGE)-$(VERSION)" | sed -e 's|\.|_|g')
 FTPURL = ftp://upload.sourceforge.net/incoming/
 
 pcdir = $(libdir)/pkgconfig
 pc_DATA = libdhcp6client.pc
 
 dist-hook:
-	rm -rf `find $(distdir)/docs -type d -name CVS`
+	rm -rf `find $(distdir) -type f -name .gitignore`
 
 libdhcp6client.pc: libdhcp6client.pc.in
 	sed -e 's|\@DHCPV6_VERSION\@|$(DHCPV6_VERSION)|g' < $< > $@
 
 ChangeLog:
-	rm -f ChangeLog ChangeLog.bak
-	cvs2cl -U usermap
+	(GIT_DIR=.git git-log > .changelog.tmp && mv .changelog.tmp ChangeLog; rm -f .changelog.tmp) || (touch ChangeLog; echo 'git directory not found: installing possibly empty ChangeLog.' >&2)
 
 tag:
-	cvs tag -R $(CVSTAG)
+	@git-tag -s -m "Tag as $(PACKAGE)-$(VERSION)" -f $(PACKAGE)-$(VERSION)
+	@echo "Tagged as $(PACKAGE)-$(VERSION) (GPG signed)"
 
 release: dist-gzip
 	rm -rf $(PACKAGE)-$(VERSION)
