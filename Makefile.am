@@ -32,7 +32,12 @@ ChangeLog:
 	(GIT_DIR=.git git-log > .changelog.tmp && mv .changelog.tmp ChangeLog; rm -f .changelog.tmp) || (touch ChangeLog; echo 'git directory not found: installing possibly empty ChangeLog.' >&2)
 
 tag:
-	@git-tag -s -m "Tag as $(PACKAGE)-$(VERSION)" -f $(PACKAGE)-$(VERSION)
+	@if [ -z "$(GPGKEY)" ]; then \
+		echo "GPGKEY environment variable missing, please set this to the key ID" ; \
+		echo "you want to use to tag the repository." ; \
+		exit 1 ; \
+	fi
+	@git-tag -u $(GPGKEY) -m "Tag as $(PACKAGE)-$(VERSION)" -f $(PACKAGE)-$(VERSION)
 	@echo "Tagged as $(PACKAGE)-$(VERSION) (GPG signed)"
 
 release: dist-gzip
