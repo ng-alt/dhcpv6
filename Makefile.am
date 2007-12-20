@@ -17,8 +17,6 @@ CLEANFILES = *~ ChangeLog libdhcp6client.pc
 
 MOSTLYCLEANDIRS = m4
 
-FTPURL = ftp://upload.sourceforge.net/incoming/
-
 pcdir = $(libdir)/pkgconfig
 pc_DATA = libdhcp6client.pc
 
@@ -45,4 +43,7 @@ release: dist-gzip
 	gzip -dc $(PACKAGE)-$(VERSION).tar.gz | tar -xvf -
 	( cd $(PACKAGE)-$(VERSION) && ./configure && make ) || exit 1
 	$(MAKE) tag
+	@echo
+	@echo "$(PACKAGE)-$(VERSION).tar.bz2 is now ready to upload."
+	@echo
 	curl --upload-file $(PACKAGE)-$(VERSION).tar.gz $(FTPURL)
