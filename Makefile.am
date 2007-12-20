@@ -46,4 +46,3 @@ release: dist-gzip
 	@echo
 	@echo "$(PACKAGE)-$(VERSION).tar.bz2 is now ready to upload."
 	@echo
-	curl --upload-file $(PACKAGE)-$(VERSION).tar.gz $(FTPURL)
