@@ -67,7 +67,7 @@ main(argc, argv)
 	dump = stderr;
 	fp = fopen(PIDFILE, "w+");
 	if (fp == NULL) {
-		TRACE(dump, "COULD NOT WRITE PID FILE\n");
+		TRACE(dump, "could not write pid file\n");
 		exit(1);
 	}
 	fprintf(fp, "%d", getpid());
@@ -87,7 +87,7 @@ main(argc, argv)
 		FILE *tmp_dump;
 		tmp_dump = fopen(DUMPFILE, "w+");
 		if (tmp_dump == NULL) {
-			TRACE(dump, "COULD NOT WRITE DUMP FILE: %s\n",
+			TRACE(dump, "could not write dump file: %s\n",
 					DUMPFILE);
 			exit(1);
 		}
@@ -112,7 +112,7 @@ main(argc, argv)
 			ci = (struct cifaces *) malloc(sizeof(struct cifaces));
 			if (ci == NULL) {
 				TRACE(dump, "%s - %s ", dhcp6r_clock(),
-				    "Main--> ERROR NO MORE MEMORY AVAILABLE\n");
+				    "main--> error no more memory available\n");
 				exit(1);
 			}
 			ci->ciface = strdup(argv[i]);
@@ -120,7 +120,7 @@ main(argc, argv)
 			cifaces_list.next = ci;
 
 			TRACE(dump, "%s - %s'%s'\n", dhcp6r_clock(),
-				"SETTING UP CLIENT INTERFACE: ", argv[i]);
+				"setting up client interface: ", argv[i]);
 			continue;
 		}
 		else if (strcmp(argv[i], "-cu") == 0) {
@@ -135,7 +135,7 @@ main(argc, argv)
 			si = (struct sifaces *) malloc(sizeof(struct sifaces));
 			if (si == NULL) {
 				TRACE(dump, "%s - %s", dhcp6r_clock(),
-				    "Main--> ERROR NO MORE MEMORY AVAILABLE\n");
+				    "main--> error no more memory available\n");
 				exit(1);
 			}
 			si->siface = strdup(argv[i]);
@@ -143,7 +143,7 @@ main(argc, argv)
 			sifaces_list.next = si;
 
 			TRACE(dump, "%s - %s'%s'\n", dhcp6r_clock(),
-				"SETTING UP SERVER INTERFACE: ", argv[i]);
+				"setting up server interface: ", argv[i]);
 
 			continue;
 		}
@@ -164,7 +164,7 @@ main(argc, argv)
 				malloc(sizeof(struct IPv6_uniaddr));
 			if (unia == NULL) {
 				TRACE(dump, "%s - %s", dhcp6r_clock(),
-				    "Main--> ERROR NO MORE MEMORY AVAILABLE\n");
+				    "main--> error no more memory available\n");
 				exit(1);
 			}
 			unia->uniaddr = strdup(argv[i]);
@@ -172,7 +172,7 @@ main(argc, argv)
 			IPv6_uniaddr_list.next = unia;
 
 			TRACE(dump, "%s - %s'%s'\n", dhcp6r_clock(),
-					"SETTING UP SERVER ADDRESS: ", argv[i]);
+					"setting up server address: ", argv[i]);
 			nr_of_uni_addr += 1;
 
 			continue;
@@ -207,7 +207,7 @@ main(argc, argv)
 				sa = (struct server *) malloc(sizeof(struct server));
 				if (sa == NULL) {
 					TRACE(dump, "%s - %s", dhcp6r_clock(),
-						"Main--> ERROR NO MORE MEMORY AVAILABLE\n");
+						"main--> no more memory available\n");
 					exit(1);
 				}
 				sa->serv = strdup(addr);
@@ -215,9 +215,9 @@ main(argc, argv)
 				if (iface->sname != NULL)
 					sa->next = iface->sname;
 				iface->sname = sa;
-				TRACE(dump, "%s - %s%s FOR INTERFACE: %s\n",
+				TRACE(dump, "%s - %s%s for interface: %s\n",
 						dhcp6r_clock(),
-						"SETTING UP SERVER ADDRESS: ",
+						"setting up server address: ",
 						addr, eth);
 				free(sf);
 			}
@@ -239,10 +239,10 @@ main(argc, argv)
 	}
 
 	if (sw == 1)
-		multicast_off = 0;   
-     
+		multicast_off = 0;
+
 	init_socket();
-  
+
 	if (set_sock_opt() == 0)
 		goto ERROR;
 
@@ -265,7 +265,7 @@ main(argc, argv)
 		if (check_select() == 1) {
 			if (recv_data() == 1) {
 				if (get_recv_data() == 1) {
-					mesg = create_parser_obj();                  
+					mesg = create_parser_obj();
 					if (put_msg_in_store (mesg) == 0)
 						mesg->sent = 1; /* mark it for deletion */
 				}
@@ -292,8 +292,7 @@ ERROR:
 		TRACE(dump, "dhcp6r: interface '%s' does not exist \n", argv[i]);
 		exit(1);
 	}
- 
-	TRACE(dump, "ERROR OCCURED IN THE RELAY AGENT LOOP, EXITING..........\n");
+
 	exit(1);
 }
 
