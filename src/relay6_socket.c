@@ -369,7 +369,6 @@ get_interface_info()
 		}
 	} /* while */
 
-	fflush(dump); 
 	for (device = interface_list.next; device != &interface_list; ) {
 		next_device = device->next;
 		if (device->ipv6addr == NULL) {
@@ -387,6 +386,7 @@ get_interface_info()
 		device = next_device;
 	}
 
+	fflush(dump);
 	fclose(f);
 	return 1;
 }
