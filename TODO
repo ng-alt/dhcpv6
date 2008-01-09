@@ -20,3 +20,7 @@
   the tokens we're parsing.
 
 - Do we need radvd_token.l?  Why does dhcp6c modify radvd.conf?
+
+- Clean up TRACE() messages, they are all over the place.
+
+- Fix indentation.  Ugh, hate trailing whitespace and tabs.
