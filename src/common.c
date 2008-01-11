@@ -721,14 +721,7 @@ get_duid(const 	char *idfile, const char *ifname,
 			goto fail;
 		}
 	} else {
-		int l;
-
-		if ((l = gethwid(tmpbuf, sizeof(tmpbuf), ifname, &hwtype)) < 0) {
-			dprintf(LOG_INFO, "%s"
-			    "failed to get a hardware address", FNAME);
-			goto fail;
-		}
-		len = l + sizeof(struct dhcp6_duid_type1);
+		len = calculate_duid_len(ifname);
 	}
 
 	memset(duid, 0, sizeof(*duid));
@@ -763,28 +756,56 @@ get_duid(const 	char *idfile, const char *ifname,
 			duidstr(duid));
 	}
 
+	/* save DUID */
+	if (save_duid(idfile, ifname, duid)) {
+		dprintf(LOG_DEBUG, "%s" "failed to save DUID: %s", FNAME,
+			duidstr(duid));
+		goto fail;
+	}
+
+	if (fp)
+		fclose(fp);
+	return (0);
+
+fail:
+	if (fp)
+		fclose(fp);
+	if (duid->duid_id != NULL) {
+		duidfree(duid);
+	}
+	return (-1);
+}
+
+int
+save_duid(const char *idfile, const char *ifname, struct duid *duid)
+{
+	FILE *fp = NULL;
+	u_int16_t len = 0;
+
+	/* calculate DUID length */
+	len = calculate_duid_len(ifname);
+
 	/* save the (new) ID to the file for next time */
 #ifdef LIBDHCP
 	if (libdhcp_control && (libdhcp_control->capability & DHCP_USE_LEASE_DATABASE))
 #endif
-	if (!fp) {
-		if ((fp = fopen(idfile, "w+")) == NULL) {
-			dprintf(LOG_ERR, "%s"
-			    "failed to open DUID file for save", FNAME);
-			goto fail;
-		}
-		if ((fwrite(&len, sizeof(len), 1, fp)) != 1) {
-			dprintf(LOG_ERR, "%s" "failed to save DUID", FNAME);
-			goto fail;
-		}
-		if ((fwrite(duid->duid_id, len, 1, fp)) != 1) {
-			dprintf(LOG_ERR, "%s" "failed to save DUID", FNAME);
-			goto fail;
-		}
-
-		dprintf(LOG_DEBUG, "%s" "saved generated DUID to %s", FNAME,
-			idfile);
+	if ((fp = fopen(idfile, "w+")) == NULL) {
+		dprintf(LOG_ERR, "%s"
+		    "failed to open DUID file for save", FNAME);
+		goto fail;
 	}
+
+	if ((fwrite(&len, sizeof(len), 1, fp)) != 1) {
+		dprintf(LOG_ERR, "%s" "failed to save DUID", FNAME);
+		goto fail;
+	}
+
+	if ((fwrite(duid->duid_id, len, 1, fp)) != 1) {
+		dprintf(LOG_ERR, "%s" "failed to save DUID", FNAME);
+		goto fail;
+	}
+
+	dprintf(LOG_DEBUG, "%s" "saved generated DUID to %s", FNAME, idfile);
 
 	if (fp)
 		fclose(fp);
@@ -797,6 +818,24 @@ get_duid(const 	char *idfile, const char *ifname,
 		duidfree(duid);
 	}
 	return (-1);
+}
+
+u_int16_t
+calculate_duid_len(const char *ifname)
+{
+	int l;
+	u_int16_t ret = 0, hwtype;
+	struct dhcp6_duid_type1 *dp; /* we only support the type1 DUID */
+	unsigned char tmpbuf[256];	/* DUID should be no more than 256 bytes */
+
+	if ((l = gethwid(tmpbuf, sizeof(tmpbuf), ifname, &hwtype)) < 0) {
+		dprintf(LOG_INFO, "%s"
+		    "failed to get a hardware address", FNAME);
+		return 0;
+	}
+
+	ret = l + sizeof(struct dhcp6_duid_type1);
+	return ret;
 }
 
 ssize_t

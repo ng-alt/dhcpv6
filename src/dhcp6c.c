@@ -555,6 +555,7 @@ client6_ifinit(char *device)
 	memcpy(&client6_iaidaddr.client6_info.iaidinfo, &ifp->iaidinfo, 
 			sizeof(client6_iaidaddr.client6_info.iaidinfo));
 	duidcpy(&client6_iaidaddr.client6_info.clientid, &client_duid);
+	save_duid(DUID_FILE, device, &client_duid);
 #ifdef LIBDHCP
 	if (libdhcp_control && (libdhcp_control->capability & DHCP_USE_LEASE_DATABASE)) {
 #endif
@@ -1047,6 +1048,12 @@ client6_send(ev)
 	/* client ID */
 	if (duidcpy(&optinfo.clientID, &client_duid)) {
 		dprintf(LOG_ERR, "%s" "failed to copy client ID", FNAME);
+		goto end;
+	}
+
+	/* save DUID now for persistent DUID (e.g., if client reboots) */
+	if (save_duid(DUID_FILE, device, &client_duid)) {
+		dprintf(LOG_ERR, "%s" "failed to save client ID", FNAME);
 		goto end;
 	}
 
