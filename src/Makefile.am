@@ -30,7 +30,7 @@ dhcp6c_SOURCES = dhcp6c.c cfg.c netlink.c client6_addr.c client6_parse.y \
                  client6_token.l dad_token.l resolv_token.l radvd_token.l \
                  $(COMMONSRCS)
 
-libdhcp6client_la_CFLAGS = -DLIBDHCP
+libdhcp6client_la_CFLAGS = -DLIBDHCP -fvisibility=hidden
 libdhcp6client_la_LDFLAGS = -version-info \
                                 $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
                             -release $(LT_RELEASE)
