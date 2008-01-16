@@ -884,22 +884,20 @@ gethwid(buf, len, ifname, hwtypep)
 	return l;
 }
 
-void
-dhcp6_init_options(optinfo)
-	struct dhcp6_optinfo *optinfo;
-{
-	memset(optinfo, 0, sizeof(*optinfo));
-	/* for safety */
-	optinfo->clientID.duid_id = NULL;
-	optinfo->serverID.duid_id = NULL;
-	optinfo->ia_stcode = DH6OPT_STCODE_UNDEFINE;
-	optinfo->pref = DH6OPT_PREF_UNDEF;
-	TAILQ_INIT(&optinfo->addr_list);
-	TAILQ_INIT(&optinfo->reqopt_list);
-	TAILQ_INIT(&optinfo->stcode_list);
-	TAILQ_INIT(&optinfo->dns_list.addrlist);
-	TAILQ_INIT(&optinfo->relay_list);
-	optinfo->dns_list.domainlist = NULL;
+void dhcp6_init_options(struct dhcp6_optinfo *optinfo) {
+    memset(optinfo, 0, sizeof(*optinfo));
+    /* for safety */
+    optinfo->clientID.duid_id = NULL;
+    optinfo->serverID.duid_id = NULL;
+    optinfo->ia_stcode = DH6OPT_STCODE_UNDEFINE;
+    optinfo->pref = DH6OPT_PREF_UNDEF;
+    TAILQ_INIT(&optinfo->addr_list);
+    TAILQ_INIT(&optinfo->reqopt_list);
+    TAILQ_INIT(&optinfo->stcode_list);
+    TAILQ_INIT(&optinfo->dns_list.addrlist);
+    TAILQ_INIT(&optinfo->relay_list);
+    optinfo->dns_list.domainlist = NULL;
+    return;
 }
 
 void

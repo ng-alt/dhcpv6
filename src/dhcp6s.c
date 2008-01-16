@@ -598,414 +598,466 @@ server6_recv(s)
 	return 0;
 }
 
-static int
-server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
-	struct dhcp6_if *ifp;
-	struct in6_pktinfo *pi;
-	struct dhcp6 *dh6;
-	struct dhcp6_optinfo *optinfo;
-	struct sockaddr *from;
-	int fromlen;
-{
-	struct dhcp6_optinfo roptinfo;
-	
-	int addr_flag = 0;
-	int addr_request = 0;
-	int resptype = DH6_REPLY;
-	int num = DH6OPT_STCODE_SUCCESS;
-	int sending_hint = 0;
+static int server6_react_message(struct dhcp6_if *ifp,
+                                 struct in6_pktinfo *pi,
+                                 struct dhcp6 *dh6,
+                                 struct dhcp6_optinfo *optinfo,
+                                 struct sockaddr *from,
+                                 int fromlen) {
+    struct dhcp6_optinfo roptinfo;
+    int addr_flag = 0;
+    int addr_request = 0;
+    int resptype = DH6_REPLY;
+    int num = DH6OPT_STCODE_SUCCESS;
+    int sending_hint = 0;
 
-	/* message validation according to Section 18.2 of dhcpv6-28 */
+    /* message validation according to Section 18.2 of dhcpv6-28 */
 
-	/* the message must include a Client Identifier option */
-	if (optinfo->clientID.duid_len == 0) {
-		dprintf(LOG_INFO, "%s" "no server ID option", FNAME);
-		return -1;
-	} else {
-		dprintf(LOG_DEBUG, "%s" "client ID %s", FNAME,
-			duidstr(&optinfo->clientID));
-	}
-	switch (dh6->dh6_msgtype) {
-	/* the message must include a Server Identifier option in below messages */
-	case DH6_REQUEST:
-	case DH6_RENEW:
+    /* the message must include a Client Identifier option */
+    if (optinfo->clientID.duid_len == 0) {
+        dprintf(LOG_INFO, "%s" "no server ID option", FNAME);
+        return -1;
+    } else {
+        dprintf(LOG_DEBUG, "%s" "client ID %s", FNAME,
+                duidstr(&optinfo->clientID));
+    }
+
+    /* what kind of message did we receive? */
+    switch (dh6->dh6_msgtype) {
+        /* these messages must include a Server Identifier option */
+        case DH6_REQUEST:
+        case DH6_RENEW:
         case DH6_DECLINE:
-	case DH6_RELEASE:
-		if (optinfo->serverID.duid_len == 0) {
-			dprintf(LOG_INFO, "%s" "no server ID option", FNAME);
-			return -1;
-		}
-		/* the contents of the Server Identifier option must match ours */
-		if (duidcmp(&optinfo->serverID, &server_duid)) {
-			dprintf(LOG_INFO, "server ID %s mismatch %s", 
-				duidstr(&optinfo->serverID), duidstr(&server_duid));
-			return -1;
-		}
-		break;
-	/* the message must not include a Server Identifier option in below messages */
-	case DH6_SOLICIT:
-	case DH6_CONFIRM:
-	case DH6_REBIND:
-		if (optinfo->serverID.duid_len != 0) {
-			dprintf(LOG_INFO, "%s" "found server ID option in message Solicit/Confirm/Rebind", FNAME);
-			return -1;
-		}
-	default:
-		break;
-	}
-	/*
-	 * configure necessary options based on the options in request.
-	 */
-	dhcp6_init_options(&roptinfo);
-	/* server information option */
-	if (duidcpy(&roptinfo.serverID, &server_duid)) {
-		dprintf(LOG_ERR, "%s" "failed to copy server ID", FNAME);
-		goto fail;
-	}
-	/* copy client information back */
-	if (duidcpy(&roptinfo.clientID, &optinfo->clientID)) {
-		dprintf(LOG_ERR, "%s" "failed to copy client ID", FNAME);
-		goto fail;
-	}
-	/* if the client is not on the link */
-	if (host == NULL && subnet == NULL) {
-		num = DH6OPT_STCODE_NOTONLINK; 
-		/* Draft-28 18.2.2, drop the message if NotOnLink */
-		if (dh6->dh6_msgtype == DH6_CONFIRM || dh6->dh6_msgtype == DH6_REBIND)
-			goto fail;
-		else
-			goto send;
-	}
-	if (subnet) {
-		roptinfo.pref = subnet->linkscope.server_pref;
-		roptinfo.flags = (optinfo->flags & subnet->linkscope.allow_flags) |
-				subnet->linkscope.send_flags;
-		dnslist = subnet->linkscope.dnslist;
-	}
-	if (host) {
-		roptinfo.pref = host->hostscope.server_pref;
-		roptinfo.flags = (optinfo->flags & host->hostscope.allow_flags) |
-				host->hostscope.send_flags;
-		dnslist = host->hostscope.dnslist;
-	}
-	/* prohibit a mixture of old and new style of DNS server config */
-	if (!TAILQ_EMPTY(&arg_dnslist.addrlist)) {
-		if (!TAILQ_EMPTY(&dnslist.addrlist)) {
-			dprintf(LOG_INFO, "%s" "do not specify DNS servers "
-			    "both by command line and by configuration file.",
-			    FNAME);
-			exit(1);
-		}
-		dnslist = arg_dnslist;
-		TAILQ_INIT(&arg_dnslist.addrlist);
-	}
-	dprintf(LOG_DEBUG, "server preference is %2x", roptinfo.pref);
-	if (roptinfo.flags & DHCIFF_UNICAST) {
-		/* todo find the right server unicast address to client*/
-		/* get_linklocal(device, &roptinfo.server_addr) */
-		memcpy(&roptinfo.server_addr, &ifp->linklocal,
-		       sizeof(roptinfo.server_addr));
-		dprintf(LOG_DEBUG, "%s" "server address is %s",
-			FNAME, in6addr2str(&roptinfo.server_addr, 0));
-	}
-	/*
-	 * When the server receives a Request message via unicast from a
-	 * client to which the server has not sent a unicast option, the server
-	 * discards the Request message and responds with a Reply message
-	 * containing a Status Code option with value UseMulticast, a Server
-	 * Identifier option containing the server's DUID, the Client
-	 * Identifier option from the client message and no other options.
-	 * [dhcpv6-26 18.2.1]
-	 */
-	switch (dh6->dh6_msgtype) {
-	case DH6_REQUEST:
-	case DH6_RENEW:
-	case DH6_DECLINE:
-		/* 
-		 * If the message was relayed, then do not check whether the message
-		 * came in via unicast or multicast, since the relay may be configured
-		 * to send messages via unicast.
-		 */
-		if (TAILQ_EMPTY(&optinfo->relay_list) && 
-		    !IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
-			if (!(roptinfo.flags & DHCIFF_UNICAST)) {
-				num = DH6OPT_STCODE_USEMULTICAST;
-				goto send;
-			} else
-				break;
-		}
-		break;
-	case DH6_SOLICIT:
-	case DH6_CONFIRM:
-	case DH6_REBIND:
-	case DH6_INFORM_REQ:
-		/* A server MUST discard any Solicit, Confirm, Rebind or
-		 * Information-request * messages it receives with a unicast
-		 * destination address.
-		 * [RFC3315 Section 15]
-		 */
-		if (TAILQ_EMPTY(&optinfo->relay_list) && 
-		    !IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
-			dprintf(LOG_DEBUG, "reply no message as %s received "
-					   "with unicast destination address",
-					   dhcp6msgstr(num));
-			goto fail;
-		}
-		break;
-	default:
-		/* 
-		 * If the message was relayed, then do not check whether the message
-		 * came in via unicast or multicast, since the relay may be configured
-		 * to send messages via unicast.
-		 */
-		if (TAILQ_EMPTY(&optinfo->relay_list) && 
-		    !IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
-			num = DH6OPT_STCODE_USEMULTICAST;
-			goto send;
-		}
-		break;
-	}
+        case DH6_RELEASE:
+            if (optinfo->serverID.duid_len == 0) {
+                dprintf(LOG_INFO, "%s" "no server ID option", FNAME);
+                return -1;
+            }
 
-	switch (dh6->dh6_msgtype) {
-	case DH6_SOLICIT: 
-		/*
-		 * If the client has included a Rapid Commit option and the
-		 * server has been configured to respond with committed address
-		 * assignments and other resources, responds to the Solicit
-		 * with a Reply message.
-		 * [dhcpv6-28 Section 17.2.1]
-		 * [dhcpv6-28 Section 17.2.2]
-		 * If Solicit has IA option, responds to Solicit with a Advertise
-		 * message.
-		 */
-		if (optinfo->iaidinfo.iaid != 0 && !(roptinfo.flags & DHCIFF_INFO_ONLY)) {
-			memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo, 
-					sizeof(roptinfo.iaidinfo));
-			roptinfo.type = optinfo->type;
-			dprintf(LOG_DEBUG, "option type is %d", roptinfo.type);
-			addr_request = 1;
-			if (roptinfo.flags & DHCIFF_RAPID_COMMIT) {
-				resptype = DH6_REPLY;
-			} else {
-				resptype = DH6_ADVERTISE;
-				/* giving hint ?? */
-				sending_hint = 1;
-			}	
-		}
-		break;
-	case DH6_INFORM_REQ:
-		/* don't response to info-req if there is any IA
-		 * or server ID option */
-		if (optinfo->iaidinfo.iaid != 0 || optinfo->serverID.duid_len)
-			goto fail;
-		/* DNS server */
-		if (dhcp6_copy_list(&roptinfo.dns_list.addrlist, &dnslist.addrlist)) {
-			dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
-			goto fail;
-		}
-		roptinfo.dns_list.domainlist = dnslist.domainlist;
-		break;
-	case DH6_REQUEST:
-		/* get iaid for that request client for that interface */
-		if (optinfo->iaidinfo.iaid != 0 && !(roptinfo.flags & DHCIFF_INFO_ONLY)) {
-			memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo, 
-					sizeof(roptinfo.iaidinfo));
-			roptinfo.type = optinfo->type;
-			addr_request = 1;
-		} 
-		break;
-	/*
-	 * Locates the client's binding and verifies that the information
-	 * from the client matches the information stored for that client.
-	 */
-	case DH6_RENEW:
-	case DH6_REBIND:
-	case DH6_DECLINE:
-	case DH6_RELEASE:
-	case DH6_CONFIRM:
-		roptinfo.type = optinfo->type;
-		/* XXX: how server knows the difference between rebind_confirm and rebind 
-		 * for prefix delegation ?*/
-		if (dh6->dh6_msgtype == DH6_RENEW || dh6->dh6_msgtype == DH6_REBIND)
-			addr_flag = ADDR_UPDATE;
-		if (dh6->dh6_msgtype == DH6_RELEASE)
-			addr_flag = ADDR_REMOVE;
-		if (dh6->dh6_msgtype == DH6_CONFIRM ||
-			dh6->dh6_msgtype == DH6_RENEW ||
-			dh6->dh6_msgtype == DH6_REBIND) {
-			/* DNS server */
-			addr_flag = ADDR_VALIDATE;
-			if (dhcp6_copy_list(&roptinfo.dns_list.addrlist, &dnslist.addrlist)) {
-				dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
-				goto fail;
-			}
-			roptinfo.dns_list.domainlist = dnslist.domainlist;
-		}
-		if (dh6->dh6_msgtype == DH6_DECLINE)
-			addr_flag = ADDR_ABANDON;
-	if (optinfo->iaidinfo.iaid != 0) {
-		if (!TAILQ_EMPTY(&optinfo->addr_list) && resptype != DH6_ADVERTISE) {
-			struct dhcp6_iaidaddr *iaidaddr;
-			memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo, 
-					sizeof(roptinfo.iaidinfo));
-			roptinfo.type = optinfo->type;
-			/* find bindings */
-			if ((iaidaddr = dhcp6_find_iaidaddr(&roptinfo)) == NULL) {
-				if (dh6->dh6_msgtype == DH6_REBIND) {
-					goto fail;
-				} else if (dh6->dh6_msgtype == DH6_CONFIRM) {
-					num = DH6OPT_STCODE_NOTONLINK;
-				} else { 
-					/* Set status code in IA */
-					roptinfo.ia_stcode = DH6OPT_STCODE_NOBINDING;
-					num = DH6OPT_STCODE_UNDEFINE;
-				}
-				dprintf(LOG_INFO, "%s" "Nobinding for client %s iaid %u",
-					FNAME, duidstr(&optinfo->clientID), 
-						optinfo->iaidinfo.iaid);
-				break;
-			}
-			if (addr_flag != ADDR_UPDATE) {
-				dhcp6_copy_list(&roptinfo.addr_list, &optinfo->addr_list);
-			} else {
-				/* get static host configuration */
-				if (host)
-					dhcp6_get_hostconf(&roptinfo, optinfo, iaidaddr, host);
-				/* allow dynamic address assginment for the host too */
-				if (optinfo->type == IAPD)
-					dhcp6_create_prefixlist(&roptinfo, 
-								optinfo, 
-								iaidaddr, 
-								subnet);
-				else
-					dhcp6_create_addrlist(&roptinfo, optinfo, 
-							      iaidaddr, subnet);
-				/* in case there is not bindings available */
-				if (TAILQ_EMPTY(&roptinfo.addr_list)) {
-					num = DH6OPT_STCODE_NOBINDING;
-					dprintf(LOG_INFO, "%s" 
-					    "Bindings are not on link for client %s iaid %u",
-						FNAME, duidstr(&optinfo->clientID), 
-						roptinfo.iaidinfo.iaid);
-					break;
-				}
-			}
-			if (addr_flag == ADDR_VALIDATE) {
-				if (dhcp6_validate_bindings(&roptinfo, iaidaddr))
-					num = DH6OPT_STCODE_NOTONLINK;
-				break;
-			} else {
-				/* do update if this is not a confirm */
-				if (dhcp6_update_iaidaddr(&roptinfo, addr_flag) 
-						!= 0) {
-					dprintf(LOG_INFO, "%s" 
-						"bindings failed for client %s iaid %u",
-						FNAME, duidstr(&optinfo->clientID), 
-							roptinfo.iaidinfo.iaid);
-					num = DH6OPT_STCODE_UNSPECFAIL;
-					break;
-				}
-			}
-			num = DH6OPT_STCODE_SUCCESS;
-		} else if (dh6->dh6_msgtype == DH6_CONFIRM) {
-			dprintf(LOG_DEBUG, "no addresses in confirm message");
-			goto fail;
-		} else {
-			num = DH6OPT_STCODE_NOADDRAVAIL;
-		}
-	} else 
-		dprintf(LOG_ERR, "invalid message type");
-		break;
-	default:
-		break;
-	}
-	/*
- 	 * XXX: see if we have information for requested options, and if so,
- 	 * configure corresponding options.
- 	 */
-	/*
-	 * If the Request message contained an Option Request option, the
-	 * server MUST include options in the Reply message for any options in
-	 * the Option Request option the server is configured to return to the
-	 * client.
-	 * [dhcpv6-26 18.2.1]
-	 * Note: our current implementation always includes all information
-	 * that we can provide.  So we do not have to check the option request
-	 * options.
-	 */
-	if (addr_request == 1) {
-		int found_binding = 0;
-		struct dhcp6_iaidaddr *iaidaddr;
-		/* find bindings */
-		if ((iaidaddr = dhcp6_find_iaidaddr(&roptinfo)) != NULL) {
-			found_binding = 1;
-			addr_flag = ADDR_UPDATE;
-		}
-		if (host)
-			dhcp6_get_hostconf(&roptinfo, optinfo, iaidaddr, host);
-		/* valid and create addresses list */
-		if (optinfo->type == IAPD)
-			dhcp6_create_prefixlist(&roptinfo, optinfo, iaidaddr, subnet);
-		else
-			dhcp6_create_addrlist(&roptinfo, optinfo, iaidaddr, subnet);
-		if (TAILQ_EMPTY(&roptinfo.addr_list)) {
-			if (resptype == DH6_ADVERTISE) {
-				/* Omit IA option */
-				roptinfo.iaidinfo.iaid = 0;
-				num = DH6OPT_STCODE_NOADDRAVAIL;
-			} else if (resptype == DH6_REPLY) {
-				/* Set status code in IA */
-				roptinfo.ia_stcode = DH6OPT_STCODE_NOADDRAVAIL;
-				num = DH6OPT_STCODE_UNDEFINE;
-			}
-		} else if (sending_hint == 0) {
-		/* valid client request address list */
-			if (found_binding) {
-			       if (dhcp6_update_iaidaddr(&roptinfo, addr_flag) != 0) {
-					dprintf(LOG_ERR,
-					"assigned ipv6address for client iaid %u failed",
-						roptinfo.iaidinfo.iaid);
-					num = DH6OPT_STCODE_UNSPECFAIL;
-			       } else
-					num = DH6OPT_STCODE_SUCCESS;
-			} else {
-			       	if (dhcp6_add_iaidaddr(&roptinfo) != 0) {
-					dprintf(LOG_ERR, 
-					"assigned ipv6address for client iaid %u failed",
-						roptinfo.iaidinfo.iaid);
-					num = DH6OPT_STCODE_UNSPECFAIL;
-				} else
-					num = DH6OPT_STCODE_SUCCESS;
-			}
-		}
-		/* DNS server */
-		if (dhcp6_copy_list(&roptinfo.dns_list.addrlist, &dnslist.addrlist)) {
-			dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
-			goto fail;
-		}
-		roptinfo.dns_list.domainlist = dnslist.domainlist;
-	}
-	/* add address status code */
-  send:
-	dprintf(LOG_DEBUG, " status code: %s", dhcp6_stcodestr(num));
-	if (num != DH6OPT_STCODE_UNDEFINE) {
-		if (dhcp6_add_listval(&roptinfo.stcode_list,
-					&num, DHCP6_LISTVAL_NUM) == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to copy "
-					"status code", FNAME);
-			goto fail;
-		}
-	}
-	/* send a reply message. */
-	(void)server6_send(resptype, ifp, dh6, optinfo, from, fromlen,
-			   &roptinfo);
+            /* the contents of the Server Identifier option must match ours */
+            if (duidcmp(&optinfo->serverID, &server_duid)) {
+                dprintf(LOG_INFO, "server ID %s mismatch %s",
+                        duidstr(&optinfo->serverID), duidstr(&server_duid));
+                return -1;
+            }
 
-	dhcp6_clear_options(&roptinfo);
-	return 0;
+            break;
 
-  fail:
-	dhcp6_clear_options(&roptinfo);
-	return -1;
+        /* these messages must not include a Server Identifier option */
+        case DH6_SOLICIT:
+        case DH6_CONFIRM:
+        case DH6_REBIND:
+            if (optinfo->serverID.duid_len != 0) {
+                dprintf(LOG_INFO, "%s" "found server ID option in message "
+                                       "Solicit/Confirm/Rebind", FNAME);
+                return -1;
+            }
+
+            break;
+
+        default:
+            break;
+    }
+
+    /* configure necessary options based on the options in request. */
+    dhcp6_init_options(&roptinfo);
+
+    /* server information option */
+    if (duidcpy(&roptinfo.serverID, &server_duid)) {
+        dprintf(LOG_ERR, "%s" "failed to copy server ID", FNAME);
+        goto fail;
+    }
+
+    /* copy client information back */
+    if (duidcpy(&roptinfo.clientID, &optinfo->clientID)) {
+        dprintf(LOG_ERR, "%s" "failed to copy client ID", FNAME);
+        goto fail;
+    }
+
+    /* if the client is not on the link */
+    if (host == NULL && subnet == NULL) {
+        num = DH6OPT_STCODE_NOTONLINK;
+
+        /* Draft-28 18.2.2, drop the message if NotOnLink */
+        if (dh6->dh6_msgtype == DH6_CONFIRM || dh6->dh6_msgtype == DH6_REBIND) {
+            goto fail;
+        } else {
+            goto send;
+        }
+    }
+
+    if (subnet) {
+        roptinfo.pref = subnet->linkscope.server_pref;
+        roptinfo.flags = (optinfo->flags & subnet->linkscope.allow_flags) |
+                         subnet->linkscope.send_flags;
+        dnslist = subnet->linkscope.dnslist;
+    }
+
+    if (host) {
+        roptinfo.pref = host->hostscope.server_pref;
+        roptinfo.flags = (optinfo->flags & host->hostscope.allow_flags) |
+                         host->hostscope.send_flags;
+        dnslist = host->hostscope.dnslist;
+    }
+
+    /* prohibit a mixture of old and new style of DNS server config */
+    if (!TAILQ_EMPTY(&arg_dnslist.addrlist)) {
+        if (!TAILQ_EMPTY(&dnslist.addrlist)) {
+            dprintf(LOG_INFO, "%s" "do not specify DNS servers "
+                    "both by command line and by configuration file.", FNAME);
+            exit(1);
+        }
+
+        dnslist = arg_dnslist;
+        TAILQ_INIT(&arg_dnslist.addrlist);
+    }
+
+    dprintf(LOG_DEBUG, "server preference is %2x", roptinfo.pref);
+
+    if (roptinfo.flags & DHCIFF_UNICAST) {
+        /* todo find the right server unicast address to client*/
+        /* get_linklocal(device, &roptinfo.server_addr) */
+        memcpy(&roptinfo.server_addr, &ifp->linklocal,
+               sizeof(roptinfo.server_addr));
+        dprintf(LOG_DEBUG, "%s" "server address is %s",
+                FNAME, in6addr2str(&roptinfo.server_addr, 0));
+    }
+
+    /*
+     * When the server receives a Request message via unicast from a
+     * client to which the server has not sent a unicast option, the server
+     * discards the Request message and responds with a Reply message
+     * containing a Status Code option with value UseMulticast, a Server
+     * Identifier option containing the server's DUID, the Client
+     * Identifier option from the client message and no other options.
+     * [dhcpv6-26 18.2.1]
+     */
+    switch (dh6->dh6_msgtype) {
+        case DH6_REQUEST:
+        case DH6_RENEW:
+        case DH6_DECLINE:
+            /*
+             * If the message was relayed, then do not check whether the
+             * message came in via unicast or multicast, since the relay
+             * may be configured to send messages via unicast.
+             */
+            if (TAILQ_EMPTY(&optinfo->relay_list) &&
+                !IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
+                if (!(roptinfo.flags & DHCIFF_UNICAST)) {
+                    num = DH6OPT_STCODE_USEMULTICAST;
+                    goto send;
+                } else {
+                    break;
+                }
+            }
+
+            break;
+        case DH6_SOLICIT:
+        case DH6_CONFIRM:
+        case DH6_REBIND:
+        case DH6_INFORM_REQ:
+            /* A server MUST discard any Solicit, Confirm, Rebind or
+             * Information-request * messages it receives with a unicast
+             * destination address.
+             * [RFC3315 Section 15]
+             */
+            if (TAILQ_EMPTY(&optinfo->relay_list) &&
+                !IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
+                dprintf(LOG_DEBUG, "reply no message as %s received "
+                                   "with unicast destination address",
+                        dhcp6msgstr(num));
+                goto fail;
+            }
+
+            break;
+        default:
+            /*
+             * If the message was relayed, then do not check whether the
+             * message came in via unicast or multicast, since the relay
+             * may be configured to send messages via unicast.
+             */
+            if (TAILQ_EMPTY(&optinfo->relay_list) &&
+                !IN6_IS_ADDR_MULTICAST(&pi->ipi6_addr)) {
+                num = DH6OPT_STCODE_USEMULTICAST;
+                goto send;
+            }
+
+            break;
+    }
+
+    switch (dh6->dh6_msgtype) {
+        case DH6_SOLICIT:
+            /*
+             * If the client has included a Rapid Commit option and the
+             * server has been configured to respond with committed address
+             * assignments and other resources, responds to the Solicit
+             * with a Reply message.
+             * [dhcpv6-28 Section 17.2.1]
+             * [dhcpv6-28 Section 17.2.2]
+             * If Solicit has IA option, responds to Solicit with a Advertise
+             * message.
+             */
+            if (optinfo->iaidinfo.iaid != 0 &&
+                !(roptinfo.flags & DHCIFF_INFO_ONLY)) {
+                memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo,
+                       sizeof(roptinfo.iaidinfo));
+                roptinfo.type = optinfo->type;
+                dprintf(LOG_DEBUG, "option type is %d", roptinfo.type);
+                addr_request = 1;
+
+                if (roptinfo.flags & DHCIFF_RAPID_COMMIT) {
+                    resptype = DH6_REPLY;
+                } else {
+                    resptype = DH6_ADVERTISE;
+                    /* giving hint ?? */
+                    sending_hint = 1;
+                }
+            }
+
+            break;
+        case DH6_INFORM_REQ:
+            /* don't response to info-req if there is any IA
+             * or server ID option */
+            if (optinfo->iaidinfo.iaid != 0 || optinfo->serverID.duid_len) {
+                goto fail;
+            }
+
+            /* DNS server */
+            if (dhcp6_copy_list(&roptinfo.dns_list.addrlist,
+                                &dnslist.addrlist)) {
+                dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
+                goto fail;
+            }
+
+            roptinfo.dns_list.domainlist = dnslist.domainlist;
+            break;
+        case DH6_REQUEST:
+            /* get iaid for that request client for that interface */
+            if (optinfo->iaidinfo.iaid != 0 &&
+                !(roptinfo.flags & DHCIFF_INFO_ONLY)) {
+                memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo,
+                       sizeof(roptinfo.iaidinfo));
+                roptinfo.type = optinfo->type;
+                addr_request = 1;
+            }
+
+            break;
+        case DH6_RENEW:
+        case DH6_REBIND:
+        case DH6_DECLINE:
+        case DH6_RELEASE:
+        case DH6_CONFIRM:
+            /*
+             * Locates the client's binding and verifies that the information
+             * from the client matches the information stored for that client.
+             */
+            roptinfo.type = optinfo->type;
+
+            /* XXX: how server know the diff between rebind_confirm and rebind
+             * for prefix delegation? */
+            if (dh6->dh6_msgtype == DH6_RENEW || dh6->dh6_msgtype == DH6_REBIND)
+                addr_flag = ADDR_UPDATE;
+
+            if (dh6->dh6_msgtype == DH6_RELEASE)
+                addr_flag = ADDR_REMOVE;
+
+            if (dh6->dh6_msgtype == DH6_CONFIRM ||
+                dh6->dh6_msgtype == DH6_RENEW ||
+                dh6->dh6_msgtype == DH6_REBIND) {
+                /* DNS server */
+                addr_flag = ADDR_VALIDATE;
+
+                if (dhcp6_copy_list(&roptinfo.dns_list.addrlist,
+                                    &dnslist.addrlist)) {
+                    dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
+                    goto fail;
+                }
+
+                roptinfo.dns_list.domainlist = dnslist.domainlist;
+            }
+
+            if (dh6->dh6_msgtype == DH6_DECLINE)
+                addr_flag = ADDR_ABANDON;
+
+            if (optinfo->iaidinfo.iaid != 0) {
+                if (!TAILQ_EMPTY(&optinfo->addr_list) &&
+                    resptype != DH6_ADVERTISE) {
+                    struct dhcp6_iaidaddr *iaidaddr;
+
+                    memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo,
+                           sizeof(roptinfo.iaidinfo));
+                    roptinfo.type = optinfo->type;
+
+                    /* find bindings */
+                    if ((iaidaddr = dhcp6_find_iaidaddr(&roptinfo)) == NULL) {
+                        if (dh6->dh6_msgtype == DH6_REBIND) {
+                            goto fail;
+                        } else if (dh6->dh6_msgtype == DH6_CONFIRM) {
+                            num = DH6OPT_STCODE_NOTONLINK;
+                        } else {
+                            /* Set status code in IA */
+                            roptinfo.ia_stcode = DH6OPT_STCODE_NOBINDING;
+                            num = DH6OPT_STCODE_UNDEFINE;
+                        }
+
+                        dprintf(LOG_INFO,"%s" "Nobinding for client %s iaid %u",
+                                FNAME, duidstr(&optinfo->clientID),
+                                optinfo->iaidinfo.iaid);
+                        break;
+                    }
+
+                    if (addr_flag != ADDR_UPDATE) {
+                        dhcp6_copy_list(&roptinfo.addr_list,
+                                        &optinfo->addr_list);
+                    } else {
+                        /* get static host configuration */
+                        if (host)
+                            dhcp6_get_hostconf(&roptinfo, optinfo, iaidaddr,
+                                               host);
+
+                        /* allow dynamic address assginment for the host too */
+                        if (optinfo->type == IAPD)
+                            dhcp6_create_prefixlist(&roptinfo, optinfo,
+                                                    iaidaddr, subnet);
+                        else
+                            dhcp6_create_addrlist(&roptinfo, optinfo, iaidaddr,
+                                                  subnet);
+
+                        /* in case there is not bindings available */
+                        if (TAILQ_EMPTY(&roptinfo.addr_list)) {
+                            num = DH6OPT_STCODE_NOBINDING;
+                            dprintf(LOG_INFO, "%s" "Bindings are not on link "
+                                              "for client %s iaid %u",
+                                    FNAME, duidstr(&optinfo->clientID),
+                                    roptinfo.iaidinfo.iaid);
+                            break;
+                        }
+                    }
+
+                    if (addr_flag == ADDR_VALIDATE) {
+                        if (dhcp6_validate_bindings(&roptinfo, iaidaddr))
+                            num = DH6OPT_STCODE_NOTONLINK;
+                        break;
+                    } else {
+                        /* do update if this is not a confirm */
+                        if (dhcp6_update_iaidaddr(&roptinfo, addr_flag) != 0) {
+                            dprintf(LOG_INFO, "%s" "bindings failed for "
+                                              "client %s iaid %u",
+                                    FNAME, duidstr(&optinfo->clientID),
+                                    roptinfo.iaidinfo.iaid);
+                            num = DH6OPT_STCODE_UNSPECFAIL;
+                            break;
+                        }
+                    }
+
+                    num = DH6OPT_STCODE_SUCCESS;
+               } else if (dh6->dh6_msgtype == DH6_CONFIRM) {
+                    dprintf(LOG_DEBUG, "no addresses in confirm message");
+                    goto fail;
+               } else {
+                    num = DH6OPT_STCODE_NOADDRAVAIL;
+               }
+           } else {
+               dprintf(LOG_ERR, "invalid message type");
+           }
+
+           break;
+       default:
+           break;
+    }
+
+    /*
+     * XXX: see if we have information for requested options, and if so,
+     * configure corresponding options.
+     */
+    /*
+     * If the Request message contained an Option Request option, the
+     * server MUST include options in the Reply message for any options in
+     * the Option Request option the server is configured to return to the
+     * client.
+     * [dhcpv6-26 18.2.1]
+     * Note: our current implementation always includes all information
+     * that we can provide.  So we do not have to check the option request
+     * options.
+     */
+    if (addr_request == 1) {
+        int found_binding = 0;
+        struct dhcp6_iaidaddr *iaidaddr;
+
+        /* find bindings */
+        if ((iaidaddr = dhcp6_find_iaidaddr(&roptinfo)) != NULL) {
+            found_binding = 1;
+            addr_flag = ADDR_UPDATE;
+        }
+
+        if (host)
+            dhcp6_get_hostconf(&roptinfo, optinfo, iaidaddr, host);
+
+        /* valid and create addresses list */
+        if (optinfo->type == IAPD)
+            dhcp6_create_prefixlist(&roptinfo, optinfo, iaidaddr, subnet);
+        else
+            dhcp6_create_addrlist(&roptinfo, optinfo, iaidaddr, subnet);
+
+        if (TAILQ_EMPTY(&roptinfo.addr_list)) {
+            if (resptype == DH6_ADVERTISE) {
+                /* Omit IA option */
+                roptinfo.iaidinfo.iaid = 0;
+                num = DH6OPT_STCODE_NOADDRAVAIL;
+            } else if (resptype == DH6_REPLY) {
+                /* Set status code in IA */
+                roptinfo.ia_stcode = DH6OPT_STCODE_NOADDRAVAIL;
+                num = DH6OPT_STCODE_UNDEFINE;
+            }
+        } else if (sending_hint == 0) {
+            /* valid client request address list */
+            if (found_binding) {
+                if (dhcp6_update_iaidaddr(&roptinfo, addr_flag) != 0) {
+                    dprintf(LOG_ERR, "assigned ipv6address for client "
+                                     "iaid %u failed", roptinfo.iaidinfo.iaid);
+                    num = DH6OPT_STCODE_UNSPECFAIL;
+                } else
+                    num = DH6OPT_STCODE_SUCCESS;
+            } else {
+                if (dhcp6_add_iaidaddr(&roptinfo) != 0) {
+                    dprintf(LOG_ERR, "assigned ipv6address for client "
+                                     "iaid %u failed", roptinfo.iaidinfo.iaid);
+                    num = DH6OPT_STCODE_UNSPECFAIL;
+                } else
+                    num = DH6OPT_STCODE_SUCCESS;
+            }
+        }
+
+        /* DNS server */
+        if (dhcp6_copy_list(&roptinfo.dns_list.addrlist, &dnslist.addrlist)) {
+            dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
+            goto fail;
+        }
+
+        roptinfo.dns_list.domainlist = dnslist.domainlist;
+    }
+
+    /* add address status code */
+send:
+    dprintf(LOG_DEBUG, " status code: %s", dhcp6_stcodestr(num));
+
+    if (num != DH6OPT_STCODE_UNDEFINE) {
+        if (dhcp6_add_listval(&roptinfo.stcode_list,
+                              &num, DHCP6_LISTVAL_NUM) == NULL) {
+            dprintf(LOG_ERR, "%s" "failed to copy status code", FNAME);
+            goto fail;
+        }
+    }
+
+    /* send a reply message. */
+    (void)server6_send(resptype, ifp, dh6, optinfo, from, fromlen, &roptinfo);
+
+    dhcp6_clear_options(&roptinfo);
+    return 0;
+
+fail:
+    dhcp6_clear_options(&roptinfo);
+    return -1;
 }
 
 static int
