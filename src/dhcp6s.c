@@ -1007,9 +1007,6 @@ static int server6_react_message(struct dhcp6_if *ifp,
      * the Option Request option the server is configured to return to the
      * client.
      * [dhcpv6-26 18.2.1]
-     * Note: our current implementation always includes all information
-     * that we can provide.  So we do not have to check the option request
-     * options.
      */
     if (addr_request == 1) {
         int found_binding = 0;
@@ -1032,8 +1029,7 @@ static int server6_react_message(struct dhcp6_if *ifp,
 
         if (TAILQ_EMPTY(&roptinfo.addr_list)) {
             if (resptype == DH6_ADVERTISE) {
-                /* Omit IA option */
-                roptinfo.iaidinfo.iaid = 0;
+                roptinfo.ia_stcode = DH6OPT_STCODE_NOADDRAVAIL;
                 num = DH6OPT_STCODE_NOADDRAVAIL;
             } else if (resptype == DH6_REPLY) {
                 /* Set status code in IA */
