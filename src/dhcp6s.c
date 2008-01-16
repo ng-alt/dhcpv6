@@ -663,15 +663,19 @@ static int server6_react_message(struct dhcp6_if *ifp,
     dhcp6_init_options(&roptinfo);
 
     /* server information option */
-    if (duidcpy(&roptinfo.serverID, &server_duid)) {
-        dprintf(LOG_ERR, "%s" "failed to copy server ID", FNAME);
-        goto fail;
+    if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_SERVERID)) {
+        if (duidcpy(&roptinfo.serverID, &server_duid)) {
+            dprintf(LOG_ERR, "%s" "failed to copy server ID", FNAME);
+            goto fail;
+        }
     }
 
     /* copy client information back */
-    if (duidcpy(&roptinfo.clientID, &optinfo->clientID)) {
-        dprintf(LOG_ERR, "%s" "failed to copy client ID", FNAME);
-        goto fail;
+    if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_CLIENTID)) {
+        if (duidcpy(&roptinfo.clientID, &optinfo->clientID)) {
+            dprintf(LOG_ERR, "%s" "failed to copy client ID", FNAME);
+            goto fail;
+        }
     }
 
     /* if the client is not on the link */
@@ -687,32 +691,49 @@ static int server6_react_message(struct dhcp6_if *ifp,
     }
 
     if (subnet) {
-        roptinfo.pref = subnet->linkscope.server_pref;
+        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_PREFERENCE)) {
+            roptinfo.pref = subnet->linkscope.server_pref;
+        }
+
         roptinfo.flags = (optinfo->flags & subnet->linkscope.allow_flags) |
                          subnet->linkscope.send_flags;
-        dnslist = subnet->linkscope.dnslist;
+
+        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
+            dnslist = subnet->linkscope.dnslist;
+        }
     }
 
     if (host) {
-        roptinfo.pref = host->hostscope.server_pref;
+        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_PREFERENCE)) {
+            roptinfo.pref = host->hostscope.server_pref;
+        }
+
         roptinfo.flags = (optinfo->flags & host->hostscope.allow_flags) |
                          host->hostscope.send_flags;
-        dnslist = host->hostscope.dnslist;
+
+        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
+            dnslist = host->hostscope.dnslist;
+        }
     }
 
     /* prohibit a mixture of old and new style of DNS server config */
-    if (!TAILQ_EMPTY(&arg_dnslist.addrlist)) {
-        if (!TAILQ_EMPTY(&dnslist.addrlist)) {
-            dprintf(LOG_INFO, "%s" "do not specify DNS servers "
-                    "both by command line and by configuration file.", FNAME);
-            exit(1);
-        }
+    if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
+        if (!TAILQ_EMPTY(&arg_dnslist.addrlist)) {
+            if (!TAILQ_EMPTY(&dnslist.addrlist)) {
+                dprintf(LOG_INFO, "%s" "do not specify DNS servers "
+                        "both by command line and by configuration file.",
+                        FNAME);
+                exit(1);
+            }
 
-        dnslist = arg_dnslist;
-        TAILQ_INIT(&arg_dnslist.addrlist);
+            dnslist = arg_dnslist;
+            TAILQ_INIT(&arg_dnslist.addrlist);
+        }
     }
 
-    dprintf(LOG_DEBUG, "server preference is %2x", roptinfo.pref);
+    if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_PREFERENCE)) {
+        dprintf(LOG_DEBUG, "server preference is %2x", roptinfo.pref);
+    }
 
     if (roptinfo.flags & DHCIFF_UNICAST) {
         /* todo find the right server unicast address to client*/
@@ -823,13 +844,18 @@ static int server6_react_message(struct dhcp6_if *ifp,
             }
 
             /* DNS server */
-            if (dhcp6_copy_list(&roptinfo.dns_list.addrlist,
-                                &dnslist.addrlist)) {
-                dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
-                goto fail;
+            if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
+                if (dhcp6_copy_list(&roptinfo.dns_list.addrlist,
+                                    &dnslist.addrlist)) {
+                    dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
+                    goto fail;
+                }
             }
 
-            roptinfo.dns_list.domainlist = dnslist.domainlist;
+            if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
+                roptinfo.dns_list.domainlist = dnslist.domainlist;
+            }
+
             break;
         case DH6_REQUEST:
             /* get iaid for that request client for that interface */
@@ -846,6 +872,8 @@ static int server6_react_message(struct dhcp6_if *ifp,
         case DH6_REBIND:
         case DH6_DECLINE:
         case DH6_RELEASE:
+            roptinfo.ia_stcode = DH6OPT_STCODE_NOBINDING;
+            num = DH6OPT_STCODE_SUCCESS;
         case DH6_CONFIRM:
             /*
              * Locates the client's binding and verifies that the information
@@ -867,13 +895,20 @@ static int server6_react_message(struct dhcp6_if *ifp,
                 /* DNS server */
                 addr_flag = ADDR_VALIDATE;
 
-                if (dhcp6_copy_list(&roptinfo.dns_list.addrlist,
-                                    &dnslist.addrlist)) {
-                    dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
-                    goto fail;
+                if (dhcp6_has_option(&optinfo->reqopt_list,
+                                     DH6OPT_DNS_SERVERS)) {
+                    if (dhcp6_copy_list(&roptinfo.dns_list.addrlist,
+                                        &dnslist.addrlist)) {
+                        dprintf(LOG_ERR, "%s" "failed to copy DNS servers",
+                                FNAME);
+                        goto fail;
+                    }
                 }
 
-                roptinfo.dns_list.domainlist = dnslist.domainlist;
+                if (dhcp6_has_option(&optinfo->reqopt_list,
+                                     DH6OPT_DOMAIN_LIST)) {
+                    roptinfo.dns_list.domainlist = dnslist.domainlist;
+                }
             }
 
             if (dh6->dh6_msgtype == DH6_DECLINE)
@@ -967,10 +1002,6 @@ static int server6_react_message(struct dhcp6_if *ifp,
     }
 
     /*
-     * XXX: see if we have information for requested options, and if so,
-     * configure corresponding options.
-     */
-    /*
      * If the Request message contained an Option Request option, the
      * server MUST include options in the Reply message for any options in
      * the Option Request option the server is configured to return to the
@@ -1016,25 +1047,32 @@ static int server6_react_message(struct dhcp6_if *ifp,
                     dprintf(LOG_ERR, "assigned ipv6address for client "
                                      "iaid %u failed", roptinfo.iaidinfo.iaid);
                     num = DH6OPT_STCODE_UNSPECFAIL;
-                } else
+                } else {
                     num = DH6OPT_STCODE_SUCCESS;
+                }
             } else {
                 if (dhcp6_add_iaidaddr(&roptinfo) != 0) {
                     dprintf(LOG_ERR, "assigned ipv6address for client "
                                      "iaid %u failed", roptinfo.iaidinfo.iaid);
                     num = DH6OPT_STCODE_UNSPECFAIL;
-                } else
+                } else {
                     num = DH6OPT_STCODE_SUCCESS;
+                }
             }
         }
 
         /* DNS server */
-        if (dhcp6_copy_list(&roptinfo.dns_list.addrlist, &dnslist.addrlist)) {
-            dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
-            goto fail;
+        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
+            if (dhcp6_copy_list(&roptinfo.dns_list.addrlist,
+                                &dnslist.addrlist)) {
+                dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
+                goto fail;
+            }
         }
 
-        roptinfo.dns_list.domainlist = dnslist.domainlist;
+        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
+            roptinfo.dns_list.domainlist = dnslist.domainlist;
+        }
     }
 
     /* add address status code */
