@@ -868,12 +868,12 @@ static int server6_react_message(struct dhcp6_if *ifp,
             }
 
             break;
-        case DH6_RENEW:
-        case DH6_REBIND:
         case DH6_DECLINE:
         case DH6_RELEASE:
             roptinfo.ia_stcode = DH6OPT_STCODE_NOBINDING;
             num = DH6OPT_STCODE_SUCCESS;
+        case DH6_RENEW:
+        case DH6_REBIND:
         case DH6_CONFIRM:
             /*
              * Locates the client's binding and verifies that the information
