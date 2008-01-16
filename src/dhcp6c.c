@@ -153,7 +153,6 @@ main(argc, argv, envp)
 #else
 #define exit return
 LIBDHCP_Control *libdhcp_control;
-__attribute__ ((visibility ("default")))
 int dhcpv6_client
 (libdhcp_ctl, argc, argv, envp)
 	LIBDHCP_Control *libdhcp_ctl;
