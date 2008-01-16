@@ -350,6 +350,21 @@ dhcp6_remove_event(ev)
 	ev = NULL;
 }
 
+int dhcp6_has_option(struct dhcp6_list *optlist, int option) {
+    struct dhcp6_listval *lv = NULL;
+
+    if (TAILQ_EMPTY(optlist)) {
+        return 0;
+    }
+
+    for (lv = TAILQ_FIRST(optlist); lv; lv = TAILQ_NEXT(lv, link)) {
+        if (lv->val_num == option) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
 
 int
 getifaddr(addr, ifnam, prefix, plen, strong, ignoreflags)

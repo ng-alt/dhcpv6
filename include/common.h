@@ -60,6 +60,7 @@ extern struct dhcp6_listval *dhcp6_add_listval __P((struct dhcp6_list *,
 						       dhcp6_listval_type_t));
 extern struct dhcp6_event *dhcp6_create_event __P((struct dhcp6_if *, int));
 extern void dhcp6_remove_event __P((struct dhcp6_event *));
+extern int dhcp6_has_option __P((struct dhcp6_list *optlist, int option));
 extern int getifaddr __P((struct in6_addr *, char *, struct in6_addr *,
 			  int, int, int));
 extern int transmit_sa __P((int, struct sockaddr_in6 *, char *, size_t));
