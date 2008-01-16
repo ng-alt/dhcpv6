@@ -762,8 +762,7 @@ get_duid(const 	char *idfile, const char *ifname,
 		dp = (struct dhcp6_duid_type1 *)duid->duid_id;
 		dp->dh6duid1_type = htons(1); /* type 1 */
 		dp->dh6duid1_hwtype = htons(hwtype);
-		/* time is Jan 1, 2000 (UTC), modulo 2^32 */
-		t64 = (u_int64_t)(time(NULL) - 946684800);
+		t64 = (u_int64_t)(time(NULL));
 		dp->dh6duid1_time = htonl((u_long)(t64 & 0xffffffff));
 		memcpy((void *)(dp + 1), tmpbuf, (len - sizeof(*dp)));
 
