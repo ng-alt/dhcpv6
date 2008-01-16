@@ -1,22 +1,22 @@
 dnl configure.ac for dhcpv6
 dnl
-dnl Copyright (C) 2007  Red Hat, Inc.  All rights reserved.
+dnl Copyright (C) 2007, 2008  Red Hat, Inc.
+dnl All rights reserved.
 dnl
-dnl This copyrighted material is made available to anyone wishing to use,
-dnl modify, copy, or redistribute it subject to the terms and conditions of
-dnl the GNU General Public License v.2, or (at your option) any later version.
-dnl This program is distributed in the hope that it will be useful, but WITHOUT
-dnl ANY WARRANTY expressed or implied, including the implied warranties of
-dnl MERCHANTABILITY or FITNESS FOR A * PARTICULAR PURPOSE.  See the GNU General
-dnl Public License for more details.  You should have received a copy of the
-dnl GNU General Public License along with this program; if not, write to the
-dnl Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-dnl 02110-1301, USA.  Any Red Hat trademarks that are incorporated in the
-dnl source code or documentation are not subject to the GNU General Public
-dnl License and may only be used or replicated with the express permission of
-dnl Red Hat, Inc.
+dnl This program is free software; you can redistribute it and/or modify
+dnl it under the terms of the GNU Lesser General Public License as published
+dnl by the Free Software Foundation; either version 2.1 of the License, or
+dnl (at your option) any later version.
 dnl
-dnl Red Hat Author: David Cantrell <dcantrell@redhat.com>
+dnl This program is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+dnl GNU Lesser General Public License for more details.
+dnl
+dnl You should have received a copy of the GNU Lesser General Public License
+dnl along with this program.  If not, see <http://www.gnu.org/licenses/>.
+dnl
+dnl Author: David Cantrell <dcantrell@redhat.com>
 
 AC_PREREQ(2.61)
 AC_INIT([dhcpv6], [1.0.5], [dcantrell@redhat.com])
