@@ -663,19 +663,15 @@ static int server6_react_message(struct dhcp6_if *ifp,
     dhcp6_init_options(&roptinfo);
 
     /* server information option */
-    if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_SERVERID)) {
-        if (duidcpy(&roptinfo.serverID, &server_duid)) {
-            dprintf(LOG_ERR, "%s" "failed to copy server ID", FNAME);
-            goto fail;
-        }
+    if (duidcpy(&roptinfo.serverID, &server_duid)) {
+        dprintf(LOG_ERR, "%s" "failed to copy server ID", FNAME);
+        goto fail;
     }
 
     /* copy client information back */
-    if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_CLIENTID)) {
-        if (duidcpy(&roptinfo.clientID, &optinfo->clientID)) {
-            dprintf(LOG_ERR, "%s" "failed to copy client ID", FNAME);
-            goto fail;
-        }
+    if (duidcpy(&roptinfo.clientID, &optinfo->clientID)) {
+        dprintf(LOG_ERR, "%s" "failed to copy client ID", FNAME);
+        goto fail;
     }
 
     /* if the client is not on the link */
