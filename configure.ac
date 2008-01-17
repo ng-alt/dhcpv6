@@ -71,11 +71,10 @@ AC_HEADER_SYS_WAIT
 
 # Check for headers we must have on the system
 AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h \
-                  linux/ipv6.h linux/sockios.h net/if.h net/if_arp.h \
-                  netdb.h netinet/in.h signal.h stdint.h stdlib.h \
-                  string.h sys/ioctl.h sys/socket.h sys/time.h \
-                  sys/timeb.h syslog.h unistd.h \
-                  linux/netlink.h linux/rtnetlink.h],
+                  linux/in6.h linux/sockios.h net/if.h net/if_arp.h netdb.h \
+                  netinet/in.h signal.h stdint.h stdlib.h string.h \
+                  sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h syslog.h \
+                  unistd.h linux/netlink.h linux/rtnetlink.h],
                  [],
                  [AC_MSG_FAILURE([*** Header file $ac_header not found.])],
                  [[#ifdef HAVE_SYS_SOCKET_H
@@ -84,7 +83,12 @@ AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h \
                  ]])
 
 # Check for headers that are nice, but we don't absolutely have to have
-AC_CHECK_HEADERS([sys/queue.h isc-dhcp/libdhcp_control.h])
+AC_CHECK_HEADERS([sys/queue.h isc-dhcp/libdhcp_control.h linux/ipv6.h],
+                 [], [],
+                 [[#ifdef HAVE_SYS_SOCKET_H
+                   # include <sys/socket.h>
+                   #endif
+                 ]])
 
 AC_HEADER_STDBOOL
 AC_C_CONST
