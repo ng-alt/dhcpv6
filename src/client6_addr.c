@@ -41,7 +41,23 @@
 #include <ifaddrs.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+
+#if defined(__ia64__)
+/* work around a problem in /usr/include/asm/gcc_intrin.h temporarily on
+ * the IA64 platform
+ */
+#include <linux/in6.h>
+
+/* from <linux/ipv6.h> */
+struct in6_ifreq {
+        struct in6_addr ifr6_addr;
+        __u32           ifr6_prefixlen;
+        int             ifr6_ifindex;
+};
+#else
 #include <linux/ipv6.h>
+#endif
+
 #include <time.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
