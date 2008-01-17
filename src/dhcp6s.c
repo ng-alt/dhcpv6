@@ -889,8 +889,7 @@ static int server6_react_message(struct dhcp6_if *ifp,
             if (dh6->dh6_msgtype == DH6_RELEASE)
                 addr_flag = ADDR_REMOVE;
 
-            if (dh6->dh6_msgtype == DH6_CONFIRM ||
-                dh6->dh6_msgtype == DH6_RENEW ||
+            if (dh6->dh6_msgtype == DH6_RENEW ||
                 dh6->dh6_msgtype == DH6_REBIND) {
                 /* DNS server */
                 addr_flag = ADDR_VALIDATE;
