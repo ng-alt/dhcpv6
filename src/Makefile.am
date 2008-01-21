@@ -41,7 +41,7 @@ libdhcp6client_la_CFLAGS = -DLIBDHCP -fPIC
 libdhcp6client_la_LDFLAGS = -version-info \
                                 $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
                             -release $(LT_RELEASE) \
-                            -pic -Wl,-z,relro,-z,now,-z,nodlopen,-z,noexecstack
+                            -pic -Wl,-z,relro,-z,now,-z,noexecstack
 libdhcp6client_la_SOURCES = dhcp6c.c cfg.c client6_addr.c netlink.c \
                             client6_parse.y client6_token.l dad_token.l \
                             resolv_token.l radvd_token.l dhc6_alloc.c \
