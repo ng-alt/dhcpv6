@@ -44,5 +44,5 @@ release: dist-gzip
 	( cd $(PACKAGE)-$(VERSION) && ./configure && make ) || exit 1
 	$(MAKE) tag
 	@echo
-	@echo "$(PACKAGE)-$(VERSION).tar.bz2 is now ready to upload."
+	@echo "$(PACKAGE)-$(VERSION).tar.gz is now ready to upload."
 	@echo
