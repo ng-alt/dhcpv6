@@ -736,7 +736,7 @@ get_duid(const 	char *idfile, const char *ifname,
 			goto fail;
 		}
 	} else {
-		len = calculate_duid_len(ifname);
+		len = calculate_duid_len(ifname, &hwtype);
 	}
 
 	memset(duid, 0, sizeof(*duid));
@@ -794,10 +794,10 @@ int
 save_duid(const char *idfile, const char *ifname, struct duid *duid)
 {
 	FILE *fp = NULL;
-	u_int16_t len = 0;
+	u_int16_t len = 0, hwtype;
 
 	/* calculate DUID length */
-	len = calculate_duid_len(ifname);
+	len = calculate_duid_len(ifname, &hwtype);
 
 	/* save the (new) ID to the file for next time */
 #ifdef LIBDHCP
@@ -835,14 +835,14 @@ save_duid(const char *idfile, const char *ifname, struct duid *duid)
 }
 
 u_int16_t
-calculate_duid_len(const char *ifname)
+calculate_duid_len(const char *ifname, u_int16_t *hwtype)
 {
 	int l;
-	u_int16_t ret = 0, hwtype;
+	u_int16_t ret = 0;
 	struct dhcp6_duid_type1 *dp; /* we only support the type1 DUID */
 	unsigned char tmpbuf[256];	/* DUID should be no more than 256 bytes */
 
-	if ((l = gethwid(tmpbuf, sizeof(tmpbuf), ifname, &hwtype)) < 0) {
+	if ((l = gethwid(tmpbuf, sizeof(tmpbuf), ifname, hwtype)) < 0) {
 		dprintf(LOG_INFO, "%s"
 		    "failed to get a hardware address", FNAME);
 		return 0;

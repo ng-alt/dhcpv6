@@ -82,7 +82,7 @@ extern void dprintf __P((int, const char *, ...));
 
 extern int get_duid __P((const char *, const char *, struct duid *));
 extern int save_duid __P((const char *, const char *, struct duid *));
-extern u_int16_t calculate_duid_len __P((const char *));
+extern u_int16_t calculate_duid_len __P((const char *, u_int16_t *));
 extern void dhcp6_init_options __P((struct dhcp6_optinfo *));
 extern void dhcp6_clear_options __P((struct dhcp6_optinfo *));
 extern int dhcp6_copy_options __P((struct dhcp6_optinfo *,
