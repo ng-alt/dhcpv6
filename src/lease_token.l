@@ -239,7 +239,7 @@ lease_parse(file)
 	
 	fseek(file, 0, 0);
 	yyin = file;
-	yy_init = 0;
+	yy_init = 1;
 	yy_start = 0;
 	yylex(); 
 	return;
