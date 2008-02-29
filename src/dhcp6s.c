@@ -1024,7 +1024,8 @@ static int server6_react_message(struct dhcp6_if *ifp,
 
         if (TAILQ_EMPTY(&roptinfo.addr_list)) {
             if (resptype == DH6_ADVERTISE) {
-                roptinfo.ia_stcode = DH6OPT_STCODE_NOADDRAVAIL;
+                /* Omit IA option */
+                roptinfo.iaidinfo.iaid = 0;
                 num = DH6OPT_STCODE_NOADDRAVAIL;
             } else if (resptype == DH6_REPLY) {
                 /* Set status code in IA */
