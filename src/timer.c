@@ -150,11 +150,11 @@ dhcp6_check_timer(void)
 	struct timeval now;
 	struct dhcp6_timer *tm, *tm_next;
 
-	gettimeofday(&now, NULL);
-
 	tm_sentinel = tm_max;
 
 	for (tm = LIST_FIRST(&timer_head); tm; tm = tm_next) {
+		gettimeofday(&now, NULL);
+
 		tm_next = LIST_NEXT(tm, link);
 		if (tm->flag & MARK_REMOVE) {
 			LIST_REMOVE(tm, link);
