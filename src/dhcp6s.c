@@ -694,7 +694,8 @@ static int server6_react_message(struct dhcp6_if *ifp,
         roptinfo.flags = (optinfo->flags & subnet->linkscope.allow_flags) |
                          subnet->linkscope.send_flags;
 
-        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
+        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS) ||
+            dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
             dnslist = subnet->linkscope.dnslist;
         }
     }
@@ -707,7 +708,8 @@ static int server6_react_message(struct dhcp6_if *ifp,
         roptinfo.flags = (optinfo->flags & host->hostscope.allow_flags) |
                          host->hostscope.send_flags;
 
-        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
+        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS) ||
+            dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
             dnslist = host->hostscope.dnslist;
         }
     }
