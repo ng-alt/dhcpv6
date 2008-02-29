@@ -310,8 +310,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 	pointer = msg->buffer;
 	pstart = pointer;
 
-	if (( ((int) msg->buffer) - ((int) (pointer - pstart)) ) < 
-	    MESSAGE_HEADER_LENGTH ) {
+	if (msg->datalength < MESSAGE_HEADER_LENGTH) {
 		TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 		       "MESSAGE_HEADER_LENGTH, DROPING... \n");
 		return 0;
@@ -325,7 +324,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 	pointer += 1;    /* hop-count */
 	msg->msg_type = RELAY_REPL;
 
-	if (( ((int) msg->buffer) - ((int) (pointer - pstart)) ) < (2*INET6_LEN) ) {
+	if (msg->datalength - (pointer - pstart) < (2 * INET6_LEN)) {
 		TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 		       "INET6_LEN, DROPING... \n");
 		return 0;
@@ -355,8 +354,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 		exit(1);
 	}
 
-	if (( ((int) msg->buffer) - ((int) (pointer - pstart)) ) < 
-	    MESSAGE_HEADER_LENGTH ) {
+	if (msg->datalength - (pointer - pstart) < MESSAGE_HEADER_LENGTH) {
 		TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 		       "MESSAGE_HEADER_LENGTH, DROPING... \n");
 		return 0;
@@ -371,7 +369,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 		opaqlen = ntohs(*p16);
 		pointer += 2;
 
-		if (( ((int) msg->buffer) - ((int) (pointer - pstart)) ) <  opaqlen) {
+		if (msg->datalength - (pointer - pstart) <  opaqlen) {
 			TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 			       "opaqlen, DROPING... \n");
 			return 0;
@@ -381,8 +379,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 		opaq = ntohl(*p32);
 		pointer += opaqlen;
 
-		if (( ((int) msg->buffer) - ((int) (pointer - pstart)) ) < 
-		    MESSAGE_HEADER_LENGTH ) {
+		if (msg->datalength - (pointer - pstart) < MESSAGE_HEADER_LENGTH) {
 			TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 			       "MESSAGE_HEADER_LENGTH, DROPING... \n");
 			return 0;
@@ -396,7 +393,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 			p16 = (uint16_t *) pointer;
 			msglen = ntohs(*p16);
 			pointer += 2;
-			if (( ((int) msg->buffer) - ((int)(pointer - pstart)) ) < msglen ) {
+			if (msg->datalength - (pointer - pstart) < msglen) {
 				TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 				       "msglen, DROPING... \n");
 				return 0;
@@ -473,7 +470,7 @@ process_RELAY_REPL(struct msg_parser *msg)
 		msglen = ntohs(*p16);
 		pointer += 2;
 
-		if (( ((int) msg->buffer) - ((int) (pointer - pstart)) ) < msglen ) {
+		if (msg->datalength - (pointer - pstart) < msglen) {
 			TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
 			       "msglen, DROPING... \n");
 			return 0;
@@ -483,16 +480,14 @@ process_RELAY_REPL(struct msg_parser *msg)
 		psp = (pointer + msglen); /* jump over message, seek for 
 		                              OPTION_INTERFACE_ID */
 
-		if (( ((int) msg->buffer) - ((int) (psp - pstart)) ) >= 
-		    MESSAGE_HEADER_LENGTH ) {
+		if (msg->datalength - (psp - pstart) >= MESSAGE_HEADER_LENGTH) {
 			if (option == OPTION_INTERFACE_ID) {
 				psp += 2;
 				p16 = (uint16_t *) psp;
 				opaqlen = ntohs(*p16);
 				psp += 2;
 
-				if (( ((int) msg->buffer) - ((int) (psp - pstart)) ) <  
-				    opaqlen) {
+				if (msg->datalength - (psp - pstart) < opaqlen) {
 					TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value "
 					       "for opaqlen, DROPING... \n");
 					return 0;
