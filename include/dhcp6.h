@@ -104,6 +104,8 @@
 #endif
 #define MAXDN 100
 
+#define NETWORK_FUNCTIONS_SCRIPT "/etc/sysconfig/network-scripts/network-functions"
+
 #define RESOLV_CONF_FILE "/etc/resolv.conf"
 #define RESOLV_CONF_BAK_FILE "/etc/resolv.conf.dhcpv6.bak"
 #define RESOLV_CONF_DHCPV6_FILE "/etc/resolv.conf.dhcpv6"

@@ -153,10 +153,10 @@ int change_resolv_conf
     if( getuid() != 0 )
 	return 1;
     
-    l = strlen(new_rscf) + 73;
+    l = strlen(NETWORK_FUNCTIONS_SCRIPT) + strlen(new_rscf) + 27;
     cmd = (char*)malloc(l);
-    strcpy(cmd, ". /etc/sysconfig/network-scripts/network-functions; change_resolv_conf ");
-    strcpy(cmd+71, new_rscf);
+    snprintf(cmd, l, ". %s ; change_resolv_conf %s",
+		    NETWORK_FUNCTIONS_SCRIPT, new_rscf);
     argv[2] = cmd;
     
     if( (pid = fork()) < 0 )
@@ -345,10 +345,19 @@ update_resolver(struct dns_list *dns_list)
 			}
 		}
 	}
-	if (change_resolv_conf(resolv_dhcpv6_file)!=0) {
-//		dprintf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
-//              needs initscripts patch!		return(-1);
-	}
+
+	if (!lstat(NETWORK_FUNCTIONS_SCRIPT, &buf)) {
+		if (change_resolv_conf(resolv_dhcpv6_file)!=0) {
+//			dprintf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
+//			needs initscripts patch!		return(-1);
+		}
+	} else {
+		if (rename(resolv_dhcpv6_file, RESOLV_CONF_FILE)) {
+			dprintf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
+			return(-1);
+		}
+        }
+
 	return (0);
 }
 
