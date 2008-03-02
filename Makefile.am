@@ -42,7 +42,7 @@ release: dist-gzip
 	rm -rf $(PACKAGE)-$(VERSION)
 	gzip -dc $(PACKAGE)-$(VERSION).tar.gz | tar -xvf -
 	( cd $(PACKAGE)-$(VERSION) && ./configure && make ) || exit 1
-	$(MAKE) tag
 	@echo
 	@echo "$(PACKAGE)-$(VERSION).tar.gz is now ready to upload."
+	@echo "Don't forget to tag this release with 'make tag' and push."
 	@echo
