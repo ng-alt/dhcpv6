@@ -2,15 +2,18 @@ The code in this project comes from a variety of sources.  Originally
 starting as the KAME then WIDE dhcpv6 implementation, many companies and
 individuals have contributed to what we have now.  The majority of the
 contributions are under a BSD-style license, but some are under the GNU
-Lesser General Public License v2.1 or later(LGPL).  Since some of the
+Lesser General Public License v2.1 or later (LGPL).  Since some of the
 contributions are under the LGPL, the project constitutes a derived work
 and is entirely licensed under the LGPL.  The full text of the LGPL 2.1
-license is available in the COPYING.LIB file in this directory.  If you
-have any questions, feel free to contact me (David Cantrell
-<dcantrell@redhat.com>)
+license is available in the COPYING.LIB file in this directory.
 
 The lists below note which license applies to each of the header and source
-files in the distribution.
+files in the distribution.  Note this list is here for completeness and the
+entire 'dhcpv6' software distribution is licensed under the GNU Lesser
+General Public License version 2.1 or later.
+
+If you have any questions, feel free to contact me (David Cantrell
+<dcantrell@redhat.com>)
 
 ------------------------------------------------------------------------------
 
