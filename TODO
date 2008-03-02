@@ -5,13 +5,13 @@
 
 - Do we need dad_token.l?  It reads /proc/net/if_inet6
 
+- Can hash.c be replaced with a standard system offering?
+
 - Update the README file and other documentation
 
 - Update man pages
 
 - Replace netlink.c with libnl
-
-- Replace hash.c and TAILQ junk with glib calls
 
 - Replace all .l files with a single lexer with multiple state paths depending
   on what we're reading.
