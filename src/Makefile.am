@@ -22,22 +22,22 @@ dhcp6clientinclude_HEADERS = client6_parse.h
 
 lib_LTLIBRARIES = libdhcp6client.la
 
-dhcp6s_CFLAGS  = -fPIE
+dhcp6s_CFLAGS  = -fPIE -D_GNU_SOURCE
 dhcp6s_LDFLAGS = -pie -Wl,-z,relro,-z,now,-z,nodlopen,-z,noexecstack
 dhcp6s_SOURCES = dhcp6s.c server6_conf.c server6_addr.c server6_parse.y \
                  server6_token.l $(COMMONSRCS)
 
-dhcp6r_CFLAGS  = -fPIE
+dhcp6r_CFLAGS  = -fPIE -D_GNU_SOURCE
 dhcp6r_LDFLAGS = -pie -Wl,-z,relro,-z,now,-z,nodlopen,-z,noexecstack
 dhcp6r_SOURCES = dhcp6r.c relay6_database.c relay6_parser.c relay6_socket.c
 
-dhcp6c_CFLAGS  = -fPIE
+dhcp6c_CFLAGS  = -fPIE -D_GNU_SOURCE
 dhcp6c_LDFLAGS = -pie -Wl,-z,relro,-z,now,-z,nodlopen,-z,noexecstack
 dhcp6c_SOURCES = dhcp6c.c cfg.c netlink.c client6_addr.c client6_parse.y \
                  client6_token.l dad_token.l resolv_token.l radvd_token.l \
                  $(COMMONSRCS)
 
-libdhcp6client_la_CFLAGS = -DLIBDHCP -fPIC -fvisibility=hidden
+libdhcp6client_la_CFLAGS = -DLIBDHCP -D_GNU_SOURCE -fPIC -fvisibility=hidden
 libdhcp6client_la_LDFLAGS = -version-info \
                                 $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
                             -release $(LT_RELEASE) \
