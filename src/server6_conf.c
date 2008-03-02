@@ -83,7 +83,7 @@ struct v6addr
 	struct v6addr *prefix;
 	prefix = (struct v6addr *)malloc(sizeof(*prefix));
 	if (prefix == NULL) {
-		dprintf(LOG_ERR, "%s" "fail to malloc memory", FNAME);
+		dhcpv6_dprintf(LOG_ERR, "%s" "fail to malloc memory", FNAME);
 		return NULL;
 	}
 	memset(prefix, 0, sizeof(*prefix));
@@ -130,7 +130,7 @@ struct scopelist
 	struct scopelist *item;
 	item = (struct scopelist *)malloc(sizeof(*item));
 	if (item == NULL) {
-		dprintf(LOG_ERR, "%s" "fail to allocate memory", FNAME);
+		dhcpv6_dprintf(LOG_ERR, "%s" "fail to allocate memory", FNAME);
 		return NULL;
 	}
 	memset(item, 0, sizeof(*item));
@@ -220,7 +220,7 @@ post_config(root)
 						    current->valid_life_time != 0 &&
 						    current->prefer_life_time >
 						    current->valid_life_time) {
-							dprintf(LOG_ERR, "%s" 
+							dhcpv6_dprintf(LOG_ERR, "%s" 
 					"preferlife time is greater than validlife time",
 							    FNAME);
 							exit (1);
@@ -244,7 +244,7 @@ post_config(root)
 						    current->valid_life_time != 0 &&
 						    current->prefer_life_time >
 						    current->valid_life_time) {
-							dprintf(LOG_ERR, "%s" 
+							dhcpv6_dprintf(LOG_ERR, "%s" 
 					"preferlife time is greater than validlife time",
 							    FNAME);
 							exit (1);
@@ -275,7 +275,7 @@ download_scope(up, current)
 	if (current->rebind_time == 0 && up->rebind_time != 0)
 		current->rebind_time = up->rebind_time;
 	if (current->renew_time > current->rebind_time) {
-		dprintf(LOG_ERR, "dhcpv6 server defines T1 > T2");
+		dhcpv6_dprintf(LOG_ERR, "dhcpv6 server defines T1 > T2");
 		exit(1);
 	}
 	if (current->server_pref == 0 || current->server_pref == DH6OPT_PREF_UNDEF) {

@@ -67,7 +67,7 @@ configure_interface(const struct cf_namelist *iflist)
 		struct cf_list *cfl;
 
 		if ((ifc = malloc(sizeof(*ifc))) == NULL) {
-			dprintf(LOG_ERR, "%s"
+			dhcpv6_dprintf(LOG_ERR, "%s"
 				"memory allocation for %s failed", FNAME,
 				ifp->name);
 			goto bad;
@@ -77,7 +77,7 @@ configure_interface(const struct cf_namelist *iflist)
 		dhcp6_ifconflist = ifc;
 
 		if ((ifc->ifname = strdup(ifp->name)) == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to copy ifname", FNAME);
+			dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy ifname", FNAME);
 			goto bad;
 		}
 
@@ -90,7 +90,7 @@ configure_interface(const struct cf_namelist *iflist)
 			switch(cfl->type) {
 			case DECL_REQUEST:
 				if (dhcp6_mode != DHCP6_MODE_CLIENT) {
-					dprintf(LOG_INFO, "%s" "%s:%d "
+					dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
 						"client-only configuration",
 						FNAME, configfilename,
 						cfl->line);
@@ -123,7 +123,7 @@ configure_interface(const struct cf_namelist *iflist)
 				break;
 			case DECL_PREFERENCE:
 				if (dhcp6_mode != DHCP6_MODE_SERVER) {
-					dprintf(LOG_INFO, "%s" "%s:%d "
+					dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
 						"server-only configuration",
 						FNAME, configfilename,
 						cfl->line);
@@ -132,7 +132,7 @@ configure_interface(const struct cf_namelist *iflist)
 				ifc->server_pref = (int)cfl->num;
 				if (ifc->server_pref < 0 ||
 				    ifc->server_pref > 255) {
-					dprintf(LOG_INFO, "%s" "%s:%d "
+					dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
 						"bad value: %d", FNAME,
 						configfilename, cfl->line,
 						ifc->server_pref);
@@ -141,7 +141,7 @@ configure_interface(const struct cf_namelist *iflist)
 				break;
 			case DECL_IAID:
 				if (ifc->iaidinfo.iaid) {
-					dprintf(LOG_ERR, "%s" "%s:%d "
+					dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
 						"duplicated IAID for %s",
 						FNAME, configfilename,
 						cfl->line, ifc->ifname);
@@ -151,7 +151,7 @@ configure_interface(const struct cf_namelist *iflist)
 				break;
 			case DECL_RENEWTIME:
 				if (ifc->iaidinfo.renewtime) {
-					dprintf(LOG_ERR, "%s" "%s:%d "
+					dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
 						"duplicated renewtime for %s",
 						FNAME, configfilename,
 						cfl->line, ifc->ifname);
@@ -161,7 +161,7 @@ configure_interface(const struct cf_namelist *iflist)
 				break;
 			case DECL_REBINDTIME:
 				if (ifc->iaidinfo.iaid) {
-					dprintf(LOG_ERR, "%s" "%s:%d "
+					dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
 						"duplicated rebindtime for %s",
 						FNAME, configfilename,
 						cfl->line, ifc->ifname);
@@ -171,7 +171,7 @@ configure_interface(const struct cf_namelist *iflist)
 				break;
 			case DECL_ADDRESS:
 				if (add_address(&ifc->addr_list, cfl->ptr)) {
-					dprintf(LOG_ERR, "%s" "failed "
+					dhcpv6_dprintf(LOG_ERR, "%s" "failed "
 						"to configure ipv6address for %s",
 						FNAME, ifc->ifname);
 					goto bad;
@@ -184,13 +184,13 @@ configure_interface(const struct cf_namelist *iflist)
 				break;
 			case DECL_PREFIX_DELEGATION_INTERFACE:
 			        if (add_option(&ifc->option_list, cfl)){
-					dprintf(LOG_ERR, "%s failed to configure prefix-delegation-interface for %s",
+					dhcpv6_dprintf(LOG_ERR, "%s failed to configure prefix-delegation-interface for %s",
 						FNAME, ifc->ifname);
 					goto bad;
 				}
 				break;
 			default:
-				dprintf(LOG_ERR, "%s" "%s:%d "
+				dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
 					"invalid interface configuration",
 					FNAME, configfilename, cfl->line);
 				goto bad;
@@ -216,7 +216,7 @@ configure_host(const struct cf_namelist *hostlist)
 		struct cf_list *cfl;
 
 		if ((hconf = malloc(sizeof(*hconf))) == NULL) {
-			dprintf(LOG_ERR, "%s" "memory allocation failed "
+			dhcpv6_dprintf(LOG_ERR, "%s" "memory allocation failed "
 				"for host %s", FNAME, host->name);
 			goto bad;
 		}
@@ -229,7 +229,7 @@ configure_host(const struct cf_namelist *hostlist)
 		host_conflist0 = hconf;
 
 		if ((hconf->name = strdup(host->name)) == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to copy host name: %s",
+			dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy host name: %s",
 				FNAME, host->name);
 			goto bad;
 		}
@@ -238,7 +238,7 @@ configure_host(const struct cf_namelist *hostlist)
 			switch(cfl->type) {
 			case DECL_DUID:
 				if (hconf->duid.duid_id) {
-					dprintf(LOG_ERR, "%s" "%s:%d "
+					dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
 						"duplicated DUID for %s",
 						FNAME, configfilename,
 						cfl->line, host->name);
@@ -246,20 +246,20 @@ configure_host(const struct cf_namelist *hostlist)
 				}
 				if ((configure_duid((char *)cfl->ptr,
 						    &hconf->duid)) != 0) {
-					dprintf(LOG_ERR, "%s" "%s:%d "
+					dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
 						"failed to configure "
 						"DUID for %s", FNAME,
 						configfilename, cfl->line,
 						host->name);
 					goto bad;
 				}
-				dprintf(LOG_DEBUG, "%s"
+				dhcpv6_dprintf(LOG_DEBUG, "%s"
 					"configure DUID for %s: %s", FNAME,
 					host->name, duidstr(&hconf->duid));
 				break;
 			case DECL_PREFIX:
 				if (add_address(&hconf->prefix_list, cfl->ptr)) {
-					dprintf(LOG_ERR, "%s" "failed "
+					dhcpv6_dprintf(LOG_ERR, "%s" "failed "
 						"to configure prefix for %s",
 						FNAME, host->name);
 					goto bad;
@@ -267,7 +267,7 @@ configure_host(const struct cf_namelist *hostlist)
 				break;
 			case DECL_IAID:
 				if (hconf->iaidinfo.iaid) {
-					dprintf(LOG_ERR, "%s" "%s:%d "
+					dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
 						"duplicated IAID for %s",
 						FNAME, configfilename,
 						cfl->line, host->name);
@@ -277,7 +277,7 @@ configure_host(const struct cf_namelist *hostlist)
 				break;
 			case DECL_RENEWTIME:
 				if (hconf->iaidinfo.renewtime) {
-					dprintf(LOG_ERR, "%s" "%s:%d "
+					dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
 						"duplicated renewtime for %s",
 						FNAME, configfilename,
 						cfl->line, host->name);
@@ -287,7 +287,7 @@ configure_host(const struct cf_namelist *hostlist)
 				break;
 			case DECL_REBINDTIME:
 				if (hconf->iaidinfo.rebindtime) {
-					dprintf(LOG_ERR, "%s" "%s:%d "
+					dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
 						"duplicated rebindtime for %s",
 						FNAME, configfilename,
 						cfl->line, host->name);
@@ -297,7 +297,7 @@ configure_host(const struct cf_namelist *hostlist)
 				break;
 			case DECL_ADDRESS:
 				if (add_address(&hconf->addr_list, cfl->ptr)) {
-					dprintf(LOG_ERR, "%s" "failed "
+					dhcpv6_dprintf(LOG_ERR, "%s" "failed "
 						"to configure ipv6address for %s",
 						FNAME, host->name);
 					goto bad;
@@ -305,7 +305,7 @@ configure_host(const struct cf_namelist *hostlist)
 				break;
 			case DECL_LINKLOCAL:
 				if (IN6_IS_ADDR_UNSPECIFIED(&hconf->linklocal)) {
-					dprintf(LOG_ERR, "%s" "%s:%d "
+					dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
 						"duplicated linklocal for %s",
 						FNAME, configfilename,
 						cfl->line, host->name);
@@ -315,7 +315,7 @@ configure_host(const struct cf_namelist *hostlist)
 							sizeof(hconf->linklocal) );
 				break;
 			default:
-				dprintf(LOG_ERR, "%s: %d invalid host configuration for %s",
+				dhcpv6_dprintf(LOG_ERR, "%s: %d invalid host configuration for %s",
 					configfilename, cfl->line, host->name);
 				goto bad;
 			}
@@ -336,7 +336,7 @@ configure_global_option(void)
 
 	/* DNS servers */
 	if (cf_dns_list && dhcp6_mode != DHCP6_MODE_SERVER) {
-		dprintf(LOG_INFO, "%s" "%s:%d server-only configuration",
+		dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d server-only configuration",
 		    FNAME, configfilename, cf_dns_list->line);
 		goto bad;
 	}
@@ -345,7 +345,7 @@ configure_global_option(void)
 		/* duplication check */
 		if (dhcp6_find_listval(&dnslist0, cl->ptr,
 		    DHCP6_LISTVAL_ADDR6)) {
-			dprintf(LOG_INFO, "%s"
+			dhcpv6_dprintf(LOG_INFO, "%s"
 			    "%s:%d duplicated DNS server: %s", FNAME,
 			    configfilename, cl->line,
 			    in6addr2str((struct in6_addr *)cl->ptr, 0));
@@ -353,7 +353,7 @@ configure_global_option(void)
 		}
 		if (dhcp6_add_listval(&dnslist0, cl->ptr,
 		    DHCP6_LISTVAL_ADDR6) == NULL) {
-			dprintf(LOG_ERR, "%s" "failed to add a DNS server", 
+			dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a DNS server", 
 				FNAME);
 			goto bad;
 		}
@@ -375,12 +375,12 @@ get_default_ifid(pif)
 	struct sockaddr *sdl;
 
 	if (pif->ifid_len < 64) {
-		dprintf(LOG_NOTICE, "%s" "ID length too short", FNAME);
+		dhcpv6_dprintf(LOG_NOTICE, "%s" "ID length too short", FNAME);
 		return -1;
 	}
 
 	if (getifaddrs(&ifap) < 0) {
-		dprintf(LOG_ERR, "%s" "getifaddrs failed: %s",
+		dhcpv6_dprintf(LOG_ERR, "%s" "getifaddrs failed: %s",
 			FNAME, strerror(errno));
 		return -1;
 	}
@@ -393,7 +393,7 @@ get_default_ifid(pif)
 
 		sdl = ifa->ifa_addr;
 		if (sizeof(*sdl) < 6) {
-			dprintf(LOG_NOTICE, "%s"
+			dhcpv6_dprintf(LOG_NOTICE, "%s"
 				"link layer address is too short (%s)",
 				FNAME, pif->ifname);
 			goto fail;
@@ -415,7 +415,7 @@ get_default_ifid(pif)
 	}
 
 	if (ifa == NULL) {
-		dprintf(LOG_INFO, "%s"
+		dhcpv6_dprintf(LOG_INFO, "%s"
 			"cannot find interface information for %s",
 			FNAME, pif->ifname);
 		goto fail;
@@ -535,7 +535,7 @@ add_options(int opcode,	struct dhcp6_ifconf *ifc,
 			for (opt = TAILQ_FIRST(&ifc->reqopt_list); opt;
 			     opt = TAILQ_NEXT(opt, link)) {
 				if (opt->val_num == cfl->type) {
-					dprintf(LOG_INFO, "%s"
+					dhcpv6_dprintf(LOG_INFO, "%s"
 						"duplicated requested"
 						" option: %s", FNAME,
 						dhcp6optstr(cfl->type));
@@ -554,7 +554,7 @@ add_options(int opcode,	struct dhcp6_ifconf *ifc,
 				ifc->allow_flags |= DHCIFF_RAPID_COMMIT;
 				break;
 			default:
-				dprintf(LOG_ERR, "%s" "invalid operation (%d) "
+				dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
 					"for option type (%d)",
 					FNAME, opcode, cfl->type);
 				return (-1);
@@ -566,7 +566,7 @@ add_options(int opcode,	struct dhcp6_ifconf *ifc,
 				ifc->send_flags |= DHCIFF_PREFIX_DELEGATION;
 				break;
 			default:
-				dprintf(LOG_ERR, "%s" "invalid operation (%d) "
+				dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
 					"for option type (%d)",
 					FNAME, opcode, cfl->type);
 				return (-1);
@@ -579,13 +579,13 @@ add_options(int opcode,	struct dhcp6_ifconf *ifc,
 				opttype = DH6OPT_DNS_SERVERS;
 				if (dhcp6_add_listval(&ifc->reqopt_list,
 				    &opttype, DHCP6_LISTVAL_NUM) == NULL) {
-					dprintf(LOG_ERR, "%s" "failed to "
+					dhcpv6_dprintf(LOG_ERR, "%s" "failed to "
 					    "configure an option", FNAME);
 					return (-1);
 				}
 				break;
 			default:
-				dprintf(LOG_ERR, "%s" "invalid operation (%d) "
+				dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
 					"for option type (%d)",
 					FNAME, opcode, cfl->type);
 				break;
@@ -598,13 +598,13 @@ add_options(int opcode,	struct dhcp6_ifconf *ifc,
 				opttype = DH6OPT_DOMAIN_LIST;
 				if (dhcp6_add_listval(&ifc->reqopt_list,
 				    &opttype, DHCP6_LISTVAL_NUM) == NULL) {
-					dprintf(LOG_ERR, "%s" "failed to "
+					dhcpv6_dprintf(LOG_ERR, "%s" "failed to "
 						"configure an option", FNAME);
 					return (-1);
 				}
 				break;
 			default:
-                               dprintf(LOG_ERR, "%s" "invalid operation (%d) "
+                               dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
                                        "for option type (%d)",
                                        FNAME, opcode, cfl->type);
                                break;
@@ -612,7 +612,7 @@ add_options(int opcode,	struct dhcp6_ifconf *ifc,
                        break;
 
 		default:
-			dprintf(LOG_ERR, "%s"
+			dhcpv6_dprintf(LOG_ERR, "%s"
 				"unknown option type: %d", FNAME, cfl->type);
 				return (-1);
 		}
@@ -631,7 +631,7 @@ add_address(struct dhcp6_list *addr_list,
 	
 	/* avoid invalid addresses */
 	if (IN6_IS_ADDR_RESERVED(&v6addr->addr)) {
-		dprintf(LOG_ERR, "%s" "invalid address: %s",
+		dhcpv6_dprintf(LOG_ERR, "%s" "invalid address: %s",
 			FNAME, in6addr2str(&v6addr->addr, 0));
 		return (-1);
 	}
@@ -641,17 +641,17 @@ add_address(struct dhcp6_list *addr_list,
 	     lv = TAILQ_NEXT(lv, link)) {
 		if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &v6addr->addr) &&
 		    lv->val_dhcp6addr.plen == v6addr->plen) {
-			dprintf(LOG_ERR, "%s"
+			dhcpv6_dprintf(LOG_ERR, "%s"
 				"duplicated address: %s/%d ", FNAME,
 				in6addr2str(&v6addr->addr, 0), v6addr->plen);
 			return (-1);
 		}
 	}
 	if ((val = (struct dhcp6_listval *)malloc(sizeof(*val))) == NULL)
-		dprintf(LOG_ERR, "%s" "memory allocation failed", FNAME);
+		dhcpv6_dprintf(LOG_ERR, "%s" "memory allocation failed", FNAME);
 	memset(val, 0, sizeof(*val));
 	memcpy(&val->val_dhcp6addr, v6addr, sizeof(val->val_dhcp6addr));
-	dprintf(LOG_DEBUG, "%s" "add address: %s",
+	dhcpv6_dprintf(LOG_DEBUG, "%s" "add address: %s",
 		FNAME, in6addr2str(&v6addr->addr, 0));
 	TAILQ_INSERT_TAIL(addr_list, val, link);
 	return (0);
