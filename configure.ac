@@ -74,14 +74,10 @@ AC_CHECK_HEADERS([sys/types.h sys/socket.h], [],
                  [AC_MSG_FAILURE([*** Header file $ac_header not found.])],
                  [])
 
-# Check for headers that are platform dependent
-# FIXME: these tests should run depending on the uname we are running on
-AC_CHECK_HEADERS([linux/in6.h linux/sockios.h linux/netlink.h linux/rtnetlink.h],
-                 [], [], [])
-
 # Check for headers we must have on the system
-AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h \
-                  net/if.h net/if_arp.h netdb.h netinet/in.h sys/ioctl.h syslog.h],
+AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h libgen.h \
+                  net/if.h net/if_arp.h netdb.h netinet/in.h sys/ioctl.h \
+                  sys/timeb.h syslog.h],
                  [],
                  [AC_MSG_FAILURE([*** Header file $ac_header not found.])],
                  [[#ifdef HAVE_SYS_TYPES_H
@@ -134,6 +130,10 @@ AC_CHECK_FUNCS([bzero ftime gettimeofday memset select socket strchr strdup \
 
 # find dn_comp() and dn_expand()
 AM_CHECK_RESOLVER
+
+# Check for headers that are platform dependent
+AM_CHECK_LINUX_HEADERS
+AM_CHECK_DARWIN_HEADERS
 
 AC_CONFIG_FILES([Makefile include/Makefile src/Makefile man/Makefile \
                  etc/Makefile etc/sysconfig/Makefile etc/init.d/Makefile])
