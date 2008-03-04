@@ -21,9 +21,7 @@
  *            David Cantrell <dcantrell@redhat.com>
  */
 
-#include <malloc.h>
-#include <search.h>
-#include <string.h>
+#include "includes.h"
 
 extern void tdestroy (void *root, void (*free_node)(void *nodep));
 void *ifp_ptr;
