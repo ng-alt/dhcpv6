@@ -64,20 +64,30 @@ AC_PROG_LEX
 AC_PROG_YACC
 AC_PROG_LIBTOOL
 
-# check for required headers
 AC_HEADER_RESOLV
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
+AC_HEADER_TIME
+
+# These headers may be available.  If so, we need them defined for later header tests.
+AC_CHECK_HEADERS([sys/types.h sys/socket.h], [],
+                 [AC_MSG_FAILURE([*** Header file $ac_header not found.])],
+                 [])
+
+# Check for headers that are platform dependent
+# FIXME: these tests should run depending on the uname we are running on
+AC_CHECK_HEADERS([linux/in6.h linux/sockios.h linux/netlink.h linux/rtnetlink.h],
+                 [], [], [])
 
 # Check for headers we must have on the system
 AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h \
-                  linux/in6.h linux/sockios.h net/if.h net/if_arp.h netdb.h \
-                  netinet/in.h signal.h stdint.h stdlib.h string.h \
-                  sys/ioctl.h sys/socket.h sys/time.h sys/timeb.h syslog.h \
-                  unistd.h linux/netlink.h linux/rtnetlink.h],
+                  net/if.h net/if_arp.h netdb.h netinet/in.h sys/ioctl.h syslog.h],
                  [],
                  [AC_MSG_FAILURE([*** Header file $ac_header not found.])],
-                 [[#ifdef HAVE_SYS_SOCKET_H
+                 [[#ifdef HAVE_SYS_TYPES_H
+                   # include <sys/types.h>
+                   #endif
+                   #ifdef HAVE_SYS_SOCKET_H
                    # include <sys/socket.h>
                    #endif
                  ]])
@@ -85,7 +95,10 @@ AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h \
 # Check for headers that are nice, but we don't absolutely have to have
 AC_CHECK_HEADERS([sys/queue.h isc-dhcp/libdhcp_control.h linux/ipv6.h],
                  [], [],
-                 [[#ifdef HAVE_SYS_SOCKET_H
+                 [[#ifdef HAVE_SYS_TYPES_H
+                   # include <sys/types.h>
+                   #endif
+                   #ifdef HAVE_SYS_SOCKET_H
                    # include <sys/socket.h>
                    #endif
                  ]])
