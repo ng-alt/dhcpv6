@@ -29,39 +29,7 @@
 
 /* Author: Shirley Ma, xma@us.ibm.com */
 
-#include "config.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <syslog.h>
-#include <net/if.h>
-#include <linux/sockios.h>
-#include <net/if_arp.h>
-#include <ifaddrs.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-
-#if defined(__ia64__)
-/* work around a problem in /usr/include/asm/gcc_intrin.h temporarily on
- * the IA64 platform
- */
-#include <linux/in6.h>
-
-/* from <linux/ipv6.h> */
-struct in6_ifreq {
-        struct in6_addr ifr6_addr;
-        __u32           ifr6_prefixlen;
-        int             ifr6_ifindex;
-};
-#else
-#include <linux/ipv6.h>
-#endif
-
-#include <time.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-
+#include "includes.h"
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
@@ -720,11 +688,19 @@ client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr)
 			FNAME, strerror(errno));
 		return (-1);
 	}
+
 	memset(&req, 0, sizeof(req));
+
+#if defined(__linux__)
 	req.ifr6_ifindex = if_nametoindex(ifp->ifname);
 	memcpy(&req.ifr6_addr, &ifaddr->addr, sizeof(req.ifr6_addr));
-	
 	req.ifr6_prefixlen = ifaddr->plen;
+#endif
+
+#if defined(__MACOSX__)
+    memcpy(&req.ifr_name, ifp->ifname, strlen(ifp->ifname));
+    memcpy(&req.ifr_ifru.ifru_addr, &ifaddr->addr, sizeof(req.ifr_ifru.ifru_addr));
+#endif
 
 	if (ioctl(s, ioctl_cmd, &req) && errno != EEXIST) {
 		dhcpv6_dprintf(LOG_NOTICE, "%s" "failed to %s an address on %s: %s",
@@ -781,10 +757,12 @@ create_iaid(struct iaid_table *iaidtab, int num_device)
 		case ARPHRD_IEEE802:
 			memcpy(&temp->iaid, temp->hwaddr.data, sizeof(temp->iaid));
 			break;
+#if defined(__linux__)
 		case ARPHRD_PPP:
 			temp->iaid = do_hash(ifa->ifa_name,sizeof(ifa->ifa_name))
 				+ if_nametoindex(ifa->ifa_name);
 			break;
+#endif
 		default:
 			dhcpv6_dprintf(LOG_INFO, "doesn't support %s address family %d", 
 				ifa->ifa_name, temp->hwaddr.type);
