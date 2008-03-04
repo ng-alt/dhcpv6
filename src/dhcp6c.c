@@ -29,33 +29,13 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
-#include <stdlib.h>
-#include <syslog.h>
-#include <string.h>
-#include <libgen.h>
-#include <signal.h>
-#include <net/if.h>
-#include <linux/sockios.h>
-#include <sys/time.h>
-#include <sys/timeb.h>
-#include <errno.h>
-#include <unistd.h>
-#include <netdb.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <err.h>
-#include <sys/ioctl.h>
-
+#include "includes.h"
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
 #include "timer.h"
 #include "lease.h"
+
 #ifdef LIBDHCP
 #include "libdhcp_control.h"
 #endif
@@ -278,11 +258,14 @@ int dhcpv6_client
 	}
 	device = argv[0];
 
+#ifndef __DARWIN_DEPRECATED_ATTRIBUTE
 	if (foreground == 0) {
 		if (daemon(0, 0) < 0)
 			err(1, "daemon");
 		openlog(progname, LOG_NDELAY|LOG_PID, LOG_DAEMON);
 	}
+#endif
+
 	setloglevel(debug);
 
 #ifdef LIBDHCP
@@ -603,7 +586,7 @@ client6_ifinit(char *device)
 	ifp->link_flag |= IFF_RUNNING;
 
 	/* get addrconf prefix from kernel */
-	(void)get_if_rainfo(ifp);
+	(void) get_if_rainfo(ifp);
 
 	/* set up check link timer and sync file timer */	
 	if ((ifp->link_timer =
