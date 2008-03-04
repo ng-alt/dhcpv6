@@ -29,16 +29,7 @@
 
 /* Author: Shirley Ma, xma@us.ibm.com */
 
-#include "config.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <syslog.h>
-#include <time.h>
-#include <errno.h>
-#include <netinet/in.h>
-#include <net/if.h>
-
+#include "includes.h"
 #include "dhcp6.h"
 #include "cfg.h"
 #include "lease.h"

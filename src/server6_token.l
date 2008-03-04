@@ -32,16 +32,7 @@
 %option noyywrap
 
 %{
-#include "config.h"
-
-#include <stdarg.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <syslog.h>
-#include <netinet/in.h>
-#include <net/if.h>
-
+#include "includes.h"
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"

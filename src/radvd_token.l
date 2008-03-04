@@ -31,17 +31,7 @@
 %option noyywrap
 
 %{
-#include "config.h"
-
-#include <fcntl.h>
-#include <signal.h>
-#include <syslog.h>
-#include <netinet/in.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-
+#include "includes.h"
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"

@@ -27,14 +27,7 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <string.h>
-
+#include "includes.h"
 #include "dhcp6r.h"
 #include "relay6_parser.h"
 #include "relay6_database.h"

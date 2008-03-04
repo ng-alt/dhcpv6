@@ -29,28 +29,7 @@
  * SUCH DAMAGE.
  */
 
-#include "config.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <syslog.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <err.h>
-#include <errno.h>
-#include <net/if_arp.h>
-#include <sys/ioctl.h>
-#include <netdb.h>
-#include <ifaddrs.h>
-#include <net/if.h>
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <resolv.h>
-#include <unistd.h>
-
+#include "includes.h"
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"

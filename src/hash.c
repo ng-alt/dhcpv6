@@ -29,11 +29,7 @@
 
 /* Author: Elizabeth Kon, beth@us.ibm.com */
 
-#include "config.h"
-
-#include <stdlib.h>
-#include <syslog.h>
-
+#include "includes.h"
 #include "hash.h"
 
 #ifdef	__GNUC__
