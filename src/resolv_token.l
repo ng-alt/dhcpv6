@@ -51,7 +51,7 @@
                  YY_FATAL_ERROR("error performing ECHO on yytext"); \
              }
 
-#define YYABORT(msg) dhcpv6_printf(LOG_ERR, msg " %s lineno %d.", \
+#define YYABORT(msg) dhcpv6_dprintf(LOG_ERR, msg " %s lineno %d.", \
 	yytext, num_lines)
 
 #define ABORT   do {    \
@@ -107,7 +107,7 @@ nl              \n
 			ABORT;
 		fprintf(dhcp6_resolv_file, yytext);
 		strcpy(domainname->name, yytext);
-		dhcpv6_printf(LOG_DEBUG, "parse domain name %s", domainname->name);
+		dhcpv6_dprintf(LOG_DEBUG, "parse domain name %s", domainname->name);
 		domainname->next = NULL;
 		if (dhcp6_if->dnslist.domainlist == NULL)
 			dhcp6_if->dnslist.domainlist = domainname;
@@ -127,10 +127,10 @@ nl              \n
 		fprintf(dhcp6_resolv_file, yytext);
 		if (inet_pton(AF_INET6, yytext, &addr) < 1) 
 			ABORT;
-		dhcpv6_printf(LOG_DEBUG, "parse name server %s", in6addr2str(&addr, 0));
+		dhcpv6_dprintf(LOG_DEBUG, "parse name server %s", in6addr2str(&addr, 0));
 		if (dhcp6_add_listval(&dhcp6_if->dnslist.addrlist,
 		    &addr, DHCP6_LISTVAL_ADDR6) == NULL) {
-			dhcpv6_printf(LOG_ERR, "%s" "failed to add a DNS server", FNAME);
+			dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a DNS server", FNAME);
 			ABORT;
 		}
 		BEGIN S_ADDR;}
@@ -198,12 +198,12 @@ resolv_parse(struct dns_list *dnslist)
 			if ((newfd = open(resolv_dhcpv6_file, 
 			    O_CREAT|O_EXCL|O_WRONLY|O_TRUNC, 0644))
 			    < 0) {
-				dhcpv6_printf(LOG_ERR, "%s" 
+				dhcpv6_dprintf(LOG_ERR, "%s" 
 					" failed to open resolv.conf.dhcpv6 file", FNAME);
 				return (-1);
 			}
 			if ((dhcp6_resolv_file = fdopen(newfd, "w")) == NULL) {
-				dhcpv6_printf(LOG_ERR, "%s" 
+				dhcpv6_dprintf(LOG_ERR, "%s" 
 					" failed to fdopen resolv.conf.dhcpv6 file", FNAME);
 				return (-1);
 			}
@@ -212,29 +212,29 @@ resolv_parse(struct dns_list *dnslist)
 			sleep(1);
 			continue;
 		default:
-			dhcpv6_printf(LOG_ERR, "resolv_parse: fopen(%s): %s",
+			dhcpv6_dprintf(LOG_ERR, "resolv_parse: fopen(%s): %s",
 				RESOLV_CONF_FILE, strerror(errno));
 			return (-1);
 		}
 	}
 	if (lstat(RESOLV_CONF_FILE, &buf)) {
-		dhcpv6_printf(LOG_ERR, "lstat resolv.conf file failed");	
+		dhcpv6_dprintf(LOG_ERR, "lstat resolv.conf file failed");	
 		return (-1);
 	}
 	if ((yyin = fdopen(oldfd, "r")) == NULL) {
-		dhcpv6_printf(LOG_ERR, "resolv_parse: fdopen(%s): %s",
+		dhcpv6_dprintf(LOG_ERR, "resolv_parse: fdopen(%s): %s",
 			RESOLV_CONF_FILE, strerror(errno));
 		return (-1);
 	}
 	/* exclusive open of new resolv.conf.dhcpv6 file */
 	if ((newfd = open(resolv_dhcpv6_file, 
 	    O_CREAT|O_EXCL|O_WRONLY|O_TRUNC, buf.st_mode)) < 0) {
-		dhcpv6_printf(LOG_ERR, "%s" 
+		dhcpv6_dprintf(LOG_ERR, "%s" 
 			" failed to open resolv.conf.dhcpv6 file", FNAME);
 		return (-1);
 	}
 	if ((dhcp6_resolv_file = fdopen(newfd, "w")) == NULL) {
-		dhcpv6_printf(LOG_ERR, "%s" 
+		dhcpv6_dprintf(LOG_ERR, "%s" 
 			" failed to fdopen resolv.conf.dhcpv6 file", FNAME);
 		return (-1);
 	}
@@ -252,13 +252,13 @@ update_resolver(struct dns_list *dns_list)
 	if (!TAILQ_EMPTY(&dns_list->addrlist)) {
 		for (d = TAILQ_FIRST(&dns_list->addrlist); d; d = d_next, i++) {
 			struct dhcp6_listval *lv;
-			dhcpv6_printf(LOG_DEBUG, "%s" " received nameserver[%d] %s",
+			dhcpv6_dprintf(LOG_DEBUG, "%s" " received nameserver[%d] %s",
 				FNAME, i, in6addr2str(&d->val_addr6, 0));
 			d_next = TAILQ_NEXT(d, link);
 			for (lv = TAILQ_FIRST(&dhcp6_if->dnslist.addrlist); lv;
 			     lv = TAILQ_NEXT(lv, link)) {
 				if (IN6_ARE_ADDR_EQUAL(&lv->val_addr6, &d->val_addr6)) { 
-					dhcpv6_printf(LOG_DEBUG, "%s" 
+					dhcpv6_dprintf(LOG_DEBUG, "%s" 
 						"nameserver %s found in resolv.conf",
 						FNAME, in6addr2str(&d->val_addr6, 0));
 					TAILQ_REMOVE(&dns_list->addrlist, d, link);
@@ -286,7 +286,7 @@ update_resolver(struct dns_list *dns_list)
 		for (dlist = dns_list->domainlist, dprev = dns_list->domainlist;
 		     dlist; i++, dlist = dlist_next) {
 			int found = 0;
-			dhcpv6_printf(LOG_DEBUG, "%s" " received domainname[%d] %s",
+			dhcpv6_dprintf(LOG_DEBUG, "%s" " received domainname[%d] %s",
 				FNAME, i, dlist->name);
 			if (dhcp6_if->dnslist.domainlist == NULL) 
 				break;
@@ -294,7 +294,7 @@ update_resolver(struct dns_list *dns_list)
 			     oldlist = oldlist->next) {
 				if (strcmp(oldlist->name, dlist->name) == 0) {
 					found = 1;
-					dhcpv6_printf(LOG_DEBUG, "%s" "domain name %s found in " 
+					dhcpv6_dprintf(LOG_DEBUG, "%s" "domain name %s found in " 
 						"resolv.conf", FNAME, dlist->name);
 					if (dprev == dlist) {
 						dprev = dlist->next;
@@ -314,7 +314,7 @@ update_resolver(struct dns_list *dns_list)
 		if (dns_list->domainlist != NULL) {
 			fprintf(dhcp6_resolv_file, "search ");
 			for (dlist = dns_list->domainlist; dlist; dlist = dlist->next) {
-				dhcpv6_printf(LOG_DEBUG, "%s" "domain name %s added in resolv.conf", 
+				dhcpv6_dprintf(LOG_DEBUG, "%s" "domain name %s added in resolv.conf", 
 					FNAME, dlist->name);
 				fprintf(dhcp6_resolv_file, "%s", dlist->name);
 				if (dlist->next != NULL)
@@ -325,12 +325,12 @@ update_resolver(struct dns_list *dns_list)
 		}
 	}
 	if (fflush(dhcp6_resolv_file) == EOF) {
-		dhcpv6_printf(LOG_ERR, "%s" "write resolv.conf.dhcpv6 file fflush failed %s", 
+		dhcpv6_dprintf(LOG_ERR, "%s" "write resolv.conf.dhcpv6 file fflush failed %s", 
 			FNAME, strerror(errno));
 		return (-1);
 	}
 	if (fsync(newfd) < 0) {
-		dhcpv6_printf(LOG_ERR, "%s" "write resolv.conf.dhcpv6 file failed %s", 
+		dhcpv6_dprintf(LOG_ERR, "%s" "write resolv.conf.dhcpv6 file failed %s", 
 			FNAME, strerror(errno));
 		return (-1);
 	}
@@ -339,7 +339,7 @@ update_resolver(struct dns_list *dns_list)
 	if (!lstat(RESOLV_CONF_FILE, &buf)) {
 		if ((lstat(RESOLV_CONF_BAK_FILE, &buf) < 0) && (errno == ENOENT)) {
 			if (link(RESOLV_CONF_FILE, RESOLV_CONF_BAK_FILE)) {
-				dhcpv6_printf(LOG_ERR, "%s" 
+				dhcpv6_dprintf(LOG_ERR, "%s" 
 					" backup failed for resolv.conf file", FNAME);
 				return (-1);
 			}
@@ -348,12 +348,12 @@ update_resolver(struct dns_list *dns_list)
 
 	if (!lstat(NETWORK_FUNCTIONS_SCRIPT, &buf)) {
 		if (change_resolv_conf(resolv_dhcpv6_file)!=0) {
-//			dhcpv6_printf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
+//			dhcpv6_dprintf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
 //			needs initscripts patch!		return(-1);
 		}
 	} else {
 		if (rename(resolv_dhcpv6_file, RESOLV_CONF_FILE)) {
-			dhcpv6_printf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
+			dhcpv6_dprintf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
 			return(-1);
 		}
         }
