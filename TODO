@@ -3,7 +3,7 @@
 
 - Do all of the headers that get installed need to be installed?
 
-- Do we need dad_token.l?  It reads /proc/net/if_inet6
+- Do we need dad_token.l?  It reads /proc/net/if_inet6, but can we do that another way?
 
 - Can hash.c be replaced with a standard system offering?
 
@@ -30,6 +30,9 @@
 
 - Define all DHCPv6 options and states more clearly.  Fix up server component
   to handle all possible options.
+
+- Add command line switches to the server and client to define an alternate config file
+  path, lease database path, and so on (like ISC software)
 
 - Output timestamps using this format: http://www.w3.org/TR/NOTE-datetime
 
