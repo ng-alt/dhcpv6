@@ -132,7 +132,7 @@ infinity	{ return INFINITY; }
 				
 			i = inet_pton(AF_INET6, yytext, &addr);
 			if (i < 1) {
-				dprintf(LOG_ERR, "invalid address in line %d", num_lines); 
+				dhcpv6_printf(LOG_ERR, "invalid address in line %d", num_lines); 
 				return BAD_TOKEN;
 			}
 
@@ -166,7 +166,7 @@ server6error0(int level, char *s, va_list ap)
 	if (bp < ep)
 		bp += vsnprintf(bp, ep - bp, s, ap);
 
-	dprintf(level, ebuf);
+	dhcpv6_printf(level, ebuf);
 }
 
 void
@@ -186,7 +186,7 @@ sfparse(const char *conf)
 	if ((server6in = fopen(configfilename, "r")) == NULL) {
 		if (errno == ENOENT)
 			return (0);
-		dprintf(LOG_ERR, "sfparse: fopen(%s): %s",
+		dhcpv6_printf(LOG_ERR, "sfparse: fopen(%s): %s",
 				configfilename, strerror(errno));
 		return (-1);
 	}

@@ -48,7 +48,7 @@
                  YY_FATAL_ERROR("error performing ECHO on yytext"); \
              }
 
-#define YYABORT(msg) dprintf(LOG_ERR, msg " %s lineno %d.", \
+#define YYABORT(msg) dhcpv6_printf(LOG_ERR, msg " %s lineno %d.", \
 	dadtext, num_lines)
 
 #define ABORT   do {    \
@@ -107,7 +107,7 @@ nl              \n
 			strcpy(buff+len, "\0");
 	}
 	if (inet_pton(AF_INET6, buff, &addr) < 1) {
-		dprintf(LOG_ERR, "parse address failed");
+		dhcpv6_printf(LOG_ERR, "parse address failed");
 		ABORT;
 	} else {
 		ifinfo = (struct ifproc_info *)malloc(sizeof(*ifinfo));
@@ -124,7 +124,7 @@ nl              \n
 		BEGIN S_FLAGS;}
 <S_FLAGS>{hexpair} {ifinfo->flags = strtol(dadtext, NULL, 16);
 		if (ifinfo->flags == DAD_FLAGS) {
-			dprintf(LOG_INFO, "duplicated ipv6 address %s detected",
+			dhcpv6_printf(LOG_INFO, "duplicated ipv6 address %s detected",
 				in6addr2str(&ifinfo->addr, 0));
 			BEGIN S_NAME;
 		} else {
@@ -150,7 +150,7 @@ nl              \n
 			/* check address on client6_iaidaddr list */	
 			if ((lv = (struct dhcp6_listval *)malloc(sizeof(*lv)))
 			    == NULL) {
-				dprintf(LOG_ERR, "failed to allocate memory");
+				dhcpv6_printf(LOG_ERR, "failed to allocate memory");
 				return (-1);
 			}
 			
@@ -164,7 +164,7 @@ nl              \n
 			}
 			/* deconfigure the interface's the address assgined by dhcpv6 */
 			if (dhcp6_remove_lease(cl) != 0) {
-				dprintf(LOG_INFO,
+				dhcpv6_printf(LOG_INFO,
 					"remove duplicated address failed: %s",
 					in6addr2str(&lv->val_dhcp6addr.addr, 0));
 				return (-1);
@@ -191,7 +191,7 @@ dad_parse(const char *file)
 	if ((dadin = fopen(file, "r")) == NULL) {
 		if (errno == ENOENT)
 			return (0);
-		dprintf(LOG_ERR, "dad_parse: fopen(%s): %s",
+		dhcpv6_printf(LOG_ERR, "dad_parse: fopen(%s): %s",
 			file, strerror(errno));
 		return (-1);
 	}

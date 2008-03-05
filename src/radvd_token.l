@@ -56,7 +56,7 @@
                  YY_FATAL_ERROR("error performing ECHO on yytext"); \
              }
 
-#define YYABORT(msg) dprintf(LOG_ERR, msg " %s lineno %d.", \
+#define YYABORT(msg) dhcpv6_printf(LOG_ERR, msg " %s lineno %d.", \
 	yytext, num_lines)
 
 #define ABORT   do {    \
@@ -154,7 +154,7 @@ comment		\#.*
 						lv->lease_addr.plen);
 					update = 1;
 				}
-				dprintf(LOG_INFO, "update radvd.conf with DHCPv6 prefixes");
+				dhcpv6_printf(LOG_INFO, "update radvd.conf with DHCPv6 prefixes");
 			}
 			fprintf(dhcp6_radvd_file, yytext);
 			BEGIN INITIAL;
@@ -185,7 +185,7 @@ comment		\#.*
 		if (update_flag == ADDR_REMOVE && 
 		    !addr_on_addrlist((struct dhcp6_list *)&client6iaid->lease_list, 
 		    &lv->val_dhcp6addr)) { 
-			dprintf(LOG_DEBUG, "remove DHCPv6 assgined prefix in radvd.conf");
+			dhcpv6_printf(LOG_DEBUG, "remove DHCPv6 assgined prefix in radvd.conf");
 			update = 1;
 		} else {
 			TAILQ_INSERT_TAIL(&previous_prefix_list, lv, link);
@@ -241,12 +241,12 @@ radvd_parse(struct dhcp6_iaidaddr *client6_iaid, int flag)
 			if ((newfd = open(radvd_dhcpv6_file, 
 			    O_CREAT|O_EXCL|O_WRONLY|O_TRUNC, 0644))
 			    < 0) {
-				dprintf(LOG_ERR, "%s" 
+				dhcpv6_printf(LOG_ERR, "%s" 
 					" failed to open radvd.conf.dhcpv6 file", FNAME);
 				return (-1);
 			}
 			if ((dhcp6_radvd_file = fdopen(newfd, "w")) == NULL) {
-				dprintf(LOG_ERR, "%s" 
+				dhcpv6_printf(LOG_ERR, "%s" 
 					" failed to fdopen radvd.conf.dhcpv6 file", FNAME);
 				return (-1);
 			}
@@ -255,29 +255,29 @@ radvd_parse(struct dhcp6_iaidaddr *client6_iaid, int flag)
 			sleep(1);
 			continue;
 		default:
-			dprintf(LOG_ERR, "radvd_parse: fopen(%s): %s",
+			dhcpv6_printf(LOG_ERR, "radvd_parse: fopen(%s): %s",
 				RADVD_CONF_FILE, strerror(errno));
 			return (-1);
 		}
 	}
 	if (lstat(RADVD_CONF_FILE, &buf)) {
-		dprintf(LOG_ERR, "lstat radvd.conf file failed");	
+		dhcpv6_printf(LOG_ERR, "lstat radvd.conf file failed");	
 		return (-1);
 	}
 	if ((yyin = fdopen(oldfd, "r")) == NULL) {
-		dprintf(LOG_ERR, "radvd_parse: fdopen(%s): %s",
+		dhcpv6_printf(LOG_ERR, "radvd_parse: fdopen(%s): %s",
 			RADVD_CONF_FILE, strerror(errno));
 		return (-1);
 	}
 	/* exclusive open of new radvd.conf.dhcpv6$pid file */
 	if ((newfd = open(radvd_dhcpv6_file, 
 	    O_CREAT|O_EXCL|O_WRONLY|O_TRUNC, buf.st_mode)) < 0) {
-		dprintf(LOG_ERR, "%s" 
+		dhcpv6_printf(LOG_ERR, "%s" 
 			" failed to open radvd.conf.dhcpv6 file", FNAME);
 		return (-1);
 	}
 	if ((dhcp6_radvd_file = fdopen(newfd, "w")) == NULL) {
-		dprintf(LOG_ERR, "%s" 
+		dhcpv6_printf(LOG_ERR, "%s" 
 			" failed to fdopen radvd.conf.dhcpv6$pid file", FNAME);
 		return (-1);
 	}
@@ -291,12 +291,12 @@ update_radvd(void)
 {
 	struct stat buf;
 	if (fflush(dhcp6_radvd_file) == EOF) {
-		dprintf(LOG_ERR, "%s" "write radvd.conf.dhcpv6 file fflush failed %s", 
+		dhcpv6_printf(LOG_ERR, "%s" "write radvd.conf.dhcpv6 file fflush failed %s", 
 			FNAME, strerror(errno));
 		return (-1);
 	}
 	if (fsync(newfd) < 0) {
-		dprintf(LOG_ERR, "%s" "write radvd.conf.dhcpv6 file failed %s", 
+		dhcpv6_printf(LOG_ERR, "%s" "write radvd.conf.dhcpv6 file failed %s", 
 			FNAME, strerror(errno));
 		return (-1);
 	}
@@ -306,7 +306,7 @@ update_radvd(void)
 		if (lstat(RADVD_CONF_BAK_FILE, &buf) < 0 && errno == ENOENT) {
 			/* save the orignal file as a bak file */
 			if (link(RADVD_CONF_FILE, RADVD_CONF_BAK_FILE)) {
-				dprintf(LOG_ERR, "%s" 
+				dhcpv6_printf(LOG_ERR, "%s" 
 					" backup failed for radvd.conf file", FNAME);
 				return (-1);
 			}
@@ -314,7 +314,7 @@ update_radvd(void)
 	}
 	/* rename the new conf file as the radvd.conf file */
 	if (rename(radvd_dhcpv6_file, RADVD_CONF_FILE)) {
-		dprintf(LOG_ERR, "%s" " rename failed for radvd.conf file", FNAME);
+		dhcpv6_printf(LOG_ERR, "%s" " rename failed for radvd.conf file", FNAME);
 		return(-1);
 	}
 	return (0);
@@ -332,14 +332,14 @@ yywrap(void)
 			if (read(fd, buff, sizeof(buff)) > 0) {
 				radvd_pid = strtol(buff, NULL, 10);
 				if (radvd_pid == 0)
-					dprintf(LOG_INFO, "invalid radvd pid");
+					dhcpv6_printf(LOG_INFO, "invalid radvd pid");
 				else if (kill(radvd_pid, SIGHUP) != 0)
-					dprintf(LOG_INFO, "failed to reload radvd");
+					dhcpv6_printf(LOG_INFO, "failed to reload radvd");
 			} else
-				dprintf(LOG_INFO, "failed to read radvd pid file");
+				dhcpv6_printf(LOG_INFO, "failed to read radvd pid file");
 			close(fd);
 		} else
-			dprintf(LOG_INFO, "failed to open radvd pid file");
+			dhcpv6_printf(LOG_INFO, "failed to open radvd pid file");
 	}
 	fclose(yyin);
 	close(oldfd);

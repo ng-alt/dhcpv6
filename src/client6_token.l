@@ -127,7 +127,7 @@ ecl		\}
 	struct in6_addr addr;
 	DECHO;
 	if (inet_pton(AF_INET6, client6text, &addr) < 1) {
-		dprintf(LOG_ERR, "invalid address in line %d", lineno);
+		dhcpv6_printf(LOG_ERR, "invalid address in line %d", lineno);
 		return (-1);
 	}
 	client6lval.addr = addr;
@@ -187,9 +187,9 @@ cfdebug_print(w, t, l)
 	int l;
 {
 	if (w)
-		dprintf(LOG_DEBUG, "<%d>%s [%s] (%d)", yy_start, w, t, l);
+		dhcpv6_printf(LOG_DEBUG, "<%d>%s [%s] (%d)", yy_start, w, t, l);
 	else
-		dprintf(LOG_DEBUG, "<%d>[%s] (%d)", yy_start, t, l);
+		dhcpv6_printf(LOG_DEBUG, "<%d>[%s] (%d)", yy_start, t, l);
 }
 
 static void
@@ -203,7 +203,7 @@ client6error0(int level, char *s, va_list ap)
 	if (bp < ep)
 		bp += vsnprintf(bp, ep - bp, s, ap);
 
-	dprintf(level, ebuf);
+	dhcpv6_printf(level, ebuf);
 }
 
 void
@@ -232,7 +232,7 @@ cfparse(const char *conf)
 	if ((client6in = fopen(configfilename, "r")) == NULL) {
 		if (errno == ENOENT)
 			return (0);
-		dprintf(LOG_ERR, "cfparse: fopen(%s): %s",
+		dhcpv6_printf(LOG_ERR, "cfparse: fopen(%s): %s",
 			configfilename, strerror(errno));
 		return (-1);
 	}
