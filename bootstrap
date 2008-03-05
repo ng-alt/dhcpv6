@@ -1,17 +1,9 @@
 #!/bin/bash
 aclocal -I m4
-which libtoolize >/dev/null 2>&1
-if [ $? -eq 0 ]; then
-    libtoolize --copy --force
+if [ "$(uname -s)" = "Darwin" ]; then
+    glibtoolize --copy --force
 else
-    # might have files in /usr/share
-    if [ -d /usr/share/libtool ]; then
-        for f in /usr/share/libtool/* ; do
-            if [ ! -f $(basename ${f}) ]; then
-                cp -p ${f} .
-            fi
-        done
-    fi
+    libtoolize --copy --force
 fi
 autoconf
 autoheader
