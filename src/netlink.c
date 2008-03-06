@@ -124,8 +124,6 @@ get_if_flags(struct nlmsghdr *nlm, int nlm_len, int request,
 	size_t rtasize, rtasize1, rtapayload;
 	void *rtadata;
 
-	dhcpv6_dprintf(LOG_DEBUG, "get_if_flags called");
-
 	if (ifim->ifi_family != AF_INET6 || nlm->nlmsg_type != request)
 		return;
 	if (ifim->ifi_index != ifp->ifid)
@@ -178,7 +176,6 @@ open_netlink_socket()
 	struct sockaddr_nl nl_addr;
 	int sd;
 
-	dhcpv6_dprintf(LOG_DEBUG, "open_netlink_socket called");
 	sd = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (sd < 0)
 		return -1;
@@ -203,7 +200,6 @@ netlink_send_rtmsg(int sd, int request, int flags, int seq)
 	int status;
 	
 	memset(&buf, 0, sizeof(buf));
-	dhcpv6_dprintf(LOG_DEBUG, "netlink_send_rtmsg called");
 
 	nlm_hdr = (struct nlmsghdr *)buf;
 	nlm_hdr->nlmsg_len = NLMSG_LENGTH (sizeof (*rt_msg));
@@ -236,7 +232,6 @@ netlink_send_rtgenmsg(int sd, int request, int flags, int seq)
 	int status;
 
 	memset(&buf, 0, sizeof(buf));
-	dhcpv6_dprintf(LOG_DEBUG, "netlink_send_rtgenmsg called");
 
 	nlm_hdr = (struct nlmsghdr *)buf;
 	nlm_hdr->nlmsg_len = NLMSG_LENGTH (sizeof (*rt_genmsg));
@@ -264,8 +259,6 @@ netlink_recv_rtgenmsg(int sd, int request, int seq, struct dhcp6_if *ifp)
 	char *buf = NULL;
 	size_t newsize = 65536, size = 0;
 	int msg_len;
-
-	dhcpv6_dprintf(LOG_DEBUG, "netlink_recv_rtgenmsg called");
 
 	if (seq == 0)
 		seq = (int)time(NULL);
