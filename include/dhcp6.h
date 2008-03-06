@@ -111,12 +111,6 @@
 #define RESOLV_CONF_DHCPV6_FILE "/etc/resolv.conf.dhcpv6"
 char resolv_dhcpv6_file[254];
 
-#define RADVD_CONF_FILE "/etc/radvd.conf"
-#define RADVD_CONF_BAK_FILE "/etc/radvd.conf.dhcpv6.bak"
-#define RADVD_CONF_DHCPV6_FILE "/etc/radvd.conf.dhcpv6"
-char radvd_dhcpv6_file[254];
-
-
 typedef enum { IANA, IATA, IAPD} iatype_t;
 
 #ifdef LIBDHCP

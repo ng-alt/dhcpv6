@@ -127,10 +127,6 @@ typedef enum libdhcp_capability_e {
 
     /* configure resolv.conf as required */
     DHCP_CONFIGURE_RESOLVER = 32,
-
-    /* DHCPv6 only: */
-    /* configure radvd.conf & restart radvd as required */
-    DHCP_CONFIGURE_RADVD = 64,
 } LIBDHCP_Capability;
 
 #endif  /* !defined (LIBDHCP_CONTROL_H) */

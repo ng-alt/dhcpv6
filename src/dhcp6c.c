@@ -113,7 +113,6 @@ static void setup_interface __P((char *));
 struct dhcp6_timer *client6_timo __P((void *));
 extern int client6_ifaddrconf __P((ifaddrconf_cmd_t, struct dhcp6_addr *));
 extern struct dhcp6_timer *syncfile_timo __P((void *));
-extern int radvd_parse (struct dhcp6_iaidaddr *, int);
 extern int dad_parse(const char *file);
 
 #define DHCP6C_CONF "/etc/dhcp6c.conf"
@@ -334,7 +333,6 @@ int dhcpv6_client
 	configfilename = NULL;
 	debug_thresh = 0;
 	memset(&dnslist, '\0', sizeof(dnslist));
-	memset(&radvd_dhcpv6_file, '\0', sizeof(radvd_dhcpv6_file));
 	memset(&resolv_dhcpv6_file, '\0', sizeof(resolv_dhcpv6_file));
 	memset(&client6_lease_temp, '\0', sizeof(client6_lease_temp));
 	foreground = 0;
@@ -623,40 +621,31 @@ free_resources(struct dhcp6_if *ifp)
 	struct dhcp6_event *ev, *ev_next;
 	struct dhcp6_lease *sp, *sp_next;
 	struct stat buf;
-	if (client6_iaidaddr.client6_info.type == IAPD && 
-	    !TAILQ_EMPTY(&client6_iaidaddr.lease_list))
-		radvd_parse(&client6_iaidaddr, ADDR_REMOVE);
-	else {
-		for (sp = TAILQ_FIRST(&client6_iaidaddr.lease_list); sp; sp = sp_next) { 
-			sp_next = TAILQ_NEXT(sp, link);
+
+	for (sp = TAILQ_FIRST(&client6_iaidaddr.lease_list); sp; sp = sp_next) { 
+		sp_next = TAILQ_NEXT(sp, link);
 #ifdef LIBDHCP
 	if (libdhcp_control && (libdhcp_control->capability & DHCP_CONFIGURE_ADDRESSES))
 #endif
-			if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) 
-				dhcpv6_dprintf(LOG_INFO, "%s" "deconfiging address %s failed",
-					FNAME, in6addr2str(&sp->lease_addr.addr, 0));
-		}
+		if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) 
+			dhcpv6_dprintf(LOG_INFO, "%s" "deconfiging address %s failed",
+				FNAME, in6addr2str(&sp->lease_addr.addr, 0));
 	}
+
 	dhcpv6_dprintf(LOG_DEBUG, "%s" " remove all events on interface", FNAME);
+
 	/* cancel all outstanding events for each interface */
 	for (ev = TAILQ_FIRST(&ifp->event_list); ev; ev = ev_next) {
 		ev_next = TAILQ_NEXT(ev, link);
 		dhcp6_remove_event(ev);
 	}
-#ifdef LIBDHCP
-	if (libdhcp_control && (libdhcp_control->capability & DHCP_CONFIGURE_RADVD))
-#endif
-	/* XXX: check the last dhcpv6 client daemon to restore the original file */
-	{
-		/* restore /etc/radv.conf.bak back to /etc/radvd.conf */
-		if (!lstat(RADVD_CONF_BAK_FILE, &buf))
-			rename(RADVD_CONF_BAK_FILE, RADVD_CONF_FILE);
-		/* restore /etc/resolv.conf.dhcpv6.bak back to /etc/resolv.conf */
-		if (!lstat(RESOLV_CONF_BAK_FILE, &buf)) {
-			if (rename(RESOLV_CONF_BAK_FILE, RESOLV_CONF_FILE)) 
-				dhcpv6_dprintf(LOG_ERR, "%s" " failed to backup resolv.conf", FNAME);
-		}
+
+	/* restore /etc/resolv.conf.dhcpv6.bak back to /etc/resolv.conf */
+	if (!lstat(RESOLV_CONF_BAK_FILE, &buf)) {
+		if (rename(RESOLV_CONF_BAK_FILE, RESOLV_CONF_FILE)) 
+			dhcpv6_dprintf(LOG_ERR, "%s" " failed to backup resolv.conf", FNAME);
 	}
+
 	free_servers(ifp);
 }
 
@@ -1112,11 +1101,6 @@ client6_send(ev)
 				dhcpv6_dprintf(LOG_INFO, "client release failed");
 				return;
 			}
-#ifdef LIBDHCP
-			if (libdhcp_control && (libdhcp_control->capability & DHCP_CONFIGURE_RADVD))
-#endif
-			if (client6_iaidaddr.client6_info.type == IAPD)
-				radvd_parse(&client6_iaidaddr, ADDR_REMOVE);
 
 #ifdef LIBDHCP
 			if (libdhcp_control && libdhcp_control->callback)
@@ -1610,15 +1594,8 @@ client6_recvreply(ifp, dh6, len, optinfo)
 			if (!TAILQ_EMPTY(&optinfo->addr_list)) {
 				(void)get_if_rainfo(ifp);
 				dhcp6_add_iaidaddr(optinfo);
-				if (optinfo->type == IAPD) {
-#ifdef LIBDHCP
-					if (libdhcp_control && (libdhcp_control->capability & DHCP_CONFIGURE_RADVD))
-#endif
-					radvd_parse(&client6_iaidaddr, ADDR_UPDATE);
-				} else if (ifp->dad_timer == NULL && (ifp->dad_timer =
-					  dhcp6_add_timer(check_dad_timo, ifp)) < 0) {
-					dhcpv6_dprintf(LOG_INFO, "%s" "failed to create a timer for "
-						" DAD", FNAME); 
+				if (ifp->dad_timer == NULL && (ifp->dad_timer = dhcp6_add_timer(check_dad_timo, ifp)) < 0) {
+					dhcpv6_dprintf(LOG_INFO, "%s" "failed to create a timer for DAD", FNAME); 
 				}
 				setup_check_timer(ifp);
 #ifdef LIBDHCP
@@ -1653,14 +1630,9 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		case DH6OPT_STCODE_UNDEFINE:
 		default:
 			dhcp6_update_iaidaddr(optinfo, ADDR_UPDATE);
-			if (optinfo->type == IAPD)
 #ifdef LIBDHCP
-				if (libdhcp_control && (libdhcp_control->capability & DHCP_CONFIGURE_RADVD))
-#endif
-				radvd_parse(&client6_iaidaddr, ADDR_UPDATE);
-#ifdef LIBDHCP
-				if (libdhcp_control && libdhcp_control->callback)
-					(*(libdhcp_control->callback)) (libdhcp_control, DHC6_REBIND, optinfo);
+			if (libdhcp_control && libdhcp_control->callback)
+				(*(libdhcp_control->callback)) (libdhcp_control, DHC6_REBIND, optinfo);
 #endif
 			break;
 		}
@@ -1818,13 +1790,7 @@ create_request_list(int reboot)
 			}
 		}
 	}
-	/* update radvd.conf for prefix delegation */
-	if (reboot && client6_iaidaddr.client6_info.type == IAPD &&
-	    (client6_request_flag & CLIENT6_CONFIRM_ADDR))
-#ifdef LIBDHCP
-		if (libdhcp_control && (libdhcp_control->capability & DHCP_CONFIGURE_RADVD))
-#endif
-		radvd_parse(&client6_iaidaddr, ADDR_UPDATE);
+
 	return (0);
 }
 
