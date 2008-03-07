@@ -29,7 +29,34 @@
  * SUCH DAMAGE.
  */
 
-#include "includes.h"
+#include "config.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <syslog.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <err.h>
+#include <errno.h>
+#include <net/if_arp.h>
+#include <sys/ioctl.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <arpa/nameser.h>
+#include <resolv.h>
+#include <unistd.h>
+
+#ifdef TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# include <time.h>
+#endif
+
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
@@ -848,6 +875,8 @@ gethwid(buf, len, ifname, hwtypep)
 	}
 
 	strcpy(if_hwaddr.ifr_name, ifname);
+/* XXX: fixme on MacOS X */
+#if defined(__linux__)
 	if (ioctl(skfd, SIOCGIFHWADDR, &if_hwaddr) < 0) {
 		close(skfd);
 		return -1;
@@ -875,6 +904,9 @@ gethwid(buf, len, ifname, hwtypep)
 	dhcpv6_dprintf(LOG_DEBUG, "%s" "found an interface %s harware %.2x:%.2x:%.2x:%.2x:%.2x:%.2x",
 		FNAME, ifname, *buf, *(buf+1), *(buf+2), *(buf+3), *(buf+4), *(buf+5));
 	return l;
+#else
+	return -1;
+#endif
 }
 
 void dhcp6_init_options(struct dhcp6_optinfo *optinfo) {

@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  */
 
-#include "includes.h"
+#include <stdio.h>
 
 #ifndef __DHCP6R_H_DEFINED
 #define __DHCP6R_H_DEFINED

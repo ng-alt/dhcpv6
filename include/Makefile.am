@@ -6,7 +6,7 @@
 dhcp6clientincludedir = $(includedir)/dhcp6client
 
 noinst_HEADERS = dhcp6r.h relay6_database.h relay6_parser.h relay6_socket.h \
-                 server6_conf.h includes.h
+                 server6_conf.h
 
 dhcp6clientinclude_HEADERS = dhcp6client.h common.h cfg.h dhc6_alloc.h \
                              dhcp6.h hash.h lease.h timer.h queue.h \

@@ -30,7 +30,15 @@
 /* Author: Shirley Ma, xma@us.ibm.com */
 
 %{
-#include "includes.h"
+#include "config.h"
+
+#include <string.h>
+#include <sys/types.h>
+#include <stdlib.h>
+#include <syslog.h>
+#include <netinet/in.h>
+#include <net/if.h>
+
 #include "dhcp6.h"
 #include "cfg.h"
 #include "server6_conf.h"

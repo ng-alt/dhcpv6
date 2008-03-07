@@ -29,7 +29,46 @@
  * SUCH DAMAGE.
  */
 
-#include "includes.h"
+#include "config.h"
+
+#include <stdlib.h>
+#include <syslog.h>
+#include <string.h>
+#include <libgen.h>
+#include <signal.h>
+#include <errno.h>
+#include <unistd.h>
+#include <netdb.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <err.h>
+#include <sys/ioctl.h>
+
+#ifdef TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# include <time.h>
+#endif
+
+#ifdef HAVE_SYS_TIMEB_H
+# include <sys/timeb.h>
+#endif
+
+#ifdef HAVE_LINUX_SOCKIOS_H
+# include <linux/sockios.h>
+#endif
+
+#ifdef HAVE_NET_IF_VAR_H
+# include <net/if_var.h>
+#endif
+
+#ifdef HAVE_NETINET6_IN6_VAR_H
+# include <netinet6/in6_var.h>
+#endif
+
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"

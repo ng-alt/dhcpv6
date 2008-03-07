@@ -29,7 +29,27 @@
 
 /* Author: Shirley Ma, xma@us.ibm.com */
 
-#include "includes.h"
+#include "config.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <errno.h>
+#include <ifaddrs.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <unistd.h>
+
+#ifdef TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# include <time.h>
+#endif
+
 #include "dhcp6.h"
 #include "hash.h"
 #include "cfg.h"
@@ -346,7 +366,9 @@ prefixcmp(addr, prefix, len)
 int
 get_linklocal(const char *ifname,
 	      struct in6_addr *linklocal)
-{	
+{
+/* XXX: fixme for MacOS X */
+#if defined(__linux__)
 	struct ifaddrs *ifa = 0, *ifap = 0;
 	struct sockaddr *sd = 0;
 	if (getifaddrs(&ifap) < 0) {
@@ -367,6 +389,9 @@ get_linklocal(const char *ifname,
 	}
 	freeifaddrs(ifap);
 	return 0;
+#else
+	return -1;
+#endif
 }
 
 int

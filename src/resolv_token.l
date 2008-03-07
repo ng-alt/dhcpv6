@@ -29,7 +29,17 @@
 %option noyywrap
 
 %{
-#include "includes.h"
+#include "config.h"
+
+#include <fcntl.h>
+#include <syslog.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+#include <arpa/inet.h>
+
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"

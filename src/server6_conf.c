@@ -29,7 +29,16 @@
 
 /* Author: Shirley Ma, xma@us.ibm.com */
 
-#include "includes.h"
+#include "config.h"
+
+#include <string.h>
+#include <syslog.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <net/if.h>
+
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"

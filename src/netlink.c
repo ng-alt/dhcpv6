@@ -29,7 +29,36 @@
 
 /* Author: Shirley Ma, xma@us.ibm.com */
 
-#include "includes.h"
+#if defined(__linux__)
+
+#include "config.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <errno.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+
+#ifdef TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# include <time.h>
+#endif
+
+#ifdef HAVE_LINUX_NETLINK_H
+# include <linux/netlink.h>
+#endif
+
+#ifdef HAVE_LINUX_RTNETLINK_H
+# include <linux/rtnetlink.h>
+#endif
+
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"
@@ -333,3 +362,5 @@ get_if_rainfo(struct dhcp6_if *ifp)
 out:	close(sd);
 	return status;
 }
+
+#endif

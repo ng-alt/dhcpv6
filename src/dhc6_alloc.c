@@ -21,7 +21,11 @@
  *            David Cantrell <dcantrell@redhat.com>
  */
 
-#include "includes.h"
+#include "config.h"
+
+#include <stdlib.h>
+#include <search.h>
+#include <string.h>
 
 extern void tdestroy (void *root, void (*free_node)(void *nodep));
 void *ifp_ptr;

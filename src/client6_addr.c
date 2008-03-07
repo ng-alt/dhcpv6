@@ -29,7 +29,43 @@
 
 /* Author: Shirley Ma, xma@us.ibm.com */
 
-#include "includes.h"
+#include "config.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <syslog.h>
+#include <ifaddrs.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <unistd.h>
+
+#ifdef TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# include <time.h>
+#endif
+
+#ifdef HAVE_LINUX_SOCKIOS_H
+# include <linux/sockios.h>
+#endif
+
+#ifdef HAVE_LINUX_IPV6_H
+# include <linux/ipv6.h>
+#endif
+
+#ifdef HAVE_NET_IF_VAR_H
+# include <net/if_var.h>
+#endif
+
+#ifdef HAVE_NETINET6_IN6_VAR_H
+# include <netinet6/in6_var.h>
+#endif
+
 #include "dhcp6.h"
 #include "cfg.h"
 #include "common.h"

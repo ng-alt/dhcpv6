@@ -29,15 +29,14 @@
 
 /* Author: Elizabeth Kon, beth@us.ibm.com */
 
-#include "includes.h"
+#include "config.h"
+
+#include <stdlib.h>
+#include <syslog.h>
+
 #include "hash.h"
 
-#ifdef	__GNUC__
-extern void dhcpv6_dprintf(int, const char *, ...)
-	__attribute__ ((__format__(__printf__, 2, 3)));
-#else
 extern void dhcpv6_dprintf __P((int, const char *, ...));
-#endif
 
 struct hash_table * hash_table_create (
 	unsigned int hash_size,

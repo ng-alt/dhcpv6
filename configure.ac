@@ -75,9 +75,9 @@ AC_CHECK_HEADERS([sys/types.h sys/socket.h], [],
                  [])
 
 # Check for headers we must have on the system
-AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h libgen.h \
-                  net/if.h net/if_arp.h netdb.h netinet/in.h sys/ioctl.h \
-                  sys/timeb.h syslog.h],
+AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h \
+                  libgen.h net/if.h net/if_arp.h netdb.h netinet/in.h \
+                  sys/ioctl.h sys/timeb.h syslog.h],
                  [],
                  [AC_MSG_FAILURE([*** Header file $ac_header not found.])],
                  [[#ifdef HAVE_SYS_TYPES_H
@@ -89,7 +89,7 @@ AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h libgen.h 
                  ]])
 
 # Check for headers that are nice, but we don't absolutely have to have
-AC_CHECK_HEADERS([sys/queue.h isc-dhcp/libdhcp_control.h linux/ipv6.h],
+AC_CHECK_HEADERS([sys/queue.h isc-dhcp/libdhcp_control.h],
                  [], [],
                  [[#ifdef HAVE_SYS_TYPES_H
                    # include <sys/types.h>

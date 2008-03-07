@@ -20,7 +20,7 @@ dnl Author(s): David Cantrell <dcantrell@redhat.com>
 
 AC_DEFUN([AM_CHECK_LINUX_HEADERS],[
     if test x"`uname -s`" = x"Linux" ; then
-        AC_CHECK_HEADERS([linux/ipv6.h linux/in6.h linux/sockios.h \
+        AC_CHECK_HEADERS([linux/ipv6.h linux/sockios.h \
                           linux/netlink.h linux/rtnetlink.h],
                          [],
                          [AC_MSG_FAILURE([*** Header file $ac_header not found.])],

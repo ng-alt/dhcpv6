@@ -27,7 +27,9 @@
  * SUCH DAMAGE.
  */
 
-#include "includes.h"
+#include <sys/types.h>
+#include <stdint.h>
+#include <netinet/in.h>
 
 #ifndef __RELAY6_PARSER_H_DEFINED
 #define __RELAY6_PARSER_H_DEFINED
