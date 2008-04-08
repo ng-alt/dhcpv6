@@ -267,16 +267,11 @@ update_resolver(struct dns_list *dns_list)
 			}
 		}
 		if (!TAILQ_EMPTY(&dns_list->addrlist)) {
-			fprintf(dhcp6_resolv_file, "nameserver ");
 			for (d = TAILQ_FIRST(&dns_list->addrlist); d;
 				d = d_next, i++) {
 				d_next = TAILQ_NEXT(d, link);
-				fprintf(dhcp6_resolv_file, "%s", 
+				fprintf(dhcp6_resolv_file, "nameserver %s\n", 
 					in6addr2str(&d->val_addr6, 0));
-				if (d_next != NULL)
-					fprintf(dhcp6_resolv_file, " ");
-				else
-					fprintf(dhcp6_resolv_file, "\n");
 			}
 		}
 	}
