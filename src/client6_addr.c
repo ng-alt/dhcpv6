@@ -791,7 +791,7 @@ create_iaid(struct iaid_table *iaidtab, int num_device)
 		switch (temp->hwaddr.type) {
 		case ARPHRD_ETHER:
 		case ARPHRD_IEEE802:
-			memcpy(&temp->iaid, temp->hwaddr.data, sizeof(temp->iaid));
+			memcpy(&temp->iaid, (temp->hwaddr.data)+2, sizeof(temp->iaid));
 			break;
 #if defined(__linux__)
 		case ARPHRD_PPP:
