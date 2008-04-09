@@ -480,6 +480,9 @@ process_RELAY_REPL(struct msg_parser *msg)
 		psp = (pointer + msglen); /* jump over message, seek for 
 		                              OPTION_INTERFACE_ID */
 
+		p16 = (uint16_t *) psp;
+		option = ntohs(*p16);
+
 		if (msg->datalength - (psp - pstart) >= MESSAGE_HEADER_LENGTH) {
 			if (option == OPTION_INTERFACE_ID) {
 				psp += 2;
@@ -513,10 +516,8 @@ process_RELAY_REPL(struct msg_parser *msg)
 		if (device != &interface_list) {
 			msg->if_index = device->devindex;
 			memset(newbuff, 0, MAX_DHCP_MSG_LENGTH);
-			len = (pointer - msg->buffer);
-			len = (msg->datalength - len);
-			memcpy(newbuff, pointer, len);
-			msg->datalength = len;
+			memcpy(newbuff, pointer, msglen);
+			msg->datalength = msglen;
 			free(msg->buffer);
 			msg->buffer = newbuff;
 			return 1;
@@ -547,10 +548,8 @@ process_RELAY_REPL(struct msg_parser *msg)
 			}
 
 			memset(newbuff, 0, MAX_DHCP_MSG_LENGTH);
-			len = (pointer - msg->buffer);
-			len = (msg->datalength - len);
-			memcpy(newbuff, pointer, len);
-			msg->datalength = len;
+			memcpy(newbuff, pointer, msglen);
+			msg->datalength = msglen;
 			free(msg->buffer);
 			msg->buffer = newbuff;
 			return 1;
