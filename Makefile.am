@@ -7,7 +7,8 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = include src man etc
 
-EXTRA_DIST = AUTHORS LICENSE README TODO libdhcp6client.pc.in ChangeLog
+EXTRA_DIST = AUTHORS LICENSE README TODO libdhcp6client.pc.in ChangeLog \
+             RFC3315 RFC3633 RFC3646 RFC4242
 
 MAINTAINERCLEANFILES = Makefile.in config.guess config.h.in config.sub \
                        depcomp install-sh ltmain.sh missing ABOUT-NLS \
