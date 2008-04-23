@@ -551,9 +551,12 @@ hostdef
 		while (temp_host)
 		{
 			if (temp_host->iaidinfo.iaid == host->iaidinfo.iaid) {
-				dhcpv6_dprintf(LOG_ERR, "duplicated host %d redefined", 
-					host->iaidinfo.iaid);
-				ABORT;
+				if (0 == duidcmp(&temp_host->cid, &host->cid)) {
+					dhcpv6_printf(LOG_ERR,
+					              "duplicated host DUID=%s IAID=%u redefined",
+					              duidstr(&host->cid), host->iaidinfo.iaid);
+					ABORT;
+				}
 			}
 			temp_host = temp_host->next;
 		}
