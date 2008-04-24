@@ -1190,10 +1190,14 @@ client6_send(ev)
 			break;
 		}
 	default:
-		dst = *sa6_allagent;
+		if (sa6_allagent != NULL) {
+			dst = *sa6_allagent;
+		}
+
 		salen = sa6_alen;
 		break;
 	}
+
 	dst.sin6_scope_id = ifp->linkid;
 	dhcpv6_dprintf(LOG_DEBUG, "send dst if %s addr is %s scope id is %d", 
 		ifp->ifname, addr2str((struct sockaddr *)&dst, salen), ifp->linkid);
