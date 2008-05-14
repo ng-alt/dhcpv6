@@ -5,9 +5,6 @@
 
 - Do all of the headers that get installed need to be installed?
 
-- Do we need dad_token.l?  It reads /proc/net/if_inet6, but can we do that
-  another way?
-
 - Can hash.c be replaced with a standard system offering?
 
 - Update the README file and other documentation
