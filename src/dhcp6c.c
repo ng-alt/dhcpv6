@@ -1892,7 +1892,7 @@ static struct dhcp6_timer
 	if (client6_iaidaddr.client6_info.type == IAPD)
 		goto end;
 	dhcpv6_dprintf(LOG_DEBUG, "enter checking dad ...");
-	if (dad_parse(ifproc_file) < 0) {
+	if (dad_parse("/proc/net/if_inet6") < 0) {
 		dhcpv6_dprintf(LOG_ERR, "parse /proc/net/if_inet6 failed");
 		goto end;
 	}
