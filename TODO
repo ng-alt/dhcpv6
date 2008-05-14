@@ -27,8 +27,6 @@
 - Replace both .y files with a single parser with multiple state paths for
   the tokens we're parsing.
 
-- Do we need radvd_token.l?  Why does dhcp6c modify radvd.conf?
-
 - Clean up TRACE() messages, they are all over the place.
 
 - Fix indentation.  Ugh, hate trailing whitespace and tabs.
@@ -41,10 +39,11 @@
 
 - Output timestamps using this format: http://www.w3.org/TR/NOTE-datetime
 
-- Port to MacOS X
+- Port to MacOS X (???)
       - rm: conftest.dSYM is a directory
       - replacement for netlink calls
       - We should not have to pass -D_GNU_SOURCE
+      - Would need a libnl workalike
 
 - Support information refresh time option in client and server
 
