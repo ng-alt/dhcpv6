@@ -1,7 +1,6 @@
 dnl darwin.m4 - autoconf checks for Darwin-specific header files
 dnl
 dnl Copyright (C) 2008  Red Hat, Inc.
-dnl All rights reserved.
 dnl
 dnl This program is free software; you can redistribute it and/or modify
 dnl it under the terms of the GNU Lesser General Public License as published
