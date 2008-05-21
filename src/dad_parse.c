@@ -84,7 +84,7 @@ int dad_parse(const char *file) {
     int i = 0;
     int len = 0;
     FILE *fp = NULL;
-    char buf[55];            /* max line length in /proc/net/if_inet6 */
+    char buf[55];               /* max line length in /proc/net/if_inet6 */
     char addrbuf[64];
     char *tmp = NULL;
     struct in6_addr addr6;
@@ -130,7 +130,7 @@ int dad_parse(const char *file) {
         }
 
         if (inet_pton(AF_INET6, addrbuf, &addr6) < 1) {
-		    dhcpv6_dprintf(LOG_ERR, "failed to parse %s from %s",
+            dhcpv6_dprintf(LOG_ERR, "failed to parse %s from %s",
                            addrbuf, file);
             abort();
         }
@@ -220,9 +220,10 @@ int dad_parse(const char *file) {
 
             /* deconfigure the interface's address assigned by dhcpv6 */
             if (dhcp6_remove_lease(cl) != 0) {
-                dhcpv6_dprintf(LOG_INFO, "remove duplicated address failed: %s",
+                dhcpv6_dprintf(LOG_INFO,
+                               "remove duplicated address failed: %s",
                                in6addr2str(&lv->val_dhcp6addr.addr, 0));
-				return -3;
+                return -3;
             }
 
             memcpy(&lv->val_dhcp6addr.addr, &ifinfo->addr,

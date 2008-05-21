@@ -26,7 +26,7 @@
 #include <search.h>
 #include <string.h>
 
-extern void tdestroy (void *root, void (*free_node)(void *nodep));
+extern void tdestroy(void *root, void (*free_node) (void *nodep));
 void *ifp_ptr;
 
 static void *ptr_tree = NULL;
@@ -37,6 +37,7 @@ static int ptr_comparator(const void *p1, const void *p2) {
 
 void *dhc6_alloc(size_t s) {
     void *ptr = malloc(s);
+
     if (ptr != 0)
         tsearch(ptr, &(ptr_tree), ptr_comparator);
     return ptr;
@@ -44,9 +45,10 @@ void *dhc6_alloc(size_t s) {
 
 void *dhc6_realloc(void *ptr, size_t s) {
     void *ptr2 = realloc(ptr, s);
+
     if (ptr2 != 0) {
         if (ptr != 0)
-            tdelete(ptr,&(ptr_tree), ptr_comparator);
+            tdelete(ptr, &(ptr_tree), ptr_comparator);
         tsearch(ptr2, &(ptr_tree), ptr_comparator);
     }
     return ptr2;
@@ -54,6 +56,7 @@ void *dhc6_realloc(void *ptr, size_t s) {
 
 void *dhc6_calloc(size_t n, size_t s) {
     void *ptr = calloc(n, s);
+
     if (ptr != 0)
         tsearch(ptr, &(ptr_tree), ptr_comparator);
     return ptr;
@@ -61,6 +64,7 @@ void *dhc6_calloc(size_t n, size_t s) {
 
 char *dhc6_strdup(char *str) {
     char *ptr = strdup(str);
+
     if (ptr != 0)
         tsearch(ptr, &(ptr_tree), ptr_comparator);
     return ptr;
