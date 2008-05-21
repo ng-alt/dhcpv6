@@ -28,6 +28,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+
 /*
  * draft-ietf-dhc-dhcpv6-26
  */
@@ -77,11 +78,11 @@
 #define INF_MAX_RT	120000
 #define REQ_TIMEOUT	1000
 #define REQ_MAX_RT	30000
-#define REQ_MAX_RC	10	/* Max Request retry attempts */
-#define REN_TIMEOUT	10000	/* 10secs */
-#define REN_MAX_RT	600000	/* 600secs */
-#define REB_TIMEOUT	10000	/* 10secs */
-#define REB_MAX_RT	600000	/* 600secs */
+#define REQ_MAX_RC	10      /* Max Request retry attempts */
+#define REN_TIMEOUT	10000   /* 10secs */
+#define REN_MAX_RT	600000  /* 600secs */
+#define REB_TIMEOUT	10000   /* 10secs */
+#define REB_MAX_RT	600000  /* 600secs */
 #define DEC_TIMEOUT	1000
 #define DEC_MAX_RC	5
 #define REL_TIMEOUT	1000
@@ -111,12 +112,13 @@
 #define RESOLV_CONF_DHCPV6_FILE "/etc/resolv.conf.dhcpv6"
 char resolv_dhcpv6_file[254];
 
-typedef enum { IANA, IATA, IAPD} iatype_t;
+typedef enum { IANA, IATA, IAPD } iatype_t;
 
 #ifdef LIBDHCP
-typedef enum { DHCP6_ACTIVE=1, DHCP6_RENEW,
-               DHCP6_REBIND, DHCP6_EXPIRED,
-               DHCP6_INVALID } state_t;
+typedef enum { DHCP6_ACTIVE = 1, DHCP6_RENEW,
+    DHCP6_REBIND, DHCP6_EXPIRED,
+    DHCP6_INVALID
+} state_t;
 
 #define ACTIVE DHCP6_ACTIVE
 #define RENEW DHCP6_RENEW
@@ -125,64 +127,67 @@ typedef enum { DHCP6_ACTIVE=1, DHCP6_RENEW,
 #define INVALID DHCP6_INVALID
 #include "libdhcp_control.h"
 extern LIBDHCP_Control *libdhcp_control;
+
 #include <dhc6_alloc.h>
 #else
-typedef enum { ACTIVE=1, RENEW,
-	       REBIND, EXPIRED,
-	       INVALID } state_t;
+typedef enum { ACTIVE = 1, RENEW,
+    REBIND, EXPIRED,
+    INVALID
+} state_t;
 #endif
+
 /* Internal data structure */
 
 struct duid {
-	u_int8_t duid_len;	/* length */
-	unsigned char *duid_id;		/* variable length ID value (must be opaque) */
+    u_int8_t duid_len;          /* length */
+    unsigned char *duid_id;     /* variable length ID value (must be opaque) */
 };
 
 struct intf_id {
-	u_int16_t intf_len;	/* length */
-	char *intf_id;		/* variable length ID value (must be opaque) */
+    u_int16_t intf_len;         /* length */
+    char *intf_id;              /* variable length ID value (must be opaque) */
 };
 
 /* iaid info for the IA_NA */
 struct dhcp6_iaid_info {
-	u_int32_t iaid;
-	u_int32_t renewtime;
-	u_int32_t rebindtime;
+    u_int32_t iaid;
+    u_int32_t renewtime;
+    u_int32_t rebindtime;
 };
 
 /* dhcpv6 addr */
 struct dhcp6_addr {
-	u_int32_t validlifetime;
-	u_int32_t preferlifetime;
-	struct in6_addr addr;
-	u_int8_t plen;
-	iatype_t type;
-	u_int16_t status_code;
-	char *status_msg;
+    u_int32_t validlifetime;
+    u_int32_t preferlifetime;
+    struct in6_addr addr;
+    u_int8_t plen;
+    iatype_t type;
+    u_int16_t status_code;
+    char *status_msg;
 };
 
 struct dhcp6_lease {
-	TAILQ_ENTRY(dhcp6_lease) link;
-	char hostname[1024];
-	struct in6_addr linklocal;
-	struct dhcp6_addr lease_addr;
-	iatype_t addr_type;
-	state_t state;
-	struct dhcp6_iaidaddr *iaidaddr;
-	time_t start_date;
-	/* address assigned on the interface */
-	struct dhcp6_timer *timer;
+    TAILQ_ENTRY(dhcp6_lease) link;
+    char hostname[1024];
+    struct in6_addr linklocal;
+    struct dhcp6_addr lease_addr;
+    iatype_t addr_type;
+    state_t state;
+    struct dhcp6_iaidaddr *iaidaddr;
+    time_t start_date;
+    /* address assigned on the interface */
+    struct dhcp6_timer *timer;
 };
 
 struct dhcp6_listval {
-	TAILQ_ENTRY(dhcp6_listval) link;
+    TAILQ_ENTRY(dhcp6_listval) link;
 
-	union {
-		int uv_num;
-		struct in6_addr uv_addr6;
-		struct dhcp6_addr uv_dhcp6_addr;
-		struct dhcp6_lease uv_dhcp6_lease;
-	} uv;
+    union {
+        int uv_num;
+        struct in6_addr uv_addr6;
+        struct dhcp6_addr uv_dhcp6_addr;
+        struct dhcp6_lease uv_dhcp6_lease;
+    } uv;
 };
 
 #define val_num uv.uv_num
@@ -193,66 +198,69 @@ struct dhcp6_listval {
 TAILQ_HEAD(dhcp6_list, dhcp6_listval);
 
 typedef enum { DHCP6_LISTVAL_NUM, DHCP6_LISTVAL_ADDR6,
-	       DHCP6_LISTVAL_DHCP6ADDR, DHCP6_LISTVAL_DHCP6LEASE } dhcp6_listval_type_t;
+    DHCP6_LISTVAL_DHCP6ADDR, DHCP6_LISTVAL_DHCP6LEASE
+} dhcp6_listval_type_t;
 
 struct domain_list {
-	struct domain_list *next;
-	char name[MAXDNAME];
+    struct domain_list *next;
+    char name[MAXDNAME];
 };
 
 struct dns_list {
-	struct dhcp6_list addrlist;
-	struct domain_list *domainlist;
+    struct dhcp6_list addrlist;
+    struct domain_list *domainlist;
 };
 
 /* DHCP6 relay agent base packet format */
 struct dhcp6_relay {
-	u_int8_t dh6_msg_type;
-	u_int8_t dh6_hop_count;
-	struct in6_addr link_addr;
-	struct in6_addr peer_addr;
-	/* options follow */
+    u_int8_t dh6_msg_type;
+    u_int8_t dh6_hop_count;
+    struct in6_addr link_addr;
+    struct in6_addr peer_addr;
+    /* options follow */
 } __attribute__ ((__packed__));
 
 
 struct relay_listval {
-	TAILQ_ENTRY(relay_listval) link;
-	
-	struct dhcp6_relay relay;
-	struct intf_id *intf_id;
+    TAILQ_ENTRY(relay_listval) link;
 
-	/* pointer to the Relay Message option in the RELAY-REPL */
-	struct dhcp6opt *option;
+    struct dhcp6_relay relay;
+    struct intf_id *intf_id;
+
+    /* pointer to the Relay Message option in the RELAY-REPL */
+    struct dhcp6opt *option;
 };
 
-TAILQ_HEAD (relay_list, relay_listval);
+TAILQ_HEAD(relay_list, relay_listval);
 
 struct dhcp6_optinfo {
-	struct duid clientID;	/* DUID */
-	struct duid serverID;	/* DUID */
-	u_int16_t elapsed_time;
-	struct dhcp6_iaid_info iaidinfo;
-	u_int16_t ia_stcode;	/* status code associated with iaidinfo */
-	iatype_t type;
-	u_int8_t flags;	/* flags for rapid commit, info_only, temp address */
-	u_int8_t pref;		/* server preference */
-	struct in6_addr server_addr;
-	struct dhcp6_list addr_list; /* assigned ipv6 address list */
-	struct dhcp6_list reqopt_list; /*  options in option request */
-	struct dhcp6_list stcode_list; /* status code */
-	struct dns_list dns_list; /* DNS server list */
-	struct relay_list relay_list; /* list of the relays the message 
-					 passed through on to the server */
+    struct duid clientID;       /* DUID */
+    struct duid serverID;       /* DUID */
+    u_int16_t elapsed_time;
+    struct dhcp6_iaid_info iaidinfo;
+    u_int16_t ia_stcode;        /* status code associated with iaidinfo */
+    iatype_t type;
+    u_int8_t flags;             /* flags for rapid commit, info_only, temp
+                                   address */
+    u_int8_t pref;              /* server preference */
+    struct in6_addr server_addr;
+    struct dhcp6_list addr_list;        /* assigned ipv6 address list */
+    struct dhcp6_list reqopt_list;      /* options in option request */
+    struct dhcp6_list stcode_list;      /* status code */
+    struct dns_list dns_list;   /* DNS server list */
+    struct relay_list relay_list;       /* list of the relays the message
+                                           passed through on to the server */
 };
 
 /* DHCP6 base packet format */
 struct dhcp6 {
-	union {
-		u_int8_t m;
-		u_int32_t x;
-	} dh6_msgtypexid;
-	/* options follow */
+    union {
+        u_int8_t m;
+        u_int32_t x;
+    } dh6_msgtypexid;
+    /* options follow */
 } __attribute__ ((__packed__));
+
 #define dh6_msgtype	dh6_msgtypexid.m
 #define dh6_xid		dh6_msgtypexid.x
 #define DH6_XIDMASK	0x00ffffff
@@ -265,7 +273,7 @@ struct dhcp6 {
 #define DH6OPT_IADDR 5
 #define DH6OPT_ORO 6
 #define DH6OPT_PREFERENCE 7
-#  define DH6OPT_PREF_UNDEF 0 
+#  define DH6OPT_PREF_UNDEF 0
 #  define DH6OPT_PREF_MAX 255
 #define DH6OPT_ELAPSED_TIME 8
 #define DH6OPT_RELAY_MSG 9
@@ -307,43 +315,44 @@ struct dhcp6 {
 #define DH6OPT_IAPREFIX 26
 
 struct dhcp6opt {
-	u_int16_t dh6opt_type;
-	u_int16_t dh6opt_len;
-	/* type-dependent data follows */
+    u_int16_t dh6opt_type;
+    u_int16_t dh6opt_len;
+    /* type-dependent data follows */
 } __attribute__ ((__packed__));
 
 /* DUID type 1 */
 struct dhcp6_duid_type1 {
-	u_int16_t dh6duid1_type;
-	u_int16_t dh6duid1_hwtype;
-	u_int32_t dh6duid1_time;
-	/* link-layer address follows */
+    u_int16_t dh6duid1_type;
+    u_int16_t dh6duid1_hwtype;
+    u_int32_t dh6duid1_time;
+    /* link-layer address follows */
 } __attribute__ ((__packed__));
 
 /* Prefix Information */
 struct dhcp6_prefix_info {
-	u_int16_t dh6_pi_type;
-	u_int16_t dh6_pi_len;
-	u_int32_t preferlifetime;
-	u_int32_t validlifetime;
-	u_int8_t plen;
-	struct in6_addr prefix;
+    u_int16_t dh6_pi_type;
+    u_int16_t dh6_pi_len;
+    u_int32_t preferlifetime;
+    u_int32_t validlifetime;
+    u_int8_t plen;
+    struct in6_addr prefix;
 } __attribute__ ((__packed__));
 
 /* status code info */
 struct dhcp6_status_info {
-	u_int16_t dh6_status_type;
-	u_int16_t dh6_status_len;
-	u_int16_t dh6_status_code;
+    u_int16_t dh6_status_type;
+    u_int16_t dh6_status_len;
+    u_int16_t dh6_status_code;
 } __attribute__ ((__packed__));
 
 /* IPv6 address info */
 struct dhcp6_addr_info {
-	u_int16_t dh6_ai_type;
-	u_int16_t dh6_ai_len;
-	struct in6_addr addr;
-	u_int32_t preferlifetime;
-	u_int32_t validlifetime;
+    u_int16_t dh6_ai_type;
+    u_int16_t dh6_ai_len;
+    struct in6_addr addr;
+    u_int32_t preferlifetime;
+    u_int32_t validlifetime;
+
 /*	u_int8_t plen;	
 	struct dhcp6_status_info status;
 */

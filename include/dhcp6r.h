@@ -37,7 +37,7 @@
 #define ALL_DHCP_SERVERS           "FF05::1:3"
 #define ALL_DHCP_RELAY_AND_SERVERS "FF02::1:2"
 #define INET6_LEN               16
-#define OPAQ                    5000   //opaq value for interface id
+#define OPAQ                    5000    // opaq value for interface id
 #define HEAD_SIZE               400
 #define HOP_COUNT_LIMIT         30
 #define DUMPFILE                "/var/log/dhcp6r.log"
@@ -47,7 +47,7 @@
 #define SERVER_PORT             547
 #define CLIENT_PORT             546
 #define TRACE                   fprintf
-  
+
 #define SOLICIT				1
 #define ADVERTISE			2
 #define REQUEST				3
@@ -66,7 +66,7 @@
 #define OPTION_INTERFACE_ID	18
 
 char *dhcp6r_clock __P((void));
-void  handler __P((int signo));
+void handler __P((int signo));
 
 
 #endif /* __DHCP6R_H_DEFINED */

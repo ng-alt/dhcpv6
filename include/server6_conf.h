@@ -39,119 +39,128 @@ struct rootgroup *globalgroup;
 
 /* provide common paramters within scopes */
 struct scope {
-	int32_t prefer_life_time;
-	int32_t valid_life_time;
-	int32_t renew_time;
-	int32_t rebind_time;
-	int8_t server_pref;
-	u_int8_t send_flags;
-	u_int8_t allow_flags;
-	struct dns_list dnslist;
+    int32_t prefer_life_time;
+    int32_t valid_life_time;
+    int32_t renew_time;
+    int32_t rebind_time;
+    int8_t server_pref;
+    u_int8_t send_flags;
+    u_int8_t allow_flags;
+    struct dns_list dnslist;
 };
 
 struct scopelist {
-	struct scopelist *prev;
-	struct scopelist *next;
-	struct scope *scope;
+    struct scopelist *prev;
+    struct scopelist *next;
+    struct scope *scope;
 };
 
 struct rootgroup {
-	struct scope scope;
-	struct scope *group;
-	struct interface *iflist;
+    struct scope scope;
+    struct scope *group;
+    struct interface *iflist;
 };
 
 struct v6addr {
-	struct in6_addr addr;
-	u_int8_t plen;
+    struct in6_addr addr;
+    u_int8_t plen;
 };
+
 /* interface network declaration */
+
 /* interface declaration is used to inform DHCPv6 server that the links */
+
 /* and pool declared within it are connected to the same network segment */
 struct interface {
-	struct interface *next;
-	char name[IFNAMSIZ];
-	struct hardware hw_address;
-	struct in6_addr primary_v6addr;
-	struct in6_addr linklocal;
-	struct link_decl *linklist;
-	struct host_decl *hostlist;
-	struct scope ifscope;
-	struct scope *group;
+    struct interface *next;
+    char name[IFNAMSIZ];
+    struct hardware hw_address;
+    struct in6_addr primary_v6addr;
+    struct in6_addr linklocal;
+    struct link_decl *linklist;
+    struct host_decl *hostlist;
+    struct scope ifscope;
+    struct scope *group;
 };
 
 /* link declaration */
+
 /* link declaration is used to provide the DHCPv6 server with enough   */
+
 /* information to determin whether a particular IPv6 addresses is on the */
+
 /* link */
 struct link_decl {
-	struct link_decl *next;
-	char name[IFNAMSIZ];
-	struct v6addrlist *relaylist;
-	struct v6addrseg *seglist;
-	struct v6prefix *prefixlist;
-	struct pool_decl *poollist;
-	struct interface *network;
-	struct scope linkscope;
-	struct scope *group;
+    struct link_decl *next;
+    char name[IFNAMSIZ];
+    struct v6addrlist *relaylist;
+    struct v6addrseg *seglist;
+    struct v6prefix *prefixlist;
+    struct pool_decl *poollist;
+    struct interface *network;
+    struct scope linkscope;
+    struct scope *group;
 };
 
 
 struct v6addrseg {
-	struct v6addrseg *next;
-	struct v6addrseg *prev;
-	struct link_decl *link;
-	struct pool_decl *pool;
-	struct in6_addr min;
-	struct in6_addr max;
-	struct in6_addr free;
-	struct v6addr prefix;
-	struct lease *active;
-	struct lease *expired;
-	struct lease *abandoned;
-	struct scope parainfo;
+    struct v6addrseg *next;
+    struct v6addrseg *prev;
+    struct link_decl *link;
+    struct pool_decl *pool;
+    struct in6_addr min;
+    struct in6_addr max;
+    struct in6_addr free;
+    struct v6addr prefix;
+    struct lease *active;
+    struct lease *expired;
+    struct lease *abandoned;
+    struct scope parainfo;
 };
 
 struct v6prefix {
-	struct v6prefix *next;
-	struct v6prefix *prev;
-	struct link_decl *link;
-	struct pool_decl *pool;
-	struct v6addr prefix;
-	struct scope parainfo;
+    struct v6prefix *next;
+    struct v6prefix *prev;
+    struct link_decl *link;
+    struct pool_decl *pool;
+    struct v6addr prefix;
+    struct scope parainfo;
 };
 
 /* The pool declaration is used to declare an address pool from which IPv6 */
+
 /* address can be allocated, with its own permit to control client access  */
+
 /* and its own scopt in which you can declare pool-specific parameter*/
 struct pool_decl {
-	struct pool_decl *next;
-	struct interface *network;
-	struct link_decl *link;
-	struct scope poolscope;
-	struct scope *group;
+    struct pool_decl *next;
+    struct interface *network;
+    struct link_decl *link;
+    struct scope poolscope;
+    struct scope *group;
 };
 
 struct v6addrlist {
-	struct v6addrlist *next;
-	struct v6addr v6addr;
+    struct v6addrlist *next;
+    struct v6addr v6addr;
 };
 
 /* host declaration */
+
 /* host declaration provides information about a particular DHCPv6 client */
 struct host_decl {
-	struct host_decl *next;
-	char name[IFNAMSIZ];
-	struct duid cid;
-	struct dhcp6_iaid_info iaidinfo;
-	struct dhcp6_list addrlist;
-	struct dhcp6_list prefixlist;
-	struct interface *network;
-	struct scope hostscope;
-	struct scope *group;
+    struct host_decl *next;
+    char name[IFNAMSIZ];
+    struct duid cid;
+    struct dhcp6_iaid_info iaidinfo;
+    struct dhcp6_list addrlist;
+    struct dhcp6_list prefixlist;
+    struct interface *network;
+    struct scope hostscope;
+    struct scope *group;
 };
 
-int is_anycast __P((struct in6_addr *, int));	
+int is_anycast __P((struct in6_addr *, int));
 extern void printf_in6addr __P((struct in6_addr *));
 void post_config(struct rootgroup *);
 int sfparse __P((const char *));

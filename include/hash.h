@@ -40,28 +40,34 @@
 #define HASH_ITEM_NOT_FOUND   3
 
 struct hashlist_element {
-        struct hashlist_element *next;
-        void *data;
+    struct hashlist_element *next;
+    void *data;
 };
 
 struct hash_table {
-        unsigned int hash_count;
-        unsigned int hash_size;
-        struct hashlist_element **hash_list;
-        unsigned int (*hash_function)(const void *hash_key);
-	void * (*find_hashkey)(const void *data);
-        int (*compare_hashkey)(const void *data, const void *key);
+    unsigned int hash_count;
+    unsigned int hash_size;
+    struct hashlist_element **hash_list;
+    unsigned int (*hash_function) (const void *hash_key);
+    void *(*find_hashkey) (const void *data);
+    int (*compare_hashkey) (const void *data, const void *key);
 };
 
- 
+
 extern int init_hashes(void);
-extern struct hash_table * hash_table_create(unsigned int hash_size,
-	unsigned int (*hash_function)(const void *hash_key),
-	void * (*find_hashkey)(const void *data),
-	int (*compare_hashkey)(const void *data, const void *hashkey));
-extern int  hash_add(struct hash_table *table, const void *key, void *data);
+extern struct hash_table *hash_table_create(unsigned int hash_size,
+                                            unsigned
+                                            int (*hash_function) (const void
+                                                                  *hash_key),
+                                            void *(*find_hashkey) (const void
+                                                                   *data),
+                                            int (*compare_hashkey) (const void
+                                                                    *data,
+                                                                    const void
+                                                                    *hashkey));
+extern int hash_add(struct hash_table *table, const void *key, void *data);
 extern int hash_delete(struct hash_table *table, const void *key);
-extern void * hash_search(struct hash_table *table, const void *key);
+extern void *hash_search(struct hash_table *table, const void *key);
 extern int hash_full(struct hash_table *table);
 extern int grow_hash(struct hash_table *table);
 #endif

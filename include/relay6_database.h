@@ -31,59 +31,59 @@
 #define __RELAY6_DATABASE_H_DEFINED
 
 struct cifaces {
-	struct cifaces *next;
-	char *ciface;
+    struct cifaces *next;
+    char *ciface;
 };
 
 struct sifaces {
-	struct sifaces *next;
-	char *siface;
+    struct sifaces *next;
+    char *siface;
 };
 
 struct server {
-	struct server *next;
-	char *serv;
+    struct server *next;
+    char *serv;
 };
 
 struct IPv6_address {
-	struct IPv6_address *next;
-	char *gaddr;
+    struct IPv6_address *next;
+    char *gaddr;
 };
 
-struct IPv6_uniaddr { /* STORAGE OF UNICAST  DEST. SERVER ADRESSES */
-	struct IPv6_uniaddr *next;
-	char *uniaddr;
+struct IPv6_uniaddr {           /* STORAGE OF UNICAST DEST. SERVER ADRESSES */
+    struct IPv6_uniaddr *next;
+    char *uniaddr;
 };
 
 struct interface {
-	struct interface *next;
-	struct interface *prev;  
+    struct interface *next;
+    struct interface *prev;
 
-	struct server *sname; 
-	struct IPv6_address *ipv6addr;
-     
-	int got_addr;
-	char *ifname;
-	uint32_t devindex;
-	char *link_local;
-	int opaq;  
+    struct server *sname;
+    struct IPv6_address *ipv6addr;
+
+    int got_addr;
+    char *ifname;
+    uint32_t devindex;
+    char *link_local;
+    int opaq;
 };
 
 struct cifaces cifaces_list;
 struct sifaces sifaces_list;
-struct server  server_list;
+struct server server_list;
 struct IPv6_address IPv6_address_list;
 struct IPv6_uniaddr IPv6_uniaddr_list;
-struct interface    interface_list ;
+struct interface interface_list;
 
-int process_RELAY_FORW __P((struct msg_parser *msg));
-int process_RELAY_REPL __P((struct msg_parser *msg));
+int process_RELAY_FORW __P((struct msg_parser * msg));
+int process_RELAY_REPL __P((struct msg_parser * msg));
 struct msg_parser *get_send_messages_out __P((void));
 void delete_messages __P((void));
 int check_interface_semafor __P((int index));
 struct interface *get_interface __P((int if_index));
 struct interface *get_interface_s __P((char *s));
- 
+
 int nr_of_devices;
 int nr_of_uni_addr;
 int max_count;

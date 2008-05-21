@@ -49,20 +49,21 @@ extern int foreground;
 extern int debug_thresh;
 
 /* common.c */
-extern int dhcp6_copy_list __P((struct dhcp6_list *, const struct dhcp6_list *));
+extern int dhcp6_copy_list
+__P((struct dhcp6_list *, const struct dhcp6_list *));
 extern void dhcp6_clear_list __P((struct dhcp6_list *));
 extern int dhcp6_count_list __P((struct dhcp6_list *));
 extern struct dhcp6_listval *dhcp6_find_listval __P((struct dhcp6_list *,
-							void *,
-							dhcp6_listval_type_t));
+                                                     void *,
+                                                     dhcp6_listval_type_t));
 extern struct dhcp6_listval *dhcp6_add_listval __P((struct dhcp6_list *,
-						       void *,
-						       dhcp6_listval_type_t));
+                                                    void *,
+                                                    dhcp6_listval_type_t));
 extern struct dhcp6_event *dhcp6_create_event __P((struct dhcp6_if *, int));
 extern void dhcp6_remove_event __P((struct dhcp6_event *));
-extern int dhcp6_has_option __P((struct dhcp6_list *optlist, int option));
+extern int dhcp6_has_option __P((struct dhcp6_list * optlist, int option));
 extern int getifaddr __P((struct in6_addr *, char *, struct in6_addr *,
-			  int, int, int));
+                          int, int, int));
 extern int transmit_sa __P((int, struct sockaddr_in6 *, char *, size_t));
 extern long random_between __P((long, long));
 extern int prefix6_mask __P((struct in6_addr *, int));
@@ -73,9 +74,10 @@ extern const char *getdev __P((struct sockaddr_in6 *));
 extern int in6_addrscopebyif __P((struct in6_addr *, char *));
 extern int in6_scope __P((struct in6_addr *));
 extern void setloglevel __P((int));
+
 #ifdef	__GNUC__
 extern void dhcpv6_dprintf(int, const char *, ...)
-	__attribute__ ((__format__(__printf__, 2, 3)));
+    __attribute__ ((__format__(__printf__, 2, 3)));
 #else
 extern void dhcpv6_dprintf __P((int, const char *, ...));
 #endif
@@ -86,11 +88,11 @@ extern u_int16_t calculate_duid_len __P((const char *, u_int16_t *));
 extern void dhcp6_init_options __P((struct dhcp6_optinfo *));
 extern void dhcp6_clear_options __P((struct dhcp6_optinfo *));
 extern int dhcp6_copy_options __P((struct dhcp6_optinfo *,
-				   struct dhcp6_optinfo *));
+                                   struct dhcp6_optinfo *));
 extern int dhcp6_get_options __P((struct dhcp6opt *, struct dhcp6opt *,
-				  struct dhcp6_optinfo *));
+                                  struct dhcp6_optinfo *));
 extern int dhcp6_set_options __P((struct dhcp6opt *, struct dhcp6opt *,
-				  struct dhcp6_optinfo *));
+                                  struct dhcp6_optinfo *));
 extern void dhcp6_set_timeoparam __P((struct dhcp6_event *));
 extern void dhcp6_reset_timer __P((struct dhcp6_event *));
 extern char *dhcp6optstr __P((int));

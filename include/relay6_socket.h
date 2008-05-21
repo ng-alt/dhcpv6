@@ -31,22 +31,22 @@
 #define __RELAY6_SOCKET_H_DEFINED
 
 fd_set readfd;
-int fdmax;  
+int fdmax;
 
 struct relay_socket {
-	struct msghdr msg;
-	struct iovec iov[1];
-	struct cmsghdr *cmsgp;
-	struct sockaddr_in6 sin6;    /* my address information */
-	struct sockaddr_in6 from;
-	int recvmsglen;
-	char *recvp;
-	char src_addr[INET6_ADDRSTRLEN];
-	int pkt_interface;
-	int buflength;
-	int dst_addr_type ;
-	char *databuf;
-	int sock_desc;
+    struct msghdr msg;
+    struct iovec iov[1];
+    struct cmsghdr *cmsgp;
+    struct sockaddr_in6 sin6;   /* my address information */
+    struct sockaddr_in6 from;
+    int recvmsglen;
+    char *recvp;
+    char src_addr[INET6_ADDRSTRLEN];
+    int pkt_interface;
+    int buflength;
+    int dst_addr_type;
+    char *databuf;
+    int sock_desc;
 };
 
 struct relay_socket *relaysock;

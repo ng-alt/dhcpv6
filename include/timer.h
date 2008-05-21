@@ -33,34 +33,35 @@
 #define TIMEVAL_LT(a, b) (((a).tv_sec < (b).tv_sec) ||\
 			  (((a).tv_sec == (b).tv_sec) && \
 			    ((a).tv_usec < (b).tv_usec)))
+
 /* a <= b */
 #define TIMEVAL_LEQ(a, b) (((a).tv_sec < (b).tv_sec) ||\
 			   (((a).tv_sec == (b).tv_sec) &&\
  			    ((a).tv_usec <= (b).tv_usec)))
+
 /* a == b */
 #define TIMEVAL_EQUAL(a, b) ((a).tv_sec == (b).tv_sec &&\
 			     (a).tv_usec == (b).tv_usec)
 
 #define MARK_CLEAR 0x00
 #define MARK_REMOVE 0x01
-	
+
 struct dhcp6_timer {
-	LIST_ENTRY(dhcp6_timer) link;
+    LIST_ENTRY(dhcp6_timer) link;
 
-	struct timeval tm;
-	int flag;
+    struct timeval tm;
+    int flag;
 
-	struct dhcp6_timer *(*expire) __P((void *));
-	void *expire_data;
+    struct dhcp6_timer *(*expire) __P((void *));
+    void *expire_data;
 };
 
 void dhcp6_timer_init __P((void));
-struct dhcp6_timer *dhcp6_add_timer __P((struct dhcp6_timer *(*) __P((void *)),
-					 void *));
+struct dhcp6_timer *dhcp6_add_timer
+__P((struct dhcp6_timer * (*)__P((void *)), void *));
 void dhcp6_set_timer __P((struct timeval *, struct dhcp6_timer *));
 void dhcp6_remove_timer __P((struct dhcp6_timer *));
-struct timeval * dhcp6_check_timer __P((void));
-struct timeval * dhcp6_timer_rest __P((struct dhcp6_timer *));
+struct timeval *dhcp6_check_timer __P((void));
+struct timeval *dhcp6_timer_rest __P((struct dhcp6_timer *));
 
-void timeval_sub __P((struct timeval *, struct timeval *,
-			     struct timeval *));
+void timeval_sub __P((struct timeval *, struct timeval *, struct timeval *));

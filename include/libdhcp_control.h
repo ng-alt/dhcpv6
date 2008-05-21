@@ -39,43 +39,48 @@
 #define  LOG_FATAL 8
 
 typedef enum dhcp_state_e {
-    /* DHCPv4 client states
-     * third callback arg will be a 'struct client_state *'
+    /* DHCPv4 client states third callback arg will be a 'struct client_state 
+     *'
      */
-    DHC4_NBI,     /* failed: no broadcast interfaces found              */
-    DHC4_PREINIT, /* configuration started - bring the interface "UP"   */
-    DHC4_BOUND,   /* lease obtained                                     */
-    DHC4_RENEW,   /* lease renewed                                      */
-    DHC4_REBOOT,  /* have valid lease, but now obtained a different one */
-    DHC4_REBIND,  /* new, different lease                               */
-    DHC4_STOP,    /* remove old lease                                   */
-    DHC4_MEDIUM,  /* media selection begun                              */
-    DHC4_TIMEOUT, /* timed out contacting DHCP server                   */
-    DHC4_FAIL,    /* all attempts to contact server timed out, sleeping */
-    DHC4_EXPIRE,  /* lease has expired, renewing                        */
-    DHC4_RELEASE, /* releasing lease                                    */
+    DHC4_NBI,                   /* failed: no broadcast interfaces found */
+    DHC4_PREINIT,               /* configuration started - bring the
+                                   interface "UP" */
+    DHC4_BOUND,                 /* lease obtained */
+    DHC4_RENEW,                 /* lease renewed */
+    DHC4_REBOOT,                /* have valid lease, but now obtained a
+                                   different one */
+    DHC4_REBIND,                /* new, different lease */
+    DHC4_STOP,                  /* remove old lease */
+    DHC4_MEDIUM,                /* media selection begun */
+    DHC4_TIMEOUT,               /* timed out contacting DHCP server */
+    DHC4_FAIL,                  /* all attempts to contact server timed out,
+                                   sleeping */
+    DHC4_EXPIRE,                /* lease has expired, renewing */
+    DHC4_RELEASE,               /* releasing lease */
 
     /* This state raised by both clients: */
-    DHC_TIMEDOUT, /* libdhcp_control timeout has been exceeded          */
+    DHC_TIMEDOUT,               /* libdhcp_control timeout has been exceeded */
 
-    /* DHCPv6 client states:    */
-    DHC6_BOUND,   /* new lease obtained             - arg is optinfo *  */
-    DHC6_REBIND,  /* existing expired lease rebound - arg is optinfo *  */
-    DHC6_RELEASE  /* existing lease expired         - arg is dhcp6_iaidaddr*/
+    /* DHCPv6 client states: */
+    DHC6_BOUND,                 /* new lease obtained - arg is optinfo * */
+    DHC6_REBIND,                /* existing expired lease rebound - arg is
+                                   optinfo * */
+    DHC6_RELEASE                /* existing lease expired - arg is
+                                   dhcp6_iaidaddr */
 } DHCP_State;
 
 struct libdhcp_control_s;
 
 /* ala syslog(3): LOG_EMERG=0 - LOG_DEBUG=7 (+ LOG_FATAL=8 : finished -> 1) */
-typedef int (*LIBDHCP_Error_Handler) (struct libdhcp_control_s *ctl,
+typedef int (*LIBDHCP_Error_Handler) (struct libdhcp_control_s * ctl,
                                       int priority, const char *fmt,
                                       va_list ap);
 
 /* The DHCP clients will call the users' callback on important state change
  * events, with the second arg set to the client DHCP_State, and the third
  * arg set to a client specific pointer as described below. */
-typedef int (*LIBDHCP_Callback) (struct libdhcp_control_s *control,
-                                 enum dhcp_state_e, void*);
+typedef int (*LIBDHCP_Callback) (struct libdhcp_control_s * control,
+                                 enum dhcp_state_e, void *);
 
 typedef struct libdhcp_control_s {
     /* the DHCP clients' main loop calls this on state changes */
@@ -109,7 +114,7 @@ typedef enum libdhcp_capability_e {
     /* use / do not use pid file */
     DHCP_USE_PID_FILE = 2,
 
-    /*
+    /* 
      * DHCPv6 supports these capabilities in process, 
      * while the DHCPv4 client will fork and exec the dhclient-script to
      * implement them if these bits are set - otherwise, if no bits are set,
@@ -128,5 +133,5 @@ typedef enum libdhcp_capability_e {
     DHCP_CONFIGURE_RESOLVER = 32,
 } LIBDHCP_Capability;
 
-#endif  /* !defined (LIBDHCP_CONTROL_H) */
-#endif  /* ! HAVE_ISC_DHCP_LIBDHCP_CONTROL_H */
+#endif /* !defined (LIBDHCP_CONTROL_H) */
+#endif /* ! HAVE_ISC_DHCP_LIBDHCP_CONTROL_H */
