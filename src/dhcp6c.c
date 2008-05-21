@@ -308,9 +308,16 @@ int dhcpv6_client(libdhcp_ctl, argc, argv, envp)
 
 #ifndef __DARWIN_DEPRECATED_ATTRIBUTE
     if (foreground == 0) {
-        if (daemon(0, 0) < 0)
+        if (daemon(0, 0) < 0) {
             err(1, "daemon");
+        }
+
         openlog(progname, LOG_NDELAY | LOG_PID, LOG_DAEMON);
+
+        /* Get out pid again now that we've daemonized so we log the proper
+         * value in the pid file
+         */
+        pid = getpid();
     }
 #endif
 
