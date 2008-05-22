@@ -33,20 +33,21 @@ dhcp6c \- DHCPv6 client daemon
 .SH SYNOPSIS
 .B dhcp6c
 [
-.B -dDf
+.B -vfI
 ] [
 .B -r
 .I all
 |
-.I <addresses...>
+.I <address...>
 ] [
 .B -R
-.I <addresses...>
+.I <address...>
+] [
+.B -P
+.I <address...>
 ] [
 .B -c
 .I pathspec
-] [
-.B -I
 ]
 .I <interface>
 
@@ -78,16 +79,10 @@ Specifies the configuration file for
 .B dhcp6c
 
 .TP
-.BI \-d
+.BI \-v
 Enables
 .B dhcp6c
 to print debugging messages.
-
-.TP
-.BI \-D
-Enables
-.B dhcp6c
-to print verbose debugging messages.
 
 .TP
 .BI \-f
@@ -112,7 +107,13 @@ This option is used only when releasing addresses explicitly.
 .BI \-R\ <addresses...>
 Allows
 .B dhcp6c
-to request the specified addresses.
+to request the specified named addresses.
+
+.TP
+.BI \-P\ <addresses...>
+Allows
+.B dhcp6c
+to request the specified prefix delegation addresses.
 
 .SH FILES
 .TP
