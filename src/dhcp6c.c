@@ -122,8 +122,8 @@ static socklen_t sa6_alen;
 static struct duid client_duid;
 
 static void usage __P((char *name));
-static void client6_init __P((char *));
-static void client6_ifinit __P((char *));
+static int client6_init __P((char *));
+static int client6_ifinit __P((char *));
 void free_servers __P((struct dhcp6_if *));
 static void free_resources __P((struct dhcp6_if *));
 static int create_request_list __P((int));
@@ -342,9 +342,17 @@ int dhcpv6_client(libdhcp_ctl, argc, argv, envp)
                        FNAME);
         exit(1);
     }
-    client6_init(device);
-    client6_ifinit(device);
+
+    if (client6_init(device)) {
+        return -1;
+    }
+
+    if (client6_ifinit(device)) {
+        return -1;
+    }
+
     client6_mainloop();
+
 #ifdef LIBDHCP
     /* close all file descriptors */
     close(nlsock);
@@ -407,9 +415,7 @@ static void usage(char *name) {
 
 /*------------------------------------------------------------*/
 
-void client6_init(device)
-     char *device;
-{
+int client6_init(char *device) {
     struct addrinfo hints, *res;
 
 #ifndef LIBDHCP
@@ -426,20 +432,23 @@ void client6_init(device)
     ifidx = if_nametoindex(device);
     if (ifidx == 0) {
         dhcpv6_dprintf(LOG_ERR, "if_nametoindex(%s)", device);
-        return;
+        return -1;
     }
 
     /* get our DUID */
     if (get_duid(DUID_FILE, device, &client_duid)) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to get a DUID", FNAME);
-        return;
+        return -1;
     }
+
     if (get_linklocal(device, &lladdr) < 0) {
-        return;
+        return -1;
     }
+
     if (inet_ntop(AF_INET6, &lladdr, linklocal, sizeof(linklocal)) < 0) {
-        return;
+        return -1;
     }
+
     dhcpv6_dprintf(LOG_DEBUG, "link local addr is %s", linklocal);
 
     memset(&hints, 0, sizeof(hints));
@@ -448,32 +457,37 @@ void client6_init(device)
     hints.ai_protocol = IPPROTO_UDP;
     hints.ai_flags = 0;
     error = getaddrinfo(linklocal, DH6PORT_DOWNSTREAM, &hints, &res);
+
     if (error) {
         dhcpv6_dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
                        FNAME, strerror(error));
-        return;
+        return -1;
     }
+
     iosock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+
     if (iosock < 0) {
         dhcpv6_dprintf(LOG_ERR, "%s" "socket", FNAME);
-        return;
+        return -1;
     }
+
 #ifdef IPV6_RECVPKTINFO
     if (setsockopt(iosock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on,
                    sizeof(on)) < 0) {
         dhcpv6_dprintf(LOG_ERR, "%s"
                        "setsockopt(inbound, IPV6_RECVPKTINFO): %s",
                        FNAME, strerror(errno));
-        return;
+        return -1;
     }
 #else
     if (setsockopt(iosock, IPPROTO_IPV6, IPV6_PKTINFO, &on, sizeof(on)) < 0) {
         dhcpv6_dprintf(LOG_ERR, "%s"
                        "setsockopt(inbound, IPV6_PKTINFO): %s",
                        FNAME, strerror(errno));
-        return;
+        return -1;
     }
 #endif
+
     ((struct sockaddr_in6 *) (res->ai_addr))->sin6_scope_id = ifidx;
     dhcpv6_dprintf(LOG_DEBUG, "res addr is %s/%d",
                    addr2str(res->ai_addr, res->ai_addrlen), res->ai_addrlen);
@@ -501,7 +515,7 @@ void client6_init(device)
 
     if (bound < 0) {
         dhcpv6_dprintf(LOG_ERR, "%s" "bind: %s", FNAME, strerror(-bound));
-        return;
+        return -1;
     }
 
     freeaddrinfo(res);
@@ -512,15 +526,17 @@ void client6_init(device)
     if (error) {
         dhcpv6_dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
                        FNAME, gai_strerror(error));
-        return;
+        return -1;
     }
+
     if (setsockopt(iosock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
                    &ifidx, sizeof(ifidx)) < 0) {
         dhcpv6_dprintf(LOG_ERR, "%s"
                        "setsockopt(iosock, IPV6_MULTICAST_IF): %s",
                        FNAME, strerror(errno));
-        return;
+        return -1;
     }
+
     ((struct sockaddr_in6 *) (res->ai_addr))->sin6_scope_id = ifidx;
     freeaddrinfo(res);
     memset(&hints, 0, sizeof(hints));
@@ -528,11 +544,13 @@ void client6_init(device)
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_protocol = IPPROTO_UDP;
     error = getaddrinfo(DH6ADDR_ALLAGENT, DH6PORT_UPSTREAM, &hints, &res);
+
     if (error) {
         dhcpv6_dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
                        FNAME, gai_strerror(error));
-        return;
+        return -1;
     }
+
     memcpy(&sa6_allagent_storage, res->ai_addr, res->ai_addrlen);
     sa6_allagent = (const struct sockaddr_in6 *) &sa6_allagent_storage;
     sa6_alen = res->ai_addrlen;
@@ -542,30 +560,35 @@ void client6_init(device)
     if ((ifp = find_ifconfbyname(device)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "interface %s not configured",
                        FNAME, device);
-        return;
+        return -1;
     }
+
     ifp->outsock = iosock;
 
 #ifndef LIBDHCP
     if (signal(SIGHUP, client6_signal) == SIG_ERR) {
         dhcpv6_dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
                        FNAME, strerror(errno));
-        return;
+        return -1;
     }
+
     if (signal(SIGTERM | SIGKILL, client6_signal) == SIG_ERR) {
         dhcpv6_dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
                        FNAME, strerror(errno));
-        return;
+        return -1;
     }
+
     if (signal(SIGINT, client6_signal) == SIG_ERR) {
         dhcpv6_dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
                        FNAME, strerror(errno));
-        return;
+        return -1;
     }
 #endif
+
+    return 0;
 }
 
-static void client6_ifinit(char *device) {
+static int client6_ifinit(char *device) {
     struct dhcp6_if *ifp = dhcp6_if;
     struct dhcp6_event *ev;
     char iaidstr[20];
@@ -573,23 +596,29 @@ static void client6_ifinit(char *device) {
     dhcp6_init_iaidaddr();
     /* get iaid for each interface */
     if (num_device == 0) {
-        if ((num_device = create_iaid(&iaidtab[0], num_device)) < 0)
-            return;
+        if ((num_device = create_iaid(&iaidtab[0], num_device)) < 0) {
+            return -1;
+        }
+
         ifp->iaidinfo.iaid = get_iaid(ifp->ifname, &iaidtab[0], num_device);
+
         if (ifp->iaidinfo.iaid == 0) {
             dhcpv6_dprintf(LOG_DEBUG, "%s"
                            "interface %s iaid failed to be created",
                            FNAME, ifp->ifname);
-            return;
+            return -1;
         }
+
         dhcpv6_dprintf(LOG_DEBUG, "%s" "interface %s iaid is %u",
                        FNAME, ifp->ifname, ifp->iaidinfo.iaid);
     }
+
     client6_iaidaddr.ifp = ifp;
     memcpy(&client6_iaidaddr.client6_info.iaidinfo, &ifp->iaidinfo,
            sizeof(client6_iaidaddr.client6_info.iaidinfo));
     duidcpy(&client6_iaidaddr.client6_info.clientid, &client_duid);
     save_duid(DUID_FILE, device, &client_duid);
+
 #ifdef LIBDHCP
     if (libdhcp_control
         && (libdhcp_control->capability & DHCP_USE_LEASE_DATABASE)) {
@@ -598,28 +627,36 @@ static void client6_ifinit(char *device) {
         strcpy(leasename, PATH_CLIENT6_LEASE);
         sprintf(iaidstr, "%u", ifp->iaidinfo.iaid);
         strcat(leasename, iaidstr);
+
         if ((client6_lease_file = init_leases(leasename)) == NULL) {
             dhcpv6_dprintf(LOG_ERR, "%s" "failed to parse lease file", FNAME);
-            return;
+            return -1;
         }
+
         strcpy(client6_lease_temp, leasename);
         strcat(client6_lease_temp, "XXXXXX");
         client6_lease_file =
             sync_leases(client6_lease_file, leasename, client6_lease_temp);
-        if (client6_lease_file == NULL)
-            return;
+
+        if (client6_lease_file == NULL) {
+            return -1;
+        }
 #ifdef LIBDHCP
     }
 #endif
+
     if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
         struct dhcp6_listval *lv;
 
         if (!(client6_request_flag & CLIENT6_REQUEST_ADDR) &&
-            !(client6_request_flag & CLIENT6_RELEASE_ADDR))
+            !(client6_request_flag & CLIENT6_RELEASE_ADDR)) {
             client6_request_flag |= CLIENT6_CONFIRM_ADDR;
+        }
+
         if (TAILQ_EMPTY(&request_list)) {
-            if (create_request_list(1) < 0)
-                return;
+            if (create_request_list(1) < 0) {
+                return -1;
+            }
         } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
             for (lv = TAILQ_FIRST(&request_list); lv;
                  lv = TAILQ_NEXT(lv, link)) {
@@ -628,14 +665,15 @@ static void client6_ifinit(char *device) {
                     dhcpv6_dprintf(LOG_INFO, "this address %s is not"
                                    " leased by this client",
                                    in6addr2str(&lv->val_dhcp6addr.addr, 0));
-                    return;
+                    return -1;
                 }
             }
         }
     } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
         dhcpv6_dprintf(LOG_INFO, "no ipv6 addresses are leased by client");
-        return;
+        return -1;
     }
+
     ifp->link_flag |= IFF_RUNNING;
 
     /* get addrconf prefix from kernel */
@@ -644,28 +682,35 @@ static void client6_ifinit(char *device) {
     /* set up check link timer and sync file timer */
     if ((ifp->link_timer = dhcp6_add_timer(check_link_timo, ifp)) < 0) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to create a timer", FNAME);
-        return;
+        return -1;
     }
+
     if ((ifp->sync_timer = dhcp6_add_timer(check_lease_file_timo, ifp)) < 0) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to create a timer", FNAME);
-        return;
+        return -1;
     }
+
     /* DAD timer set up after getting the address */
     ifp->dad_timer = NULL;
+
     /* create an event for the initial delay */
     if ((ev = dhcp6_create_event(ifp, DHCP6S_INIT)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to create an event", FNAME);
-        return;
+        return -1;
     }
+
     ifp->servers = NULL;
     ev->ifp->current_server = NULL;
     TAILQ_INSERT_TAIL(&ifp->event_list, ev, link);
+
     if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for %s",
                        FNAME, ifp->ifname);
-        return;
+        return -1;
     }
+
     dhcp6_reset_timer(ev);
+    return 0;
 }
 
 static void free_resources(struct dhcp6_if *ifp) {
