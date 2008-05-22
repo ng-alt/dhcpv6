@@ -195,7 +195,7 @@ int dhcpv6_client(LIBDHCP_Control *libdhcp_ctl,
         progname++;
 
     TAILQ_INIT(&request_list);
-    while ((ch = getopt(argc, argv, "c:r:R:P:dDfI")) != -1) {
+    while ((ch = getopt(argc, argv, "c:r:R:P:vfI")) != -1) {
         switch (ch) {
             case 'c':
                 conffile = optarg;
@@ -294,10 +294,7 @@ int dhcpv6_client(LIBDHCP_Control *libdhcp_ctl,
             case 'I':
                 client6_request_flag |= CLIENT6_INFO_REQ;
                 break;
-            case 'd':
-                debug = 1;
-                break;
-            case 'D':
+            case 'v':
                 debug = 2;
                 break;
             case 'f':
@@ -426,7 +423,7 @@ static void usage(char *name) {
     fprintf(stderr, "    -R ADDR...     Request the specified IANA address(es)\n");
     fprintf(stderr, "    -P ADDR...     Request the specified IAPD address(es)\n");
     fprintf(stderr, "    -I             Request information only from the server\n");
-    fprintf(stderr, "    -v             Verbose debugging output (-vv most verbose)\n");
+    fprintf(stderr, "    -v             Verbose debugging output\n");
     fprintf(stderr, "    -f             Run client as a foreground process\n");
     fprintf(stderr, "IANA is identiy association named address.\n");
     fprintf(stderr, "IAPD is identiy association prefix delegation.\n");
