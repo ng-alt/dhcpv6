@@ -169,16 +169,13 @@ char client6_lease_temp[256];
 struct dhcp6_list request_list;
 
 #ifndef LIBDHCP
-int main(argc, argv, envp)
+int main(int argc, char **argv, char **envp)
 #else
 #define exit return
 LIBDHCP_Control *libdhcp_control;
-int dhcpv6_client(libdhcp_ctl, argc, argv, envp)
-     LIBDHCP_Control *libdhcp_ctl;
+int dhcpv6_client(LIBDHCP_Control *libdhcp_ctl,
+                  int argc, char **argv, char **envp)
 #endif
-     int argc;
-     char **argv;
-     char **envp;
 {
     int ch;
     char *progname, *conffile = DHCP6C_CONF;
@@ -205,6 +202,7 @@ int dhcpv6_client(libdhcp_ctl, argc, argv, envp)
                 break;
             case 'P':
                 client6_request_flag |= CLIENT6_REQUEST_ADDR;
+
                 for (addr = strtok(optarg, " "); addr;
                      addr = strtok(NULL, " ")) {
                     struct dhcp6_listval *lv;
@@ -214,7 +212,9 @@ int dhcpv6_client(libdhcp_ctl, argc, argv, envp)
                         dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
                         exit(1);
                     }
+
                     memset(lv, 0, sizeof(*lv));
+
                     if (inet_pton(AF_INET6, strtok(addr, "/"),
                                   &lv->val_dhcp6addr.addr) < 1) {
                         dhcpv6_dprintf(LOG_ERR,
@@ -222,15 +222,17 @@ int dhcpv6_client(libdhcp_ctl, argc, argv, envp)
                         usage(argv[0]);
                         exit(1);
                     }
+
                     lv->val_dhcp6addr.type = IAPD;
                     lv->val_dhcp6addr.plen = atoi(strtok(NULL, "/"));
                     lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
                     TAILQ_INSERT_TAIL(&request_list, lv, link);
                 }
-                break;
 
+                break;
             case 'R':
                 client6_request_flag |= CLIENT6_REQUEST_ADDR;
+
                 for (addr = strtok(optarg, " "); addr;
                      addr = strtok(NULL, " ")) {
                     struct dhcp6_listval *lv;
@@ -240,7 +242,9 @@ int dhcpv6_client(libdhcp_ctl, argc, argv, envp)
                         dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
                         exit(1);
                     }
+
                     memset(lv, 0, sizeof(*lv));
+
                     if (inet_pton(AF_INET6, addr, &lv->val_dhcp6addr.addr) <
                         1) {
                         dhcpv6_dprintf(LOG_ERR,
@@ -248,13 +252,16 @@ int dhcpv6_client(libdhcp_ctl, argc, argv, envp)
                         usage(argv[0]);
                         exit(1);
                     }
+
                     lv->val_dhcp6addr.type = IANA;
                     lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
                     TAILQ_INSERT_TAIL(&request_list, lv, link);
                 }
+
                 break;
             case 'r':
                 client6_request_flag |= CLIENT6_RELEASE_ADDR;
+
                 if (strcmp(optarg, "all")) {
                     for (addr = strtok(optarg, " "); addr;
                          addr = strtok(NULL, " ")) {
@@ -267,7 +274,9 @@ int dhcpv6_client(libdhcp_ctl, argc, argv, envp)
                                            "failed to allocate memory");
                             exit(1);
                         }
+
                         memset(lv, 0, sizeof(*lv));
+
                         if (inet_pton(AF_INET6, addr,
                                       &lv->val_dhcp6addr.addr) < 1) {
                             dhcpv6_dprintf(LOG_ERR,
@@ -275,10 +284,12 @@ int dhcpv6_client(libdhcp_ctl, argc, argv, envp)
                             usage(argv[0]);
                             exit(1);
                         }
+
                         lv->val_dhcp6addr.type = IANA;
                         TAILQ_INSERT_TAIL(&request_list, lv, link);
                     }
                 }
+
                 break;
             case 'I':
                 client6_request_flag |= CLIENT6_INFO_REQ;
@@ -297,6 +308,7 @@ int dhcpv6_client(libdhcp_ctl, argc, argv, envp)
                 exit(0);
         }
     }
+
     argc -= optind;
     argv += optind;
 
@@ -407,13 +419,20 @@ int dhcpv6_client(libdhcp_ctl, argc, argv, envp)
 }
 
 static void usage(char *name) {
-    fprintf(stderr,
-            "Usage: %s [-c configfile] [-r all or (ipv6address ipv6address...)]\n"
-            "       [-R (ipv6 address ipv6address...) [-dDIf] interface\n",
-            basename(name));
+    fprintf(stderr, "Usage: %s [options] interface\n", basename(name));
+    fprintf(stderr, "Options:\n");
+    fprintf(stderr, "    -c PATH        Configuration file (e.g., /etc/dhcp6c.conf)\n");
+    fprintf(stderr, "    -r ADDR...     Release the specified addresses (either \"all\" or named addresses)\n");
+    fprintf(stderr, "    -R ADDR...     Request the specified IANA address(es)\n");
+    fprintf(stderr, "    -P ADDR...     Request the specified IAPD address(es)\n");
+    fprintf(stderr, "    -I             Request information only from the server\n");
+    fprintf(stderr, "    -v             Verbose debugging output (-vv most verbose)\n");
+    fprintf(stderr, "    -f             Run client as a foreground process\n");
+    fprintf(stderr, "IANA is identiy association named address.\n");
+    fprintf(stderr, "IAPD is identiy association prefix delegation.\n");
+    fflush(stderr);
+    return;
 }
-
-/*------------------------------------------------------------*/
 
 int client6_init(char *device) {
     struct addrinfo hints, *res;
