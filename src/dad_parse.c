@@ -106,7 +106,7 @@ int dad_parse(const char *file) {
 
         dhcpv6_dprintf(LOG_ERR, "dad_parse: fopen(%s): %s", file,
                        strerror(errno));
-        return -2;
+        return -1;
     }
 
     while (fgets(buf, sizeof(buf), fp) != NULL) {
@@ -148,6 +148,10 @@ int dad_parse(const char *file) {
         }
 
         ifinfo->index = strtol(tmp, NULL, 16);
+        if ((errno == EINVAL) || (errno == ERANGE)) {
+            dhcpv6_dprintf(LOG_ERR, "error reading index from %s", file);
+            return -1;
+        }
 
         /* read the prefix length */
         if ((tmp = strtok(NULL, " \n")) == NULL) {
@@ -155,6 +159,10 @@ int dad_parse(const char *file) {
         }
 
         ifinfo->plen = strtol(tmp, NULL, 16);
+        if ((errno == EINVAL) || (errno == ERANGE)) {
+            dhcpv6_dprintf(LOG_ERR, "error reading prefix length from %s", file);
+            return -1;
+        }
 
         /* read the scope */
         if ((tmp = strtok(NULL, " \n")) == NULL) {
@@ -162,6 +170,10 @@ int dad_parse(const char *file) {
         }
 
         ifinfo->scope = strtol(tmp, NULL, 16);
+        if ((errno == EINVAL) || (errno == ERANGE)) {
+            dhcpv6_dprintf(LOG_ERR, "error reading scope from %s", file);
+            return -1;
+        }
 
         /* read the flags */
         if ((tmp = strtok(NULL, " \n")) == NULL) {
@@ -169,6 +181,10 @@ int dad_parse(const char *file) {
         }
 
         ifinfo->flags = strtol(tmp, NULL, 16);
+        if ((errno == EINVAL) || (errno == ERANGE)) {
+            dhcpv6_dprintf(LOG_ERR, "error reading flags from %s", file);
+            return -1;
+        }
 
         if (ifinfo->flags == DAD_FLAGS) {
             dhcpv6_dprintf(LOG_INFO, "duplicated IPv6 address %s detected",
@@ -223,7 +239,7 @@ int dad_parse(const char *file) {
                 dhcpv6_dprintf(LOG_INFO,
                                "remove duplicated address failed: %s",
                                in6addr2str(&lv->val_dhcp6addr.addr, 0));
-                return -3;
+                return -1;
             }
 
             memcpy(&lv->val_dhcp6addr.addr, &ifinfo->addr,
