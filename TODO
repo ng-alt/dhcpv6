@@ -26,8 +26,6 @@
 
 - Clean up TRACE() messages, they are all over the place.
 
-- Fix indentation.  Ugh, hate trailing whitespace and tabs.
-
 - Define all DHCPv6 options and states more clearly.  Fix up server component
   to handle all possible options.
 
