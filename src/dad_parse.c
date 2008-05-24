@@ -53,12 +53,15 @@
 
 #include "config.h"
 
+#include <stdlib.h>
 #include <syslog.h>
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <net/if.h>
+#include <string.h>
+#include <errno.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
