@@ -34,16 +34,16 @@ dhcp6r_CFLAGS  = -fPIE -D_GNU_SOURCE
 dhcp6r_LDFLAGS = $(BINLDFLAGS)
 dhcp6r_SOURCES = dhcp6r.c relay6_database.c relay6_parser.c relay6_socket.c
 
-dhcp6c_CFLAGS  = -fPIE -D_GNU_SOURCE
-dhcp6c_LDFLAGS = $(BINLDFLAGS)
+dhcp6c_CFLAGS  = -fPIE -D_GNU_SOURCE $(LIBNL_CFLAGS)
+dhcp6c_LDFLAGS = $(BINLDFLAGS) $(LIBNL_LIBS)
 dhcp6c_SOURCES = dhcp6c.c cfg.c client6_addr.c client6_parse.y \
                  client6_token.l dad_token.c resolv_token.l $(COMMONSRCS)
 
-libdhcp6client_la_CFLAGS = -DLIBDHCP -D_GNU_SOURCE -fPIC
+libdhcp6client_la_CFLAGS = -DLIBDHCP -D_GNU_SOURCE -fPIC $(LIBNL_CFLAGS)
 libdhcp6client_la_LDFLAGS = -version-info \
                                 $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
                             -release $(LT_RELEASE) \
-                            $(LIBLDFLAGS)
+                            $(LIBLDFLAGS) $(LIBNL_LIBS)
 libdhcp6client_la_SOURCES = dhcp6c.c cfg.c client6_addr.c client6_parse.y \
                             client6_token.l dad_token.c resolv_token.l \
                             dhc6_alloc.c $(COMMONSRCS)
