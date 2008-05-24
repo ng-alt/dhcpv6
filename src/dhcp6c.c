@@ -604,6 +604,135 @@ int client6_init(char *device) {
     return 0;
 }
 
+/*
+ * Call libnl and collect information about the current state of the interface.
+ */
+int get_if_rainfo(struct dhcp6_if *ifp) {
+    struct nl_handle *handle = NULL;
+    struct nl_cache *cache = NULL;
+    struct nl_object *obj = NULL;
+    struct rtnl_addr *raddr = NULL;
+    struct rtnl_link *link = NULL;
+    struct nl_addr *addr = NULL;
+    char buf[INET6_ADDRSTRLEN+1];
+    char *pos = NULL;
+    struct in6_addr *tmpaddr = NULL;
+    struct ra_info *rainfo = NULL, *ra = NULL, *ra_prev = NULL;
+
+    memset(&buf, '\0', sizeof(buf));
+
+    if ((handle = nl_handle_alloc()) == NULL) {
+        return 1;
+    }
+
+    if (nl_connect(handle, NETLINK_ROUTE)) {
+        nl_handle_destroy(handle);
+        return 2;
+    }
+
+    if ((cache = rtnl_addr_alloc_cache(handle)) == NULL) {
+        nl_close(handle);
+        nl_handle_destroy(handle);
+        return 3;
+    }
+
+    if ((obj = nl_cache_get_first(cache)) == NULL) {
+        nl_close(handle);
+        nl_handle_destroy(handle);
+        return 4;
+    }
+
+    do {
+        raddr = (struct rtnl_addr *) obj;
+
+        /*
+         * Copy IPv6 prefix addresses and associated values in to our
+         * ifp->ralist array.
+         */
+        if ((rtnl_addr_get_ifindex(raddr) == ifp->ifid) &&
+            (rtnl_addr_get_family(raddr) == AF_INET6) &&
+            (rtnl_addr_get_scope(raddr) & RT_SCOPE_SITE)) {
+            /* found a prefix address, add it to the list */
+            addr = rtnl_addr_get_local(raddr);
+            tmpaddr = nl_get_binary_addr(addr);
+
+            /* create a new rainfo struct and add it to the list of addresses */
+            rainfo = (struct ra_info *) malloc(sizeof(*rainfo));
+            if (rainfo == NULL) {
+                nl_destroy_addr(addr);
+                rtnl_addr_put(raddr);
+                nl_close(handle);
+                nl_handle_destroy(handle);
+                return 5;
+            }
+
+            memset(rainfo, 0, sizeof(rainfo));
+            memcpy((&rainfo->prefix), tmpaddr, sizeof(struct in6_addr));
+            rainfo->plen = rtnl_addr_get_prefixlen(raddr);
+
+            if (inet_ntop(AF_INET6, &(rainfo->prefix), buf, INET6_ADDRSTRLEN) == NULL) {
+                nl_destroy_addr(addr);
+                rtnl_addr_put(raddr);
+                nl_close(handle);
+                nl_handle_destroy(handle);
+                return 6;
+            }
+
+            dhcpv6_dprintf(LOG_DEBUG, "get prefix address %s", buf);
+            dhcpv6_dprintf(LOG_DEBUG, "get prefix plen %d", rainfo->plen);
+
+            if (ifp->ralist == NULL) {
+                ifp->ralist = rainfo;
+                rainfo->next = NULL;
+            } else {
+                ra_prev = ifp->ralist;
+
+                for (ra = ifp->ralist; ra; ra = ra->next) {
+                    if (rainfo->plen >= ra->plen) {
+                        if (ra_prev == ra) {
+                            ifp->ralist = rainfo;
+                            rainfo->next = ra;
+                        } else {
+                            ra_prev->next = rainfo;
+                            rainfo->next = ra;
+                        }
+
+                        break;
+                    } else {
+                        if (ra->next == NULL) {
+                            ra->next = rainfo;
+                            rainfo->next = NULL;
+                            break;
+                        } else {
+                            ra_prev = ra;
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            nl_destroy_addr(addr);
+
+            /* gather flags */
+            if ((cache = rtnl_addr_alloc_cache(handle)) == NULL) {
+                rtnl_addr_put(raddr);
+                nl_close(handle);
+                nl_handle_destroy(handle);
+                return 7;
+            }
+
+            link = rtnl_link_get(cache, raddr->ifindex);
+            ifp->ra_flag = rtnl_link_get_flags(link);
+            rtnl_link_put(link);
+            rtnl_addr_put(raddr);
+        }
+    } while ((obj = nl_cache_get_next(obj)) != NULL);
+
+    nl_close(handle);
+    nl_handle_destroy(handle);
+    return 0;
+}
+
 static int client6_ifinit(char *device) {
     struct dhcp6_if *ifp = dhcp6_if;
     struct dhcp6_event *ev;
@@ -693,7 +822,11 @@ static int client6_ifinit(char *device) {
     ifp->link_flag |= IFF_RUNNING;
 
     /* get addrconf prefix from kernel */
-    (void) get_if_rainfo(ifp);
+    if ((err = get_if_rainfo(ifp))) {
+        dhcpv6_dprintf(LOG_ERR, "failed to get interface info via libnl: %d",
+                       err);
+        return -1;
+    }
 
     /* set up check link timer and sync file timer */
     if ((ifp->link_timer = dhcp6_add_timer(check_link_timo, ifp)) < 0) {
@@ -1721,8 +1854,15 @@ static int client6_recvreply(ifp, dh6, len, optinfo)
                 case DH6OPT_STCODE_UNDEFINE:
                 default:
                     if (!TAILQ_EMPTY(&optinfo->addr_list)) {
-                        (void) get_if_rainfo(ifp);
+                        if ((err = get_if_rainfo(ifp))) {
+                            dhcpv6_dprintf(LOG_ERR,
+                                "failed to get interface info via libnl: %d",
+                                err);
+                            return -1;
+                        }
+
                         dhcp6_add_iaidaddr(optinfo);
+
                         if (ifp->dad_timer == NULL
                             && (ifp->dad_timer =
                                 dhcp6_add_timer(check_dad_timo, ifp)) < 0) {
@@ -1731,6 +1871,7 @@ static int client6_recvreply(ifp, dh6, len, optinfo)
                                            "failed to create a timer for DAD",
                                            FNAME);
                         }
+
                         setup_check_timer(ifp);
 #ifdef LIBDHCP
                         if (libdhcp_control && libdhcp_control->callback)
@@ -1739,13 +1880,16 @@ static int client6_recvreply(ifp, dh6, len, optinfo)
                                                             optinfo);
 #endif
                     }
+
                     break;
             }
+
             break;
         case DHCP6S_RENEW:
         case DHCP6S_REBIND:
             if (client6_request_flag & CLIENT6_CONFIRM_ADDR)
                 goto rebind_confirm;
+
             /* NoBinding for RENEW, REBIND, send REQUEST */
             switch (addr_status_code) {
                 case DH6OPT_STCODE_NOBINDING:
@@ -1804,6 +1948,7 @@ static int client6_recvreply(ifp, dh6, len, optinfo)
                                    FNAME);
                     ftime(&now);
                     client6_iaidaddr.state = ACTIVE;
+
                     if ((client6_iaidaddr.timer =
                          dhcp6_add_timer(dhcp6_iaidaddr_timo,
                                          &client6_iaidaddr)) == NULL) {
@@ -1815,17 +1960,21 @@ static int client6_recvreply(ifp, dh6, len, optinfo)
                                        iaid);
                         return (-1);
                     }
+
                     if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
                         client6_iaidaddr.client6_info.iaidinfo.renewtime
                             = get_min_preferlifetime(&client6_iaidaddr) / 2;
                     }
+
                     if (client6_iaidaddr.client6_info.iaidinfo.rebindtime ==
                         0) {
                         client6_iaidaddr.client6_info.iaidinfo.rebindtime =
                             (get_min_preferlifetime(&client6_iaidaddr) * 4) /
                             5;
                     }
+
                     offset = now.time - client6_iaidaddr.start_date;
+
                     if (offset >
                         client6_iaidaddr.client6_info.iaidinfo.renewtime)
                         timo.tv_sec = 0;
@@ -1833,8 +1982,10 @@ static int client6_recvreply(ifp, dh6, len, optinfo)
                         timo.tv_sec =
                             client6_iaidaddr.client6_info.iaidinfo.renewtime -
                             offset;
+
                     timo.tv_usec = 0;
                     dhcp6_set_timer(&timo, client6_iaidaddr.timer);
+
                     /* check DAD */
                     if (optinfo->type != IAPD && ifp->dad_timer == NULL &&
                         (ifp->dad_timer =
@@ -1843,11 +1994,14 @@ static int client6_recvreply(ifp, dh6, len, optinfo)
                                        "%s" "failed to create a timer for "
                                        " DAD", FNAME);
                     }
+
                     setup_check_timer(ifp);
+
                     break;
                 default:
                     break;
             }
+
             break;
         case DHCP6S_DECLINE:
             /* send REQUEST message to server with none decline address */
@@ -1855,6 +2009,7 @@ static int client6_recvreply(ifp, dh6, len, optinfo)
                            "got an expected reply for decline, sending request.",
                            FNAME);
             create_request_list(0);
+
             /* remove event data list */
             newstate = DHCP6S_REQUEST;
             break;
@@ -1866,37 +2021,41 @@ static int client6_recvreply(ifp, dh6, len, optinfo)
         default:
             break;
     }
+
     dhcp6_remove_event(ev);
+
     if (newstate) {
         client6_send_newstate(ifp, newstate);
-    } else
+    } else {
         dhcpv6_dprintf(LOG_DEBUG, "%s" "got an expected reply, sleeping.",
                        FNAME);
+    }
+
     TAILQ_INIT(&request_list);
     return 0;
 }
 
-int client6_send_newstate(ifp, state)
-     struct dhcp6_if *ifp;
-     int state;
-{
+int client6_send_newstate(struct dhcp6_if *ifp, int state) {
     struct dhcp6_event *ev;
 
     if ((ev = dhcp6_create_event(ifp, state)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to create an event", FNAME);
         return (-1);
     }
+
     if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for %s",
                        FNAME, ifp->ifname);
         free(ev);
         return (-1);
     }
+
     TAILQ_INSERT_TAIL(&ifp->event_list, ev, link);
     ev->timeouts = 0;
     dhcp6_set_timeoparam(ev);
     dhcp6_reset_timer(ev);
     client6_send(ev);
+
     return 0;
 }
 

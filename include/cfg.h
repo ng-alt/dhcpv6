@@ -77,7 +77,7 @@ struct dhcp6_if {
     struct dhcp6_timer *dad_timer;
 #define DHCP6_CHECKDAD_TIME	5
     /* event queue */
-      TAILQ_HEAD(, dhcp6_event) event_list;
+    TAILQ_HEAD(, dhcp6_event) event_list;
 
     /* static parameters of the interface */
     char *ifname;
@@ -311,6 +311,5 @@ extern void configure_cleanup(void);
 extern void configure_commit(void);
 extern int cfparse(const char *);
 extern int resolv_parse(struct dns_list *);
-extern int get_if_rainfo(struct dhcp6_if *ifp);
 
 extern void *get_if_option(struct dhcp6_option_list *, int);

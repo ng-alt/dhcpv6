@@ -127,6 +127,12 @@ AC_CHECK_FUNCS([bzero ftime gettimeofday memset select socket strchr strdup \
                [],
                [AC_MSG_FAILURE([*** Required function $ac_func not found.])])
 
+# We need libnl -- NOTE: this is a Linux-only library, so we'll need something
+# else on other platforms.  Will have to create platform-specific tests later.
+PKG_CHECK_MODULES(LIBNL, libnl-1 >= 1.1)
+AC_SUBST(LIBNL_CFLAGS)
+AC_SUBST(LIBNL_LIBS)
+
 # find dn_comp() and dn_expand()
 AM_CHECK_RESOLVER
 
