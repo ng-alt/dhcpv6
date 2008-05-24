@@ -665,7 +665,7 @@ int get_if_rainfo(struct dhcp6_if *ifp) {
             (rtnl_addr_get_scope(raddr) & RT_SCOPE_SITE)) {
             /* found a prefix address, add it to the list */
             addr = rtnl_addr_get_local(raddr);
-            tmpaddr = nl_get_binary_addr(addr);
+            tmpaddr = (struct in6_addr *) nl_get_binary_addr(addr);
 
             /* create a new rainfo struct and add it to the list of addresses */
             rainfo = (struct ra_info *) malloc(sizeof(*rainfo));
@@ -732,7 +732,7 @@ int get_if_rainfo(struct dhcp6_if *ifp) {
                 return 7;
             }
 
-            link = rtnl_link_get(cache, raddr->ifindex);
+            link = rtnl_link_get(cache, rtnl_addr_get_ifindex(raddr));
             ifp->ra_flag = rtnl_link_get_flags(link);
             rtnl_link_put(link);
             rtnl_addr_put(raddr);
@@ -745,6 +745,7 @@ int get_if_rainfo(struct dhcp6_if *ifp) {
 }
 
 static int client6_ifinit(char *device) {
+    int err = 0;
     struct dhcp6_if *ifp = dhcp6_if;
     struct dhcp6_event *ev;
     char iaidstr[20];
@@ -833,7 +834,8 @@ static int client6_ifinit(char *device) {
     ifp->link_flag |= IFF_RUNNING;
 
     /* get addrconf prefix from kernel */
-    if ((err = get_if_rainfo(ifp))) {
+    err = get_if_rainfo(ifp);
+    if (err) {
         dhcpv6_dprintf(LOG_ERR, "failed to get interface info via libnl: %d",
                        err);
         return -1;
@@ -1723,17 +1725,14 @@ void free_servers(ifp)
     ifp->current_server = NULL;
 }
 
-static int client6_recvreply(ifp, dh6, len, optinfo)
-     struct dhcp6_if *ifp;
-     struct dhcp6 *dh6;
-     ssize_t len;
-     struct dhcp6_optinfo *optinfo;
-{
+static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t len,
+                             struct dhcp6_optinfo *optinfo) {
     struct dhcp6_listval *lv;
     struct dhcp6_event *ev;
     int addr_status_code = DH6OPT_STCODE_UNSPECFAIL;
     struct dhcp6_serverinfo *newserver;
     int newstate = 0;
+    int err = 0;
 
     /* find the corresponding event based on the received xid */
     dhcpv6_dprintf(LOG_DEBUG, "%s" "reply message XID is (%x)",
@@ -1758,8 +1757,10 @@ static int client6_recvreply(ifp, dh6, len, optinfo)
         dhcpv6_dprintf(LOG_INFO, "%s" "no server ID option", FNAME);
         return -1;
     }
+
     dhcpv6_dprintf(LOG_DEBUG, "%s" "serverID is %s len is %d", FNAME,
                    duidstr(&optinfo->serverID), optinfo->serverID.duid_len);
+
     /* get current server */
     switch (ev->state) {
         case DHCP6S_SOLICIT:
@@ -1775,6 +1776,7 @@ static int client6_recvreply(ifp, dh6, len, optinfo)
         default:
             break;
     }
+
     /* 
      * DUID in the Client ID option (which must be contained for our
      * client implementation) must match ours.
@@ -1783,6 +1785,7 @@ static int client6_recvreply(ifp, dh6, len, optinfo)
         dhcpv6_dprintf(LOG_INFO, "%s" "no client ID option", FNAME);
         return -1;
     }
+
     if (duidcmp(&optinfo->clientID, &client_duid)) {
         dhcpv6_dprintf(LOG_INFO, "%s" "client DUID mismatch", FNAME);
         return -1;
@@ -1865,7 +1868,8 @@ static int client6_recvreply(ifp, dh6, len, optinfo)
                 case DH6OPT_STCODE_UNDEFINE:
                 default:
                     if (!TAILQ_EMPTY(&optinfo->addr_list)) {
-                        if ((err = get_if_rainfo(ifp))) {
+                        err = get_if_rainfo(ifp);
+                        if (err) {
                             dhcpv6_dprintf(LOG_ERR,
                                 "failed to get interface info via libnl: %d",
                                 err);
