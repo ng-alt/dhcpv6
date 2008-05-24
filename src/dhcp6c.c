@@ -45,6 +45,7 @@
 #include <arpa/inet.h>
 #include <err.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
 
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -68,6 +69,12 @@
 #ifdef HAVE_NETINET6_IN6_VAR_H
 # include <netinet6/in6_var.h>
 #endif
+
+#include <netlink/socket.h>
+#include <netlink/route/rtnl.h>
+#include <netlink/route/route.h>
+#include <netlink/route/addr.h>
+#include <netlink/route/link.h>
 
 #include "dhcp6.h"
 #include "cfg.h"
