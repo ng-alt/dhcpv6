@@ -665,12 +665,12 @@ int get_if_rainfo(struct dhcp6_if *ifp) {
             (rtnl_addr_get_scope(raddr) & RT_SCOPE_SITE)) {
             /* found a prefix address, add it to the list */
             addr = rtnl_addr_get_local(raddr);
-            tmpaddr = (struct in6_addr *) nl_get_binary_addr(addr);
+            tmpaddr = (struct in6_addr *) nl_addr_get_binary_addr(addr);
 
             /* create a new rainfo struct and add it to the list of addresses */
             rainfo = (struct ra_info *) malloc(sizeof(*rainfo));
             if (rainfo == NULL) {
-                nl_destroy_addr(addr);
+                nl_addr_destroy(addr);
                 rtnl_addr_put(raddr);
                 nl_close(handle);
                 nl_handle_destroy(handle);
@@ -682,7 +682,7 @@ int get_if_rainfo(struct dhcp6_if *ifp) {
             rainfo->plen = rtnl_addr_get_prefixlen(raddr);
 
             if (inet_ntop(AF_INET6, &(rainfo->prefix), buf, INET6_ADDRSTRLEN) == NULL) {
-                nl_destroy_addr(addr);
+                nl_addr_destroy(addr);
                 rtnl_addr_put(raddr);
                 nl_close(handle);
                 nl_handle_destroy(handle);
@@ -722,7 +722,7 @@ int get_if_rainfo(struct dhcp6_if *ifp) {
                 }
             }
 
-            nl_destroy_addr(addr);
+            nl_addr_destroy(addr);
 
             /* gather flags */
             if ((cache = rtnl_addr_alloc_cache(handle)) == NULL) {
