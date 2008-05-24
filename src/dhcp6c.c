@@ -45,7 +45,10 @@
 #include <arpa/inet.h>
 #include <err.h>
 #include <sys/ioctl.h>
+
+#ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
+#endif
 
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -70,6 +73,7 @@
 # include <netinet6/in6_var.h>
 #endif
 
+#include <linux/netlink.h>
 #include <netlink/socket.h>
 #include <netlink/route/rtnl.h>
 #include <netlink/route/route.h>
