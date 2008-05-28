@@ -71,6 +71,8 @@
 extern struct dhcp6_if *dhcp6_if;
 extern struct dhcp6_list request_list;
 
+struct ifproc_info *dadlist = NULL;
+
 #define DAD_FLAGS 0xC0
 
 struct ifproc_info {
@@ -91,7 +93,6 @@ int dad_parse(const char *file) {
     char addrbuf[64];
     char *tmp = NULL;
     struct in6_addr addr6;
-    struct ifproc_info *dadlist = NULL;
     struct ifproc_info *ifinfo = NULL;
 
     if (file == NULL) {
