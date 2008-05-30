@@ -71,7 +71,8 @@ case "$1" in
         RETVAL=$?
         ;;
     restart|force-reload)
-        stop && start
+        [ -f $lockfile ] && stop
+        start
         RETVAL=$?
         ;;
     try-restart|reload)
