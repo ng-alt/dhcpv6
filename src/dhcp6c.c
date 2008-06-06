@@ -45,6 +45,7 @@
 #include <arpa/inet.h>
 #include <err.h>
 #include <sys/ioctl.h>
+#include <sys/param.h>
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -172,6 +173,7 @@ extern int dad_parse(const char *file);
 #define DUID_FILE "/var/lib/dhcpv6/dhcp6c_duid"
 
 static int pid;
+static char pidfile[MAXPATHLEN];
 
 #ifdef LIBDHCP
 struct sockaddr_in6 sa6_allagent_storage;
@@ -200,14 +202,24 @@ int dhcpv6_client(LIBDHCP_Control *libdhcp_ctl,
     pid = getpid();
     srandom(time(NULL) & pid);
 
+    strcpy(pidfile, DHCP6C_PIDFILE);
+
     if ((progname = strrchr(*argv, '/')) == NULL)
         progname = *argv;
     else
         progname++;
 
     TAILQ_INIT(&request_list);
-    while ((ch = getopt(argc, argv, "c:r:R:P:vfI")) != -1) {
+    while ((ch = getopt(argc, argv, "c:r:R:P:vfIp:")) != -1) {
         switch (ch) {
+            case 'p':
+                if (strlen(optarg) >= MAXPATHLEN) {
+                    dhcpv6_dprintf(LOG_ERR, "pid file name is too long");
+                    exit(1);
+                }
+
+                strcpy(pidfile, optarg);
+                break;
             case 'c':
                 conffile = optarg;
                 break;
@@ -347,7 +359,7 @@ int dhcpv6_client(LIBDHCP_Control *libdhcp_ctl,
     if (libdhcp_control && (libdhcp_control->capability & DHCP_USE_PID_FILE))
 #endif
         /* dump current PID */
-        if ((pidfp = fopen(DHCP6C_PIDFILE, "w")) != NULL) {
+        if ((pidfp = fopen(pidfile, "w")) != NULL) {
             fprintf(pidfp, "%d\n", pid);
             fclose(pidfp);
         }
@@ -430,6 +442,7 @@ static void usage(char *name) {
     fprintf(stderr, "Usage: %s [options] interface\n", basename(name));
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "    -c PATH        Configuration file (e.g., /etc/dhcp6c.conf)\n");
+    fprintf(stderr, "    -p PATH        PID file name (default: %s)\n", DHCP6C_PIDFILE);
     fprintf(stderr, "    -r ADDR...     Release the specified addresses (either \"all\" or named addresses)\n");
     fprintf(stderr, "    -R ADDR...     Request the specified IANA address(es)\n");
     fprintf(stderr, "    -P ADDR...     Request the specified IAPD address(es)\n");
@@ -922,26 +935,30 @@ static void process_signals() {
     if ((sig_flags & SIGF_TERM)) {
         dhcpv6_dprintf(LOG_INFO, FNAME "exiting");
         free_resources(dhcp6_if);
-        unlink(DHCP6C_PIDFILE);
+        unlink(pidfile);
 #ifdef LIBDHCP
         return;
 #else
         exit(0);
 #endif
     }
+
     if ((sig_flags & SIGF_HUP)) {
         dhcpv6_dprintf(LOG_INFO, FNAME "restarting");
         free_resources(dhcp6_if);
         client6_ifinit(device);
     }
+
     if ((sig_flags & SIGF_CLEAN)) {
         free_resources(dhcp6_if);
+        unlink(pidfile);
 #ifdef LIBDHCP
         return;
 #else
         exit(0);
 #endif
     }
+
     sig_flags = 0;
 }
 
