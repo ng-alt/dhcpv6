@@ -48,6 +48,8 @@
 #include <err.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
+#include <signal.h>
+#include <sys/param.h>
 
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -80,6 +82,7 @@ struct dhcp6_binding {
     struct dhcp6_timer *timer;
 };
 
+static char pidfile[MAXPATHLEN];
 static char *device[100];
 static int num_device = 0;
 static int debug = 0;
@@ -104,6 +107,7 @@ struct rootgroup *globalgroup = NULL;
 
 #define DUID_FILE "/var/lib/dhcpv6/dhcp6s_duid"
 #define DHCP6S_CONF "/etc/dhcp6s.conf"
+#define DHCP6S_PIDFILE "/var/run/dhcpv6/dhcp6s.pid"
 
 #define DH6_VALID_MESSAGE(a) \
 	(a == DH6_SOLICIT || a == DH6_REQUEST || a == DH6_RENEW || \
@@ -156,25 +160,51 @@ static void random_init(void) {
     srandom(seed);
 }
 
-int main(argc, argv)
-     int argc;
-     char **argv;
-{
+static void server6_sighandler(int sig) {
+    dhcpv6_dprintf(LOG_INFO, FNAME "received a signal (%d)", sig);
+
+    switch (sig) {
+        case SIGTERM:
+        case SIGHUP:
+        case SIGINT:
+            dhcpv6_dprintf(LOG_INFO, FNAME "exiting");
+            unlink(pidfile);
+            exit(0);
+            break;
+        default:
+            break;
+    }
+}
+
+int main(int argc, char **argv) {
     int ch;
     struct in6_addr a;
     struct dhcp6_listval *dlv;
     char *progname, *conffile = DHCP6S_CONF;
+    FILE *pidfp = NULL;
+    pid_t pid;
 
-    if ((progname = strrchr(*argv, '/')) == NULL)
+    if ((progname = strrchr(*argv, '/')) == NULL) {
         progname = *argv;
-    else
+    } else {
         progname++;
+    }
+
+    strcpy(pidfile, DHCP6S_PIDFILE);
 
     TAILQ_INIT(&arg_dnslist.addrlist);
 
     random_init();
-    while ((ch = getopt(argc, argv, "c:dDfn:")) != -1) {
+    while ((ch = getopt(argc, argv, "c:dDfn:p:")) != -1) {
         switch (ch) {
+            case 'p':
+                if (strlen(optarg) >= MAXPATHLEN) {
+                    dhcpv6_dprintf(LOG_ERR, "pid file name is too long");
+                    exit(1);
+                }
+
+                strcpy(pidfile, optarg);
+                break;
             case 'c':
                 conffile = optarg;
                 break;
@@ -217,7 +247,15 @@ int main(argc, argv)
             err(1, "daemon");
         openlog(progname, LOG_NDELAY | LOG_PID, LOG_DAEMON);
     }
+
     setloglevel(debug);
+
+    /* dump current PID */
+    pid = getpid();
+    if ((pidfp = fopen(pidfile, "w")) != NULL) {
+        fprintf(pidfp, "%d\n", pid);
+        fclose(pidfp);
+    }
 
     server6_init();
     if ((server6_lease_file = init_leases(PATH_SERVER6_LEASE)) == NULL) {
@@ -237,13 +275,34 @@ int main(argc, argv)
                        strerror(errno));
         exit(1);
     }
+
     memset(globalgroup, 0, sizeof(*globalgroup));
     TAILQ_INIT(&globalgroup->scope.dnslist.addrlist);
+
     if ((sfparse(conffile)) != 0) {
         dhcpv6_dprintf(LOG_ERR,
                        "%s" "failed to parse addr configuration file", FNAME);
         exit(1);
     }
+
+    if (signal(SIGHUP, server6_sighandler) == SIG_ERR) {
+        dhcpv6_dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
+                       FNAME, strerror(errno));
+        return -1;
+    }
+
+    if (signal(SIGTERM, server6_sighandler) == SIG_ERR) {
+        dhcpv6_dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
+                       FNAME, strerror(errno));
+        return -1;
+    }
+
+    if (signal(SIGINT, server6_sighandler) == SIG_ERR) {
+        dhcpv6_dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
+                       FNAME, strerror(errno));
+        return -1;
+    }
+
     server6_mainloop();
     exit(0);
 }
