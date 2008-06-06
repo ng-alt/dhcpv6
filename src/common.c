@@ -712,6 +712,10 @@ int get_duid(const char *idfile, const char *ifname, struct duid *duid) {
         }
     } else {
         len = calculate_duid_len(ifname, &hwtype);
+
+        if (len == 0) {
+            goto fail;
+        }
     }
 
     memset(duid, 0, sizeof(*duid));
@@ -771,6 +775,10 @@ int save_duid(const char *idfile, const char *ifname, struct duid *duid) {
 
     /* calculate DUID length */
     len = calculate_duid_len(ifname, &hwtype);
+
+    if (len == 0) {
+        goto fail;
+    }
 
     /* save the (new) ID to the file for next time */
 #ifdef LIBDHCP
