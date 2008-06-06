@@ -287,7 +287,7 @@ update_resolver(struct dns_list *dns_list)
 				break;
 			for (oldlist = dhcp6_if->dnslist.domainlist; oldlist; 
 			     oldlist = oldlist->next) {
-				if (strcmp(oldlist->name, dlist->name) == 0) {
+				if (strcasecmp(oldlist->name, dlist->name) == 0) {
 					found = 1;
 					dhcpv6_dprintf(LOG_DEBUG, "%s" "domain name %s found in " 
 						"resolv.conf", FNAME, dlist->name);
