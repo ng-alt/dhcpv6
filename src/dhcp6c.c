@@ -776,59 +776,65 @@ static int client6_ifinit(char *device) {
     duidcpy(&client6_iaidaddr.client6_info.clientid, &client_duid);
     save_duid(DUID_FILE, device, &client_duid);
 
+    if (!(ifp->send_flags & DHCIFF_INFO_ONLY) &&
+            !(client6_request_flag & CLIENT6_INFO_REQ) &&
+            ((ifp->ra_flag & IF_RA_MANAGED) ||
+            !(ifp->ra_flag & IF_RA_OTHERCONF))) {
 #ifdef LIBDHCP
-    if (libdhcp_control
-        && (libdhcp_control->capability & DHCP_USE_LEASE_DATABASE)) {
+        if (libdhcp_control
+            && (libdhcp_control->capability & DHCP_USE_LEASE_DATABASE)) {
 #endif
-        /* parse the lease file */
-        strcpy(leasename, PATH_CLIENT6_LEASE);
-        sprintf(iaidstr, "%u", ifp->iaidinfo.iaid);
-        strcat(leasename, iaidstr);
+            /* parse the lease file */
+            strcpy(leasename, PATH_CLIENT6_LEASE);
+            sprintf(iaidstr, "%u", ifp->iaidinfo.iaid);
+            strcat(leasename, iaidstr);
 
-        if ((client6_lease_file = init_leases(leasename)) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "%s" "failed to parse lease file", FNAME);
-            return -1;
-        }
-
-        strcpy(client6_lease_temp, leasename);
-        strcat(client6_lease_temp, "XXXXXX");
-        client6_lease_file =
-            sync_leases(client6_lease_file, leasename, client6_lease_temp);
-
-        if (client6_lease_file == NULL) {
-            return -1;
-        }
-#ifdef LIBDHCP
-    }
-#endif
-
-    if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
-        struct dhcp6_listval *lv;
-
-        if (!(client6_request_flag & CLIENT6_REQUEST_ADDR) &&
-            !(client6_request_flag & CLIENT6_RELEASE_ADDR)) {
-            client6_request_flag |= CLIENT6_CONFIRM_ADDR;
-        }
-
-        if (TAILQ_EMPTY(&request_list)) {
-            if (create_request_list(1) < 0) {
+            if ((client6_lease_file = init_leases(leasename)) == NULL) {
+                dhcpv6_dprintf(LOG_ERR, "%s" "failed to parse lease file",
+                               FNAME);
                 return -1;
             }
-        } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
-            for (lv = TAILQ_FIRST(&request_list); lv;
-                 lv = TAILQ_NEXT(lv, link)) {
-                if (dhcp6_find_lease(&client6_iaidaddr,
-                                     &lv->val_dhcp6addr) == NULL) {
-                    dhcpv6_dprintf(LOG_INFO, "this address %s is not"
-                                   " leased by this client",
-                                   in6addr2str(&lv->val_dhcp6addr.addr, 0));
+
+            strcpy(client6_lease_temp, leasename);
+            strcat(client6_lease_temp, "XXXXXX");
+            client6_lease_file = sync_leases(client6_lease_file,
+                                             leasename, client6_lease_temp);
+
+            if (client6_lease_file == NULL) {
+                return -1;
+            }
+#ifdef LIBDHCP
+        }
+#endif
+
+        if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
+            struct dhcp6_listval *lv;
+
+            if (!(client6_request_flag & CLIENT6_REQUEST_ADDR) &&
+                !(client6_request_flag & CLIENT6_RELEASE_ADDR)) {
+                client6_request_flag |= CLIENT6_CONFIRM_ADDR;
+            }
+
+            if (TAILQ_EMPTY(&request_list)) {
+                if (create_request_list(1) < 0) {
                     return -1;
                 }
+            } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
+                for (lv = TAILQ_FIRST(&request_list); lv;
+                     lv = TAILQ_NEXT(lv, link)) {
+                    if (dhcp6_find_lease(&client6_iaidaddr,
+                                         &lv->val_dhcp6addr) == NULL) {
+                        dhcpv6_dprintf(LOG_INFO, "this address %s is not"
+                                       " leased by this client",
+                                       in6addr2str(&lv->val_dhcp6addr.addr, 0));
+                        return -1;
+                    }
+                }
             }
+        } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
+            dhcpv6_dprintf(LOG_INFO, "no ipv6 addresses are leased by client");
+            return -1;
         }
-    } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
-        dhcpv6_dprintf(LOG_INFO, "no ipv6 addresses are leased by client");
-        return -1;
     }
 
     ifp->link_flag |= IFF_RUNNING;
