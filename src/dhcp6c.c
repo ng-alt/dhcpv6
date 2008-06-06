@@ -733,9 +733,12 @@ int get_if_rainfo(struct dhcp6_if *ifp) {
             }
 
             link = rtnl_link_get(cache, rtnl_addr_get_ifindex(raddr));
-            ifp->ra_flag = rtnl_link_get_flags(link);
-            rtnl_link_put(link);
-            rtnl_addr_put(raddr);
+
+            if (link) {
+                ifp->ra_flag = rtnl_link_get_flags(link);
+                rtnl_link_put(link);
+                rtnl_addr_put(raddr);
+            }
         }
     } while ((obj = nl_cache_get_next(obj)) != NULL);
 
