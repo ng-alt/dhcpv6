@@ -37,6 +37,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <sys/param.h>
 
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -51,13 +52,10 @@
 #include "relay6_database.h"
 
 FILE *dump;
+static char pidfile[MAXPATHLEN];
 
-int main(argc, argv)
-     int argc;
-     char **argv;
-{
+int main(int argc, char **argv) {
     int err = 0, i;
-    FILE *fp;
     int sw = 0;
     int du = 0;
     struct interface *iface;
@@ -68,17 +66,15 @@ int main(argc, argv)
     struct IPv6_uniaddr *unia;
     struct server *sa;
     struct msg_parser *mesg;
+    FILE *pidfp = NULL;
+    pid_t pid;
+
+    strcpy(pidfile, DHCP6R_PIDFILE);
 
     dump = stderr;
-    fp = fopen(PIDFILE, "w+");
-    if (fp == NULL) {
-        TRACE(dump, "could not write pid file\n");
-        exit(1);
-    }
-    fprintf(fp, "%d", getpid());
-    fclose(fp);
-
     signal(SIGINT, handler);
+    signal(SIGTERM, handler);
+    signal(SIGHUP, handler);
     init_relay();
 
     /* Specify a file stream for logging */
@@ -88,6 +84,7 @@ int main(argc, argv)
                 du = 1;
         }
     }
+
     if (du == 0) {
         FILE *tmp_dump;
 
@@ -105,8 +102,22 @@ int main(argc, argv)
     for (i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-d") == 0) {
             continue;
+        } else if (strcmp(argv[i], "-p") == 0) {
+            i++;
+
+            if (i < argc) {
+                if (strlen(argv[i]) >= MAXPATHLEN) {
+                    TRACE(dump, "pid file name is too long\n");
+                    exit(1);
+                }
+
+                strcpy(pidfile, argv[i]);
+            } else {
+                command_text();
+            }
         } else if (strcmp(argv[i], "-cm") == 0) {
             i++;
+
             if (get_interface_s(argv[i]) == NULL) {
                 err = 5;
                 goto ERROR;
@@ -114,11 +125,13 @@ int main(argc, argv)
 
             sw = 1;
             ci = (struct cifaces *) malloc(sizeof(struct cifaces));
+
             if (ci == NULL) {
                 TRACE(dump, "%s - %s ", dhcp6r_clock(),
                       "main--> error no more memory available\n");
                 exit(1);
             }
+
             ci->ciface = strdup(argv[i]);
             ci->next = cifaces_list.next;
             cifaces_list.next = ci;
@@ -130,16 +143,20 @@ int main(argc, argv)
             multicast_off = 1;
         } else if (strcmp(argv[i], "-sm") == 0) {
             i++;
+
             if (get_interface_s(argv[i]) == NULL) {
                 err = 5;
                 goto ERROR;
             }
+
             si = (struct sifaces *) malloc(sizeof(struct sifaces));
+
             if (si == NULL) {
                 TRACE(dump, "%s - %s", dhcp6r_clock(),
                       "main--> error no more memory available\n");
                 exit(1);
             }
+
             si->siface = strdup(argv[i]);
             si->next = sifaces_list.next;
             sifaces_list.next = si;
@@ -150,6 +167,7 @@ int main(argc, argv)
             continue;
         } else if (strcmp(argv[i], "-su") == 0) {
             i++;
+
             /* destination address */
             if (inet_pton(AF_INET6, argv[i], &sin6.sin6_addr) <= 0) {
                 err = 3;
@@ -163,11 +181,13 @@ int main(argc, argv)
 
             unia = (struct IPv6_uniaddr *)
                 malloc(sizeof(struct IPv6_uniaddr));
+
             if (unia == NULL) {
                 TRACE(dump, "%s - %s", dhcp6r_clock(),
                       "main--> error no more memory available\n");
                 exit(1);
             }
+
             unia->uniaddr = strdup(argv[i]);
             unia->next = IPv6_uniaddr_list.next;
             IPv6_uniaddr_list.next = unia;
@@ -180,13 +200,15 @@ int main(argc, argv)
         } else if (strcmp(argv[i], "-sf") == 0) {
             i++;
             sf = strdup(argv[i]);
-
             eth = strtok(sf, "+");
+
             if (eth == NULL) {
                 err = 4;
                 goto ERROR;
             }
+
             addr = strtok((sf + strlen(eth) + 1), "\0");
+
             if (addr == NULL) {
                 err = 4;
                 goto ERROR;
@@ -205,15 +227,20 @@ int main(argc, argv)
 
             if ((iface = get_interface_s(eth)) != NULL) {
                 sa = (struct server *) malloc(sizeof(struct server));
+
                 if (sa == NULL) {
                     TRACE(dump, "%s - %s", dhcp6r_clock(),
                           "main--> no more memory available\n");
                     exit(1);
                 }
+
                 sa->serv = strdup(addr);
                 sa->next = NULL;
-                if (iface->sname != NULL)
+
+                if (iface->sname != NULL) {
                     sa->next = iface->sname;
+                }
+
                 iface->sname = sa;
                 TRACE(dump, "%s - %s%s for interface: %s\n",
                       dhcp6r_clock(),
@@ -257,6 +284,14 @@ int main(argc, argv)
         }
     }
 
+    if ((pidfp = fopen(pidfile, "w+")) == NULL) {
+        TRACE(dump, "could not write pid file\n");
+        exit(1);
+    }
+
+    fprintf(pidfp, "%d\n", getpid());
+    fclose(pidfp);
+
     while (1) {
         if (check_select() == 1) {
             if (recv_data() == 1) {
@@ -294,7 +329,7 @@ int main(argc, argv)
 
 void command_text() {
     printf("Usage:\n");
-    printf("       dhcp6r [-d] [-cu] [-cm <interface>] [-sm <interface>] "
+    printf("       dhcp6r [-p pidfile] [-d] [-cu] [-cm <interface>] [-sm <interface>] "
            "[-su <address>] [-sf <interface>+<address>] \n");
     exit(1);
 }
@@ -329,6 +364,7 @@ void handler(int signo) {
     TRACE(dump, "%s - %s", dhcp6r_clock(),
           "RELAY AGENT IS STOPPING............\n");
     fflush(dump);
+    unlink(pidfile);
 
     exit(0);
 }
