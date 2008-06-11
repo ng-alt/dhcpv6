@@ -33,12 +33,12 @@ dhcp6s \- DHCPv6 server daemon
 .SH SYNOPSIS
 .B dhcp6s
 [
-.B -dDf
-] [
-.B -n
-.I <address...>
+.B -vf
 ] [
 .B -c
+.I <pathspec>
+] [
+.B -p
 .I <pathspec>
 ]
 .I <interface>
@@ -53,6 +53,9 @@ configuration information for DHCPv6 clients. dhcp6s also manages those
 addresses and prefixes, such as IPv6 addresses, prefixes, DNS server
 addresses, or ntp server addresses.
 
+Interface names are specified according to your operating system's
+conventions.  On Linux, this is typically eth0, eth1, and so on.
+
 .SH OPTIONS
 .TP
 .BI \-c\ pathspec
@@ -61,13 +64,13 @@ Specifies the
 configuration file.
 
 .TP
-.BI \-d
-Enables
+.BI \-p\ pathspec
+Specifies the
 .B dhcp6s
-to print debugging messages.
+PID file.
 
 .TP
-.BI \-D
+.BI \-v
 Enables
 .B dhcp6s
 to print verbose debugging messages.
@@ -77,12 +80,6 @@ to print verbose debugging messages.
 Enables
 .B dhcp6s
 to work as a foreground application.  This option is helpful for debugging.
-
-.TP
-.BI \-n\ <address...>
-Allows
-.B dhcp6s
-to parse DNS server addresses from command line.
 
 .SH FILES
 .TP
