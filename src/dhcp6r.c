@@ -51,6 +51,8 @@
 #include "relay6_socket.h"
 #include "relay6_database.h"
 
+#define DHCP6R_PIDFILE "/var/run/dhcpv6/dhcp6r.pid"
+
 FILE *dump;
 static char pidfile[MAXPATHLEN];
 
