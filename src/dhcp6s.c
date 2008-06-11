@@ -182,7 +182,6 @@ int main(int argc, char **argv) {
     struct dhcp6_listval *dlv;
     char *progname, *conffile = DHCP6S_CONF;
     FILE *pidfp = NULL;
-    pid_t pid;
 
     if ((progname = strrchr(*argv, '/')) == NULL) {
         progname = *argv;
@@ -195,7 +194,7 @@ int main(int argc, char **argv) {
     TAILQ_INIT(&arg_dnslist.addrlist);
 
     random_init();
-    while ((ch = getopt(argc, argv, "c:dDfn:p:")) != -1) {
+    while ((ch = getopt(argc, argv, "c:vfn:p:")) != -1) {
         switch (ch) {
             case 'p':
                 if (strlen(optarg) >= MAXPATHLEN) {
@@ -208,67 +207,56 @@ int main(int argc, char **argv) {
             case 'c':
                 conffile = optarg;
                 break;
-            case 'd':
-                debug = 1;
-                break;
-            case 'D':
+            case 'v':
                 debug = 2;
                 break;
             case 'f':
                 foreground++;
                 break;
-            case 'n':
-                warnx("-n dnsserv option was obsoleted.  "
-                      "use configuration file.");
-                if (inet_pton(AF_INET6, optarg, &a) != 1) {
-                    errx(1, "invalid DNS server %s", optarg);
-                    /* NOTREACHED */
-                }
-                if ((dlv = malloc(sizeof *dlv)) == NULL) {
-                    errx(1, "malloc failed for a DNS server");
-                    /* NOTREACHED */
-                }
-                dlv->val_addr6 = a;
-                TAILQ_INSERT_TAIL(&arg_dnslist.addrlist, dlv, link);
-                break;
             default:
                 usage(argv[0]);
                 exit(0);
-                /* NOTREACHED */
         }
     }
+
     while (optind < argc) {
         device[num_device] = argv[optind++];
         num_device += 1;
     }
 
     if (foreground == 0) {
-        if (daemon(0, 0) < 0)
+        if (daemon(0, 0) < 0) {
             err(1, "daemon");
+        }
+
         openlog(progname, LOG_NDELAY | LOG_PID, LOG_DAEMON);
     }
 
     setloglevel(debug);
 
     /* dump current PID */
-    pid = getpid();
     if ((pidfp = fopen(pidfile, "w")) != NULL) {
-        fprintf(pidfp, "%d\n", pid);
+        fprintf(pidfp, "%d\n", getpid());
         fclose(pidfp);
     }
 
     server6_init();
+
     if ((server6_lease_file = init_leases(PATH_SERVER6_LEASE)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to parse lease file", FNAME);
         exit(1);
     }
+
     strcpy(server6_lease_temp, PATH_SERVER6_LEASE);
     strcat(server6_lease_temp, "XXXXXX");
     server6_lease_file =
         sync_leases(server6_lease_file, PATH_SERVER6_LEASE,
                     server6_lease_temp);
-    if (server6_lease_file == NULL)
+
+    if (server6_lease_file == NULL) {
         exit(1);
+    }
+
     globalgroup = (struct rootgroup *) malloc(sizeof(struct rootgroup));
     if (globalgroup == NULL) {
         dhcpv6_dprintf(LOG_ERR, "failed to allocate memory %s",
@@ -308,11 +296,15 @@ int main(int argc, char **argv) {
 }
 
 static void usage(char *name) {
-    fprintf(stderr,
-            "Usage: %s [-c configfile] [-dDf] [interface]\n", basename(name));
+    fprintf(stderr, "Usage: %s [options] [interface]\n", basename(name));
+    fprintf(stderr, "Options:\n");
+    fprintf(stderr, "    -c PATH        Configuration file (e.g., /etc/dhcp6s.conf\n");
+    fprintf(stderr, "    -p PATH        PID file name (default: %s)\n", DHCP6S_PIDFILE);
+    fprintf(stderr, "    -v             Verbose debugging output\n");
+    fprintf(stderr, "    -f             Run server as a foreground process\n");
+    fflush(stderr);
+    return;
 }
-
-/*------------------------------------------------------------*/
 
 void server6_init() {
     struct addrinfo hints;
