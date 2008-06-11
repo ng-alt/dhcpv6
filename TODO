@@ -7,15 +7,6 @@
 
 - Can hash.c be replaced with a standard system offering?
 
-- Update the README file and other documentation
-
-- Update man pages
-
-- Replace netlink.c with libnl
-      get_if_rainfo
-          calls libnl and adds to ralist in dhcp6_if
-          calls libnl and sets ra_flag in dhcp6_if
-
 - Replace all .l files with a single lexer with multiple state paths depending
   on what we're reading.
 
@@ -53,6 +44,16 @@
 - Do not trust the client with rapid-commit, if server conf does not have it,
   don't allow it
 
-- gcc_intrin.h should be working for ia64, so the hack can be removed
-
 - dhcp6s does not work multiple relay servers, only one
+
+- Use getopt() in dhcp6r, update usage() screen to match client and server
+
+- Update dhcp6r man page after usage() screen update
+
+- Fix the debug=1 and debug=2 log output
+
+- Support ddns updates in dhcp6c somehow (need to figure out how ddns works)
+
+- valgrind and gcc -Wall checks
+
+- Remove libdhcp6client
