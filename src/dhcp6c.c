@@ -443,10 +443,10 @@ static void usage(char *name) {
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "    -c PATH        Configuration file (e.g., /etc/dhcp6c.conf)\n");
     fprintf(stderr, "    -p PATH        PID file name (default: %s)\n", DHCP6C_PIDFILE);
-    fprintf(stderr, "    -r ADDR...     Release the specified addresses (either \"all\" or named addresses)\n");
+    fprintf(stderr, "    -r ADDR...     Release the specified addresses (either \"all\" or\n                    named addresses)\n");
     fprintf(stderr, "    -R ADDR...     Request the specified IANA address(es)\n");
     fprintf(stderr, "    -P ADDR...     Request the specified IAPD address(es)\n");
-    fprintf(stderr, "    -I             Request information only from the server\n");
+    fprintf(stderr, "    -I             Request only information from the server\n");
     fprintf(stderr, "    -v             Verbose debugging output\n");
     fprintf(stderr, "    -f             Run client as a foreground process\n");
     fprintf(stderr, "IANA is identiy association named address.\n");
