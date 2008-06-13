@@ -895,20 +895,6 @@ static int server6_react_message(struct dhcp6_if *ifp,
                 goto fail;
             }
 
-            /* DNS server */
-            if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
-                if (dhcp6_copy_list(&roptinfo.dns_list.addrlist,
-                                    &dnslist.addrlist)) {
-                    dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy DNS servers",
-                                   FNAME);
-                    goto fail;
-                }
-            }
-
-            if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
-                roptinfo.dns_list.domainlist = dnslist.domainlist;
-            }
-
             break;
         case DH6_REQUEST:
             /* get iaid for that request client for that interface */
@@ -945,24 +931,7 @@ static int server6_react_message(struct dhcp6_if *ifp,
 
             if (dh6->dh6_msgtype == DH6_RENEW ||
                 dh6->dh6_msgtype == DH6_REBIND) {
-                /* DNS server */
                 addr_flag = ADDR_VALIDATE;
-
-                if (dhcp6_has_option(&optinfo->reqopt_list,
-                                     DH6OPT_DNS_SERVERS)) {
-                    if (dhcp6_copy_list(&roptinfo.dns_list.addrlist,
-                                        &dnslist.addrlist)) {
-                        dhcpv6_dprintf(LOG_ERR,
-                                       "%s" "failed to copy DNS servers",
-                                       FNAME);
-                        goto fail;
-                    }
-                }
-
-                if (dhcp6_has_option(&optinfo->reqopt_list,
-                                     DH6OPT_DOMAIN_LIST)) {
-                    roptinfo.dns_list.domainlist = dnslist.domainlist;
-                }
             }
 
             if (dh6->dh6_msgtype == DH6_DECLINE)
@@ -1116,19 +1085,32 @@ static int server6_react_message(struct dhcp6_if *ifp,
             }
         }
 
-        /* DNS server */
-        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
-            if (dhcp6_copy_list(&roptinfo.dns_list.addrlist,
-                                &dnslist.addrlist)) {
-                dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy DNS servers",
-                               FNAME);
-                goto fail;
-            }
-        }
+        /* Options regarding DNS */
+        switch (dh6->dh6_msgtype) {
+            case DH6_SOLICIT:
+            case DH6_REQUEST:
+            case DH6_RENEW:
+            case DH6_REBIND:
+            case DH6_INFORM_REQ:
+                /* DNS Recursive Name Server option */
+                if (dhcp6_has_option(&optinfo->reqopt_list,
+                                     DH6OPT_DNS_SERVERS)) {
+                    if (dhcp6_copy_list(&roptinfo.dns_list_addrlist,
+                                        &dnslist.addrlist)) {
+                        dhcpv6_dprintf(LOG_ERR,
+                                       "%s" "failed to copy DNS servers",
+                                       FNAME);
+                        goto fail;
+                    }
+                }
 
-        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
-            roptinfo.dns_list.domainlist = dnslist.domainlist;
-        }
+                /* Domain Search List option */
+                if (dhcp6_has_option(&optinfo->reqopt_list,
+                                     DH6OPT_DOMAIN_LIST)) {
+                    roptinfo.dns_list.domainlist = dnslist.domainlist;
+                }
+
+                break;
     }
 
     /* add address status code */
