@@ -136,6 +136,7 @@ static struct duid client_duid;
 static void usage __P((char *name));
 static int client6_init __P((char *));
 static int client6_ifinit __P((char *));
+static iatype_t iatype_of_if __P((struct dhcp6_if *));
 void free_servers __P((struct dhcp6_if *));
 static void free_resources __P((struct dhcp6_if *));
 static int create_request_list __P((int));
@@ -897,6 +898,16 @@ static int client6_ifinit(char *device) {
     return 0;
 }
 
+static iatype_t iatype_of_if(struct dhcp6_if *ifp) {
+    if (ifp-send_flags & DHCIFF_PREFIX_DELEGATION) {
+        return IAPD;
+    } else if (ifp->send_flags & DHCIFF_TEMP_ADDRS) {
+        return IATA;
+    } else {
+        return IANA;
+    }
+}
+
 static void free_resources(struct dhcp6_if *ifp) {
     struct dhcp6_event *ev, *ev_next;
     struct dhcp6_lease *sp, *sp_next;
@@ -1335,18 +1346,15 @@ void client6_send(ev)
                 memcpy(&optinfo.iaidinfo,
                        &client6_iaidaddr.client6_info.iaidinfo,
                        sizeof(optinfo.iaidinfo));
-                if (ifp->send_flags & DHCIFF_PREFIX_DELEGATION)
-                    optinfo.type = IAPD;
-                else if (ifp->send_flags & DHCIFF_TEMP_ADDRS)
-                    optinfo.type = IATA;
-                else
-                    optinfo.type = IANA;
+                optinfo.type = iatype_of_if(ifp);
             }
+
             /* support for client preferred ipv6 address */
             if (client6_request_flag & CLIENT6_REQUEST_ADDR) {
                 if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
                     goto end;
             }
+
             break;
         case DHCP6S_REQUEST:
             if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
@@ -1355,13 +1363,9 @@ void client6_send(ev)
                        sizeof(optinfo.iaidinfo));
                 dhcpv6_dprintf(LOG_DEBUG, "%s IAID is %u", FNAME,
                                optinfo.iaidinfo.iaid);
-                if (ifp->send_flags & DHCIFF_TEMP_ADDRS)
-                    optinfo.type = IATA;
-                else if (ifp->send_flags & DHCIFF_PREFIX_DELEGATION)
-                    optinfo.type = IAPD;
-                else
-                    optinfo.type = IANA;
+                optinfo.type = iatype_of_if(ifp);
             }
+
             break;
         case DHCP6S_RENEW:
         case DHCP6S_REBIND:
