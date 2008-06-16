@@ -77,6 +77,21 @@ struct host_conf *host_conflist;
 #else
 static struct host_conf *host_conflist;
 #endif
+
+#define DPRINT_STATUS_CODE(object, num, optp, optlen) \
+do { \
+    dhcpv6_dprintf(LOG_INFO, \
+                   "status code of this %s is: %d - %s", \
+                   (object), (num), dhcp6_stcodestr((num))); \
+    if ((optp) != NULL && (optlen) > sizeof(u_int16_t)) { \
+        dhcpv6_dprintf(LOG_INFO, \
+                       "status message of this %s is: %-*s", \
+                       (object), \
+                       (optlen) - (int) sizeof(u_int16_t), \
+                       (char *) (optp) + sizeof(u_int16_t)); \
+    } \
+} while (0)
+
 static int in6_matchflags __P((struct sockaddr *, size_t, char *, int));
 ssize_t gethwid __P((unsigned char *, int, const char *, u_int16_t *));
 static int get_assigned_ipv6addrs __P((unsigned char *, unsigned char *,
@@ -1028,10 +1043,7 @@ int dhcp6_get_options(p, ep, optinfo)
                     goto malformed;
                 memcpy(&val16, cp, sizeof(val16));
                 num = ntohs(val16);
-                dhcpv6_dprintf(LOG_DEBUG, "  this message status code: %d %s",
-                               num, dhcp6_stcodestr(num));
-
-                /* XXX: status message */
+                DPRINT_STATUS_CODE("message", num, p, optlen);
 
                 /* need to check duplication? */
 
@@ -1250,14 +1262,7 @@ static int get_assigned_ipv6addrs(p, ep, optinfo)
                     goto malformed;
                 memcpy(&val16, cp, sizeof(val16));
                 num = ntohs(val16);
-                dhcpv6_dprintf(LOG_INFO, "status code for this IA is: %s",
-                               dhcp6_stcodestr(num));
-                if (optlen > sizeof(val16)) {
-                    dhcpv6_dprintf(LOG_INFO,
-                                   "status message for this IA is: %-*s",
-                                   (int) (optlen - sizeof(val16)),
-                                   p + (val16));
-                }
+                DPRINT_STATUS_CODE("IA", num, p, optlen);
                 optinfo->ia_stcode = num;
                 /* XXX: need to check duplication? */
                 if (dhcp6_add_listval(&optinfo->stcode_list,
@@ -1306,16 +1311,8 @@ static int get_assigned_ipv6addrs(p, ep, optinfo)
                         memcpy(&val16, p + sizeof(ai) + sizeof(opth),
                                sizeof(val16));
                         num = ntohs(val16);
-                        dhcpv6_dprintf(LOG_INFO,
-                                       "status code for this address is: %s",
-                                       dhcp6_stcodestr(num));
+                        DPRINT_STATUS_CODE("address", num, p, optlen);
                         addr6.status_code = num;
-                        if (optlen > sizeof(val16)) {
-                            dhcpv6_dprintf(LOG_INFO,
-                                           "status message for this address is: %-*s",
-                                           (int) (optlen - sizeof(val16)),
-                                           p + (val16));
-                        }
                         break;
                     default:
                         goto malformed;
@@ -1360,16 +1357,8 @@ static int get_assigned_ipv6addrs(p, ep, optinfo)
                         memcpy(&val16, p + sizeof(pi) + sizeof(opth),
                                sizeof(val16));
                         num = ntohs(val16);
-                        dhcpv6_dprintf(LOG_INFO,
-                                       "status code for this prefix is: %s",
-                                       dhcp6_stcodestr(num));
+                        DPRINT_STATUS_CODE("prefix", num, p, optlen);
                         addr6.status_code = num;
-                        if (optlen > sizeof(val16)) {
-                            dhcpv6_dprintf(LOG_INFO,
-                                           "status message for this prefix is: %-*s",
-                                           (int) (optlen - sizeof(val16)),
-                                           p + (val16));
-                        }
                         break;
                     default:
                         goto malformed;
