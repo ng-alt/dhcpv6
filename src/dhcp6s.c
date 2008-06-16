@@ -920,22 +920,25 @@ static int server6_react_message(struct dhcp6_if *ifp,
              */
             roptinfo.type = optinfo->type;
 
-            /* XXX: how server know the diff between rebind_confirm and
-               rebind for prefix delegation? */
-            if (dh6->dh6_msgtype == DH6_RENEW
-                || dh6->dh6_msgtype == DH6_REBIND)
-                addr_flag = ADDR_UPDATE;
-
-            if (dh6->dh6_msgtype == DH6_RELEASE)
-                addr_flag = ADDR_REMOVE;
-
-            if (dh6->dh6_msgtype == DH6_RENEW ||
-                dh6->dh6_msgtype == DH6_REBIND) {
-                addr_flag = ADDR_VALIDATE;
+            switch (dh6->dh6_msgtype) {
+                case DH6_CONFIRM:
+                    addr_flag = ADDR_VALIDATE;
+                    break;
+                case DH6_RENEW:
+                case DH6_REBIND:
+                    /*
+                     * XXX: how server know the diff between rebind_confirm and
+                     * rebind for prefix delegation?
+                     */
+                    addr_flag = ADDR_UPDATE;
+                    break;
+                case DH6_RELEASE:
+                    addr_flag = ADDR_REMOVE;
+                    break;
+                case DH6_DECLINE:
+                    addr_flag = ADDR_ABANDON;
+                    break;
             }
-
-            if (dh6->dh6_msgtype == DH6_DECLINE)
-                addr_flag = ADDR_ABANDON;
 
             if (optinfo->iaidinfo.iaid != 0) {
                 if (!TAILQ_EMPTY(&optinfo->addr_list) &&
@@ -999,6 +1002,11 @@ static int server6_react_message(struct dhcp6_if *ifp,
                             num = DH6OPT_STCODE_NOTONLINK;
                         break;
                     } else {
+                        if (dhcp6_validate_bindings(&roptinfo, iaidaddr)) {
+                            num = DH6OPT_STCODE_UNDEFINE;
+                            break;
+                        }
+
                         /* do update if this is not a confirm */
                         if (dhcp6_update_iaidaddr(&roptinfo, addr_flag) != 0) {
                             dhcpv6_dprintf(LOG_INFO,
