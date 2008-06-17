@@ -873,7 +873,7 @@ static int server6_react_message(struct dhcp6_if *ifp,
 
     /* the message must include a Client Identifier option */
     if (optinfo->clientID.duid_len == 0) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "no server ID option", FNAME);
+        dhcpv6_dprintf(LOG_INFO, "%s" "no client ID option", FNAME);
         return -1;
     } else {
         dhcpv6_dprintf(LOG_DEBUG, "%s" "client ID %s", FNAME,
