@@ -69,7 +69,6 @@ int main(int argc, char **argv) {
     struct server *sa;
     struct msg_parser *mesg;
     FILE *pidfp = NULL;
-    pid_t pid;
 
     strcpy(pidfile, DHCP6R_PIDFILE);
 

@@ -640,7 +640,6 @@ int get_if_rainfo(struct dhcp6_if *ifp) {
     struct rtnl_link *link = NULL;
     struct nl_addr *addr = NULL;
     char buf[INET6_ADDRSTRLEN+1];
-    char *pos = NULL;
     struct in6_addr *tmpaddr = NULL;
     struct ra_info *rainfo = NULL, *ra = NULL, *ra_prev = NULL;
 

@@ -186,8 +186,6 @@ static void server6_sighandler(int sig) {
 
 int main(int argc, char **argv) {
     int ch;
-    struct in6_addr a;
-    struct dhcp6_listval *dlv;
     char *progname, *conffile = DHCP6S_CONF;
     FILE *pidfp = NULL;
 

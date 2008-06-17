@@ -911,7 +911,6 @@ int save_duid(const char *idfile, const char *ifname, struct duid *duid) {
 u_int16_t calculate_duid_len(const char *ifname, u_int16_t * hwtype) {
     int l;
     u_int16_t ret = 0;
-    struct dhcp6_duid_type1 *dp;        /* we only support the type1 DUID */
     unsigned char tmpbuf[256];  /* DUID should be no more than 256 bytes */
 
     if ((l = gethwid(tmpbuf, sizeof(tmpbuf), ifname, hwtype)) < 0) {
