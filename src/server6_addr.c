@@ -74,7 +74,7 @@ __P((struct dhcp6_if *, struct rootgroup *, struct in6_addr *));
 struct host_decl *dhcp6_allocate_host
 __P((struct dhcp6_if *, struct rootgroup *, struct dhcp6_optinfo *));
 int dhcp6_get_hostconf
-__P((struct dhcp6_optinfo *, struct dhcp6_optinfo *, struct dhcp6_iaidaddr *,
+__P((struct ia_listval *, struct ia_listval *, struct dhcp6_iaidaddr *,
      struct host_decl *));
 
 struct host_decl
@@ -95,8 +95,9 @@ struct host_decl
 }
 
 /* for request/solicit rapid commit */
-int dhcp6_add_iaidaddr(optinfo)
+int dhcp6_add_iaidaddr(optinfo, ia)
      struct dhcp6_optinfo *optinfo;
+     struct ia_listval *ia;
 {
     struct dhcp6_iaidaddr *iaidaddr;
     struct dhcp6_listval *lv, *lv_next = NULL;
@@ -110,21 +111,21 @@ int dhcp6_add_iaidaddr(optinfo)
     }
     memset(iaidaddr, 0, sizeof(*iaidaddr));
     duidcpy(&iaidaddr->client6_info.clientid, &optinfo->clientID);
-    iaidaddr->client6_info.iaidinfo.iaid = optinfo->iaidinfo.iaid;
-    iaidaddr->client6_info.type = optinfo->type;
+    iaidaddr->client6_info.iaidinfo.iaid = ia->iaidinfo.iaid;
+    iaidaddr->client6_info.type = ia->type;
     TAILQ_INIT(&iaidaddr->lease_list);
     /* add new leases */
-    for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
+    for (lv = TAILQ_FIRST(&ia->addr_list); lv; lv = lv_next) {
         lv_next = TAILQ_NEXT(lv, link);
         if ((hash_search(lease_hash_table, (void *) &lv->val_dhcp6addr)) !=
             NULL) {
             dhcpv6_dprintf(LOG_INFO, "%s" "address for %s has been used",
                            FNAME, in6addr2str(&lv->val_dhcp6addr.addr, 0));
-            TAILQ_REMOVE(&optinfo->addr_list, lv, link);
+            TAILQ_REMOVE(&ia->addr_list, lv, link);
             continue;
         }
         if (dhcp6_add_lease(iaidaddr, &lv->val_dhcp6addr) != 0)
-            TAILQ_REMOVE(&optinfo->addr_list, lv, link);
+            TAILQ_REMOVE(&ia->addr_list, lv, link);
     }
     /* it's meaningless to have an iaid without any leases */
     if (TAILQ_EMPTY(&iaidaddr->lease_list)) {
@@ -197,15 +198,17 @@ int dhcp6_remove_iaidaddr(iaidaddr)
 }
 
 struct dhcp6_iaidaddr
- *dhcp6_find_iaidaddr(optinfo)
-     struct dhcp6_optinfo *optinfo;
+ *dhcp6_find_iaidaddr(clientID, iaid, type)
+    struct duid *clientID;
+    u_int32_t iaid;
+    iatype_t type;
 {
     struct dhcp6_iaidaddr *iaidaddr;
     struct client6_if client6_info;
 
-    duidcpy(&client6_info.clientid, &optinfo->clientID);
-    client6_info.iaidinfo.iaid = optinfo->iaidinfo.iaid;
-    client6_info.type = optinfo->type;
+    duidcpy(&client6_info.clientid, clientID);
+    client6_info.iaidinfo.iaid = iaid;
+    client6_info.type = type;
     if ((iaidaddr =
          hash_search(server6_hash_table, (void *) &client6_info)) == NULL) {
         dhcpv6_dprintf(LOG_DEBUG,
@@ -245,8 +248,9 @@ int dhcp6_remove_lease(lease)
 }
 
 /* for renew/rebind/release/decline */
-int dhcp6_update_iaidaddr(optinfo, flag)
+int dhcp6_update_iaidaddr(optinfo, ia, flag)
      struct dhcp6_optinfo *optinfo;
+     struct ia_listval *ia;
      int flag;
 {
     struct dhcp6_iaidaddr *iaidaddr;
@@ -255,13 +259,14 @@ int dhcp6_update_iaidaddr(optinfo, flag)
     struct timeval timo;
     double d;
 
-    if ((iaidaddr = dhcp6_find_iaidaddr(optinfo)) == NULL) {
+    if ((iaidaddr = dhcp6_find_iaidaddr(&optinfo->clientID,
+                    ia->iaidinfo.iaid, ia->type)) == NULL) {
         return (-1);
     }
 
     if (flag == ADDR_UPDATE) {
         /* add or update new lease */
-        for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
+        for (lv = TAILQ_FIRST(&ia->addr_list); lv; lv = lv_next) {
             lv_next = TAILQ_NEXT(lv, link);
             dhcpv6_dprintf(LOG_DEBUG, "%s" "address is %s ", FNAME,
                            in6addr2str(&lv->val_dhcp6addr.addr, 0));
@@ -276,7 +281,7 @@ int dhcp6_update_iaidaddr(optinfo, flag)
         for (lease = TAILQ_FIRST(&iaidaddr->lease_list); lease;
              lease = lease_next) {
             lease_next = TAILQ_NEXT(lease, link);
-            if (!addr_on_addrlist(&optinfo->addr_list, &lease->lease_addr)) {
+            if (!addr_on_addrlist(&ia->addr_list, &lease->lease_addr)) {
                 dhcpv6_dprintf(LOG_DEBUG, "%s" "lease %s is not on the link",
                                FNAME, in6addr2str(&lease->lease_addr.addr,
                                                   0));
@@ -287,7 +292,7 @@ int dhcp6_update_iaidaddr(optinfo, flag)
                        iaidaddr->client6_info.iaidinfo.iaid);
     } else {
         /* remove leases */
-        for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = lv_next) {
+        for (lv = TAILQ_FIRST(&ia->addr_list); lv; lv = lv_next) {
             lv_next = TAILQ_NEXT(lv, link);
             lease = dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr);
             if (lease) {
@@ -331,18 +336,21 @@ int dhcp6_update_iaidaddr(optinfo, flag)
     return (0);
 }
 
-int dhcp6_validate_bindings(optinfo, iaidaddr)
-     struct dhcp6_optinfo *optinfo;
+int dhcp6_validate_bindings(addrlist, iaidaddr, update)
+     struct dhcp6_list *addrlist;
      struct dhcp6_iaidaddr *iaidaddr;
+     int update;
 {
     struct dhcp6_listval *lv;
 
     /* XXX: confirm needs to update bindings ?? */
-    for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
+    for (lv = TAILQ_FIRST(addrlist); lv; lv = TAILQ_NEXT(lv, link)) {
         if (dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr) == NULL) {
-            /* returns with lifetimes of 0 [RFC3315, Section 18.2.3] */
-            lv->val_dhcp6addr.validlifetime = 0;
-            lv->val_dhcp6addr.preferlifetime = 0;
+            if (update) {
+                /* returns with lifetimes of 0 [RFC3315, Section 18.2.3] */
+                lv->val_dhcp6addr.validlifetime = 0;
+                lv->val_dhcp6addr.preferlifetime = 0;
+            }
             return (-1);
         }
     }
@@ -594,18 +602,18 @@ static void create_tempaddr(prefix, plen, tempaddr)
     return;
 }
 
-int dhcp6_get_hostconf(roptinfo, optinfo, iaidaddr, host)
+int dhcp6_get_hostconf(ria, ia, iaidaddr, host)
      struct host_decl *host;
      struct dhcp6_iaidaddr *iaidaddr;
-     struct dhcp6_optinfo *optinfo, *roptinfo;
+     struct ia_listval *ria, *ia;
 {
-    struct dhcp6_list *reply_list = &roptinfo->addr_list;
+    struct dhcp6_list *reply_list = &ia->addr_list;
 
     if (!(host->hostscope.allow_flags & DHCIFF_TEMP_ADDRS)) {
-        roptinfo->iaidinfo.renewtime = host->hostscope.renew_time;
-        roptinfo->iaidinfo.rebindtime = host->hostscope.rebind_time;
-        roptinfo->type = optinfo->type;
-        switch (optinfo->type) {
+        ria->iaidinfo.renewtime = host->hostscope.renew_time;
+        ria->iaidinfo.rebindtime = host->hostscope.rebind_time;
+        ria->type = ia->type;
+        switch (ia->type) {
             case IANA:
                 dhcp6_copy_list(reply_list, &host->addrlist);
                 break;
@@ -619,22 +627,23 @@ int dhcp6_get_hostconf(roptinfo, optinfo, iaidaddr, host)
     return 0;
 }
 
-int dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
-     struct dhcp6_optinfo *roptinfo;
-     struct dhcp6_optinfo *optinfo;
+int dhcp6_create_addrlist(ria, ia, iaidaddr, subnet, ia_status_code)
+     struct ia_listval *ria;
+     struct ia_listval *ia;
      const struct dhcp6_iaidaddr *iaidaddr;
      const struct link_decl *subnet;
+     u_int16_t *ia_status_code;
 {
     struct dhcp6_listval *v6addr;
     struct v6addrseg *seg;
-    struct dhcp6_list *reply_list = &roptinfo->addr_list;
-    struct dhcp6_list *req_list = &optinfo->addr_list;
+    struct dhcp6_list *reply_list = &ria->addr_list;
+    struct dhcp6_list *req_list = &ia->addr_list;
     int numaddr;
     struct dhcp6_listval *lv, *lv_next = NULL;
 
-    roptinfo->iaidinfo.renewtime = subnet->linkscope.renew_time;
-    roptinfo->iaidinfo.rebindtime = subnet->linkscope.rebind_time;
-    roptinfo->type = optinfo->type;
+    ria->iaidinfo.renewtime = subnet->linkscope.renew_time;
+    ria->iaidinfo.rebindtime = subnet->linkscope.rebind_time;
+    ria->type = ia->type;
     /* check the duplication */
     for (lv = TAILQ_FIRST(req_list); lv; lv = lv_next) {
         lv_next = TAILQ_NEXT(lv, link);
@@ -645,7 +654,7 @@ int dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
     dhcp6_copy_list(reply_list, req_list);
     for (lv = TAILQ_FIRST(reply_list); lv; lv = lv_next) {
         lv_next = TAILQ_NEXT(lv, link);
-        lv->val_dhcp6addr.type = optinfo->type;
+        lv->val_dhcp6addr.type = ia->type;
         lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
         lv->val_dhcp6addr.status_msg = NULL;
     }
@@ -658,16 +667,18 @@ int dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
                 continue;
             if (IN6_IS_ADDR_RESERVED(&lv->val_dhcp6addr.addr) ||
                 is_anycast(&lv->val_dhcp6addr.addr, seg->prefix.plen)) {
+                numaddr += 1;
                 lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
                 dhcpv6_dprintf(LOG_DEBUG, "%s" " %s address not on link",
                                FNAME, in6addr2str(&lv->val_dhcp6addr.addr,
                                                   0));
+                *ia_status_code = DH6OPT_STCODE_NOTONLINK;
                 continue;
             }
-            lv->val_dhcp6addr.type = optinfo->type;
+            lv->val_dhcp6addr.type = ia->type;
             if (addr_on_segment(seg, &lv->val_dhcp6addr)) {
                 if (numaddr == 0) {
-                    lv->val_dhcp6addr.type = optinfo->type;
+                    lv->val_dhcp6addr.type = ia->type;
                     server6_get_addrpara(&lv->val_dhcp6addr, seg);
                     numaddr += 1;
                 } else {
@@ -676,10 +687,12 @@ int dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
                     lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOADDRAVAIL;
                 }
             } else {
+                numaddr += 1;
                 lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
                 dhcpv6_dprintf(LOG_DEBUG, "%s" " %s address not on link",
                                FNAME, in6addr2str(&lv->val_dhcp6addr.addr,
                                                   0));
+                *ia_status_code = DH6OPT_STCODE_NOTONLINK;
             }
         }
         if (iaidaddr != NULL) {
@@ -702,7 +715,7 @@ int dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
                         memset(v6addr, 0, sizeof(*v6addr));
                         memcpy(&v6addr->val_dhcp6addr, &cl->lease_addr,
                                sizeof(v6addr->val_dhcp6addr));
-                        v6addr->val_dhcp6addr.type = optinfo->type;
+                        v6addr->val_dhcp6addr.type = ia->type;
                         server6_get_addrpara(&v6addr->val_dhcp6addr, seg);
                         numaddr += 1;
                         TAILQ_INSERT_TAIL(reply_list, v6addr, link);
@@ -720,8 +733,8 @@ int dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
                 return (-1);
             }
             memset(v6addr, 0, sizeof(*v6addr));
-            v6addr->val_dhcp6addr.type = optinfo->type;
-            server6_get_newaddr(optinfo->type, &v6addr->val_dhcp6addr, seg);
+            v6addr->val_dhcp6addr.type = ia->type;
+            server6_get_newaddr(ia->type, &v6addr->val_dhcp6addr, seg);
             if (IN6_IS_ADDR_UNSPECIFIED(&v6addr->val_dhcp6addr.addr)) {
                 free(v6addr);
                 continue;
@@ -865,22 +878,23 @@ static void server6_get_addrpara(v6addr, seg)
     return;
 }
 
-int dhcp6_create_prefixlist(roptinfo, optinfo, iaidaddr, subnet)
-     struct dhcp6_optinfo *roptinfo;
-     const struct dhcp6_optinfo *optinfo;
+int dhcp6_create_prefixlist(ria, ia, iaidaddr, subnet, ia_status_code)
+     struct ia_listval *ria;
+     struct ia_listval *ia;
      const struct dhcp6_iaidaddr *iaidaddr;
      const struct link_decl *subnet;
+     u_int16_t *ia_status_code;
 {
     struct dhcp6_listval *v6addr;
     struct v6prefix *prefix6;
-    struct dhcp6_list *reply_list = &roptinfo->addr_list;
-    const struct dhcp6_list *req_list = &optinfo->addr_list;
+    struct dhcp6_list *reply_list = &ria->addr_list;
+    const struct dhcp6_list *req_list = &ia->addr_list;
     struct dhcp6_listval *lv, *lv_next = NULL;
 
     /* XXX: ToDo check hostdecl first */
-    roptinfo->iaidinfo.renewtime = subnet->linkscope.renew_time;
-    roptinfo->iaidinfo.rebindtime = subnet->linkscope.rebind_time;
-    roptinfo->type = optinfo->type;
+    ria->iaidinfo.renewtime = subnet->linkscope.renew_time;
+    ria->iaidinfo.rebindtime = subnet->linkscope.rebind_time;
+    ria->type = ia->type;
     for (prefix6 = subnet->prefixlist; prefix6; prefix6 = prefix6->next) {
         v6addr = (struct dhcp6_listval *) malloc(sizeof(*v6addr));
         if (v6addr == NULL) {
@@ -909,6 +923,7 @@ int dhcp6_create_prefixlist(roptinfo, optinfo, iaidaddr, subnet)
                 is_anycast(&lv->val_dhcp6addr.addr, prefix6->prefix.plen) ||
                 !addr_on_addrlist(reply_list, &lv->val_dhcp6addr)) {
                 lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
+                *ia_status_code = DH6OPT_STCODE_NOTONLINK;
                 dhcpv6_dprintf(LOG_DEBUG, " %s prefix not on link",
                                in6addr2str(&lv->val_dhcp6addr.addr, 0));
                 lv->val_dhcp6addr.type = IAPD;
@@ -927,18 +942,30 @@ struct host_decl *dhcp6_allocate_host(ifp, rootgroup, optinfo)
     struct host_decl *host = NULL;
     struct interface *ifnetwork;
     struct duid *duid = &optinfo->clientID;
-    u_int32_t iaid = optinfo->iaidinfo.iaid;
+    struct ia_listval *lv;
 
     for (ifnetwork = rootgroup->iflist; ifnetwork;
          ifnetwork = ifnetwork->next) {
         if (strcmp(ifnetwork->name, ifp->ifname) != 0)
             continue;
         else {
-            host = find_hostdecl(duid, iaid, ifnetwork->hostlist);
-            break;
+            if (TAILQ_EMPTY(&optinfo->ia_list)) {
+                host = find_hostdecl(duid, 0,
+                        ifnetwork->hostlist);
+                return host;
+            } else {
+                for (lv = TAILQ_FIRST(&optinfo->ia_list);
+                        lv; lv = TAILQ_NEXT(lv, link)) {
+                    host = find_hostdecl(duid,
+                            lv->iaidinfo.iaid,
+                            ifnetwork->hostlist);
+                    if (host != NULL)
+                        return host;
+                }
+            }
         }
     }
-    return host;
+    return NULL;
 }
 
 struct link_decl *dhcp6_allocate_link(ifp, rootgroup, relay)

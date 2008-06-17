@@ -118,6 +118,14 @@ static void usage __P((char *name));
 static void server6_init __P((void));
 static void server6_mainloop __P((void));
 static int server6_recv __P((int));
+static int handle_addr_request __P((struct dhcp6_optinfo *,
+                                    struct ia_list *, struct ia_list *,
+                                    int, int *));
+static int update_binding_ia __P((struct duid *clientID,
+                                  struct ia_list *ria_list,
+                                  struct ia_list *ia_list,
+                                  u_int8_t msgtype, int addr_flag,
+                                  int *status_code));
 static int server6_react_message __P((struct dhcp6_if *,
                                       struct in6_pktinfo *, struct dhcp6 *,
                                       struct dhcp6_optinfo *,
@@ -140,7 +148,7 @@ extern struct host_decl *dhcp6_allocate_host
 __P((struct dhcp6_if *, struct rootgroup *, struct dhcp6_optinfo *));
 
 extern int dhcp6_get_hostconf
-__P((struct dhcp6_optinfo *, struct dhcp6_optinfo *, struct dhcp6_iaidaddr *,
+__P((struct ia_listval *, struct ia_listval *, struct dhcp6_iaidaddr *,
      struct host_decl *));
 
 static void random_init(void) {
@@ -653,6 +661,206 @@ static int server6_recv(s)
     return 0;
 }
 
+static int
+handle_addr_request(struct dhcp6_optinfo *roptinfo,
+                    struct ia_list *ria_list,
+                    struct ia_list *ia_list,
+                    int resptype,
+                    int *status_code)
+{
+    struct ia_listval *ria, *ia;
+    struct dhcp6_iaidaddr *iaidaddr;
+    int addr_flag = 0;
+    int found_binding = 0;
+
+    for (ia = TAILQ_FIRST(ia_list); ia; ia = TAILQ_NEXT(ia, link)) {
+        /* find bindings */
+        if ((iaidaddr = dhcp6_find_iaidaddr(&roptinfo->clientID,
+                        ia->iaidinfo.iaid, ia->type)) != NULL) {
+            found_binding = 1;
+            addr_flag = ADDR_UPDATE;
+        }
+
+        if ((ria = ia_create_listval()) == NULL)
+            goto fail;
+        ria->type = ia->type;
+        ria->iaidinfo.iaid = ia->iaidinfo.iaid;
+
+        if (host)
+            dhcp6_get_hostconf(ria, ia, iaidaddr, host);
+
+        /* valid and create addresses list */
+        if (ia->type == IAPD) {
+            if (dhcp6_create_prefixlist(ria, ia, iaidaddr,
+                        subnet, &ria->status_code))
+                goto fail;
+        } else {
+            if (dhcp6_create_addrlist(ria, ia, iaidaddr,
+                        subnet, &ria->status_code))
+                goto fail;
+        }
+
+        if (TAILQ_EMPTY(&ria->addr_list)) {
+            if (resptype == DH6_ADVERTISE) {
+                /* Omit IA option */
+                free(ria);
+                continue;
+            } else if (resptype == DH6_REPLY) {
+                /* Set status code in IA */
+                ria->status_code = DH6OPT_STCODE_NOADDRAVAIL;
+            }
+        } else if (resptype == DH6_REPLY &&
+                ria->status_code == DH6OPT_STCODE_UNDEFINE) {
+            /* valid client request address list */
+            if (found_binding) {
+                if (dhcp6_update_iaidaddr(roptinfo, ria, addr_flag) != 0) {
+                    dhcpv6_dprintf(LOG_ERR, "assigned ipv6address for client "
+                            "iaid %u failed", ria->iaidinfo.iaid);
+                    ria->status_code = DH6OPT_STCODE_UNSPECFAIL;
+                } else {
+                    ria->status_code = DH6OPT_STCODE_SUCCESS;
+                }
+            } else {
+                if (dhcp6_add_iaidaddr(roptinfo, ria) != 0) {
+                    dhcpv6_dprintf(LOG_ERR, "assigned ipv6address for client "
+                            "iaid %u failed", ria->iaidinfo.iaid);
+                    ria->status_code = DH6OPT_STCODE_UNSPECFAIL;
+                } else {
+                    ria->status_code = DH6OPT_STCODE_SUCCESS;
+                }
+            }
+        }
+        TAILQ_INSERT_TAIL(ria_list, ria, link);
+    }
+
+    if (resptype == DH6_ADVERTISE && TAILQ_EMPTY(ria_list))
+        *status_code = DH6OPT_STCODE_NOADDRAVAIL;
+    return 0;
+
+fail:
+    if (ria != NULL)
+        free(ria);
+    ia_clear_list(ia_list);
+    return -1;
+}
+
+static int
+update_binding_ia(struct duid *clientID,
+                  struct ia_list *ria_list,
+                  struct ia_list *ia_list,
+                  u_int8_t msgtype,
+                  int addr_flag,
+                  int *status_code)
+{
+    struct ia_listval *ria, *ia;
+    struct dhcp6_iaidaddr *iaidaddr;
+    size_t num_ia = 0;
+    size_t num_noaddr_ia = 0;
+    size_t num_nobinding_ia = 0;
+    size_t num_invalid_ia = 0;
+
+    for (ia = TAILQ_FIRST(ia_list); ia; ia = TAILQ_NEXT(ia, link)) {
+        ++num_ia;
+        if (!TAILQ_EMPTY(&ia->addr_list)) {
+            if (addr_flag == ADDR_VALIDATE) {
+                ria = NULL;
+            } else {
+                if ((ria = ia_create_listval()) == NULL)
+                    goto fail;
+                ria->type = ia->type;
+                ria->iaidinfo = ia->iaidinfo;
+            }
+
+            if ((iaidaddr = dhcp6_find_iaidaddr(clientID,
+                            ia->iaidinfo.iaid, ia->type)) == NULL) {
+                /* Not found binding IA Addr */
+                ++num_nobinding_ia;
+                dhcpv6_dprintf(LOG_INFO, "%s" "Nobinding for client %s iaid %u",
+                        FNAME, duidstr(clientID), ia->iaidinfo.iaid);
+                if (addr_flag == ADDR_VALIDATE) {
+                    goto out;
+                } else if (msgtype == DH6_REBIND) {
+                    free(ria);
+                    ria = NULL;
+                } else {
+                    ria->status_code = DH6OPT_STCODE_NOBINDING;
+                }
+            } else {
+                /* Found a binding IA Addr */
+                switch (addr_flag) {
+                    case ADDR_VALIDATE:
+                        if (dhcp6_validate_bindings(&ia->addr_list, iaidaddr, 0)) {
+                            ++num_invalid_ia;
+                            goto out;
+                        }
+                        break;
+
+                    case ADDR_UPDATE:
+                        /* get static host configuration */
+                        if (dhcp6_validate_bindings(&ia->addr_list, iaidaddr, 1)) {
+                            ++num_invalid_ia;
+                            dhcp6_copy_list(&ria->addr_list, &ia->addr_list);
+                            break;
+                        }
+                        if (host)
+                            dhcp6_get_hostconf(ria, ia, iaidaddr, host);
+
+                        /* allow dynamic address assginment for the host too */
+                        if (ria->type == IAPD) {
+                            if (dhcp6_create_prefixlist(ria, ia,
+                                        iaidaddr, subnet, &ria->status_code))
+                                goto fail;
+                        } else {
+                            if (dhcp6_create_addrlist(ria, ia,
+                                        iaidaddr, subnet, &ria->status_code))
+                                goto fail;
+                        }
+                        break;
+
+                    default:
+                        dhcp6_copy_list(&ria->addr_list, &ia->addr_list);
+                        break;
+                }
+            }
+            if (ria != NULL)
+                TAILQ_INSERT_TAIL(ria_list, ria, link);
+        } else {
+            /* IA doesn't include any IA Addr */
+            ++num_noaddr_ia;
+        }
+    }
+
+out:
+    switch (msgtype) {
+        case DH6_CONFIRM:
+            if (num_noaddr_ia == num_ia) {
+                dhcpv6_dprintf(LOG_DEBUG, "No addresses in confirm message");
+                goto fail;
+            } else if (num_nobinding_ia || num_invalid_ia) {
+                *status_code = DH6OPT_STCODE_NOTONLINK;
+            } else {
+                *status_code = DH6OPT_STCODE_SUCCESS;
+            }
+            break;
+        case DH6_RENEW:
+            break;
+        case DH6_REBIND:
+            if (num_noaddr_ia + num_nobinding_ia == num_ia)
+                goto fail;
+        case DH6_RELEASE:
+        case DH6_DECLINE:
+            *status_code = DH6OPT_STCODE_SUCCESS;
+            break;
+    }
+    return 0;
+
+fail:
+    if (ria != NULL)
+        free(ria);
+    ia_clear_list(ria_list);
+    return -1;
+}
+
 static int server6_react_message(struct dhcp6_if *ifp,
                                  struct in6_pktinfo *pi,
                                  struct dhcp6 *dh6,
@@ -660,10 +868,8 @@ static int server6_react_message(struct dhcp6_if *ifp,
                                  struct sockaddr *from, int fromlen) {
     struct dhcp6_optinfo roptinfo;
     int addr_flag = 0;
-    int addr_request = 0;
     int resptype = DH6_REPLY;
-    int num = DH6OPT_STCODE_SUCCESS;
-    int sending_hint = 0;
+    int num = DH6OPT_STCODE_UNDEFINE;
 
     /* message validation according to Section 18.2 of dhcpv6-28 */
 
@@ -870,20 +1076,14 @@ static int server6_react_message(struct dhcp6_if *ifp,
              * If Solicit has IA option, responds to Solicit with a Advertise
              * message.
              */
-            if (optinfo->iaidinfo.iaid != 0 &&
+            if (!TAILQ_EMPTY(&optinfo->ia_list) &&
                 !(roptinfo.flags & DHCIFF_INFO_ONLY)) {
-                memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo,
-                       sizeof(roptinfo.iaidinfo));
-                roptinfo.type = optinfo->type;
-                dhcpv6_dprintf(LOG_DEBUG, "option type is %d", roptinfo.type);
-                addr_request = 1;
-
-                if (roptinfo.flags & DHCIFF_RAPID_COMMIT) {
-                    resptype = DH6_REPLY;
-                } else {
-                    resptype = DH6_ADVERTISE;
-                    /* giving hint ?? */
-                    sending_hint = 1;
+                resptype = (roptinfo.flags & DHCIFF_RAPID_COMMIT)
+                           ? DH6_REPLY : DH6_ADVERTISE;
+                if (handle_addr_request(&roptinfo, &roptinfo.ia_list,
+                                        &optinfo->ia_list, resptype,
+                                        &num)) {
+                    goto fail;
                 }
             }
 
@@ -891,26 +1091,25 @@ static int server6_react_message(struct dhcp6_if *ifp,
         case DH6_INFORM_REQ:
             /* don't response to info-req if there is any IA or server ID
                option */
-            if (optinfo->iaidinfo.iaid != 0 || optinfo->serverID.duid_len) {
+            if (!TAILQ_EMPTY(&optinfo->ia_list) || optinfo->serverID.duid_len) {
                 goto fail;
             }
 
             break;
         case DH6_REQUEST:
             /* get iaid for that request client for that interface */
-            if (optinfo->iaidinfo.iaid != 0 &&
+            if (!TAILQ_EMPTY(&optinfo->ia_list) &&
                 !(roptinfo.flags & DHCIFF_INFO_ONLY)) {
-                memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo,
-                       sizeof(roptinfo.iaidinfo));
-                roptinfo.type = optinfo->type;
-                addr_request = 1;
+                if (handle_addr_request(&roptinfo, &roptinfo.ia_list,
+                                        &optinfo->ia_list, resptype,
+                                        &num)) {
+                    goto fail;
+                }
             }
 
             break;
         case DH6_DECLINE:
         case DH6_RELEASE:
-            roptinfo.ia_stcode = DH6OPT_STCODE_NOBINDING;
-            num = DH6OPT_STCODE_SUCCESS;
         case DH6_RENEW:
         case DH6_REBIND:
         case DH6_CONFIRM:
@@ -940,92 +1139,10 @@ static int server6_react_message(struct dhcp6_if *ifp,
                     break;
             }
 
-            if (optinfo->iaidinfo.iaid != 0) {
-                if (!TAILQ_EMPTY(&optinfo->addr_list) &&
-                    resptype != DH6_ADVERTISE) {
-                    struct dhcp6_iaidaddr *iaidaddr;
-
-                    memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo,
-                           sizeof(roptinfo.iaidinfo));
-                    roptinfo.type = optinfo->type;
-
-                    /* find bindings */
-                    if ((iaidaddr = dhcp6_find_iaidaddr(&roptinfo)) == NULL) {
-                        if (dh6->dh6_msgtype == DH6_REBIND) {
-                            goto fail;
-                        } else if (dh6->dh6_msgtype == DH6_CONFIRM) {
-                            num = DH6OPT_STCODE_NOTONLINK;
-                        } else {
-                            /* Set status code in IA */
-                            roptinfo.ia_stcode = DH6OPT_STCODE_NOBINDING;
-                            num = DH6OPT_STCODE_UNDEFINE;
-                        }
-
-                        dhcpv6_dprintf(LOG_INFO,
-                                       "%s" "Nobinding for client %s iaid %u",
-                                       FNAME, duidstr(&optinfo->clientID),
-                                       optinfo->iaidinfo.iaid);
-                        break;
-                    }
-
-                    if (addr_flag != ADDR_UPDATE) {
-                        dhcp6_copy_list(&roptinfo.addr_list,
-                                        &optinfo->addr_list);
-                    } else {
-                        /* get static host configuration */
-                        if (host)
-                            dhcp6_get_hostconf(&roptinfo, optinfo, iaidaddr,
-                                               host);
-
-                        /* allow dynamic address assginment for the host too */
-                        if (optinfo->type == IAPD)
-                            dhcp6_create_prefixlist(&roptinfo, optinfo,
-                                                    iaidaddr, subnet);
-                        else
-                            dhcp6_create_addrlist(&roptinfo, optinfo,
-                                                  iaidaddr, subnet);
-
-                        /* in case there is not bindings available */
-                        if (TAILQ_EMPTY(&roptinfo.addr_list)) {
-                            num = DH6OPT_STCODE_NOBINDING;
-                            dhcpv6_dprintf(LOG_INFO,
-                                           "%s" "Bindings are not on link "
-                                           "for client %s iaid %u", FNAME,
-                                           duidstr(&optinfo->clientID),
-                                           roptinfo.iaidinfo.iaid);
-                            break;
-                        }
-                    }
-
-                    if (addr_flag == ADDR_VALIDATE) {
-                        if (dhcp6_validate_bindings(&roptinfo, iaidaddr))
-                            num = DH6OPT_STCODE_NOTONLINK;
-                        break;
-                    } else {
-                        if (dhcp6_validate_bindings(&roptinfo, iaidaddr)) {
-                            num = DH6OPT_STCODE_UNDEFINE;
-                            break;
-                        }
-
-                        /* do update if this is not a confirm */
-                        if (dhcp6_update_iaidaddr(&roptinfo, addr_flag) != 0) {
-                            dhcpv6_dprintf(LOG_INFO,
-                                           "%s" "bindings failed for "
-                                           "client %s iaid %u", FNAME,
-                                           duidstr(&optinfo->clientID),
-                                           roptinfo.iaidinfo.iaid);
-                            num = DH6OPT_STCODE_UNSPECFAIL;
-                            break;
-                        }
-                    }
-
-                    num = DH6OPT_STCODE_SUCCESS;
-                } else if (dh6->dh6_msgtype == DH6_CONFIRM) {
-                    dhcpv6_dprintf(LOG_DEBUG,
-                                   "no addresses in confirm message");
+            if (!TAILQ_EMPTY(&optinfo->ia_list)) {
+                if (update_binding_ia(&roptinfo.clientID, &roptinfo.ia_list,
+                    &optinfo->ia_list, dh6->dh6_msgtype, addr_flag, &num)) {
                     goto fail;
-                } else {
-                    num = DH6OPT_STCODE_NOADDRAVAIL;
                 }
             } else {
                 dhcpv6_dprintf(LOG_ERR, "invalid message type");
@@ -1036,102 +1153,38 @@ static int server6_react_message(struct dhcp6_if *ifp,
             break;
     }
 
-    /* 
-     * If the Request message contained an Option Request option, the
-     * server MUST include options in the Reply message for any options in
-     * the Option Request option the server is configured to return to the
-     * client.
-     * [dhcpv6-26 18.2.1]
-     */
-    if (addr_request == 1) {
-        int found_binding = 0;
-        struct dhcp6_iaidaddr *iaidaddr;
-
-        /* find bindings */
-        if ((iaidaddr = dhcp6_find_iaidaddr(&roptinfo)) != NULL) {
-            found_binding = 1;
-            addr_flag = ADDR_UPDATE;
-        }
-
-        if (host)
-            dhcp6_get_hostconf(&roptinfo, optinfo, iaidaddr, host);
-
-        /* valid and create addresses list */
-        if (optinfo->type == IAPD)
-            dhcp6_create_prefixlist(&roptinfo, optinfo, iaidaddr, subnet);
-        else
-            dhcp6_create_addrlist(&roptinfo, optinfo, iaidaddr, subnet);
-
-        if (TAILQ_EMPTY(&roptinfo.addr_list)) {
-            if (resptype == DH6_ADVERTISE) {
-                /* Omit IA option */
-                roptinfo.iaidinfo.iaid = 0;
-                num = DH6OPT_STCODE_NOADDRAVAIL;
-            } else if (resptype == DH6_REPLY) {
-                /* Set status code in IA */
-                roptinfo.ia_stcode = DH6OPT_STCODE_NOADDRAVAIL;
-                num = DH6OPT_STCODE_UNDEFINE;
-            }
-        } else if (sending_hint == 0) {
-            /* valid client request address list */
-            if (found_binding) {
-                if (dhcp6_update_iaidaddr(&roptinfo, addr_flag) != 0) {
-                    dhcpv6_dprintf(LOG_ERR, "assigned ipv6address for client "
-                                   "iaid %u failed", roptinfo.iaidinfo.iaid);
-                    num = DH6OPT_STCODE_UNSPECFAIL;
-                } else {
-                    num = DH6OPT_STCODE_SUCCESS;
-                }
-            } else {
-                if (dhcp6_add_iaidaddr(&roptinfo) != 0) {
-                    dhcpv6_dprintf(LOG_ERR, "assigned ipv6address for client "
-                                   "iaid %u failed", roptinfo.iaidinfo.iaid);
-                    num = DH6OPT_STCODE_UNSPECFAIL;
-                } else {
-                    num = DH6OPT_STCODE_SUCCESS;
+    /* Options regarding DNS */
+    switch (dh6->dh6_msgtype) {
+        case DH6_SOLICIT:
+        case DH6_REQUEST:
+        case DH6_RENEW:
+        case DH6_REBIND:
+        case DH6_INFORM_REQ:
+            /* DNS Recursive Name Server option */
+            if (dhcp6_has_option(&optinfo->reqopt_list,
+                                 DH6OPT_DNS_SERVERS)) {
+                if (dhcp6_copy_list(&roptinfo.dns_list_addrlist,
+                                    &dnslist.addrlist)) {
+                    dhcpv6_dprintf(LOG_ERR,
+                                   "%s" "failed to copy DNS servers",
+                                   FNAME);
+                    goto fail;
                 }
             }
-        }
 
-        /* Options regarding DNS */
-        switch (dh6->dh6_msgtype) {
-            case DH6_SOLICIT:
-            case DH6_REQUEST:
-            case DH6_RENEW:
-            case DH6_REBIND:
-            case DH6_INFORM_REQ:
-                /* DNS Recursive Name Server option */
-                if (dhcp6_has_option(&optinfo->reqopt_list,
-                                     DH6OPT_DNS_SERVERS)) {
-                    if (dhcp6_copy_list(&roptinfo.dns_list_addrlist,
-                                        &dnslist.addrlist)) {
-                        dhcpv6_dprintf(LOG_ERR,
-                                       "%s" "failed to copy DNS servers",
-                                       FNAME);
-                        goto fail;
-                    }
-                }
+            /* Domain Search List option */
+            if (dhcp6_has_option(&optinfo->reqopt_list,
+                                 DH6OPT_DOMAIN_LIST)) {
+                roptinfo.dns_list.domainlist = dnslist.domainlist;
+            }
 
-                /* Domain Search List option */
-                if (dhcp6_has_option(&optinfo->reqopt_list,
-                                     DH6OPT_DOMAIN_LIST)) {
-                    roptinfo.dns_list.domainlist = dnslist.domainlist;
-                }
-
-                break;
+            break;
     }
 
     /* add address status code */
-  send:
+ send:
     dhcpv6_dprintf(LOG_DEBUG, " status code: %s", dhcp6_stcodestr(num));
-
-    if (num != DH6OPT_STCODE_UNDEFINE) {
-        if (dhcp6_add_listval(&roptinfo.stcode_list,
-                              &num, DHCP6_LISTVAL_NUM) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy status code", FNAME);
-            goto fail;
-        }
-    }
+    roptinfo.status_code = num;
 
     /* send a reply message. */
     (void) server6_send(resptype, ifp, dh6, optinfo, from, fromlen,
@@ -1140,7 +1193,7 @@ static int server6_react_message(struct dhcp6_if *ifp,
     dhcp6_clear_options(&roptinfo);
     return 0;
 
-  fail:
+fail:
     dhcp6_clear_options(&roptinfo);
     return -1;
 }

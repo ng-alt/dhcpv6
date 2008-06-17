@@ -201,6 +201,20 @@ typedef enum { DHCP6_LISTVAL_NUM, DHCP6_LISTVAL_ADDR6,
     DHCP6_LISTVAL_DHCP6ADDR, DHCP6_LISTVAL_DHCP6LEASE
 } dhcp6_listval_type_t;
 
+/* Store the parameters in an IA option */
+struct ia_listval {
+    TAILQ_ENTRY(ia_listval) link;
+
+    iatype_t type;                      /* type of IA (e.g. IANA) */
+    u_int8_t flags;                     /* flags for temp address */
+    struct dhcp6_iaid_info iaidinfo;    /* IAID, renewtime and rebindtime */
+    struct dhcp6_list addr_list;        /* assigned ipv6 address list */
+    u_int16_t status_code;              /* status code */
+    char *status_msg;                   /* status message */
+};
+
+TAILQ_HEAD(ia_list, ia_listval);
+
 struct domain_list {
     struct domain_list *next;
     char name[MAXDNAME];
@@ -234,22 +248,19 @@ struct relay_listval {
 TAILQ_HEAD(relay_list, relay_listval);
 
 struct dhcp6_optinfo {
-    struct duid clientID;       /* DUID */
-    struct duid serverID;       /* DUID */
+    struct duid clientID;          /* DUID */
+    struct duid serverID;          /* DUID */
     u_int16_t elapsed_time;
-    struct dhcp6_iaid_info iaidinfo;
-    u_int16_t ia_stcode;        /* status code associated with iaidinfo */
-    iatype_t type;
-    u_int8_t flags;             /* flags for rapid commit, info_only, temp
-                                   address */
-    u_int8_t pref;              /* server preference */
+    struct ia_list ia_list;        /* list of the IAs in a message */
+    u_int8_t flags;                /* flags for rapid commit, info only */
+    u_int8_t pref;                 /* server preference */
     struct in6_addr server_addr;
-    struct dhcp6_list addr_list;        /* assigned ipv6 address list */
-    struct dhcp6_list reqopt_list;      /* options in option request */
-    struct dhcp6_list stcode_list;      /* status code */
-    struct dns_list dns_list;   /* DNS server list */
-    struct relay_list relay_list;       /* list of the relays the message
-                                           passed through on to the server */
+    struct dhcp6_list reqopt_list; /* options in option request */
+    struct dns_list dns_list;      /* DNS server list */
+    struct relay_list relay_list;  /* list of the relays the message
+                                      passed through on to the server */
+    u_int16_t status_code;         /* status code */
+    char *status_msg;              /* status message */
 };
 
 /* DHCP6 base packet format */

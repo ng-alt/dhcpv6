@@ -1198,14 +1198,13 @@ static void client6_signal(sig)
 }
 #endif
 
-void client6_send(ev)
-     struct dhcp6_event *ev;
-{
+void client6_send(struct dhcp6_event *ev) {
     struct dhcp6_if *ifp;
     char buf[BUFSIZ];
     struct sockaddr_in6 dst;
     struct dhcp6 *dh6;
     struct dhcp6_optinfo optinfo;
+    struct ia_listval *ia;
     ssize_t optlen, len;
     struct timeval duration, now;
     socklen_t salen;
@@ -1261,6 +1260,13 @@ void client6_send(ev)
      * construct options
      */
     dhcp6_init_options(&optinfo);
+
+    if ((ia = ia_create_listval()) == NULL) {
+        goto end;
+    }
+
+    TAILQ_INSERT_TAIL(&optinfo.ia_list, ia, link);
+
     if (ev->timeouts == 0) {
         gettimeofday(&ev->start_time, NULL);
         optinfo.elapsed_time = 0;
@@ -1339,31 +1345,32 @@ void client6_send(ev)
     switch (ev->state) {
         case DHCP6S_SOLICIT:
             /* rapid commit */
-            if (ifp->send_flags & DHCIFF_RAPID_COMMIT)
+            if (ifp->send_flags & DHCIFF_RAPID_COMMIT) {
                 optinfo.flags |= DHCIFF_RAPID_COMMIT;
+            }
+
             if (!(ifp->send_flags & DHCIFF_INFO_ONLY) ||
                 (client6_request_flag & CLIENT6_REQUEST_ADDR)) {
-                memcpy(&optinfo.iaidinfo,
-                       &client6_iaidaddr.client6_info.iaidinfo,
-                       sizeof(optinfo.iaidinfo));
-                optinfo.type = iatype_of_if(ifp);
+                memcpy(&ia->iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
+                       sizeof(ia->iaidinfo));
+                ia->type = iatype_of_if(ifp);
             }
 
             /* support for client preferred ipv6 address */
             if (client6_request_flag & CLIENT6_REQUEST_ADDR) {
-                if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
+                if (dhcp6_copy_list(&ia->addr_list, &request_list)) {
                     goto end;
+                }
             }
 
             break;
         case DHCP6S_REQUEST:
             if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
-                memcpy(&optinfo.iaidinfo,
-                       &client6_iaidaddr.client6_info.iaidinfo,
-                       sizeof(optinfo.iaidinfo));
+                memcpy(&ia->iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
+                       sizeof(ia->iaidinfo));
                 dhcpv6_dprintf(LOG_DEBUG, "%s IAID is %u", FNAME,
-                               optinfo.iaidinfo.iaid);
-                optinfo.type = iatype_of_if(ifp);
+                               ia->iaidinfo.iaid);
+                ia->type = iatype_of_if(ifp);
             }
 
             break;
@@ -1372,17 +1379,20 @@ void client6_send(ev)
         case DHCP6S_RELEASE:
         case DHCP6S_CONFIRM:
         case DHCP6S_DECLINE:
-            memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
-                   sizeof(optinfo.iaidinfo));
-            optinfo.type = client6_iaidaddr.client6_info.type;
+            memcpy(&ia->iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
+                   sizeof(ia->iaidinfo));
+            ia->type = client6_iaidaddr.client6_info.type;
+
             if (ev->state == DHCP6S_CONFIRM) {
-                optinfo.iaidinfo.renewtime = 0;
-                optinfo.iaidinfo.rebindtime = 0;
+                ia->iaidinfo.renewtime = 0;
+                ia->iaidinfo.rebindtime = 0;
             }
+
             if (!TAILQ_EMPTY(&request_list)) {
                 /* XXX: ToDo: seperate to prefix list and address list */
-                if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
+                if (dhcp6_copy_list(&ia->addr_list, &request_list)) {
                     goto end;
+                }
             } else {
                 if (ev->state == DHCP6S_RELEASE) {
                     dhcpv6_dprintf(LOG_INFO, "release empty address list");
@@ -1390,13 +1400,14 @@ void client6_send(ev)
                 }
                 /* XXX: allow the other emtpy list ?? */
             }
+
             if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
 #ifdef LIBDHCP
                 if (libdhcp_control
                     && (libdhcp_control->
                         capability & DHCP_CONFIGURE_ADDRESSES))
 #endif
-                    if (dhcp6_update_iaidaddr(&optinfo, ADDR_REMOVE)) {
+                    if (dhcp6_update_iaidaddr(&optinfo, ia, ADDR_REMOVE)) {
                         dhcpv6_dprintf(LOG_INFO, "client release failed");
                         return;
                     }
@@ -1407,10 +1418,12 @@ void client6_send(ev)
                                                     &client6_iaidaddr);
 #endif
             }
+
             break;
         default:
             break;
     }
+
     /* set options in the message */
     if ((optlen = dhcp6_set_options((struct dhcp6opt *) (dh6 + 1),
                                     (struct dhcp6opt *) (buf + sizeof(buf)),
@@ -1418,6 +1431,7 @@ void client6_send(ev)
         dhcpv6_dprintf(LOG_INFO, "%s" "failed to construct options", FNAME);
         goto end;
     }
+
     len += optlen;
 
     /* 
@@ -1545,6 +1559,7 @@ static void client6_recv() {
     dhcp6_init_options(&optinfo);
     p = (struct dhcp6opt *) (dh6 + 1);
     ep = (struct dhcp6opt *) ((char *) dh6 + len);
+
     if (dhcp6_get_options(p, ep, &optinfo) < 0) {
         dhcpv6_dprintf(LOG_INFO, "%s" "failed to parse options", FNAME);
 #ifdef TEST
@@ -1571,12 +1586,8 @@ static void client6_recv() {
     return;
 }
 
-static int client6_recvadvert(ifp, dh6, len, optinfo0)
-     struct dhcp6_if *ifp;
-     struct dhcp6 *dh6;
-     ssize_t len;
-     struct dhcp6_optinfo *optinfo0;
-{
+static int client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
+                              ssize_t len, struct dhcp6_optinfo optinfo0) {
     struct dhcp6_serverinfo *newserver;
     struct dhcp6_event *ev;
     struct dhcp6_listval *lv;
@@ -1615,13 +1626,11 @@ static int client6_recvadvert(ifp, dh6, len, optinfo0)
      * The client MUST ignore any Advertise message that includes a Status
      * Code option containing any error.
      */
-    for (lv = TAILQ_FIRST(&optinfo0->stcode_list); lv;
-         lv = TAILQ_NEXT(lv, link)) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "status code: %s",
-                       FNAME, dhcp6_stcodestr(lv->val_num));
-        if (lv->val_num != DH6OPT_STCODE_SUCCESS) {
-            return (-1);
-        }
+    dhcpv6_dprintf(LOG_INFO, "%s" "status code: %s",
+                   FNAME, dhcp6_stcodestr(optinfo0->status_code));
+    if (optinfo0->status_code != DH6OPT_STCODE_SUCCESS &&
+        optinfo0->status_code != DH6OPT_STCODE_UNDEFINE) {
+        return -1;
     }
 
     /* ignore the server if it is known */
@@ -1632,8 +1641,10 @@ static int client6_recvadvert(ifp, dh6, len, optinfo0)
     }
 
     newserver = allocate_newserver(ifp, optinfo0);
-    if (newserver == NULL)
-        return (-1);
+
+    if (newserver == NULL) {
+        return -1;
+    }
 
     /* if the server has an extremely high preference, just use it. */
     if (newserver->pref == DH6OPT_PREF_MAX) {
@@ -1643,7 +1654,6 @@ static int client6_recvadvert(ifp, dh6, len, optinfo0)
         dhcp6_set_timeoparam(ev);
         dhcp6_reset_timer(ev);
         client6_send(ev);
-
     } else if (ifp->servers->next == NULL) {
         struct timeval *rest, elapsed, tv_rt, tv_irt, timo;
 
@@ -1670,9 +1680,11 @@ static int client6_recvadvert(ifp, dh6, len, optinfo0)
 
         dhcp6_set_timer(&timo, ev->timer);
     }
+
     /* if the client send preferred addresses reqeust in SOLICIT */
     /* XXX: client might have some local policy to select the addresses */
-    if (!TAILQ_EMPTY(&optinfo0->addr_list)) {
+    if ((ia = ia_find_listval(&optinfo0->ia_list,
+        iatype_of_if(ifp), ifp->iaidinfo.iaid)) != NULL) {
 #ifdef LIBDHCP
         if (!TAILQ_EMPTY(&(client6_iaidaddr.lease_list)))
             /* looks like we did a successful REBIND ? */
@@ -1681,8 +1693,9 @@ static int client6_recvadvert(ifp, dh6, len, optinfo0)
                                                 optinfo0);
             }
 #endif
-        dhcp6_copy_list(&request_list, &optinfo0->addr_list);
+        dhcp6_copy_list(&request_list, ia, &optinfo0->addr_list);
     }
+
     return 0;
 }
 
@@ -1757,9 +1770,8 @@ void free_servers(ifp)
 
 static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t len,
                              struct dhcp6_optinfo *optinfo) {
-    struct dhcp6_listval *lv;
+    struct ia_listval *ia;
     struct dhcp6_event *ev;
-    int addr_status_code = DH6OPT_STCODE_UNSPECFAIL;
     struct dhcp6_serverinfo *newserver;
     int newstate = 0;
     int err = 0;
@@ -1768,6 +1780,7 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
     dhcpv6_dprintf(LOG_DEBUG, "%s" "reply message XID is (%x)",
                    FNAME, ntohl(dh6->dh6_xid) & DH6_XIDMASK);
     ev = find_event_withid(ifp, ntohl(dh6->dh6_xid) & DH6_XIDMASK);
+
     if (ev == NULL) {
         dhcpv6_dprintf(LOG_INFO, "%s" "XID mismatch", FNAME);
         return -1;
@@ -1829,34 +1842,30 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
 #endif
             resolv_parse(&optinfo->dns_list);
     }
+
     /* 
      * The client MAY choose to report any status code or message from the
      * status code option in the Reply message.
      * [dhcpv6-26 Section 18.1.8]
      */
-    addr_status_code = 0;
-    for (lv = TAILQ_FIRST(&optinfo->stcode_list); lv;
-         lv = TAILQ_NEXT(lv, link)) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "status code: %s",
-                       FNAME, dhcp6_stcodestr(lv->val_num));
-        switch (lv->val_num) {
-            case DH6OPT_STCODE_SUCCESS:
-            case DH6OPT_STCODE_UNSPECFAIL:
-            case DH6OPT_STCODE_NOADDRAVAIL:
-            case DH6OPT_STCODE_NOPREFIXAVAIL:
-            case DH6OPT_STCODE_NOBINDING:
-            case DH6OPT_STCODE_NOTONLINK:
-            case DH6OPT_STCODE_USEMULTICAST:
-                addr_status_code = lv->val_num;
-            default:
-                break;
-        }
+    if (optinfo->status_code != DH6OPT_STCODE_UNDEFINE) {
+        dhcpv6_dprintf(LOG_INFO, "%s" "status code of message: %s",
+                       FNAME, dhcp6_stcodestr(optinfo->status_code));
     }
-    switch (addr_status_code) {
+
+    ia = ia_find_listval(&optinfo->ia_list,
+                         iatype_of_if(ifp), ifp->iaidinfo.iaid);
+
+    if (ia == NULL) {
+        dhcpv6_dprintf(LOG_INFO, "%s" "no IA option", FNAME);
+    } else if (ia->status_code != DH6OPT_STCODE_UNDEFINE) {
+        dhcpv6_dprintf(LOG_INFO, "%s" "status code of IA: %s",
+                       FNAME, dhcp6_stcodestr(ia->status_code));
+    }
+
+    switch (optinfo->status_code) {
         case DH6OPT_STCODE_UNSPECFAIL:
         case DH6OPT_STCODE_USEMULTICAST:
-            dhcpv6_dprintf(LOG_INFO, "%s" "status code: %s", FNAME,
-                           dhcp6_stcodestr(addr_status_code));
             /* retransmit the message with multicast address */
             /* how many time allow the retransmission with error status code? 
              */
@@ -1871,15 +1880,19 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
      */
     switch (ev->state) {
         case DHCP6S_SOLICIT:
-            if (optinfo->iaidinfo.iaid == 0)
+            if (ia == NULL) {
                 break;
-            else if (!optinfo->flags & DHCIFF_RAPID_COMMIT) {
+            } else if (!optinfo->flags & DHCIFF_RAPID_COMMIT) {
                 newstate = DHCP6S_REQUEST;
                 break;
             }
         case DHCP6S_REQUEST:
+            if (ia == NULL) {
+                break;
+            }
+
             /* NotOnLink: 1. SOLICIT NoAddrAvail: Information Request */
-            switch (addr_status_code) {
+            switch (ia->status_code) {
                 case DH6OPT_STCODE_NOTONLINK:
                     dhcpv6_dprintf(LOG_DEBUG, "%s"
                                    "got a NotOnLink reply for request/rapid commit,"
@@ -1891,13 +1904,13 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                     dhcpv6_dprintf(LOG_DEBUG, "%s"
                                    "got a NoAddrAvail reply for request/rapid commit,"
                                    " sending inforeq.", FNAME);
-                    optinfo->iaidinfo.iaid = 0;
+                    ia = NULL;
                     newstate = DHCP6S_INFOREQ;
                     break;
                 case DH6OPT_STCODE_SUCCESS:
                 case DH6OPT_STCODE_UNDEFINE:
                 default:
-                    if (!TAILQ_EMPTY(&optinfo->addr_list)) {
+                    if (!TAILQ_EMPTY(&ia->addr_list)) {
                         err = get_if_rainfo(ifp);
                         if (err) {
                             dhcpv6_dprintf(LOG_ERR,
@@ -1906,7 +1919,7 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                             return -1;
                         }
 
-                        dhcp6_add_iaidaddr(optinfo);
+                        dhcp6_add_iaidaddr(optinfo, ia);
 
                         if (ifp->dad_timer == NULL
                             && (ifp->dad_timer =
@@ -1932,11 +1945,17 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
             break;
         case DHCP6S_RENEW:
         case DHCP6S_REBIND:
-            if (client6_request_flag & CLIENT6_CONFIRM_ADDR)
+            if (ia == NULL) {
+                newstate = ev->state;
+                break;
+            }
+
+            if (client6_request_flag & CLIENT6_CONFIRM_ADDR) {
                 goto rebind_confirm;
+            }
 
             /* NoBinding for RENEW, REBIND, send REQUEST */
-            switch (addr_status_code) {
+            switch (ia->status_code) {
                 case DH6OPT_STCODE_NOBINDING:
                     newstate = DHCP6S_REQUEST;
                     dhcpv6_dprintf(LOG_DEBUG, "%s"
@@ -1957,7 +1976,7 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                 case DH6OPT_STCODE_SUCCESS:
                 case DH6OPT_STCODE_UNDEFINE:
                 default:
-                    dhcp6_update_iaidaddr(optinfo, ADDR_UPDATE);
+                    dhcp6_update_iaidaddr(optinfo, ia, ADDR_UPDATE);
 #ifdef LIBDHCP
                     if (libdhcp_control && libdhcp_control->callback)
                         (*(libdhcp_control->callback)) (libdhcp_control,
@@ -1965,12 +1984,13 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
 #endif
                     break;
             }
+
             break;
         case DHCP6S_CONFIRM:
             /* NOtOnLink for a Confirm, send SOLICIT message */
           rebind_confirm:client6_request_flag &=
                 ~CLIENT6_CONFIRM_ADDR;
-            switch (addr_status_code) {
+            switch (optinfo->status_code) {
                     struct timeb now;
                     struct timeval timo;
                     time_t offset;
@@ -2032,7 +2052,7 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                     dhcp6_set_timer(&timo, client6_iaidaddr.timer);
 
                     /* check DAD */
-                    if (optinfo->type != IAPD && ifp->dad_timer == NULL &&
+                    if (ia->type != IAPD && ifp->dad_timer == NULL &&
                         (ifp->dad_timer =
                          dhcp6_add_timer(check_dad_timo, ifp)) < 0) {
                         dhcpv6_dprintf(LOG_INFO,

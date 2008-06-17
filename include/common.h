@@ -59,6 +59,11 @@ extern struct dhcp6_listval *dhcp6_find_listval __P((struct dhcp6_list *,
 extern struct dhcp6_listval *dhcp6_add_listval __P((struct dhcp6_list *,
                                                     void *,
                                                     dhcp6_listval_type_t));
+extern struct ia_listval *ia_create_listval __P(());
+extern void ia_clear_list __P((struct ia_list *));
+extern int ia_copy_list __P((struct ia_list *, struct ia_list *));
+extern struct ia_listval *ia_find_listval __P((struct ia_list *,
+                                               iatype_t, u_int32_t));
 extern struct dhcp6_event *dhcp6_create_event __P((struct dhcp6_if *, int));
 extern void dhcp6_remove_event __P((struct dhcp6_event *));
 extern int dhcp6_has_option __P((struct dhcp6_list * optlist, int option));

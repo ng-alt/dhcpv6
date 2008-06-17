@@ -87,19 +87,22 @@ extern u_int32_t do_hash __P((const void *, u_int8_t));
 int get_linklocal __P((const char *, struct in6_addr *));
 extern void dhcp6_init_iaidaddr __P((void));
 extern int dhcp6_remove_iaidaddr __P((struct dhcp6_iaidaddr *));
-extern int dhcp6_add_iaidaddr __P((struct dhcp6_optinfo *));
-extern int dhcp6_update_iaidaddr __P((struct dhcp6_optinfo *, int));
+extern int dhcp6_add_iaidaddr __P((struct dhcp6_optinfo *,
+                                   struct ia_listval *));
+extern int dhcp6_update_iaidaddr __P((struct dhcp6_optinfo *,
+                                      struct ia_listval *,
+                                      int));
 extern struct dhcp6_timer *dhcp6_iaidaddr_timo __P((void *));
 extern struct dhcp6_timer *dhcp6_lease_timo __P((void *));
 extern u_int32_t get_min_preferlifetime __P((struct dhcp6_iaidaddr *));
 extern u_int32_t get_max_validlifetime __P((struct dhcp6_iaidaddr *));
 extern struct dhcp6_iaidaddr *dhcp6_find_iaidaddr
-__P((struct dhcp6_optinfo *));
+__P((struct duid *, u_int32_t, iatype_t));
 extern struct dhcp6_lease *dhcp6_find_lease
 __P((struct dhcp6_iaidaddr *, struct dhcp6_addr *));
 extern int dhcp6_remove_lease __P((struct dhcp6_lease *));
 extern int dhcp6_validate_bindings
-__P((struct dhcp6_optinfo *, struct dhcp6_iaidaddr *));
+__P((struct dhcp6_list *, struct dhcp6_iaidaddr *, int));
 extern int get_iaid __P((const char *, const struct iaid_table *, int));
 extern int create_iaid __P((struct iaid_table *, int));
 extern FILE *init_leases __P((const char *));
@@ -121,13 +124,15 @@ extern int dhcp6_get_prefixlen __P((struct in6_addr *, struct dhcp6_if *));
 extern int prefixcmp __P((struct in6_addr *, struct in6_addr *, int));
 extern int addr_on_addrlist __P((struct dhcp6_list *, struct dhcp6_addr *));
 struct link_decl;
-extern int dhcp6_create_prefixlist __P((struct dhcp6_optinfo *,
-                                        const struct dhcp6_optinfo *,
+extern int dhcp6_create_prefixlist __P((struct ia_listval *,
+                                        struct ia_listval *,
                                         const struct dhcp6_iaidaddr *,
-                                        const struct link_decl *));
-extern int dhcp6_create_addrlist __P((struct dhcp6_optinfo *,
-                                      struct dhcp6_optinfo *,
+                                        const struct link_decl *,
+                                        u_int16_t *));
+extern int dhcp6_create_addrlist __P((struct ia_listval *,
+                                      struct ia_listval *,
                                       const struct dhcp6_iaidaddr *,
-                                      const struct link_decl *));
+                                      const struct link_decl *,
+                                      u_int16_t *));
 extern int dad_parse(const char *file);
 #endif
