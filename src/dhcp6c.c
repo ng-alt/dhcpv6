@@ -898,7 +898,7 @@ static int client6_ifinit(char *device) {
 }
 
 static iatype_t iatype_of_if(struct dhcp6_if *ifp) {
-    if (ifp-send_flags & DHCIFF_PREFIX_DELEGATION) {
+    if (ifp->send_flags & DHCIFF_PREFIX_DELEGATION) {
         return IAPD;
     } else if (ifp->send_flags & DHCIFF_TEMP_ADDRS) {
         return IATA;
@@ -1586,7 +1586,8 @@ static void client6_recv() {
 }
 
 static int client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
-                              ssize_t len, struct dhcp6_optinfo optinfo0) {
+                              ssize_t len, struct dhcp6_optinfo *optinfo0) {
+    struct ia_listval *ia;
     struct dhcp6_serverinfo *newserver;
     struct dhcp6_event *ev;
     struct dhcp6_listval *lv;
@@ -1597,6 +1598,7 @@ static int client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
         dhcpv6_dprintf(LOG_INFO, "%s" "XID mismatch", FNAME);
         return -1;
     }
+
     /* if server policy doesn't allow rapid commit if (ev->state !=
        DHCP6S_SOLICIT || (ifp->send_flags & DHCIFF_RAPID_COMMIT)) { */
     if (ev->state != DHCP6S_SOLICIT) {
@@ -1612,10 +1614,12 @@ static int client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
         dhcpv6_dprintf(LOG_DEBUG, "%s" "server ID: %s, pref=%2x", FNAME,
                        duidstr(&optinfo0->serverID), optinfo0->pref);
     }
+
     if (optinfo0->clientID.duid_len == 0) {
         dhcpv6_dprintf(LOG_INFO, "%s" "no client ID option", FNAME);
         return -1;
     }
+
     if (duidcmp(&optinfo0->clientID, &client_duid)) {
         dhcpv6_dprintf(LOG_INFO, "%s" "client DUID mismatch", FNAME);
         return -1;
@@ -1692,7 +1696,7 @@ static int client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
                                                 optinfo0);
             }
 #endif
-        dhcp6_copy_list(&request_list, ia, &optinfo0->addr_list);
+        dhcp6_copy_list(&request_list, &optinfo0->reqopt_list);
     }
 
     return 0;

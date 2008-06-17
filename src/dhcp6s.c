@@ -1114,8 +1114,6 @@ static int server6_react_message(struct dhcp6_if *ifp,
              * Locates the client's binding and verifies that the information
              * from the client matches the information stored for that client.
              */
-            roptinfo.type = optinfo->type;
-
             switch (dh6->dh6_msgtype) {
                 case DH6_CONFIRM:
                     addr_flag = ADDR_VALIDATE;
@@ -1160,7 +1158,7 @@ static int server6_react_message(struct dhcp6_if *ifp,
             /* DNS Recursive Name Server option */
             if (dhcp6_has_option(&optinfo->reqopt_list,
                                  DH6OPT_DNS_SERVERS)) {
-                if (dhcp6_copy_list(&roptinfo.dns_list_addrlist,
+                if (dhcp6_copy_list(&roptinfo.dns_list,
                                     &dnslist.addrlist)) {
                     dhcpv6_dprintf(LOG_ERR,
                                    "%s" "failed to copy DNS servers",

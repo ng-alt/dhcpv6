@@ -374,7 +374,7 @@ fail:
     return -1;
 }
 
-struct ia_listval *is_find_listval(struct ia_list *head,
+struct ia_listval *ia_find_listval(struct ia_list *head,
                                    iatype_t type, u_int32_t iaid) {
     struct ia_listval *lv;
 
@@ -1000,7 +1000,7 @@ void dhcp6_clear_options(struct dhcp6_optinfo *optinfo) {
     duidfree(&optinfo->clientID);
     duidfree(&optinfo->serverID);
 
-    dhcp6_clear_list(&optinfo->la_list);
+    ia_clear_list(&optinfo->ia_list);
     dhcp6_clear_list(&optinfo->reqopt_list);
     dhcp6_clear_list(&optinfo->dns_list.addrlist);
     relayfree(&optinfo->relay_list);
@@ -1052,6 +1052,7 @@ fail:
 int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                       struct dhcp6_optinfo *optinfo) {
     struct dhcp6opt *np, opth;
+    struct ia_listval *ia;
     int i, opt, optlen, reqopts, num;
     unsigned char *cp, *val, *iacp;
     u_int16_t val16;
@@ -1323,7 +1324,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
     return (-1);
 }
 
-static int get_assigned_ipv6addrs(unisgned char *p, unsigned char *ep,
+static int get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
                                   struct ia_listval *ia) {
     unsigned char *np, *cp;
     struct dhcp6opt opth;
