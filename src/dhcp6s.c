@@ -239,13 +239,6 @@ int main(int argc, char **argv) {
     }
 
     setloglevel(debug);
-
-    /* dump current PID */
-    if ((pidfp = fopen(pidfile, "w")) != NULL) {
-        fprintf(pidfp, "%d\n", getpid());
-        fclose(pidfp);
-    }
-
     server6_init();
 
     if ((server6_lease_file = init_leases(PATH_SERVER6_LEASE)) == NULL) {
@@ -295,6 +288,12 @@ int main(int argc, char **argv) {
         dhcpv6_dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
                        FNAME, strerror(errno));
         return -1;
+    }
+
+    /* dump current PID */
+    if ((pidfp = fopen(pidfile, "w")) != NULL) {
+        fprintf(pidfp, "%d\n", getpid());
+        fclose(pidfp);
     }
 
     server6_mainloop();
