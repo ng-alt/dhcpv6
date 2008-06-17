@@ -109,7 +109,7 @@ const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_CLIENT;
 
 static char *device = NULL;
 static int num_device = 0;
-static struct iaid_table iaidtab[100];
+static struct iaid_table iaidtab[MAX_DEVICE];
 static u_int8_t client6_request_flag = 0;
 static char leasename[100];
 

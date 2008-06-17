@@ -83,7 +83,7 @@ struct dhcp6_binding {
 };
 
 static char pidfile[MAXPATHLEN];
-static char *device[100];
+static char *device[MAX_DEVICE];
 static int num_device = 0;
 static int debug = 0;
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_SERVER;
