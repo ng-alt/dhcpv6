@@ -27,6 +27,7 @@
  */
 
 %option noyywrap
+%option nounput
 
 %{
 #include "config.h"

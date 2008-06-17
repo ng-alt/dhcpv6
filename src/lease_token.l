@@ -30,6 +30,7 @@
 /* Author: Shirley Ma, xma@us.ibm.com */
 
 %option noyywrap
+%option nounput
 
 %{
 #include "config.h"
