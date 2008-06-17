@@ -1358,8 +1358,7 @@ static int get_assigned_ipv6addrs(unisgned char *p, unsigned char *ep,
                 ia->status_code = num;
                 break;
             case DH6OPT_IADDR:
-                if (optlen <
-                    sizeof(ai) - sizeof(u_int32_t) - sizeof(u_int8_t))
+                if (optlen < sizeof(ai) - sizeof(u_int32_t))
                     goto malformed;
                 memcpy(&ai, p, sizeof(ai));
                 /* copy the information into internal format */
