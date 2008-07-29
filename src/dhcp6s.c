@@ -1158,7 +1158,7 @@ static int server6_react_message(struct dhcp6_if *ifp,
             /* DNS Recursive Name Server option */
             if (dhcp6_has_option(&optinfo->reqopt_list,
                                  DH6OPT_DNS_SERVERS)) {
-                if (dhcp6_copy_list(&roptinfo.dns_list,
+                if (dhcp6_copy_list(&roptinfo.dns_list.addrlist,
                                     &dnslist.addrlist)) {
                     dhcpv6_dprintf(LOG_ERR,
                                    "%s" "failed to copy DNS servers",
