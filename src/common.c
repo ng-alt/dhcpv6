@@ -1755,6 +1755,7 @@ static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
                         DPRINT_STATUS_CODE("address",
                                            dp->val_dhcp6addr.status_code,
                                            NULL, 0);
+                        *optlen += sizeof(status);
                         tp += sizeof(status);
                         dhcpv6_dprintf(LOG_DEBUG,
                                        "set IADDR status len %d optlen: %d",
