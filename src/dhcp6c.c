@@ -1696,7 +1696,7 @@ static int client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
                                                 optinfo0);
             }
 #endif
-        dhcp6_copy_list(&request_list, &optinfo0->reqopt_list);
+        dhcp6_copy_list(&request_list, &ia->addr_list);
     }
 
     return 0;
