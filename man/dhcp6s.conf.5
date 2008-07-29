@@ -259,6 +259,15 @@ client. Usually DHCPv6 clients must use multicast addresses to contact DHCPv6
 server and agents. With this declaration, dhcp6s accepts unicast 
 messages from DHCPv6 clients if they include a Server Unicast option.
 
+.nf
+\fIallow\ information-refresh-time\ <information\ refresh\ time>;\fR
+.fi
+This option enables dhcp6s to offer a client an upper bound for how long a
+client should wait before refreshing information which the client retrieves
+by a response to an information only request. If this option is not specified,
+dhcp6s offers 86400[sec] (24 hours). If you want to offer a client not to
+refresh the information, specify \fIinfinity\fR as the value.
+
 .SH EXAMPLES
 .PP
 This is a sample of the dhcp6s.conf file.

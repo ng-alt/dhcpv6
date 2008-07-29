@@ -103,6 +103,7 @@ extern int server6_tokenlex __P((void));
 %token	<str>	DUID DUID_ID
 %token	<str>	IAID IAIDINFO
 %token  <str>	INFO_ONLY
+%token	<str>	INFO_REFRESH_TIME
 %token	<str>	TO
 
 %token	<str>	BAD_TOKEN
@@ -788,6 +789,21 @@ optionpara
 			currentscope->scope->allow_flags |= DHCIFF_INFO_ONLY;
 		else
 			currentscope->scope->send_flags |= DHCIFF_INFO_ONLY;
+	}
+	| INFO_REFRESH_TIME number_or_infinity ';'
+	{
+		if (!currentscope) {
+			currentscope = push_double_list(currentscope, &globalgroup->scope);
+			if (currentscope == NULL)
+				ABORT;
+		}
+		if ($2 < IRT_MINIMUM || DHCP6_DURATITION_INFINITE < $2) {
+			dhcpv6_dprintf(LOG_ERR, "%s"
+				       "bad information refresh time",
+				       FNAME);
+			ABORT;
+		}
+		currentscope->scope->irt = $2;
 	}
 	| DNS_SERVERS dns_paras ';'
 	{

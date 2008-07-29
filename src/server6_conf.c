@@ -277,6 +277,8 @@ static void download_scope(up, current)
         dhcpv6_dprintf(LOG_ERR, "dhcpv6 server defines T1 > T2");
         exit(1);
     }
+    if (current->irt == 0 && up->irt != 0)
+        current->irt = up->irt;
     if (current->server_pref == 0
         || current->server_pref == DH6OPT_PREF_UNDEF) {
         if (up->server_pref != 0)

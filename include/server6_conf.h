@@ -43,6 +43,7 @@ struct scope {
     int32_t valid_life_time;
     int32_t renew_time;
     int32_t rebind_time;
+    int32_t irt;
     int8_t server_pref;
     u_int8_t send_flags;
     u_int8_t allow_flags;

@@ -113,6 +113,7 @@ option		{ BEGIN S_OPTION; return OPTION; }
 <S_OPTION>rapid-commit	{ BEGIN INITIAL; return RAPIDCOMMIT; }
 <S_OPTION>temp-address	{ BEGIN INITIAL; return TEMPIPV6ADDR; }
 <S_OPTION>information-only	{ BEGIN INITIAL; return INFO_ONLY; }
+<S_OPTION>information-refresh-time	{ BEGIN INITIAL; return INFO_REFRESH_TIME; }
 <S_OPTION>dns_servers	{ BEGIN INITIAL; return DNS_SERVERS;}
 
 renew-time	{ return RENEWTIME; }

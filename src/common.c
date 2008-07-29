@@ -1653,6 +1653,11 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
         free(tmpbuf);
     }
 
+    if (dhcp6_mode == DHCP6_MODE_SERVER && optinfo->irt) {
+        u_int32_t irt;
+        irt = htonl(optinfo->irt);
+        COPY_OPTION(DH6OPT_INFO_REFRESH_TIME, sizeof(irt), &irt, p);
+    }
 
     return len;
 

@@ -957,6 +957,10 @@ static int server6_react_message(struct dhcp6_if *ifp,
             dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
             dnslist = subnet->linkscope.dnslist;
         }
+
+        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_INFO_REFRESH_TIME)) {
+            roptinfo.irt = subnet->linkscope.irt;
+        }
     }
 
     if (host) {
@@ -970,6 +974,10 @@ static int server6_react_message(struct dhcp6_if *ifp,
         if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS) ||
             dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
             dnslist = host->hostscope.dnslist;
+        }
+
+        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_INFO_REFRESH_TIME)) {
+            roptinfo.irt = host->hostscope.irt;
         }
     }
 
@@ -1174,6 +1182,28 @@ static int server6_react_message(struct dhcp6_if *ifp,
             }
 
             break;
+    }
+
+    /* Information refresh time option (RFC 4242) */
+    if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_INFO_REFRESH_TIME)) {
+        switch (dh6->dh6_msgtype) {
+            case DH6_INFORM_REQ:
+                if (roptinfo.irt == 0) {
+                    roptinfo.irt = IRT_DEFAULT;
+                }
+                dhcpv6_dprintf(LOG_DEBUG, "information refresh time is %u",
+                               roptinfo.irt);
+                break;
+            default:
+                dhcpv6_dprintf(LOG_INFO, "Ignore the requirement to reply "
+                               "an information refresh time option as the "
+                               "message is %s", dhcp6msgstr(dh6->dh6_msgtype));
+                roptinfo.irt = 0;
+                break;
+        }
+    } else {
+        /* make sure that the infomation refresh time is set to 0 */
+        roptinfo.irt = 0;
     }
 
     /* add address status code */
