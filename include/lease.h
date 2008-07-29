@@ -134,5 +134,5 @@ extern int dhcp6_create_addrlist __P((struct ia_listval *,
                                       const struct dhcp6_iaidaddr *,
                                       const struct link_decl *,
                                       u_int16_t *));
-extern int dad_parse(const char *file);
+extern int dad_parse __P((const char *, struct dhcp6_list *));
 #endif

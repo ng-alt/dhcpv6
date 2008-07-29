@@ -73,7 +73,8 @@ struct dhcp6_if {
 #define DHCP6_SYNCFILE_TIME	60
     /* timer to check interface off->on link to send confirm message */
     struct dhcp6_timer *link_timer;
-#define DHCP6_CHECKLINK_TIME	5
+#define DHCP6_CHECKLINK_TIME_UPCASE	5
+#define DHCP6_CHECKLINK_TIME_DOWNCASE	1
     struct dhcp6_timer *dad_timer;
 #define DHCP6_CHECKDAD_TIME	5
     /* event queue */

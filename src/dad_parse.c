@@ -69,9 +69,6 @@
 #include "lease.h"
 
 extern struct dhcp6_if *dhcp6_if;
-extern struct dhcp6_list request_list;
-
-struct ifproc_info *dadlist = NULL;
 
 #define DAD_FLAGS 0xC0
 
@@ -85,9 +82,10 @@ struct ifproc_info {
     int flags;
 };
 
-int dad_parse(const char *file) {
+int dad_parse(const char *file, struct dhcp6_list *dad_list) {
     int i = 0;
     int len = 0;
+    int ret = 0;
     FILE *fp = NULL;
     char buf[55];               /* max line length in /proc/net/if_inet6 */
     char addrbuf[64];
@@ -154,7 +152,7 @@ int dad_parse(const char *file) {
         ifinfo->index = strtol(tmp, NULL, 16);
         if ((errno == EINVAL) || (errno == ERANGE)) {
             dhcpv6_dprintf(LOG_ERR, "error reading index from %s", file);
-            return -1;
+            goto fail;
         }
 
         /* read the prefix length */
@@ -165,7 +163,7 @@ int dad_parse(const char *file) {
         ifinfo->plen = strtol(tmp, NULL, 16);
         if ((errno == EINVAL) || (errno == ERANGE)) {
             dhcpv6_dprintf(LOG_ERR, "error reading prefix length from %s", file);
-            return -1;
+            goto fail;
         }
 
         /* read the scope */
@@ -176,7 +174,7 @@ int dad_parse(const char *file) {
         ifinfo->scope = strtol(tmp, NULL, 16);
         if ((errno == EINVAL) || (errno == ERANGE)) {
             dhcpv6_dprintf(LOG_ERR, "error reading scope from %s", file);
-            return -1;
+            goto fail;
         }
 
         /* read the flags */
@@ -187,7 +185,7 @@ int dad_parse(const char *file) {
         ifinfo->flags = strtol(tmp, NULL, 16);
         if ((errno == EINVAL) || (errno == ERANGE)) {
             dhcpv6_dprintf(LOG_ERR, "error reading flags from %s", file);
-            return -1;
+            goto fail;
         }
 
         if (ifinfo->flags == DAD_FLAGS) {
@@ -210,40 +208,14 @@ int dad_parse(const char *file) {
             continue;
         } else {
             struct dhcp6_listval *lv;
-            struct dhcp6_lease *cl;
 
             strncpy(ifinfo->name, tmp, IF_NAMESIZE);
             ifinfo->next = NULL;
-
-            if (dadlist == NULL) {
-                TAILQ_INIT(&request_list);
-                dadlist = ifinfo;
-            } else {
-                dadlist->next = ifinfo;
-            }
 
             /* check address on client6_iaidaddr list */
             if ((lv = malloc(sizeof(*lv))) == NULL) {
                 dhcpv6_dprintf(LOG_ERR, "memory allocation failure");
                 abort();
-            }
-
-            for (cl = TAILQ_FIRST(&client6_iaidaddr.lease_list); cl;
-                 cl = TAILQ_NEXT(cl, link)) {
-                if (cl->lease_addr.type != IAPD &&
-                    IN6_ARE_ADDR_EQUAL(&cl->lease_addr.addr, &ifinfo->addr)) {
-                    break;
-                } else {
-                    continue;
-                }
-            }
-
-            /* deconfigure the interface's address assigned by dhcpv6 */
-            if (dhcp6_remove_lease(cl) != 0) {
-                dhcpv6_dprintf(LOG_INFO,
-                               "remove duplicated address failed: %s",
-                               in6addr2str(&lv->val_dhcp6addr.addr, 0));
-                return -1;
             }
 
             memcpy(&lv->val_dhcp6addr.addr, &ifinfo->addr,
@@ -253,15 +225,21 @@ int dad_parse(const char *file) {
             lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
             lv->val_dhcp6addr.preferlifetime = 0;
             lv->val_dhcp6addr.validlifetime = 0;
-            TAILQ_INSERT_TAIL(&request_list, lv, link);
+            TAILQ_INSERT_TAIL(dad_list, lv, link);
         }
     }
 
+out:
     if (fclose(fp) == EOF) {
         fprintf(stderr, "%s (%d): %s\n", __func__, __LINE__, strerror(errno));
         fflush(stderr);
         abort();
     }
 
-    return 0;
+    return ret;
+
+fail:
+    dhcp6_clear_list(dad_list);
+    ret = -1;
+    goto out;
 }

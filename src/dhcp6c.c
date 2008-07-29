@@ -167,7 +167,7 @@ static void setup_interface __P((char *));
 struct dhcp6_timer *client6_timo __P((void *));
 extern int client6_ifaddrconf __P((ifaddrconf_cmd_t, struct dhcp6_addr *));
 extern struct dhcp6_timer *syncfile_timo __P((void *));
-extern int dad_parse(const char *file);
+extern int dad_parse __P((const char *, struct dhcp6_list *));
 
 #define DHCP6C_CONF "/etc/dhcp6c.conf"
 #define DHCP6C_PIDFILE "/var/run/dhcpv6/dhcp6c.pid"
@@ -2183,7 +2183,7 @@ static void setup_check_timer(struct dhcp6_if *ifp) {
     double d;
     struct timeval timo;
 
-    d = DHCP6_CHECKLINK_TIME;
+    d = DHCP6_CHECKLINK_TIME_UPCASE;
     timo.tv_sec = (long) d;
     timo.tv_usec = 0;
     dhcpv6_dprintf(LOG_DEBUG, "set timer for checking link ...");
@@ -2230,14 +2230,40 @@ static struct dhcp6_timer
  *check_dad_timo(void *arg) {
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
     int newstate;
+    struct dhcp6_list dad_list;
+    struct dhcp6_lease *cl;
+    struct dhcp6_listval *lv;
 
     if (client6_iaidaddr.client6_info.type == IAPD)
         goto end;
     dhcpv6_dprintf(LOG_DEBUG, "enter checking dad ...");
-    if (dad_parse("/proc/net/if_inet6") < 0) {
+
+    TAILQ_INIT(&dad_list);
+    if (dad_parse("/proc/net/if_inet6", &dad_list) < 0) {
         dhcpv6_dprintf(LOG_ERR, "parse /proc/net/if_inet6 failed");
         goto end;
     }
+    for (lv = TAILQ_FIRST(&dad_list); lv; lv = TAILQ_NEXT(lv, link)) {
+        for (cl = TAILQ_FIRST(&client6_iaidaddr.lease_list);
+             cl; cl = TAILQ_NEXT(cl, link)) {
+            if (cl->lease_addr.type != IAPD &&
+                IN6_ARE_ADDR_EQUAL(&cl->lease_addr.addr,
+                                   &lv->val_dhcp6addr.addr)) {
+                /* deconfigure the interface's the address assgined by dhcpv6 */
+                if (dhcp6_remove_lease(cl) != 0) {
+                    dprintf(LOG_ERR,
+                            "remove duplicated address failed: %s",
+                            in6addr2str(&cl->lease_addr.addr, 0));
+                } else {
+                    TAILQ_REMOVE(&dad_list, lv, link);
+                    TAILQ_INSERT_TAIL(&request_list, lv, link);
+                }
+                break;
+            }
+        }
+    }
+    dhcp6_clear_list(&dad_list);
+
     if (TAILQ_EMPTY(&request_list))
         goto end;
     /* remove RENEW timer for client6_iaidaddr */
@@ -2257,8 +2283,10 @@ static struct dhcp6_timer
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
     struct ifreq ifr;
     struct timeval timo;
-    double d;
+    static long d = DHCP6_CHECKLINK_TIME_UPCASE;
     int newstate;
+    struct dhcp6_list dad_list;
+    struct dhcp6_listval *lv;
 
     dhcpv6_dprintf(LOG_DEBUG, "enter checking link ...");
     strncpy(ifr.ifr_name, dhcp6_if->ifname, IFNAMSIZ);
@@ -2271,6 +2299,31 @@ static struct dhcp6_timer
         if (ifp->link_flag & IFF_RUNNING) {
             goto settimer;
         }
+        switch (client6_iaidaddr.client6_info.type) {
+            case IAPD:
+                newstate = DHCP6S_REBIND;
+                break;
+            default:
+                /* check DAD status of the link-local address */
+                TAILQ_INIT(&dad_list);
+                if (dad_parse("/proc/net/if_inet6", &dad_list) < 0) {
+                    dhcpv6_dprintf(LOG_ERR, "parse /proc/net/if_inet6 failed");
+                    goto settimer;
+                }
+                for (lv = TAILQ_FIRST(&dad_list);
+                     lv; lv = TAILQ_NEXT(lv, link)) {
+                    if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr,
+                                           &ifp->linklocal)) {
+                        dprintf(LOG_DEBUG, "wait for the DAD completion");
+                        dhcp6_clear_list(&dad_list);
+                        goto settimer;
+                    }
+                }
+                dhcp6_clear_list(&dad_list);
+                newstate = DHCP6S_CONFIRM;
+                break;
+        }
+
         /* check current state ACTIVE */
         if (client6_iaidaddr.state == ACTIVE) {
             /* remove timer for renew/rebind send confirm for ipv6address or
@@ -2278,22 +2331,19 @@ static struct dhcp6_timer
             dhcp6_remove_timer(client6_iaidaddr.timer);
             client6_request_flag |= CLIENT6_CONFIRM_ADDR;
             create_request_list(1);
-            if (client6_iaidaddr.client6_info.type == IAPD)
-                newstate = DHCP6S_REBIND;
-            else
-                newstate = DHCP6S_CONFIRM;
             client6_send_newstate(ifp, newstate);
         }
         dhcpv6_dprintf(LOG_INFO, "interface is from down to up");
         ifp->link_flag |= IFF_RUNNING;
+        d = DHCP6_CHECKLINK_TIME_UPCASE;
     } else {
         dhcpv6_dprintf(LOG_INFO, "interface is down");
         /* set flag_prev flag DOWN */
         ifp->link_flag &= ~IFF_RUNNING;
+        d = DHCP6_CHECKLINK_TIME_DOWNCASE;
     }
   settimer:
-    d = DHCP6_CHECKLINK_TIME;
-    timo.tv_sec = (long) d;
+    timo.tv_sec = d;
     timo.tv_usec = 0;
     dhcp6_set_timer(&timo, ifp->link_timer);
     return ifp->link_timer;
