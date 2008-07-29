@@ -254,6 +254,7 @@ struct dhcp6_optinfo {
     struct ia_list ia_list;        /* list of the IAs in a message */
     u_int8_t flags;                /* flags for rapid commit, info only */
     u_int8_t pref;                 /* server preference */
+    u_int32_t irt;                 /* information refresh time */
     struct in6_addr server_addr;
     struct dhcp6_list reqopt_list; /* options in option request */
     struct dns_list dns_list;      /* DNS server list */
@@ -324,6 +325,10 @@ struct dhcp6 {
 
 #define DH6OPT_IA_PD 25
 #define DH6OPT_IAPREFIX 26
+
+#define DH6OPT_INFO_REFRESH_TIME 32
+#  define IRT_DEFAULT 86400     /* default refresh time [sec] */
+#  define IRT_MINIMUM 600       /* minimum value for the refresh time [sec] */
 
 struct dhcp6opt {
     u_int16_t dh6opt_type;

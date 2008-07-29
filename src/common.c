@@ -2091,6 +2091,8 @@ char *dhcp6optstr(type)
             return "relay message";
         case DH6OPT_INTERFACE_ID:
             return "interface identifier";
+        case DH6OPT_INFO_REFRESH_TIME:
+            return "information refresh time";
         default:
             sprintf(genstr, "opt_%d", type);
             return (genstr);
