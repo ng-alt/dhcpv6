@@ -1689,7 +1689,7 @@ static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
 
             if (ia->type == IATA) {
                 *optlen = sizeof(iaid);
-                dhcpv6_dprintf(LOG_DEBUG, "%s" "set IA_TA iaid information: %d"
+                dhcpv6_dprintf(LOG_DEBUG, "%s" "set IA_TA iaid information: %d",
                                FNAME, ia->iaidinfo.iaid);
                 iaid = htonl(ia->iaidinfo.iaid);
             } else {
