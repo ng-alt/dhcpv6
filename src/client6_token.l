@@ -82,7 +82,7 @@ ws		[ \t]+
 comma		,
 comment		\#.*
 semi		\;
-string		[a-zA-Z0-9:\._][a-zA-Z0-9:\._]*
+string		[a-zA-Z0-9:\._-][a-zA-Z0-9:\._-]*
 digit		[0-9]
 number	 	{digit}+
 hexdigit	[0-9A-Fa-f]
@@ -94,7 +94,8 @@ addr_head       ("::"|{hexdigit}{1,4}(":"|"::"))
 addr_tail       ({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})
 addr_body       ({hexdigit}{1,4}(":"|"::"))*
 ipv6addr        {addr_head}{addr_body}{addr_tail}
-ifname		[a-zA-Z]+[0-9]+
+
+ifname		({string})+
 slash		\/
 bcl		\{
 ecl		\}
