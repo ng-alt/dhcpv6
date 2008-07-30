@@ -38,7 +38,7 @@ if __name__ == "__main__":
         sys.exit(3)
 
     cmd = "git-tag -u %s -m \"Tag as %s-%s\" -f %s-%s" % (gpgkey, pkg, ver, pkg, ver,)
-    print "|%s|" % (cmd,)
+    os.system(cmd)
 
     print "Tagged as %s-%s (GPG signed)" % (pkg, ver,)
     sys.exit(0)
