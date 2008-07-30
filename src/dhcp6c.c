@@ -125,7 +125,6 @@ int nlsock = -1;
 
 extern char *raproc_file;
 extern char *ifproc_file;
-extern struct ifproc_info *dadlist;
 extern FILE *client6_lease_file;
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 FILE *dhcp6_resolv_file;
@@ -405,7 +404,6 @@ int dhcpv6_client(LIBDHCP_Control *libdhcp_ctl,
     optopt = 0;
     memset(&client6_iaidaddr, '\0', sizeof(client6_iaidaddr));
     dhcp6_if = NULL;
-    dadlist = NULL;
     extern LIST_HEAD(, dhcp6_timer) timer_head;
 
     memset(&timer_head, '\0', sizeof(timer_head));
