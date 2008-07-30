@@ -106,6 +106,25 @@ from the DHCPv6 server. If dhcp6c doesn't need to be assigned any addresses,
 this option should be specified.
 
 .nf
+.B default-information-refresh-time <information refresh time>;
+.fi
+This declaration defines the default interval to refresh the host configuration
+information retrieved from a server. When a server offers an interval to dhcp6c,
+dhcp6c chooses the interval from server. If this declaration is not specified,
+the interval is 86400[sec] (24 hours). The minimum interval is 400[sec]. If you
+don't want to refresh the information, specify \fIinfinity\fR as the interval.
+
+.nf
+.B maximum-information-refresh-time <information refresh time>;
+.fi
+This declaration defines the maximum interval to refresh the host configuration
+information retrieved from a server. When DHCPv6 server offers an interval which
+is bigger than this maximum interval, dhcp6c chooses this maximum interval.
+If this declaration is not specified, dhcp6c uses the interval which a server
+offered or the interval which is specified at default-information-refresh-time
+declaration.
+
+.nf
 .B address\ {
 .B \t[<ipv6\ address>/<prefix\ length>];
 .B \t[prefer-life-time\ <preferred\-lifetime>];

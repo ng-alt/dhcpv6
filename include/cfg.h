@@ -77,6 +77,8 @@ struct dhcp6_if {
 #define DHCP6_CHECKLINK_TIME_DOWNCASE	1
     struct dhcp6_timer *dad_timer;
 #define DHCP6_CHECKDAD_TIME	5
+    /* timer to refresh information */
+    struct dhcp6_timer *info_refresh_timer;
     /* event queue */
     TAILQ_HEAD(, dhcp6_event) event_list;
 
@@ -102,6 +104,8 @@ struct dhcp6_if {
 
     struct in6_addr linklocal;
     int server_pref;            /* server preference (server only) */
+    u_int32_t default_irt;  /* default information refresh time (client only) */
+    u_int32_t maximum_irt;  /* maximum information refresh time (client only) */
     struct dhcp6_list reqopt_list;
     /* request specific addresses list from client */
     struct dhcp6_list addr_list;
@@ -171,6 +175,8 @@ struct dhcp6_ifconf {
     u_long allow_flags;
 
     int server_pref;            /* server preference (server only) */
+    u_int32_t default_irt;  /* default information refresh time (client only) */
+    u_int32_t maximum_irt;  /* maximum information refresh time (client only) */
     struct dhcp6_iaid_info iaidinfo;
 
     struct dhcp6_list prefix_list;
@@ -286,6 +292,7 @@ enum { DECL_SEND, DECL_ALLOW, DECL_INFO_ONLY, DECL_TEMP_ADDR, DECL_REQUEST,
     DECL_PREFIX, DECL_PREFERENCE, DECL_IAID, DECL_RENEWTIME, DECL_REBINDTIME,
     DECL_ADDRESS, DECL_LINKLOCAL, DECL_PREFIX_INFO, DECL_PREFIX_REQ,
         DECL_PREFIX_DELEGATION_INTERFACE,
+    DECL_DEFAULT_IRT, DECL_MAXIMUM_IRT,
     DHCPOPT_PREFIX_DELEGATION, IFPARAM_SLA_ID, IFPARAM_SLA_LEN,
     DHCPOPT_RAPID_COMMIT,
     DHCPOPT_DNS, ADDRESS_LIST_ENT,

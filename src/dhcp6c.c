@@ -153,6 +153,8 @@ static int client6_recvadvert __P((struct dhcp6_if *, struct dhcp6 *,
                                    ssize_t, struct dhcp6_optinfo *));
 static int client6_recvreply __P((struct dhcp6_if *, struct dhcp6 *,
                                   ssize_t, struct dhcp6_optinfo *));
+static int set_info_refresh_timer __P((struct dhcp6_if *, u_int32_t));
+static struct dhcp6_timer *info_refresh_timo __P((void *));
 #ifndef LIBDHCP
 static void client6_signal __P((int));
 #endif
@@ -1338,6 +1340,16 @@ void client6_send(struct dhcp6_event *ev) {
                        FNAME);
         goto end;
     }
+    if (ifp->send_flags & DHCIFF_INFO_ONLY) {       /* RFC4242 */
+        int opttype = DH6OPT_INFO_REFRESH_TIME;
+        if (dhcp6_add_listval(&optinfo.reqopt_list, &opttype,
+                              DHCP6_LISTVAL_NUM) == NULL) {
+            dhcpv6_dprintf(LOG_ERR, "%s"
+                           "failed to copy infomation refresh time option",
+                           FNAME);
+            goto end;
+        }
+    }
 
     switch (ev->state) {
         case DHCP6S_SOLICIT:
@@ -2108,6 +2120,9 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                            FNAME);
             dhcp6_remove_event(ev);
             exit(0);
+        case DHCP6S_INFOREQ:
+            set_info_refresh_timer(ifp, optinfo->irt);
+            break;
         default:
             break;
     }
@@ -2123,6 +2138,60 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
 
     TAILQ_INIT(&request_list);
     return 0;
+}
+
+static int set_info_refresh_timer(struct dhcp6_if *ifp, u_int32_t offered_irt) {
+    int irt;
+    struct timeval timo;
+    double rval;
+
+    if (offered_irt == 0) {
+        irt = ifp->default_irt;
+    } else if (offered_irt < IRT_MINIMUM) {
+        irt = IRT_MINIMUM;
+    } else if (offered_irt > ifp->maximum_irt) {
+        irt = ifp->maximum_irt;
+    } else {
+        irt = offered_irt;
+    }
+
+    if (irt == DHCP6_DURATITION_INFINITE) {
+        dhcpv6_dprintf(LOG_DEBUG, "%s"
+                       "information would not be refreshed any more", FNAME);
+        return 0;
+    }
+
+    if ((ifp->info_refresh_timer =
+                dhcp6_add_timer(info_refresh_timo, ifp)) == NULL) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for %s",
+                       FNAME, ifp->ifname);
+        return -1;
+    }
+
+    /*
+     * the client MUST delay sending the first Information-Request by
+     * a random amount of time between 0 and INF_MAX_DELAY
+     * [RFC4242 3.2.]
+     */
+    rval = (double)random() / RAND_MAX * INF_MAX_DELAY * 1000;
+    timo.tv_sec = irt + (long)(rval / 1000000);
+    timo.tv_usec = (long)rval % 1000000;
+    dhcp6_set_timer(&timo, ifp->info_refresh_timer);
+    dhcpv6_dprintf(LOG_DEBUG, "%s"
+                   "information will be refreshed in %ld.%06ld [sec]",
+                   FNAME, timo.tv_sec, timo.tv_usec);
+
+    return 0;
+}
+
+static struct dhcp6_timer *info_refresh_timo(void *arg) {
+    struct dhcp6_if *ifp = (struct dhcp6_if *)arg;
+
+    dhcpv6_dprintf(LOG_DEBUG, "%s" "information is refreshing...", FNAME);
+    dhcp6_remove_timer(ifp->info_refresh_timer);
+    ifp->info_refresh_timer = NULL;
+    client6_send_newstate(ifp, DHCP6S_INFOREQ);
+    return NULL;
 }
 
 int client6_send_newstate(struct dhcp6_if *ifp, int state) {

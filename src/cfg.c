@@ -81,6 +81,8 @@ int configure_interface(const struct cf_namelist *iflist) {
         }
 
         ifc->server_pref = DH6OPT_PREF_UNDEF;
+        ifc->default_irt = IRT_DEFAULT;
+        ifc->maximum_irt = DHCP6_DURATITION_INFINITE;
         TAILQ_INIT(&ifc->reqopt_list);
         TAILQ_INIT(&ifc->addr_list);
         TAILQ_INIT(&ifc->option_list);
@@ -115,6 +117,46 @@ int configure_interface(const struct cf_namelist *iflist) {
                 case DECL_INFO_ONLY:
                     if (dhcp6_mode == DHCP6_MODE_CLIENT)
                         ifc->send_flags |= DHCIFF_INFO_ONLY;
+
+                    break;
+                case DECL_DEFAULT_IRT:
+                    if (dhcp6_mode != DHCP6_MODE_CLIENT) {
+                        dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
+                                "client-only configuration",
+                                FNAME, configfilename, cfl->line);
+                        goto bad;
+                    }
+                    if (cfl->num == -1) {
+                        cfl->num = DHCP6_DURATITION_INFINITE;
+                    } else if (cfl->num < IRT_MINIMUM ||
+                               DHCP6_DURATITION_INFINITE < cfl->num) {
+                        dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
+                                       "bad value: %lld", FNAME,
+                                       configfilename, cfl->line,
+                                       cfl->num);
+                        goto bad;
+                    }
+                    ifc->default_irt = cfl->num;
+
+                    break;
+                case DECL_MAXIMUM_IRT:
+                    if (dhcp6_mode != DHCP6_MODE_CLIENT) {
+                        dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
+                                "client-only configuration",
+                                FNAME, configfilename, cfl->line);
+                        goto bad;
+                    }
+                    if (cfl->num == -1) {
+                        cfl->num = DHCP6_DURATITION_INFINITE;
+                    } else if (cfl->num < IRT_MINIMUM ||
+                               DHCP6_DURATITION_INFINITE < cfl->num) {
+                        dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
+                                       "bad value: %lld", FNAME,
+                                       configfilename, cfl->line,
+                                       cfl->num);
+                        goto bad;
+                    }
+                    ifc->maximum_irt = cfl->num;
 
                     break;
                 case DECL_TEMP_ADDR:
@@ -206,6 +248,13 @@ int configure_interface(const struct cf_namelist *iflist) {
                                    FNAME, configfilename, cfl->line);
                     goto bad;
             }
+        }
+        if (ifc->default_irt > ifc->maximum_irt) {
+            dhcpv6_dprintf(LOG_INFO, "%s" "%s information refresh time: "
+                    "default (%u) is bigger than maximum (%u)",
+                    FNAME, configfilename,
+                    ifc->default_irt, ifc->maximum_irt);
+            goto bad;
         }
     }
 
@@ -423,6 +472,9 @@ void configure_commit(void) {
             TAILQ_INIT(&ifc->option_list);
 
             ifp->server_pref = ifc->server_pref;
+
+            ifp->default_irt = ifc->default_irt;
+            ifp->maximum_irt = ifc->maximum_irt;
 
             memcpy(&ifp->iaidinfo, &ifc->iaidinfo, sizeof(ifp->iaidinfo));
         }

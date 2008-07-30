@@ -1056,6 +1056,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
     int i, opt, optlen, reqopts, num;
     unsigned char *cp, *val, *iacp;
     u_int16_t val16;
+    u_int32_t val32;
 
     for (; p + 1 <= ep; p = np) {
         struct duid duid0;
@@ -1304,6 +1305,14 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                         }
                     }
                 }
+                break;
+            case DH6OPT_INFO_REFRESH_TIME:
+                if (optlen != sizeof(u_int32_t))
+                    goto malformed;
+                memcpy(&val32, cp, sizeof(val32));
+                optinfo->irt = ntohl(val32);
+                dhcpv6_dprintf(LOG_DEBUG, "information refresh time is %u",
+                               optinfo->irt);
                 break;
             default:
                 /* no option specific behavior */

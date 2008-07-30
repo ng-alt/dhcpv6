@@ -156,6 +156,8 @@ ecl		\}
 <S_CNF>domain-search-list { DECHO; return (DOMAIN_LIST); }
 	/* generic options */
 <S_CNF>information-only { DECHO; return (INFO_ONLY); }
+<S_CNF>default-information-refresh-time { DECHO; return (DEFAULT_IRT); }
+<S_CNF>maximum-information-refresh-time { DECHO; return (MAXIMUM_IRT); }
 <S_CNF>temp-address { DECHO; return (TEMP_ADDR); }
 	/* duration */
 <S_CNF>infinity { DECHO; return (INFINITY); }

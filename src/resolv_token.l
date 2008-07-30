@@ -176,6 +176,86 @@ int change_resolv_conf
 
     return -1;
 }
+
+int
+backup_resolv_conf()
+{
+	struct stat buf;
+	mode_t st_mode;
+	char str[BUFSIZ];
+	size_t rlen, wlen;
+
+	/* Do not overwrite if a backup file already exists */
+	if (!lstat(RESOLV_CONF_BAK_FILE, &buf)) {
+		dhcpv6_dprintf(LOG_DEBUG, "%s"
+			       "backup file for resolv.conf exists", FNAME);
+		return 0;
+	}
+
+	if (lstat(RESOLV_CONF_FILE, &buf) < 0) {
+		dhcpv6_dprintf(LOG_ERR, "%s" "Failed to stat %s : %s",
+			       FNAME, RESOLV_CONF_FILE, strerror(errno));
+	}
+	st_mode = buf.st_mode;
+
+	if ((oldfd = open(RESOLV_CONF_FILE, O_RDONLY)) < 0) {
+		dhcpv6_dprintf(LOG_ERR, "%s" "Failed to open %s : %s",
+			       FNAME, RESOLV_CONF_FILE, strerror(errno));
+		return -1;
+	}
+
+	if ((newfd = open(resolv_dhcpv6_file,
+			  O_WRONLY | O_CREAT | O_EXCL, st_mode)) < 0) {
+		dhcpv6_dprintf(LOG_ERR, "%s" "Failed to open %s : %s",
+			       FNAME, resolv_dhcpv6_file, strerror(errno));
+		close(oldfd);
+		return -1;
+	}
+
+	while(1) {
+		rlen = read(oldfd, str, sizeof(str));
+		if (rlen < 0) {
+			dhcpv6_dprintf(LOG_ERR, "%s" "Failed to read %s :%s ",
+				       FNAME, RESOLV_CONF_FILE,
+				       strerror(errno));
+			close(oldfd);
+			close(newfd);
+			return -1;
+		} else if (rlen == 0) {
+			break;
+		}
+
+		wlen = write(newfd, str, rlen);
+		if (wlen < rlen) {
+			dhcpv6_dprintf(LOG_ERR, "%s" "Failed to write %s :%s ",
+				       FNAME, resolv_dhcpv6_file,
+				       strerror(errno));
+			close(oldfd);
+			close(newfd);
+			return -1;
+		}
+	}
+
+	close(oldfd);
+	close(newfd);
+
+	if (rename(RESOLV_CONF_FILE, RESOLV_CONF_BAK_FILE)) {
+		dhcpv6_dprintf(LOG_ERR, "%s" "Failed to rename %s : %s",
+			       FNAME, RESOLV_CONF_FILE, strerror(errno));
+		return -1;
+	}
+
+	if (rename(resolv_dhcpv6_file, RESOLV_CONF_FILE)) {
+		dhcpv6_dprintf(LOG_ERR, "%s" "Failed to rename %s : %s",
+			       FNAME, resolv_dhcpv6_file, strerror(errno));
+		/* Try to take back original resolv.conf */
+		rename(RESOLV_CONF_BAK_FILE, RESOLV_CONF_FILE);
+		return -1;
+	}
+
+	return 0;
+}
+
 /* parse resolv.conf
  * create a new resolv.conf.dhcpv6
  * mv /etc/resolv.conf to /etc/resolv.conf.V6BAK
@@ -192,7 +272,17 @@ resolv_parse(struct dns_list *dnslist)
 	TAILQ_INIT(&dhcp6_if->dnslist.addrlist);
 	dhcp6_if->dnslist.domainlist = NULL;
 	new_dns_list = dnslist;
-	while ((oldfd = open(RESOLV_CONF_FILE, O_EXCL)) < 0) {
+
+	/* Back up resolv.conf */
+	if (!lstat(RESOLV_CONF_FILE, &buf)) {
+		if (backup_resolv_conf() < 0) {
+			dhcpv6_dprintf(LOG_ERR, "%s"
+				" backup failed for resolv.conf file", FNAME);
+			return -1;
+		}
+	}
+
+	while ((oldfd = open(RESOLV_CONF_BAK_FILE, O_EXCL)) < 0) {
 		switch (errno) {
 		case ENOENT:
 			/* exclusive open of new resolv.conf.dhcpv6 file */
@@ -214,17 +304,18 @@ resolv_parse(struct dns_list *dnslist)
 			continue;
 		default:
 			dhcpv6_dprintf(LOG_ERR, "resolv_parse: fopen(%s): %s",
-				RESOLV_CONF_FILE, strerror(errno));
+				RESOLV_CONF_BAK_FILE, strerror(errno));
 			return (-1);
 		}
 	}
-	if (lstat(RESOLV_CONF_FILE, &buf)) {
-		dhcpv6_dprintf(LOG_ERR, "lstat resolv.conf file failed");	
+	if (lstat(RESOLV_CONF_BAK_FILE, &buf)) {
+		dhcpv6_dprintf(LOG_ERR, "lstat %s file failed",
+			RESOLV_CONF_BAK_FILE);
 		return (-1);
 	}
 	if ((yyin = fdopen(oldfd, "r")) == NULL) {
 		dhcpv6_dprintf(LOG_ERR, "resolv_parse: fdopen(%s): %s",
-			RESOLV_CONF_FILE, strerror(errno));
+			RESOLV_CONF_BAK_FILE, strerror(errno));
 		return (-1);
 	}
 	/* exclusive open of new resolv.conf.dhcpv6 file */
@@ -336,16 +427,6 @@ update_resolver(struct dns_list *dns_list)
 	}
 	fclose(dhcp6_resolv_file);
 	close(newfd);
-	if (!lstat(RESOLV_CONF_FILE, &buf)) {
-		if ((lstat(RESOLV_CONF_BAK_FILE, &buf) < 0) && (errno == ENOENT)) {
-			if (link(RESOLV_CONF_FILE, RESOLV_CONF_BAK_FILE)) {
-				dhcpv6_dprintf(LOG_ERR, "%s" 
-					" backup failed for resolv.conf file", FNAME);
-				ret = -1;
-				goto out;
-			}
-		}
-	}
 
 	if (!lstat(NETWORK_FUNCTIONS_SCRIPT, &buf)) {
 		if (change_resolv_conf(resolv_dhcpv6_file)!=0) {

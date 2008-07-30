@@ -100,7 +100,7 @@ static void cleanup_cflist __P((struct cf_list *));
 %token REQUEST SEND 
 %token RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS DOMAIN_LIST
 %token INFO_ONLY TEMP_ADDR
-%token ADDRESS PREFIX IAID RENEW_TIME REBIND_TIME V_TIME P_TIME PREFIX_DELEGATION_INTERFACE
+%token ADDRESS PREFIX IAID RENEW_TIME REBIND_TIME V_TIME P_TIME PREFIX_DELEGATION_INTERFACE DEFAULT_IRT MAXIMUM_IRT
 %token NUMBER SLASH EOS BCL ECL STRING INFINITY
 %token COMMA OPTION
 
@@ -182,6 +182,24 @@ declaration:
 
 			MAKE_CFLIST(l, DECL_INFO_ONLY, NULL, NULL);
 			/* no value */
+			$$ = l;
+		}
+	|	DEFAULT_IRT duration EOS
+		{
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DECL_DEFAULT_IRT, NULL, NULL);
+			l->num = $2;
+
+			$$ = l;
+		}
+	|	MAXIMUM_IRT duration EOS
+		{
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DECL_MAXIMUM_IRT, NULL, NULL);
+			l->num = $2;
+
 			$$ = l;
 		}
 	|	REQUEST TEMP_ADDR EOS
