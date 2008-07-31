@@ -19,9 +19,10 @@ dnl Author: David Cantrell <dcantrell@redhat.com>
 
 AC_PREREQ(2.61)
 AC_INIT([dhcpv6], [1.0.21], [dcantrell@redhat.com])
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR([src/dhcp6s.c])
 AC_CONFIG_HEADER([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 
 dnl Versioning
 dnl (from glib's configure.in ...)
@@ -139,6 +140,7 @@ AM_CHECK_RESOLVER
 # Check for headers that are platform dependent
 AM_CHECK_LINUX_HEADERS
 AM_CHECK_DARWIN_HEADERS
+AM_PROG_CC_C_O
 
 AC_CONFIG_FILES([Makefile include/Makefile src/Makefile man/Makefile \
                  etc/Makefile etc/sysconfig/Makefile etc/init.d/Makefile])
