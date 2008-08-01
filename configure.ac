@@ -89,7 +89,7 @@ AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h \
                  ]])
 
 # Check for headers that are nice, but we don't absolutely have to have
-AC_CHECK_HEADERS([sys/queue.h isc-dhcp/libdhcp_control.h],
+AC_CHECK_HEADERS([sys/queue.h isc-dhcp/libdhcp_control.h linux/ipv6.h],
                  [], [],
                  [[#ifdef HAVE_SYS_TYPES_H
                    # include <sys/types.h>
@@ -111,6 +111,12 @@ AC_STRUCT_TM
 AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT8_T
+
+AC_CHECK_MEMBERS([struct in6_ifreq.ifr6_addr],,,
+    [AC_INCLUDES_DEFAULT()
+     [#ifdef HAVE_NETINET_IN_H
+      #include <netinet/in.h>
+      #endif]])
 
 # check for required library functions
 AC_FUNC_FORK

@@ -54,8 +54,10 @@
 # include <linux/sockios.h>
 #endif
 
+#ifndef HAVE_STRUCT_IN6_IFREQ_IFR6_ADDR
 #ifdef HAVE_LINUX_IPV6_H
 # include <linux/ipv6.h>
+#endif
 #endif
 
 #ifdef HAVE_NET_IF_VAR_H
