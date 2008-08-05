@@ -2468,8 +2468,6 @@ static void setup_interface(char *ifname) {
             return;
         }
 
-        memset(&ifr, '\0', sizeof(struct ifreq));
-        strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
         ifr.ifr_flags |= (IFF_UP | IFF_RUNNING);
         if (ioctl(nlsock, SIOCSIFFLAGS, &ifr) < 0) {
             dhcpv6_dprintf(LOG_ERR, "ioctl SIOCSIFFLAGS failed");
