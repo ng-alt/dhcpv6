@@ -1668,17 +1668,23 @@ fail:
 
 static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
                                 struct ia_listval *ia) {
-    int buflen;
-    unsigned char *tp;
-    u_int32_t iaid;
+    int buflen = 0;
+    unsigned char *tp = NULL;
+    u_int32_t iaid = 0;
     struct dhcp6_iaid_info opt_iana;
     struct dhcp6_iaid_info opt_iapd;
     struct dhcp6_prefix_info pi;
     struct dhcp6_addr_info ai;
     struct dhcp6_status_info status;
-    struct dhcp6_listval *dp;
-    int iaddr_len;
-    int num;
+    struct dhcp6_listval *dp = NULL;
+    int iaddr_len = 0;
+    int num = 0;
+
+    memset(&opt_iana, 0, sizeof(opt_iana));
+    memset(&opt_iapd, 0, sizeof(opt_iapd));
+    memset(&pi, 0, sizeof(pi));
+    memset(&ai, 0, sizeof(ai));
+    memset(&status, 0, sizeof(status));
 
     switch (ia->type) {
         case IATA:
