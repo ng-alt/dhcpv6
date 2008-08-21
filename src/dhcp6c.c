@@ -1370,6 +1370,18 @@ void client6_send(struct dhcp6_event *ev) {
                 ia->type = iatype_of_if(ifp);
             }
 
+            /*
+             * Windows 2008 interoperability fix
+             * If IA address is included in the DHCPv6 ADVERTISE (which is
+             * what Windows 2008 does), put the IA address into the DHCPv6
+             * REQUEST.  Windows 2008 will check for the IA address it has
+             * given in the ADVERTISE, if it doesn't see it, the REQUEST
+             * will be ignored).
+             */
+            if (!TAILQ_EMPTY(&request_list)) {
+                dhcp6_copy_list(&ia->addr_list, &request_list);
+            }
+
             break;
         case DHCP6S_RENEW:
         case DHCP6S_REBIND:
@@ -1639,6 +1651,18 @@ static int client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
         dhcpv6_dprintf(LOG_INFO, "%s" "duplicated server (ID: %s)",
                        FNAME, duidstr(&optinfo0->serverID));
         return -1;
+    }
+
+    /*
+     * Windows 2008 interoperability fix
+     * If IA address is included in the DHCPv6 ADVERTISE (which is
+     * what Windows 2008 does), put the IA address into the DHCPv6
+     * REQUEST.  Windows 2008 will check for the IA address it has
+     * given in the ADVERTISE, if it doesn't see it, the REQUEST
+     * will be ignored).
+     */
+    if (!TAILQ_EMPTY(&optinfo0->ia_list)) {
+        dhcp6_copy_list(&request_list, &optinfo0->ia_list);
     }
 
     newserver = allocate_newserver(ifp, optinfo0);
