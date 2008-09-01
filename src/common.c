@@ -1393,24 +1393,24 @@ static int get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
                 }
                 if (optlen == sizeof(ai) - sizeof(u_int32_t)) {
                     addr6.status_code = DH6OPT_STCODE_UNDEFINE;
-                    break;
-                }
-                /* address status code might be added after IADDA option */
-                memcpy(&opth, p + sizeof(ai), sizeof(opth));
-                optlen = ntohs(opth.dh6opt_len);
-                opt = ntohs(opth.dh6opt_type);
-                switch (opt) {
-                    case DH6OPT_STATUS_CODE:
-                        if (optlen < sizeof(val16))
+                } else {
+                    /* address status code might be added after IADDA option */
+                    memcpy(&opth, p + sizeof(ai), sizeof(opth));
+                    optlen = ntohs(opth.dh6opt_len);
+                    opt = ntohs(opth.dh6opt_type);
+                    switch (opt) {
+                        case DH6OPT_STATUS_CODE:
+                            if (optlen < sizeof(val16))
+                                goto malformed;
+                            memcpy(&val16, p + sizeof(ai) + sizeof(opth),
+                                   sizeof(val16));
+                            num = ntohs(val16);
+                            DPRINT_STATUS_CODE("address", num, p, optlen);
+                            addr6.status_code = num;
+                            break;
+                        default:
                             goto malformed;
-                        memcpy(&val16, p + sizeof(ai) + sizeof(opth),
-                               sizeof(val16));
-                        num = ntohs(val16);
-                        DPRINT_STATUS_CODE("address", num, p, optlen);
-                        addr6.status_code = num;
-                        break;
-                    default:
-                        goto malformed;
+                    }
                 }
                 if (ia_add_address(ia, &addr6)) {
                     goto fail;
@@ -1442,24 +1442,24 @@ static int get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
                 }
                 if (optlen == sizeof(pi) - sizeof(u_int32_t)) {
                     addr6.status_code = DH6OPT_STCODE_UNDEFINE;
-                    break;
-                }
-                /* address status code might be added after IADDA option */
-                memcpy(&opth, p + sizeof(pi), sizeof(opth));
-                optlen = ntohs(opth.dh6opt_len);
-                opt = ntohs(opth.dh6opt_type);
-                switch (opt) {
-                    case DH6OPT_STATUS_CODE:
-                        if (optlen < sizeof(val16))
+                } else {
+                    /* address status code might be added after IADDA option */
+                    memcpy(&opth, p + sizeof(pi), sizeof(opth));
+                    optlen = ntohs(opth.dh6opt_len);
+                    opt = ntohs(opth.dh6opt_type);
+                    switch (opt) {
+                        case DH6OPT_STATUS_CODE:
+                            if (optlen < sizeof(val16))
+                                goto malformed;
+                            memcpy(&val16, p + sizeof(pi) + sizeof(opth),
+                                   sizeof(val16));
+                            num = ntohs(val16);
+                            DPRINT_STATUS_CODE("prefix", num, p, optlen);
+                            addr6.status_code = num;
+                            break;
+                        default:
                             goto malformed;
-                        memcpy(&val16, p + sizeof(pi) + sizeof(opth),
-                               sizeof(val16));
-                        num = ntohs(val16);
-                        DPRINT_STATUS_CODE("prefix", num, p, optlen);
-                        addr6.status_code = num;
-                        break;
-                    default:
-                        goto malformed;
+                    }
                 }
                 if (ia_add_address(ia, &addr6)) {
                     goto fail;
