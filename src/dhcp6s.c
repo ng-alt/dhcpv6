@@ -758,10 +758,9 @@ update_binding_ia(struct duid *clientID,
 
     for (ia = TAILQ_FIRST(ia_list); ia; ia = TAILQ_NEXT(ia, link)) {
         ++num_ia;
+        ria = NULL;
         if (!TAILQ_EMPTY(&ia->addr_list)) {
-            if (addr_flag == ADDR_VALIDATE) {
-                ria = NULL;
-            } else {
+            if (addr_flag != ADDR_VALIDATE) {
                 if ((ria = ia_create_listval()) == NULL)
                     goto fail;
                 ria->type = ia->type;
