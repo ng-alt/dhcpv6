@@ -2077,7 +2077,8 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                     dhcp6_set_timer(&timo, client6_iaidaddr.timer);
 
                     /* check DAD */
-                    if (ia->type != IAPD && ifp->dad_timer == NULL &&
+                    if (client6_iaidaddr.client6_info.type != IAPD &&
+			ifp->dad_timer == NULL &&
                         (ifp->dad_timer =
                          dhcp6_add_timer(check_dad_timo, ifp)) < 0) {
                         dhcpv6_dprintf(LOG_INFO,
