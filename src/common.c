@@ -98,6 +98,7 @@ static int get_assigned_ipv6addrs __P((unsigned char *, unsigned char *,
                                        struct ia_listval *));
 static int dhcp6_set_ia_options __P((unsigned char **, int *,
                                      struct ia_listval *));
+static int ia_add_address __P((struct ia_listval *, struct dhcp6_addr *));
 
 struct dhcp6_if *find_ifconfbyname(const char *ifname) {
     struct dhcp6_if *ifp;
@@ -1411,6 +1412,9 @@ static int get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
                     default:
                         goto malformed;
                 }
+                if (ia_add_address(ia, &addr6)) {
+                    goto fail;
+                }
                 break;
             case DH6OPT_IAPREFIX:
                 if (optlen < sizeof(pi) - sizeof(u_int32_t))
@@ -1457,26 +1461,12 @@ static int get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
                     default:
                         goto malformed;
                 }
+                if (ia_add_address(ia, &addr6)) {
+                    goto fail;
+                }
                 break;
             default:
                 goto malformed;
-        }
-
-        /* set up address type */
-        addr6.type = ia->type;
-        if (dhcp6_find_listval(&ia->addr_list,
-                               &addr6, DHCP6_LISTVAL_DHCP6ADDR)) {
-            dhcpv6_dprintf(LOG_INFO, "duplicated address (%s/%d)",
-                           in6addr2str(&addr6.addr, 0), addr6.plen);
-            /* XXX: decline message */
-            continue;
-        }
-
-        if (dhcp6_add_listval(&ia->addr_list, &addr6,
-                              DHCP6_LISTVAL_DHCP6ADDR) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy an "
-                           "address", FNAME);
-            goto fail;
         }
     }
 
@@ -1488,6 +1478,24 @@ malformed:
 fail:
     dhcp6_clear_list(&ia->addr_list);
     return -1;
+}
+
+static int ia_add_address(struct ia_listval *ia, struct dhcp6_addr *addr6) {
+    /* set up address type */
+    addr6->type = ia->type;
+    if (dhcp6_find_listval(&ia->addr_list, addr6, DHCP6_LISTVAL_DHCP6ADDR)) {
+        dhcpv6_dprintf(LOG_INFO, "duplicated address (%s/%d)",
+                       in6addr2str(&addr6->addr, 0), addr6->plen);
+        /* XXX: decline message */
+        return 0;
+    }
+
+    if (dhcp6_add_listval(&ia->addr_list, addr6,
+                          DHCP6_LISTVAL_DHCP6ADDR) == NULL) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy an address", FNAME);
+        return -1;
+    }
+    return 0;
 }
 
 #define COPY_OPTION(t, l, v, p) do { \
