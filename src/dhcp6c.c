@@ -1665,18 +1665,6 @@ static int client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
         return -1;
     }
 
-    /*
-     * Windows 2008 interoperability fix
-     * If IA address is included in the DHCPv6 ADVERTISE (which is
-     * what Windows 2008 does), put the IA address into the DHCPv6
-     * REQUEST.  Windows 2008 will check for the IA address it has
-     * given in the ADVERTISE, if it doesn't see it, the REQUEST
-     * will be ignored).
-     */
-    if (!TAILQ_EMPTY(&optinfo0->ia_list)) {
-        dhcp6_copy_list(&request_list, &optinfo0->ia_list);
-    }
-
     newserver = allocate_newserver(ifp, optinfo0);
 
     if (newserver == NULL) {
