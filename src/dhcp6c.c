@@ -1818,8 +1818,6 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
         return -1;
     }
 
-    dhcp6_clear_list(&request_list);
-
     /* A Reply message must contain a Server ID option */
     if (optinfo->serverID.duid_len == 0) {
         dhcpv6_dprintf(LOG_INFO, "%s" "no server ID option", FNAME);
@@ -2125,6 +2123,7 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                        FNAME);
     }
 
+    dhcp6_clear_list(&request_list);
     TAILQ_INIT(&request_list);
     return 0;
 }
