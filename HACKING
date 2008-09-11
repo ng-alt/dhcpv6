@@ -140,7 +140,7 @@ file to a new name so you can edit the other copy.  Here is a basic
 workflow:
 
     $ cd dhcpv6-VERSION/src
-    $ cp -p dhcp6c.s dhcp6c.c.orig
+    $ cp -p dhcp6c.c dhcp6c.c.orig
     $ vim dhcp6c.c                     # make your changes
 
 Generating a patch is done using GNU diffutils or a diff(1) command
