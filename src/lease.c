@@ -192,12 +192,10 @@ FILE *init_leases(const char *name) {
         dhcpv6_dprintf(LOG_ERR, "%s" "could not stat lease file", FNAME);
         return (NULL);
     }
-    if (dhcp6_mode == DHCP6_MODE_SERVER) {
-        if (0 != init_lease_hashes()) {
-            dhcpv6_dprintf(LOG_ERR, "%s" "Could not initialize hash arrays",
-                           FNAME);
-            return (NULL);
-        }
+    if (0 != init_lease_hashes()) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "Could not initialize hash arrays",
+                       FNAME);
+        return (NULL);
     }
     if (stbuf.st_size > 0) {
         lease_parse(file);
