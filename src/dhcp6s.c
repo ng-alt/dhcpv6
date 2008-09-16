@@ -403,6 +403,9 @@ void server6_init() {
             dhcpv6_dprintf(LOG_ERR, "%s" "failed to get a DUID", FNAME);
             exit(1);
         }
+        if (save_duid(DUID_FILE, device[0], &server_duid)) {
+            dhcpv6_dprintf(LOG_ERR, "%s" "failed to save server ID", FNAME);
+        }
     } else {
         /* all the interfaces join multicast group */
         ifc.ifc_len = sizeof(buff);
@@ -436,6 +439,10 @@ void server6_init() {
                     dhcpv6_dprintf(LOG_ERR, "%s" "failed to get a DUID",
                                    FNAME);
                     exit(1);
+                }
+                if (save_duid(DUID_FILE, ifr->ifr_name, &server_duid)) {
+                    dhcpv6_dprintf(LOG_ERR, "%s" "failed to save server ID",
+                                   FNAME);
                 }
             }
             ifinit(ifr->ifr_name);
