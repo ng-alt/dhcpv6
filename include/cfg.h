@@ -101,6 +101,8 @@ struct dhcp6_if {
 #define DHCIFF_TEMP_ADDRS 0x4
 #define DHCIFF_PREFIX_DELEGATION 0x8
 #define DHCIFF_UNICAST 0x10
+#define DHCIFF_HAS_OPT_DNS_SERVERS 0x11
+#define DHCIFF_HAS_OPT_DOMAIN_LIST 0x12
 
     struct in6_addr linklocal;
     int server_pref;            /* server preference (server only) */

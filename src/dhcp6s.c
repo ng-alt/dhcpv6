@@ -959,9 +959,9 @@ static int server6_react_message(struct dhcp6_if *ifp,
         roptinfo.flags = (optinfo->flags & subnet->linkscope.allow_flags) |
             subnet->linkscope.send_flags;
 
-        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS) ||
-            dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
+        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
             dnslist = subnet->linkscope.dnslist;
+            roptinfo.flags |= DHCIFF_HAS_OPT_DNS_SERVERS;
         }
 
         if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_INFO_REFRESH_TIME)) {
@@ -977,9 +977,9 @@ static int server6_react_message(struct dhcp6_if *ifp,
         roptinfo.flags = (optinfo->flags & host->hostscope.allow_flags) |
             host->hostscope.send_flags;
 
-        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS) ||
-            dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
+        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
             dnslist = host->hostscope.dnslist;
+            roptinfo.flags |= DHCIFF_HAS_OPT_DNS_SERVERS;
         }
 
         if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_INFO_REFRESH_TIME)) {
@@ -1185,6 +1185,7 @@ static int server6_react_message(struct dhcp6_if *ifp,
             if (dhcp6_has_option(&optinfo->reqopt_list,
                                  DH6OPT_DOMAIN_LIST)) {
                 roptinfo.dns_list.domainlist = dnslist.domainlist;
+                roptinfo.flags |= DHCIFF_HAS_OPT_DOMAIN_LIST;
             }
 
             break;
