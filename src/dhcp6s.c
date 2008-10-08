@@ -885,6 +885,12 @@ static int server6_react_message(struct dhcp6_if *ifp,
                        duidstr(&optinfo->clientID));
     }
 
+    /* Make sure DUID LLT time field matches the client */
+    if (duid_match_llt(&optinfo->clientID, &server_duid)) {
+        dprintf(LOG_INFO, "failed to match DUID LLT time field between server and client");
+        return -1;
+    }
+
     /* what kind of message did we receive? */
     switch (dh6->dh6_msgtype) {
             /* these messages must include a Server Identifier option */

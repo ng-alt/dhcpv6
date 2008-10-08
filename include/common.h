@@ -87,6 +87,7 @@ extern void dhcpv6_dprintf(int, const char *, ...)
 extern void dhcpv6_dprintf __P((int, const char *, ...));
 #endif
 
+extern int duid_match_llt __P((struct duid *, struct duid *));
 extern int get_duid __P((const char *, const char *, struct duid *));
 extern int save_duid __P((const char *, const char *, struct duid *));
 extern u_int16_t calculate_duid_len __P((const char *, u_int16_t *));

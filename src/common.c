@@ -782,6 +782,22 @@ int configure_duid(const char *str, struct duid *duid) {
     return (-1);
 }
 
+int duid_match_llt(struct duid *client, struct duid *server) {
+    struct dhcp6_duid_type1 *client_duid = NULL;
+    struct dhcp6_duid_type1 *server_duid = NULL;
+
+    server_duid = (struct dhcp6_duid_type1 *) server->duid_id;
+    client_duid = (struct dhcp6_duid_type1 *) client->duid_id;
+
+    if (server_duid != NULL && client_duid != NULL) {
+        server_duid->dh6duid1_time = client_duid->dh6duid1_time;
+    } else {
+        return -1;
+    }
+
+    return 0;
+}
+
 int get_duid(const char *idfile, const char *ifname, struct duid *duid) {
     FILE *fp = NULL;
     u_int16_t len = 0, hwtype;
