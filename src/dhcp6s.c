@@ -188,6 +188,7 @@ int main(int argc, char **argv) {
     int ch;
     char *progname, *conffile = DHCP6S_CONF;
     FILE *pidfp = NULL;
+    struct interface *ifnetwork;
 
     if ((progname = strrchr(*argv, '/')) == NULL) {
         progname = *argv;
@@ -270,6 +271,21 @@ int main(int argc, char **argv) {
         dhcpv6_dprintf(LOG_ERR,
                        "%s" "failed to parse addr configuration file", FNAME);
         exit(1);
+    }
+
+    ifnetwork = globalgroup->iflist;
+    for (ifnetwork = globalgroup->iflist; ifnetwork;
+         ifnetwork = ifnetwork->next) {
+        if(ifnetwork->linklist == NULL) {
+            /* If there was no link defined in the conf file, make an empty one. */
+            ifnetwork->linklist = (struct link_decl *)malloc(sizeof(*subnet));
+            if (ifnetwork->linklist == NULL) {
+                dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
+                exit(1);
+            }
+            memset(ifnetwork->linklist, 0, sizeof(*ifnetwork->linklist));
+            TAILQ_INIT(&ifnetwork->linklist->linkscope.dnslist.addrlist);
+        }
     }
 
     if (signal(SIGHUP, server6_sighandler) == SIG_ERR) {
