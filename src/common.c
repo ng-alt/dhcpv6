@@ -851,6 +851,11 @@ int get_duid(const char *idfile, const char *ifname, struct duid *duid) {
         dp->dh6duid1_hwtype = htons(hwtype);
         t64 = (u_int64_t) (time(NULL) - 946684800);
         dp->dh6duid1_time = htonl((u_long) (t64 & 0xffffffff));
+        if (gethwid(tmpbuf, sizeof(tmpbuf), ifname, &hwtype) < 0) {
+            dhcpv6_dprintf(LOG_DEBUG, "%s" "failed to get hw ID for %s", FNAME,
+                           ifname);
+            goto fail;
+        }
         memcpy((void *) (dp + 1), tmpbuf, (len - sizeof(*dp)));
 
         dhcpv6_dprintf(LOG_DEBUG, "%s" "generated a new DUID: %s", FNAME,
