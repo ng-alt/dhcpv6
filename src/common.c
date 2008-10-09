@@ -1624,7 +1624,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
         free(tmpbuf);
     }
 
-    if (optinfo->flags & DHCIFF_HAS_OPT_DNS_SERVERS) {
+    if (!TAILQ_EMPTY(&optinfo->dns_list.addrlist)) {
         struct in6_addr *in6;
         struct dhcp6_listval *d;
 
@@ -1649,7 +1649,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
         free(tmpbuf);
     }
 
-    if (optinfo->flags & DHCIFF_HAS_OPT_DOMAIN_LIST) {
+    if (optinfo->dns_list.domainlist != NULL) {
         struct domain_list *dlist;
         unsigned char *dst;
 
