@@ -773,7 +773,10 @@ static int client6_ifinit(char *device) {
             return -1;
         }
 
-        ifp->iaidinfo.iaid = get_iaid(ifp->ifname, &iaidtab[0], num_device);
+        if (ifp->iaidinfo.iaid == 0) {
+            ifp->iaidinfo.iaid = get_iaid(ifp->ifname, &iaidtab[0],
+                                          num_device);
+        }
 
         if (ifp->iaidinfo.iaid == 0) {
             dhcpv6_dprintf(LOG_DEBUG, "%s"
