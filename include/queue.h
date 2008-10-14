@@ -43,7 +43,7 @@
  */
 #ifdef HAVE_SYS_QUEUE_H
 #include <sys/queue.h>
-#endif
+#else
 
 /*
  * Note: Even if queue.h is avaialble in libc, some macros may be not
@@ -260,5 +260,7 @@ struct { \
 } while (0)
 
 #endif /* !defined(TAILQ_*) */
+
+#endif /* !defined(HAVE_SYS_QUEUE_H) */
 
 #endif /* !defined(_QUEUE_H_) */
