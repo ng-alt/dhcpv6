@@ -2029,6 +2029,12 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                                    FNAME);
                     /* remove event data list */
                     free_servers(ifp);
+                    /* remove the address which is judged NotOnLink */
+                    dhcp6_remove_iaidaddr(&client6_iaidaddr);
+#ifdef LIBDHCP
+                    if (libdhcp_control && libdhcp_control->callback)
+                        (*(libdhcp_control->callback)) (libdhcp_control, DHC6_RELEASE, &client6_iaidaddr);
+#endif
                     newstate = DHCP6S_SOLICIT;
                     break;
                 case DH6OPT_STCODE_SUCCESS:
