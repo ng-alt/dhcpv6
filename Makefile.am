@@ -22,7 +22,7 @@ dist-hook:
 	rm -rf `find $(distdir) -type f -name .gitignore`
 
 ChangeLog:
-	(GIT_DIR=.git git-log > .changelog.tmp && mv .changelog.tmp ChangeLog; rm -f .changelog.tmp) || (touch ChangeLog; echo 'git directory not found: installing possibly empty ChangeLog.' >&2)
+	(GIT_DIR=.git git log > .changelog.tmp && mv .changelog.tmp ChangeLog; rm -f .changelog.tmp) || (touch ChangeLog; echo 'git directory not found: installing possibly empty ChangeLog.' >&2)
 
 tag:
 	@if [ -z "$(GPGKEY)" ]; then \
@@ -30,7 +30,7 @@ tag:
 		echo "you want to use to tag the repository." ; \
 		exit 1 ; \
 	fi
-	@git-tag -u $(GPGKEY) -m "Tag as $(PACKAGE)-$(VERSION)" -f $(PACKAGE)-$(VERSION)
+	@git tag -u $(GPGKEY) -m "Tag as $(PACKAGE)-$(VERSION)" -f $(PACKAGE)-$(VERSION)
 	@echo "Tagged as $(PACKAGE)-$(VERSION) (GPG signed)"
 
 release: dist-gzip

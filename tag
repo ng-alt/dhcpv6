@@ -37,7 +37,7 @@ if __name__ == "__main__":
         sys.stderr.write("Could not determine package name and/or version.\n")
         sys.exit(3)
 
-    cmd = "git-tag -u %s -m \"Tag as %s-%s\" -f %s-%s" % (gpgkey, pkg, ver, pkg, ver,)
+    cmd = "git tag -u %s -m \"Tag as %s-%s\" -f %s-%s" % (gpgkey, pkg, ver, pkg, ver,)
     os.system(cmd)
 
     print "Tagged as %s-%s (GPG signed)" % (pkg, ver,)
