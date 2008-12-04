@@ -1,15 +1,9 @@
 #
 # Makefile.am for dhcpv6 include subdirectory
 # Author: David Cantrell <dcantrell@redhat.com>
-#
 
-dhcp6clientincludedir = $(includedir)/dhcp6client
-
-noinst_HEADERS = dhcp6r.h relay6_database.h relay6_parser.h relay6_socket.h \
-                 server6_conf.h
-
-dhcp6clientinclude_HEADERS = dhcp6client.h common.h cfg.h dhc6_alloc.h \
-                             dhcp6.h hash.h lease.h timer.h queue.h \
-                             libdhcp_control.h
+noinst_HEADERS = cfg.h common.h dhcp6.h dhcp6r.h hash.h lease.h queue.h \
+                 relay6_database.h relay6_parser.h relay6_socket.h \
+                 server6_conf.h timer.h
 
 MAINTAINERCLEANFILES = Makefile.in

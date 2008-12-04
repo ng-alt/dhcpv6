@@ -58,7 +58,5 @@
 
 - valgrind and gcc -Wall checks
 
-- Remove libdhcp6client
-
 - For default locations (/var/run files and stuff), inherit the ./configure
   paths by default.

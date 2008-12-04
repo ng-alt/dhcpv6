@@ -7,25 +7,19 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = include src man etc
 
-EXTRA_DIST = AUTHORS LICENSE README TODO libdhcp6client.pc.in ChangeLog \
+EXTRA_DIST = AUTHORS LICENSE README TODO ChangeLog \
              RFC3315 RFC3633 RFC3646 RFC4242
 
 MAINTAINERCLEANFILES = Makefile.in config.guess config.h.in config.sub \
                        depcomp install-sh ltmain.sh missing ABOUT-NLS \
                        INSTALL aclocal.m4 configure ylwrap $(DIST_ARCHIVES)
 
-CLEANFILES = *~ ChangeLog libdhcp6client.pc
+CLEANFILES = *~ ChangeLog
 
 MOSTLYCLEANDIRS = m4
 
-pcdir = $(libdir)/pkgconfig
-pc_DATA = libdhcp6client.pc
-
 dist-hook:
 	rm -rf `find $(distdir) -type f -name .gitignore`
-
-libdhcp6client.pc: libdhcp6client.pc.in
-	sed -e 's|\@DHCPV6_VERSION\@|$(DHCPV6_VERSION)|g' < $< > $@
 
 ChangeLog:
 	(GIT_DIR=.git git-log > .changelog.tmp && mv .changelog.tmp ChangeLog; rm -f .changelog.tmp) || (touch ChangeLog; echo 'git directory not found: installing possibly empty ChangeLog.' >&2)
