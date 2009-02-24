@@ -24,38 +24,6 @@ AC_CONFIG_SRCDIR([src/dhcp6s.c])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
-dnl Versioning
-dnl (from glib's configure.in ...)
-dnl Making releases:
-dnl     DHCPV6_MICRO_VERSION += 1;
-dnl     DHCPV6_INTERFACE_AGE += 1;
-dnl     DHCPV6_BINARY_AGE += 1;
-dnl if any functions have been added, set DHCPV6_INTERFACE_AGE to 0.
-dnl if backwards compatibility has been broken (e.g., functions removed,
-dnl function signatures changed),
-dnl set DHCPV6_BINARY_AGE and DHCPV6_INTERFACE_AGE to 0.
-DHCPV6_MAJOR_VERSION=1
-DHCPV6_MINOR_VERSION=1
-DHCPV6_MICRO_VERSION=0
-DHCPV6_INTERFACE_AGE=0
-DHCPV6_BINARY_AGE=0
-DHCPV6_VERSION_SUFFIX=
-DHCPV6_VERSION=$DHCPV6_MAJOR_VERSION.$DHCPV6_MINOR_VERSION.$DHCPV6_MICRO_VERSION$DHCPV6_VERSION_SUFFIX
-
-LT_RELEASE=$DHCPV6_MAJOR_VERSION.$DHCPV6_MINOR_VERSION
-LT_CURRENT=`expr $DHCPV6_MICRO_VERSION - $DHCPV6_INTERFACE_AGE`
-LT_REVISION=$DHCPV6_INTERFACE_AGE
-AC_SUBST(DHCPV6_VERSION)
-AC_SUBST(LT_RELEASE)
-AC_SUBST(LT_CURRENT)
-AC_SUBST(LT_REVISION)
-AC_SUBST(LT_AGE)
-
-# Ensure that the DHCPV6_*-specified version is the same as the literal
-# in the AC_INIT line, above.
-test $PACKAGE_VERSION = $DHCPV6_VERSION ||
-  AC_MSG_ERROR(configure.ac: version mismatch: $PACKAGE_VERSION != $DHCPV6_VERSION)
-
 AC_DEFINE_UNQUOTED([BUILD_DATE], ["`date +%m%d%Y`"], [Date of dhcpv6 build])
 
 AC_PROG_CPP
