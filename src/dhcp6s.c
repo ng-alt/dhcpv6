@@ -121,7 +121,7 @@ static int server6_recv __P((int));
 static int handle_addr_request __P((struct dhcp6_optinfo *,
                                     struct ia_list *, struct ia_list *,
                                     int, int *));
-static int update_binding_ia __P((struct duid *clientID,
+static int update_binding_ia __P((struct dhcp6_optinfo *roptinfo,
                                   struct ia_list *ria_list,
                                   struct ia_list *ia_list,
                                   u_int8_t msgtype, int addr_flag,
@@ -765,7 +765,7 @@ fail:
 }
 
 static int
-update_binding_ia(struct duid *clientID,
+update_binding_ia(struct dhcp6_optinfo *roptinfo,
                   struct ia_list *ria_list,
                   struct ia_list *ia_list,
                   u_int8_t msgtype,
@@ -790,12 +790,12 @@ update_binding_ia(struct duid *clientID,
                 ria->iaidinfo = ia->iaidinfo;
             }
 
-            if ((iaidaddr = dhcp6_find_iaidaddr(clientID,
+            if ((iaidaddr = dhcp6_find_iaidaddr(&roptinfo->clientID,
                             ia->iaidinfo.iaid, ia->type)) == NULL) {
                 /* Not found binding IA Addr */
                 ++num_nobinding_ia;
                 dhcpv6_dprintf(LOG_INFO, "%s" "Nobinding for client %s iaid %u",
-                        FNAME, duidstr(clientID), ia->iaidinfo.iaid);
+                        FNAME, duidstr(&roptinfo->clientID), ia->iaidinfo.iaid);
                 if (addr_flag == ADDR_VALIDATE) {
                     goto out;
                 } else if (msgtype == DH6_REBIND) {
@@ -1180,7 +1180,7 @@ static int server6_react_message(struct dhcp6_if *ifp,
             }
 
             if (!TAILQ_EMPTY(&optinfo->ia_list)) {
-                if (update_binding_ia(&roptinfo.clientID, &roptinfo.ia_list,
+                if (update_binding_ia(&roptinfo, &roptinfo.ia_list,
                     &optinfo->ia_list, dh6->dh6_msgtype, addr_flag, &num)) {
                     goto fail;
                 }
