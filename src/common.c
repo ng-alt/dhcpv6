@@ -63,20 +63,12 @@
 #include "timer.h"
 #include "lease.h"
 
-#ifdef LIBDHCP
-#include "libdhcp_control.h"
-#endif
-
 int foreground;
 int debug_thresh;
 struct dhcp6_if *dhcp6_if;
 struct dns_list dnslist;
 
-#ifdef LIBDHCP
-struct host_conf *host_conflist;
-#else
 static struct host_conf *host_conflist;
-#endif
 
 #define DPRINT_STATUS_CODE(object, num, optp, optlen) \
 do { \
@@ -804,13 +796,9 @@ int get_duid(const char *idfile, const char *ifname, struct duid *duid) {
     struct dhcp6_duid_type1 *dp;        /* we only support the type1 DUID */
     unsigned char tmpbuf[256];  /* DUID should be no more than 256 bytes */
 
-#ifdef LIBDHCP
-    if (libdhcp_control
-        && (libdhcp_control->capability & DHCP_USE_LEASE_DATABASE))
-#endif
-        if ((fp = fopen(idfile, "r")) == NULL && errno != ENOENT)
-            dhcpv6_dprintf(LOG_NOTICE, "%s" "failed to open DUID file: %s",
-                           FNAME, idfile);
+    if ((fp = fopen(idfile, "r")) == NULL && errno != ENOENT)
+        dhcpv6_dprintf(LOG_NOTICE, "%s" "failed to open DUID file: %s",
+                       FNAME, idfile);
 
     if (fp) {
         /* decode length */
@@ -894,15 +882,11 @@ int save_duid(const char *idfile, const char *ifname, struct duid *duid) {
     }
 
     /* save the (new) ID to the file for next time */
-#ifdef LIBDHCP
-    if (libdhcp_control
-        && (libdhcp_control->capability & DHCP_USE_LEASE_DATABASE))
-#endif
-        if ((fp = fopen(idfile, "w+")) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "%s"
-                           "failed to open DUID file for save", FNAME);
-            goto fail;
-        }
+    if ((fp = fopen(idfile, "w+")) == NULL) {
+        dhcpv6_dprintf(LOG_ERR, "%s"
+                       "failed to open DUID file for save", FNAME);
+        goto fail;
+    }
 
     if ((fwrite(&len, sizeof(len), 1, fp)) != 1) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to save DUID", FNAME);
@@ -2265,13 +2249,6 @@ void dhcpv6_dprintf(int level, const char *fmt, ...) {
     va_list ap;
     char logbuf[LINE_MAX];
 
-#ifdef LIBDHCP
-    va_start(ap, fmt);
-    if (libdhcp_control && libdhcp_control->eh)
-        libdhcp_control->eh(libdhcp_control, level, fmt, ap);
-    va_end(ap);
-    return;
-#endif
     va_start(ap, fmt);
     vsnprintf(logbuf, sizeof(logbuf), fmt, ap);
     va_end(ap);

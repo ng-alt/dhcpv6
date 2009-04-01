@@ -87,10 +87,6 @@
 #include "timer.h"
 #include "lease.h"
 
-#ifdef LIBDHCP
-#include "libdhcp_control.h"
-#endif
-
 static int debug = 0;
 static u_long sig_flags = 0;
 
@@ -155,9 +151,7 @@ static int client6_recvreply __P((struct dhcp6_if *, struct dhcp6 *,
                                   ssize_t, struct dhcp6_optinfo *));
 static int set_info_refresh_timer __P((struct dhcp6_if *, u_int32_t));
 static struct dhcp6_timer *info_refresh_timo __P((void *));
-#ifndef LIBDHCP
 static void client6_signal __P((int));
-#endif
 static struct dhcp6_event *find_event_withid __P((struct dhcp6_if *,
                                                   u_int32_t));
 static struct dhcp6_timer *check_lease_file_timo __P((void *));
@@ -177,29 +171,15 @@ extern int dad_parse __P((const char *, struct dhcp6_list *));
 static int pid;
 static char pidfile[MAXPATHLEN];
 
-#ifdef LIBDHCP
-struct sockaddr_in6 sa6_allagent_storage;
-#endif
 char client6_lease_temp[256];
 struct dhcp6_list request_list;
 
-#ifndef LIBDHCP
 int main(int argc, char **argv, char **envp)
-#else
-#define exit return
-LIBDHCP_Control *libdhcp_control;
-int dhcpv6_client(LIBDHCP_Control *libdhcp_ctl,
-                  int argc, char **argv, char **envp)
-#endif
 {
     int ch;
     char *progname, *conffile = DHCP6C_CONF;
     FILE *pidfp;
     char *addr;
-
-#ifdef LIBDHCP
-    libdhcp_control = libdhcp_ctl;
-#endif
 
     pid = getpid();
     srandom(time(NULL) & pid);
@@ -357,17 +337,12 @@ int dhcpv6_client(LIBDHCP_Control *libdhcp_ctl,
 
     setloglevel(debug);
 
-#ifdef LIBDHCP
-    if (libdhcp_control && (libdhcp_control->capability & DHCP_USE_PID_FILE))
-#endif
-        /* dump current PID */
-        if ((pidfp = fopen(pidfile, "w")) != NULL) {
-            fprintf(pidfp, "%d\n", pid);
-            fclose(pidfp);
-        }
-#ifdef LIBDHCP
-    sa6_allagent = (const struct sockaddr_in6 *) &sa6_allagent_storage;
-#endif
+    /* dump current PID */
+    if ((pidfp = fopen(pidfile, "w")) != NULL) {
+        fprintf(pidfp, "%d\n", pid);
+        fclose(pidfp);
+    }
+
     ifinit(device);
     setup_interface(device);
 
@@ -387,55 +362,6 @@ int dhcpv6_client(LIBDHCP_Control *libdhcp_ctl,
 
     client6_mainloop();
 
-#ifdef LIBDHCP
-    /* close all file descriptors */
-    close(nlsock);
-    nlsock = -1;
-    close(iosock);
-    iosock = -1;
-    closelog();
-
-    /* release all memory */
-    sleep(1);                   /* keep valgrind happy :-) */
-    dhc6_free_all_pointers();
-
-    /* initialize globals */
-    optarg = 0L;
-    optind = 0;
-    opterr = 0;
-    optopt = 0;
-    memset(&client6_iaidaddr, '\0', sizeof(client6_iaidaddr));
-    dhcp6_if = NULL;
-    extern LIST_HEAD(, dhcp6_timer) timer_head;
-
-    memset(&timer_head, '\0', sizeof(timer_head));
-    memset(&request_list, '\0', sizeof(request_list));
-    memset(&sa6_allagent_storage, '\0', sizeof(sa6_allagent_storage));
-    sa6_allagent = (const struct sockaddr_in6 *) &sa6_allagent_storage;
-    memset(&client_duid, '\0', sizeof(client_duid));
-    memset(&iaidtab, '\0', sizeof(iaidtab));
-    client6_request_flag = 0;
-    memset(&leasename, '\0', sizeof(leasename));
-    debug = 0;
-    device = NULL;
-    num_device = 0;
-    sig_flags = 0;
-    extern struct host_conf *host_conflist;
-
-    host_conflist = 0;
-    client6_lease_file = server6_lease_file = sync_file = NULL;
-    cf_dns_list = NULL;
-    extern int cfdebug;
-
-    cfdebug = 0;
-    hash_anchors = 0;
-    configfilename = NULL;
-    debug_thresh = 0;
-    memset(&dnslist, '\0', sizeof(dnslist));
-    memset(&resolv_dhcpv6_file, '\0', sizeof(resolv_dhcpv6_file));
-    memset(&client6_lease_temp, '\0', sizeof(client6_lease_temp));
-    foreground = 0;
-#endif
     return (0);
 }
 
@@ -459,9 +385,7 @@ static void usage(char *name) {
 int client6_init(char *device) {
     struct addrinfo hints, *res;
 
-#ifndef LIBDHCP
     static struct sockaddr_in6 sa6_allagent_storage;
-#endif
     int error, on = 1;
     struct dhcp6_if *ifp;
     int ifidx;
@@ -606,7 +530,6 @@ int client6_init(char *device) {
 
     ifp->outsock = iosock;
 
-#ifndef LIBDHCP
     if (signal(SIGHUP, client6_signal) == SIG_ERR) {
         dhcpv6_dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
                        FNAME, strerror(errno));
@@ -624,7 +547,6 @@ int client6_init(char *device) {
                        FNAME, strerror(errno));
         return -1;
     }
-#endif
 
     return 0;
 }
@@ -799,32 +721,25 @@ static int client6_ifinit(char *device) {
             !(client6_request_flag & CLIENT6_INFO_REQ) &&
             ((ifp->ra_flag & IF_RA_MANAGED) ||
             !(ifp->ra_flag & IF_RA_OTHERCONF))) {
-#ifdef LIBDHCP
-        if (libdhcp_control
-            && (libdhcp_control->capability & DHCP_USE_LEASE_DATABASE)) {
-#endif
-            /* parse the lease file */
-            strcpy(leasename, PATH_CLIENT6_LEASE);
-            sprintf(iaidstr, "%u", ifp->iaidinfo.iaid);
-            strcat(leasename, iaidstr);
+        /* parse the lease file */
+        strcpy(leasename, PATH_CLIENT6_LEASE);
+        sprintf(iaidstr, "%u", ifp->iaidinfo.iaid);
+        strcat(leasename, iaidstr);
 
-            if ((client6_lease_file = init_leases(leasename)) == NULL) {
-                dhcpv6_dprintf(LOG_ERR, "%s" "failed to parse lease file",
-                               FNAME);
-                return -1;
-            }
-
-            strcpy(client6_lease_temp, leasename);
-            strcat(client6_lease_temp, "XXXXXX");
-            client6_lease_file = sync_leases(client6_lease_file,
-                                             leasename, client6_lease_temp);
-
-            if (client6_lease_file == NULL) {
-                return -1;
-            }
-#ifdef LIBDHCP
+        if ((client6_lease_file = init_leases(leasename)) == NULL) {
+            dhcpv6_dprintf(LOG_ERR, "%s" "failed to parse lease file",
+                           FNAME);
+            return -1;
         }
-#endif
+
+        strcpy(client6_lease_temp, leasename);
+        strcat(client6_lease_temp, "XXXXXX");
+        client6_lease_file = sync_leases(client6_lease_file,
+                                         leasename, client6_lease_temp);
+
+        if (client6_lease_file == NULL) {
+            return -1;
+        }
 
         if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
             struct dhcp6_listval *lv;
@@ -917,13 +832,9 @@ static void free_resources(struct dhcp6_if *ifp) {
 
     for (sp = TAILQ_FIRST(&client6_iaidaddr.lease_list); sp; sp = sp_next) {
         sp_next = TAILQ_NEXT(sp, link);
-#ifdef LIBDHCP
-        if (libdhcp_control
-            && (libdhcp_control->capability & DHCP_CONFIGURE_ADDRESSES))
-#endif
-            if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0)
-                dhcpv6_dprintf(LOG_INFO, "%s" "deconfiging address %s failed",
-                               FNAME, in6addr2str(&sp->lease_addr.addr, 0));
+        if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0)
+            dhcpv6_dprintf(LOG_INFO, "%s" "deconfiging address %s failed",
+                           FNAME, in6addr2str(&sp->lease_addr.addr, 0));
     }
 
     dhcpv6_dprintf(LOG_DEBUG, "%s" " remove all events on interface", FNAME);
@@ -949,11 +860,7 @@ static void process_signals() {
         dhcpv6_dprintf(LOG_INFO, FNAME "exiting");
         free_resources(dhcp6_if);
         unlink(pidfile);
-#ifdef LIBDHCP
-        return;
-#else
         exit(0);
-#endif
     }
 
     if ((sig_flags & SIGF_HUP)) {
@@ -965,11 +872,7 @@ static void process_signals() {
     if ((sig_flags & SIGF_CLEAN)) {
         free_resources(dhcp6_if);
         unlink(pidfile);
-#ifdef LIBDHCP
-        return;
-#else
         exit(0);
-#endif
     }
 
     sig_flags = 0;
@@ -980,41 +883,10 @@ static void client6_mainloop() {
     int ret;
     fd_set r;
 
-#ifdef LIBDHCP
-    struct timeval fb;          /* fallback timeout */
-
-    if (libdhcp_control) {
-        if (libdhcp_control->timeout)
-            libdhcp_control->now = time(0);
-        else
-            libdhcp_control->now = 0;
-    }
-#endif
-
     while (1) {
         if (sig_flags)
             process_signals();
         w = dhcp6_check_timer();
-
-#ifdef LIBDHCP
-        if (libdhcp_control && libdhcp_control->timeout) {
-            time_t now = time(0);
-            double a = (double) w->tv_sec + now;
-            double b = (double) w->tv_usec / 1000000.0;
-            double c = (double) libdhcp_control->now;
-            double d = (double) libdhcp_control->timeout;
-
-            if ((w == NULL) || ((a + b) >= (c + d))) {
-                w = &fb;
-                fb.tv_sec = 0;
-                fb.tv_usec = 0;
-                if (now < (libdhcp_control->now + libdhcp_control->timeout))
-                    fb.tv_sec =
-                        (libdhcp_control->now + libdhcp_control->timeout) -
-                        now;
-            }
-        }
-#endif
 
         FD_ZERO(&r);
         FD_SET(iosock, &r);
@@ -1033,23 +905,6 @@ static void client6_mainloop() {
             default:           /* received a packet */
                 client6_recv();
         }
-
-#ifdef LIBDHCP
-        if (libdhcp_control) {
-            if (libdhcp_control->finished)
-                return;
-
-            if (libdhcp_control->timeout
-                && (time(NULL) >=
-                    (libdhcp_control->timeout + libdhcp_control->now))) {
-                if (libdhcp_control->callback)
-                    (*(libdhcp_control->callback)) (libdhcp_control,
-                                                    DHC_TIMEDOUT,
-                                                    &client6_iaidaddr);
-                return;
-            }
-        }
-#endif
     }
 }
 
@@ -1176,7 +1031,6 @@ static struct dhcp6_serverinfo *select_server(ifp)
     return (NULL);
 }
 
-#ifndef LIBDHCP
 static void client6_signal(sig)
      int sig;
 {
@@ -1198,7 +1052,6 @@ static void client6_signal(sig)
             break;
     }
 }
-#endif
 
 void client6_send(struct dhcp6_event *ev) {
     struct dhcp6_if *ifp;
@@ -1426,21 +1279,10 @@ void client6_send(struct dhcp6_event *ev) {
             }
 
             if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
-#ifdef LIBDHCP
-                if (libdhcp_control
-                    && (libdhcp_control->
-                        capability & DHCP_CONFIGURE_ADDRESSES))
-#endif
-                    if (dhcp6_update_iaidaddr(&optinfo, ia, ADDR_REMOVE)) {
-                        dhcpv6_dprintf(LOG_INFO, "client release failed");
-                        return;
-                    }
-#ifdef LIBDHCP
-                if (libdhcp_control && libdhcp_control->callback)
-                    (*(libdhcp_control->callback)) (libdhcp_control,
-                                                    DHC6_RELEASE,
-                                                    &client6_iaidaddr);
-#endif
+                if (dhcp6_update_iaidaddr(&optinfo, ia, ADDR_REMOVE)) {
+                    dhcpv6_dprintf(LOG_INFO, "client release failed");
+                    return;
+                }
             }
 
             break;
@@ -1713,14 +1555,6 @@ static int client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
     /* XXX: client might have some local policy to select the addresses */
     if ((ia = ia_find_listval(&optinfo0->ia_list,
         iatype_of_if(ifp), ifp->iaidinfo.iaid)) != NULL) {
-#ifdef LIBDHCP
-        if (!TAILQ_EMPTY(&(client6_iaidaddr.lease_list)))
-            /* looks like we did a successful REBIND ? */
-            if (libdhcp_control && libdhcp_control->callback) {
-                (*(libdhcp_control->callback)) (libdhcp_control, DHC6_REBIND,
-                                                optinfo0);
-            }
-#endif
         dhcp6_copy_list(&request_list, &ia->addr_list);
     }
 
@@ -1862,11 +1696,7 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
 
     if (!TAILQ_EMPTY(&optinfo->dns_list.addrlist) ||
         optinfo->dns_list.domainlist != NULL) {
-#ifdef LIBDHCP
-        if (libdhcp_control
-            && (libdhcp_control->capability & DHCP_CONFIGURE_RESOLVER))
-#endif
-            resolv_parse(&optinfo->dns_list);
+        resolv_parse(&optinfo->dns_list);
     }
 
     /* 
@@ -1957,12 +1787,6 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                         }
 
                         setup_check_timer(ifp);
-#ifdef LIBDHCP
-                        if (libdhcp_control && libdhcp_control->callback)
-                            (*(libdhcp_control->callback)) (libdhcp_control,
-                                                            DHC6_BOUND,
-                                                            optinfo);
-#endif
                     }
 
                     break;
@@ -1988,12 +1812,6 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                                    "got a NoBinding reply, sending request.",
                                    FNAME);
                     dhcp6_remove_iaidaddr(&client6_iaidaddr);
-#ifdef LIBDHCP
-                    if (libdhcp_control && libdhcp_control->callback)
-                        (*(libdhcp_control->callback)) (libdhcp_control,
-                                                        DHC6_RELEASE,
-                                                        &client6_iaidaddr);
-#endif
                     break;
                 case DH6OPT_STCODE_NOADDRAVAIL:
                 case DH6OPT_STCODE_NOPREFIXAVAIL:
@@ -2003,11 +1821,6 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                 case DH6OPT_STCODE_UNDEFINE:
                 default:
                     dhcp6_update_iaidaddr(optinfo, ia, ADDR_UPDATE);
-#ifdef LIBDHCP
-                    if (libdhcp_control && libdhcp_control->callback)
-                        (*(libdhcp_control->callback)) (libdhcp_control,
-                                                        DHC6_REBIND, optinfo);
-#endif
                     break;
             }
 
@@ -2031,10 +1844,6 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                     free_servers(ifp);
                     /* remove the address which is judged NotOnLink */
                     dhcp6_remove_iaidaddr(&client6_iaidaddr);
-#ifdef LIBDHCP
-                    if (libdhcp_control && libdhcp_control->callback)
-                        (*(libdhcp_control->callback)) (libdhcp_control, DHC6_RELEASE, &client6_iaidaddr);
-#endif
                     newstate = DHCP6S_SOLICIT;
                     break;
                 case DH6OPT_STCODE_SUCCESS:
@@ -2252,15 +2061,11 @@ static int create_request_list(int reboot) {
         /* config the interface for reboot */
         if (reboot && client6_iaidaddr.client6_info.type != IAPD &&
             (client6_request_flag & CLIENT6_CONFIRM_ADDR)) {
-#ifdef LIBDHCP
-            if (libdhcp_control
-                && (libdhcp_control->capability & DHCP_CONFIGURE_ADDRESSES))
-#endif
-                if (client6_ifaddrconf(IFADDRCONF_ADD, &cl->lease_addr) != 0) {
-                    dhcpv6_dprintf(LOG_INFO, "config address failed: %s",
-                                   in6addr2str(&cl->lease_addr.addr, 0));
-                    return (-1);
-                }
+            if (client6_ifaddrconf(IFADDRCONF_ADD, &cl->lease_addr) != 0) {
+                dhcpv6_dprintf(LOG_INFO, "config address failed: %s",
+                               in6addr2str(&cl->lease_addr.addr, 0));
+                return (-1);
+            }
         }
     }
 

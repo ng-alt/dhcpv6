@@ -74,10 +74,6 @@
 #include "timer.h"
 #include "lease.h"
 
-#ifdef LIBDHCP
-#include "libdhcp_control.h"
-#endif
-
 static int dhcp6_update_lease
 __P((struct dhcp6_addr *, struct dhcp6_lease *));
 static int dhcp6_add_lease __P((struct dhcp6_addr *));
@@ -272,13 +268,7 @@ int dhcp6_add_lease(addr)
         dhcpv6_dprintf(LOG_INFO, "request prefix is %s/%d",
                        in6addr2str(&sp->lease_addr.addr, 0),
                        sp->lease_addr.plen);
-#ifdef LIBDHCP
-    } else if (libdhcp_control
-               && (libdhcp_control->capability & DHCP_CONFIGURE_ADDRESSES)) {
-#else
-    } else
-#endif
-    if (client6_ifaddrconf(IFADDRCONF_ADD, addr) != 0) {
+    } else if (client6_ifaddrconf(IFADDRCONF_ADD, addr) != 0) {
         dhcpv6_dprintf(LOG_ERR, "%s" "adding address failed: %s",
                        FNAME, in6addr2str(&addr->addr, 0));
         if (sp->timer)
@@ -286,29 +276,30 @@ int dhcp6_add_lease(addr)
         free(sp);
         return (-1);
     }
-#ifdef LIBDHCP
-}
-#endif
-TAILQ_INSERT_TAIL(&client6_iaidaddr.lease_list, sp, link);
-        /* for infinite lifetime don't do any timer */
-if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE ||
-    sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
-    dhcpv6_dprintf(LOG_INFO, "%s" "infinity address life time for %s",
-                   FNAME, in6addr2str(&addr->addr, 0));
-    return (0);
-}
-        /* set up expired timer for lease */
-if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
-    dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for lease %s",
-                   FNAME, in6addr2str(&addr->addr, 0));
-    free(sp);
-    return (-1);
-}
-d = sp->lease_addr.preferlifetime;
-timo.tv_sec = (long) d;
-timo.tv_usec = 0;
-dhcp6_set_timer(&timo, sp->timer);
-return 0;
+
+    TAILQ_INSERT_TAIL(&client6_iaidaddr.lease_list, sp, link);
+
+    /* for infinite lifetime don't do any timer */
+    if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE ||
+        sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
+        dhcpv6_dprintf(LOG_INFO, "%s" "infinity address life time for %s",
+                       FNAME, in6addr2str(&addr->addr, 0));
+        return (0);
+    }
+
+    /* set up expired timer for lease */
+    if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for lease %s",
+                       FNAME, in6addr2str(&addr->addr, 0));
+        free(sp);
+        return (-1);
+    }
+
+    d = sp->lease_addr.preferlifetime;
+    timo.tv_sec = (long) d;
+    timo.tv_usec = 0;
+    dhcp6_set_timer(&timo, sp->timer);
+    return 0;
 }
 
 int dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
@@ -331,40 +322,36 @@ int dhcp6_remove_lease(struct dhcp6_lease *sp) {
     dhcpv6_dprintf(LOG_DEBUG, "%s" "removing address %s", FNAME,
                    in6addr2str(&sp->lease_addr.addr, 0));
     sp->state = INVALID;
-#ifdef LIBDHCP
-    if (libdhcp_control
-        && (libdhcp_control->capability & DHCP_USE_LEASE_DATABASE))
-#endif
-        if (write_lease(sp, client6_lease_file) != 0) {
-            dhcpv6_dprintf(LOG_INFO, "%s"
-                           "failed to write removed lease address %s to lease file",
-                           FNAME, in6addr2str(&sp->lease_addr.addr, 0));
-            return (-1);
-        }
+
+    if (write_lease(sp, client6_lease_file) != 0) {
+        dhcpv6_dprintf(LOG_INFO, "%s"
+                       "failed to write removed lease address %s to lease file",
+                       FNAME, in6addr2str(&sp->lease_addr.addr, 0));
+        return (-1);
+    }
+
     /* XXX: ToDo: prefix delegation for client */
     if (sp->lease_addr.type == IAPD) {
         dhcpv6_dprintf(LOG_INFO, "request prefix is %s/%d",
                        in6addr2str(&sp->lease_addr.addr, 0),
                        sp->lease_addr.plen);
         /* XXX: remove from the update prefix list */
+    } else if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
+        dhcpv6_dprintf(LOG_INFO, "%s" "removing address %s failed",
+                       FNAME, in6addr2str(&sp->lease_addr.addr, 0));
+    }
 
-    } else
-#ifdef LIBDHCP
-    if (libdhcp_control
-            && (libdhcp_control->capability & DHCP_CONFIGURE_ADDRESSES))
-#endif
-        if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
-            dhcpv6_dprintf(LOG_INFO, "%s" "removing address %s failed",
-                           FNAME, in6addr2str(&sp->lease_addr.addr, 0));
-        }
     /* remove expired timer for this lease. */
     if (sp->timer)
         dhcp6_remove_timer(sp->timer);
+
     TAILQ_REMOVE(&client6_iaidaddr.lease_list, sp, link);
     free(sp);
+
     /* can't remove expired iaidaddr even there is no lease in this iaidaddr
        since the rebind->solicit timer uses this iaidaddr
        if(TAILQ_EMPTY(&client6_iaidaddr.lease_list)) dhcp6_remove_iaidaddr(); */
+
     return 0;
 }
 
@@ -528,16 +515,13 @@ static int dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp) {
     memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
     sp->state = ACTIVE;
     time(&sp->start_date);
-#ifdef LIBDHCP
-    if (libdhcp_control
-        && (libdhcp_control->capability & DHCP_USE_LEASE_DATABASE))
-#endif
-        if (write_lease(sp, client6_lease_file) != 0) {
-            dhcpv6_dprintf(LOG_ERR, "%s"
-                           "failed to write an updated lease address %s to lease file",
-                           FNAME, in6addr2str(&sp->lease_addr.addr, 0));
-            return -1;
-        }
+
+    if (write_lease(sp, client6_lease_file) != 0) {
+        dhcpv6_dprintf(LOG_ERR, "%s"
+                       "failed to write an updated lease address %s to lease file",
+                       FNAME, in6addr2str(&sp->lease_addr.addr, 0));
+        return -1;
+    }
 
     if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE ||
         sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
