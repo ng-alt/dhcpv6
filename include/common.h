@@ -69,14 +69,7 @@ extern const char *getdev(struct sockaddr_in6 *);
 extern int in6_addrscopebyif(struct in6_addr *, char *);
 extern int in6_scope(struct in6_addr *);
 extern void setloglevel(int);
-
-#ifdef __GNUC__
-extern void dhcpv6_dprintf(int, const char *, ...)
-    __attribute__ ((__format__(__printf__, 2, 3)));
-#else
 extern void dhcpv6_dprintf(int, const char *, ...);
-#endif
-
 extern int duid_match_llt(struct duid *, struct duid *);
 extern int get_duid(const char *, const char *, struct duid *);
 extern int save_duid(const char *, const char *, struct duid *);
