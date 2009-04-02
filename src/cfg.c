@@ -38,7 +38,7 @@
 #include <sys/types.h>
 
 #include "dhcp6.h"
-#include "cfg.h"
+#include "confdata.h"
 #include "common.h"
 
 extern int errno;

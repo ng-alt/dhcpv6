@@ -43,7 +43,7 @@
 #include <arpa/inet.h>
 
 #include "dhcp6.h"
-#include "cfg.h"
+#include "confdata.h"
 #include "common.h"
 #include "lease.h"
 #include "hash.h"

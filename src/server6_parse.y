@@ -40,7 +40,7 @@
 #include <net/if.h>
 
 #include "dhcp6.h"
-#include "cfg.h"
+#include "confdata.h"
 #include "server6_conf.h"
 #include "common.h"
 #include "lease.h"

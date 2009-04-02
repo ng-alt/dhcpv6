@@ -44,7 +44,7 @@
 #include <net/if.h>
 
 #include "dhcp6.h"
-#include "cfg.h"
+#include "confdata.h"
 #include "common.h"
 #include "server6_conf.h"
 #include "server6_parse.h"

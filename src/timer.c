@@ -44,7 +44,7 @@
 #endif
 
 #include "dhcp6.h"
-#include "cfg.h"
+#include "confdata.h"
 #include "common.h"
 #include "timer.h"
 

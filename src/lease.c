@@ -52,7 +52,7 @@
 
 #include "dhcp6.h"
 #include "hash.h"
-#include "cfg.h"
+#include "confdata.h"
 #include "common.h"
 #include "lease.h"
 

@@ -45,7 +45,7 @@
 #endif
 
 #include "dhcp6.h"
-#include "cfg.h"
+#include "confdata.h"
 #include "common.h"
 
 extern int client6lex (void);
