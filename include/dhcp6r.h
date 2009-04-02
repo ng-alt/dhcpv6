@@ -48,20 +48,6 @@
 #define CLIENT_PORT                546
 #define TRACE                      fprintf
 
-#define SOLICIT             1
-#define ADVERTISE           2
-#define REQUEST             3
-#define CONFIRM             4
-#define RENEW               5
-#define REBIND              6
-#define REPLY               7
-#define RELEASE             8
-#define DECLINE             9
-#define RECONFIGURE         10
-#define INFORMATION_REQUEST 11
-#define RELAY_FORW          12
-#define RELAY_REPL          13
-
 #define OPTION_RELAY_MSG    9
 #define OPTION_INTERFACE_ID 18
 

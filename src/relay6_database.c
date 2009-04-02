@@ -35,6 +35,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 
+#include "dhcp6.h"
 #include "dhcp6r.h"
 #include "relay6_parser.h"
 #include "relay6_database.h"
@@ -163,7 +164,7 @@ int process_RELAY_FORW(struct msg_parser *msg) {
 
     if (msg->isRF == 1) {       /* got message from a relay agent to be
                                    relayed */
-        (*pointer) = RELAY_FORW;
+        (*pointer) = DH6_RELAY_FORW;
         pointer += 1;
         (*pointer) = msg->hop_count + 1;        /* increased hop-count */
         msg->hc_pointer = pointer;
@@ -177,7 +178,7 @@ int process_RELAY_FORW(struct msg_parser *msg) {
         pointer += 1;
 
     } else {                    /* got message from a client to be relayed */
-        (*pointer) = RELAY_FORW;
+        (*pointer) = DH6_RELAY_FORW;
         pointer += 1;
         (*pointer) = 0;         /* hop-count */
         msg->hc_pointer = pointer;
@@ -190,7 +191,7 @@ int process_RELAY_FORW(struct msg_parser *msg) {
         pointer += 1;
     }
 
-    msg->msg_type = RELAY_FORW;
+    msg->msg_type = DH6_RELAY_FORW;
 
     device = get_interface(msg->interface_in);
     if (device == NULL) {
@@ -305,13 +306,13 @@ int process_RELAY_REPL(struct msg_parser *msg) {
         return 0;
     }
 
-    if (*pointer != RELAY_REPL)
+    if (*pointer != DH6_RELAY_REPL)
         return 0;
 
     pointer += 1;               /* RELAY_FORW */
     msg->hop = *pointer;
     pointer += 1;               /* hop-count */
-    msg->msg_type = RELAY_REPL;
+    msg->msg_type = DH6_RELAY_REPL;
 
     if (msg->datalength - (pointer - pstart) < (2 * INET6_LEN)) {
         TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
@@ -390,9 +391,9 @@ int process_RELAY_REPL(struct msg_parser *msg) {
             }
 
                         /*--------------------------*/
-            if (*pointer == RELAY_FORW)
-                *pointer = RELAY_REPL;  /* is the job of the server to set to 
-                                           RELAY_REPL? */
+            if (*pointer == DH6_RELAY_FORW)
+                *pointer = DH6_RELAY_REPL;  /* is the job of the server to set
+                                               to RELAY_REPL? */
 
                         /*--------------------------*/
             for (device = interface_list.next; device != &interface_list;
@@ -494,9 +495,9 @@ int process_RELAY_REPL(struct msg_parser *msg) {
         }
 
                 /*--------------------------*/
-        if (*pointer == RELAY_FORW)
-            *pointer = RELAY_REPL;      /* is the job of the server to set to 
-                                           RELAY_REPL? */
+        if (*pointer == DH6_RELAY_FORW)
+            *pointer = DH6_RELAY_REPL;      /* is the job of the server to set
+                                               to RELAY_REPL? */
 
                 /*--------------------------*/
         for (device = interface_list.next; device != &interface_list;

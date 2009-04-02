@@ -37,6 +37,7 @@
 #include <arpa/inet.h>
 #include <net/if.h>
 
+#include "dhcp6.h"
 #include "dhcp6r.h"
 #include "relay6_socket.h"
 #include "relay6_parser.h"
@@ -403,7 +404,7 @@ int send_message() {
     sin6.sin6_flowinfo = 0;
     sin6.sin6_scope_id = 0;
 
-    if (mesg->msg_type == RELAY_REPL) {
+    if (mesg->msg_type == DH6_RELAY_REPL) {
         memset(dest_addr, 0, INET6_ADDRSTRLEN);
         memcpy(dest_addr, mesg->peer_addr, INET6_ADDRSTRLEN);
 
@@ -490,7 +491,7 @@ int send_message() {
         return 1;
     }
 
-    if (mesg->msg_type == RELAY_FORW) {
+    if (mesg->msg_type == DH6_RELAY_FORW) {
         for (ipv6uni = IPv6_uniaddr_list.next; ipv6uni != &IPv6_uniaddr_list;
              ipv6uni = ipv6uni->next) {
             bzero((char *) &sin6, sizeof(struct sockaddr_in6));

@@ -31,8 +31,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #include <string.h>
 
+#include "dhcp6.h"
 #include "dhcp6r.h"
 #include "relay6_parser.h"
 #include "relay6_database.h"
@@ -108,7 +112,7 @@ int put_msg_in_store(mesg)
     msg_type = *((uint32_t *) mesg->pstart);
     msg_type = (ntohl(msg_type) & 0xFF000000) >> 24;
 
-    if (msg_type == SOLICIT) {
+    if (msg_type == DH6_SOLICIT) {
         if (check_interface_semafor(mesg->interface_in) == 0)
             return 0;
         TRACE(dump, "%s - %s", dhcp6r_clock(),
@@ -118,7 +122,7 @@ int put_msg_in_store(mesg)
             return 0;
 
         return 1;
-    } else if (msg_type == REBIND) {
+    } else if (msg_type == DH6_REBIND) {
         if (check_interface_semafor(mesg->interface_in) == 0)
             return 0;
 
@@ -129,7 +133,7 @@ int put_msg_in_store(mesg)
             return 0;
 
         return 1;
-    } else if (msg_type == INFORMATION_REQUEST) {
+    } else if (msg_type == DH6_INFORM_REQ) {
         if (check_interface_semafor(mesg->interface_in) == 0)
             return 0;
 
@@ -141,7 +145,7 @@ int put_msg_in_store(mesg)
             return 0;
 
         return 1;
-    } else if (msg_type == REQUEST) {
+    } else if (msg_type == DH6_REQUEST) {
         if (check_interface_semafor(mesg->interface_in) == 0)
             return 0;
 
@@ -152,7 +156,7 @@ int put_msg_in_store(mesg)
             return 0;
 
         return 1;
-    } else if (msg_type == REPLY) {
+    } else if (msg_type == DH6_REPLY) {
         if (check_interface_semafor(mesg->interface_in) == 0)
             return 0;
 
@@ -163,7 +167,7 @@ int put_msg_in_store(mesg)
             return 0;
 
         return 1;
-    } else if (msg_type == RENEW) {
+    } else if (msg_type == DH6_RENEW) {
         if (check_interface_semafor(mesg->interface_in) == 0)
             return 0;
 
@@ -174,7 +178,7 @@ int put_msg_in_store(mesg)
             return 0;
 
         return 1;
-    } else if (msg_type == RECONFIGURE) {
+    } else if (msg_type == DH6_RECONFIGURE) {
         if (check_interface_semafor(mesg->interface_in) == 0)
             return 0;
 
@@ -185,7 +189,7 @@ int put_msg_in_store(mesg)
             return 0;
 
         return 1;
-    } else if (msg_type == CONFIRM) {
+    } else if (msg_type == DH6_CONFIRM) {
         if (check_interface_semafor(mesg->interface_in) == 0)
             return 0;
 
@@ -196,7 +200,7 @@ int put_msg_in_store(mesg)
             return 0;
 
         return 1;
-    } else if (msg_type == ADVERTISE) {
+    } else if (msg_type == DH6_ADVERTISE) {
         if (check_interface_semafor(mesg->interface_in) == 0)
             return 0;
 
@@ -207,7 +211,7 @@ int put_msg_in_store(mesg)
             return 0;
 
         return 1;
-    } else if (msg_type == DECLINE) {
+    } else if (msg_type == DH6_DECLINE) {
         if (check_interface_semafor(mesg->interface_in) == 0)
             return 0;
 
@@ -218,7 +222,7 @@ int put_msg_in_store(mesg)
             return 0;
 
         return 1;
-    } else if (msg_type == RELEASE) {
+    } else if (msg_type == DH6_RELEASE) {
         if (check_interface_semafor(mesg->interface_in) == 0)
             return 0;
 
@@ -232,7 +236,7 @@ int put_msg_in_store(mesg)
     }
     msg = *mesg->pstart;
 
-    if (msg == RELAY_FORW) {
+    if (msg == DH6_RELAY_FORW) {
         if (check_interface_semafor(mesg->interface_in) == 0)
             return 0;
 
@@ -255,7 +259,7 @@ int put_msg_in_store(mesg)
         return 1;
     }
 
-    if (msg == RELAY_REPL) {
+    if (msg == DH6_RELAY_REPL) {
         TRACE(dump, "%s - %s", dhcp6r_clock(),
               "GOT MESSAGE 'RELAY_REPL' FROM RELAY AGENT OR SERVER---> "
               "IS TO BE FURTHER RELAYED\n");
