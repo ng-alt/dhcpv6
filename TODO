@@ -1,3 +1,5 @@
+- Support a script-based configuration mode, similar to what dhclient does
+
 - dhcp6c can pull an IA_NA and an IA_TA, but doesn't configure the interface
   with that information
 
