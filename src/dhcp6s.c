@@ -839,9 +839,9 @@ update_binding_ia(struct dhcp6_optinfo *roptinfo,
                     case ADDR_REMOVE:
                         if (dhcp6_update_iaidaddr(roptinfo, ia,
                                                   addr_flag) != 0) {
-                            dhcp6_dprintf(LOG_ERR, "removed IPv6 address for "
-                                                   "client iaid %u failed",
-                                          ia->iaidinfo.iaid);
+                            dhcpv6_dprintf(LOG_ERR, "removed IPv6 address for "
+                                                    "client iaid %u failed",
+                                           ia->iaidinfo.iaid);
                         }
                         break;
 
