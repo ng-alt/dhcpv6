@@ -225,8 +225,7 @@ struct dhcp6_relay {
     struct in6_addr link_addr;
     struct in6_addr peer_addr;
     /* options follow */
-} __attribute__ ((__packed__));
-
+};
 
 struct relay_listval {
     TAILQ_ENTRY(relay_listval) link;
@@ -264,7 +263,7 @@ struct dhcp6 {
         u_int32_t x;
     } dh6_msgtypexid;
     /* options follow */
-} __attribute__ ((__packed__));
+};
 
 #define dh6_msgtype dh6_msgtypexid.m
 #define dh6_xid     dh6_msgtypexid.x
@@ -326,7 +325,7 @@ struct dhcp6opt {
     u_int16_t dh6opt_type;
     u_int16_t dh6opt_len;
     /* type-dependent data follows */
-} __attribute__ ((__packed__));
+};
 
 /* DUID type 1 */
 struct dhcp6_duid_type1 {
@@ -334,7 +333,7 @@ struct dhcp6_duid_type1 {
     u_int16_t dh6duid1_hwtype;
     u_int32_t dh6duid1_time;
     /* link-layer address follows */
-} __attribute__ ((__packed__));
+};
 
 /* Prefix Information */
 struct dhcp6_prefix_info {
@@ -344,14 +343,14 @@ struct dhcp6_prefix_info {
     u_int32_t validlifetime;
     u_int8_t plen;
     struct in6_addr prefix;
-} __attribute__ ((__packed__));
+};
 
 /* status code info */
 struct dhcp6_status_info {
     u_int16_t dh6_status_type;
     u_int16_t dh6_status_len;
     u_int16_t dh6_status_code;
-} __attribute__ ((__packed__));
+};
 
 /* IPv6 address info */
 struct dhcp6_addr_info {
@@ -364,6 +363,6 @@ struct dhcp6_addr_info {
 /* u_int8_t plen;
  * struct dhcp6_status_info status;
  */
-} __attribute__ ((__packed__));
+};
 
 #endif /*__DHCP6_H_DEFINED*/
