@@ -40,6 +40,7 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
+#include <resolv.h>
 
 #include "dhcp6.h"
 #include "confdata.h"
@@ -192,15 +193,15 @@ backup_resolv_conf()
 		return 0;
 	}
 
-	if (lstat(RESOLV_CONF_FILE, &buf) < 0) {
+	if (lstat(_PATH_RESCONF, &buf) < 0) {
 		dhcpv6_dprintf(LOG_ERR, "%s" "Failed to stat %s : %s",
-			       FNAME, RESOLV_CONF_FILE, strerror(errno));
+			       FNAME, _PATH_RESCONF, strerror(errno));
 	}
 	st_mode = buf.st_mode;
 
-	if ((oldfd = open(RESOLV_CONF_FILE, O_RDONLY)) < 0) {
+	if ((oldfd = open(_PATH_RESCONF, O_RDONLY)) < 0) {
 		dhcpv6_dprintf(LOG_ERR, "%s" "Failed to open %s : %s",
-			       FNAME, RESOLV_CONF_FILE, strerror(errno));
+			       FNAME, _PATH_RESCONF, strerror(errno));
 		return -1;
 	}
 
@@ -216,7 +217,7 @@ backup_resolv_conf()
 		rlen = read(oldfd, str, sizeof(str));
 		if (rlen < 0) {
 			dhcpv6_dprintf(LOG_ERR, "%s" "Failed to read %s :%s ",
-				       FNAME, RESOLV_CONF_FILE,
+				       FNAME, _PATH_RESCONF,
 				       strerror(errno));
 			close(oldfd);
 			close(newfd);
@@ -239,17 +240,17 @@ backup_resolv_conf()
 	close(oldfd);
 	close(newfd);
 
-	if (rename(RESOLV_CONF_FILE, RESOLV_CONF_BAK_FILE)) {
+	if (rename(_PATH_RESCONF, RESOLV_CONF_BAK_FILE)) {
 		dhcpv6_dprintf(LOG_ERR, "%s" "Failed to rename %s : %s",
-			       FNAME, RESOLV_CONF_FILE, strerror(errno));
+			       FNAME, _PATH_RESCONF, strerror(errno));
 		return -1;
 	}
 
-	if (rename(resolv_dhcpv6_file, RESOLV_CONF_FILE)) {
+	if (rename(resolv_dhcpv6_file, _PATH_RESCONF)) {
 		dhcpv6_dprintf(LOG_ERR, "%s" "Failed to rename %s : %s",
 			       FNAME, resolv_dhcpv6_file, strerror(errno));
 		/* Try to take back original resolv.conf */
-		rename(RESOLV_CONF_BAK_FILE, RESOLV_CONF_FILE);
+		rename(RESOLV_CONF_BAK_FILE, _PATH_RESCONF);
 		return -1;
 	}
 
@@ -274,7 +275,7 @@ resolv_parse(struct dns_list *dnslist)
 	new_dns_list = dnslist;
 
 	/* Back up resolv.conf */
-	if (!lstat(RESOLV_CONF_FILE, &buf)) {
+	if (!lstat(_PATH_RESCONF, &buf)) {
 		if (backup_resolv_conf() < 0) {
 			dhcpv6_dprintf(LOG_ERR, "%s"
 				" backup failed for resolv.conf file", FNAME);
@@ -434,7 +435,7 @@ update_resolver(struct dns_list *dns_list)
 //			needs initscripts patch!		return(-1);
 		}
 	} else {
-		if (rename(resolv_dhcpv6_file, RESOLV_CONF_FILE)) {
+		if (rename(resolv_dhcpv6_file, _PATH_RESCONF)) {
 			dhcpv6_dprintf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
 			ret = -1;
 			goto out;

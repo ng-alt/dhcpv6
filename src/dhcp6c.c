@@ -46,6 +46,7 @@
 #include <err.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
+#include <resolv.h>
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -843,7 +844,7 @@ static void free_resources(struct dhcp6_if *ifp) {
 
     /* restore /etc/resolv.conf.dhcpv6.bak back to /etc/resolv.conf */
     if (!lstat(RESOLV_CONF_BAK_FILE, &buf)) {
-        if (rename(RESOLV_CONF_BAK_FILE, RESOLV_CONF_FILE))
+        if (rename(RESOLV_CONF_BAK_FILE, _PATH_RESCONF))
             dhcpv6_dprintf(LOG_ERR, "%s" " failed to backup resolv.conf",
                            FNAME);
     }
