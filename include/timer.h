@@ -30,18 +30,21 @@
  */
 
 /* a < b */
-#define TIMEVAL_LT(a, b) (((a).tv_sec < (b).tv_sec) ||\
-			  (((a).tv_sec == (b).tv_sec) && \
-			    ((a).tv_usec < (b).tv_usec)))
+#define TIMEVAL_LT(a, b)           \
+    (((a).tv_sec < (b).tv_sec) ||  \
+    (((a).tv_sec == (b).tv_sec) && \
+    ((a).tv_usec < (b).tv_usec)))
 
 /* a <= b */
-#define TIMEVAL_LEQ(a, b) (((a).tv_sec < (b).tv_sec) ||\
-			   (((a).tv_sec == (b).tv_sec) &&\
- 			    ((a).tv_usec <= (b).tv_usec)))
+#define TIMEVAL_LEQ(a, b)          \
+    (((a).tv_sec < (b).tv_sec) ||  \
+    (((a).tv_sec == (b).tv_sec) && \
+    ((a).tv_usec <= (b).tv_usec)))
 
 /* a == b */
-#define TIMEVAL_EQUAL(a, b) ((a).tv_sec == (b).tv_sec &&\
-			     (a).tv_usec == (b).tv_usec)
+#define TIMEVAL_EQUAL(a, b)      \
+    ((a).tv_sec == (b).tv_sec && \
+    (a).tv_usec == (b).tv_usec)
 
 #define MARK_CLEAR 0x00
 #define MARK_REMOVE 0x01

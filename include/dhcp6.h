@@ -39,66 +39,66 @@
 #define __DHCP6_H_DEFINED
 
 /* Error Values */
-#define DH6ERR_FAILURE		16
-#define DH6ERR_AUTHFAIL		17
-#define DH6ERR_POORLYFORMED	18
-#define DH6ERR_UNAVAIL		19
-#define DH6ERR_OPTUNAVAIL	20
+#define DH6ERR_FAILURE      16
+#define DH6ERR_AUTHFAIL     17
+#define DH6ERR_POORLYFORMED 18
+#define DH6ERR_UNAVAIL      19
+#define DH6ERR_OPTUNAVAIL   20
 
 /* Message type */
-#define DH6_SOLICIT	1
-#define DH6_ADVERTISE	2
-#define DH6_REQUEST	3
-#define DH6_CONFIRM	4
-#define DH6_RENEW	5
-#define DH6_REBIND	6
-#define DH6_REPLY	7
-#define DH6_RELEASE	8
-#define DH6_DECLINE	9
-#define DH6_RECONFIGURE	10
-#define DH6_INFORM_REQ	11
-#define DH6_RELAY_FORW	12
-#define DH6_RELAY_REPL	13
+#define DH6_SOLICIT     1
+#define DH6_ADVERTISE   2
+#define DH6_REQUEST     3
+#define DH6_CONFIRM     4
+#define DH6_RENEW       5
+#define DH6_REBIND      6
+#define DH6_REPLY       7
+#define DH6_RELEASE     8
+#define DH6_DECLINE     9
+#define DH6_RECONFIGURE 10
+#define DH6_INFORM_REQ  11
+#define DH6_RELAY_FORW  12
+#define DH6_RELAY_REPL  13
 
 /* Predefined addresses */
-#define DH6ADDR_ALLAGENT	"ff02::1:2"
-#define DH6ADDR_ALLSERVER	"ff05::1:3"
-#define DH6PORT_DOWNSTREAM	"546"
-#define DH6PORT_UPSTREAM	"547"
+#define DH6ADDR_ALLAGENT   "ff02::1:2"
+#define DH6ADDR_ALLSERVER  "ff05::1:3"
+#define DH6PORT_DOWNSTREAM "546"
+#define DH6PORT_UPSTREAM   "547"
 
 /* Protocol constants */
 
 /* timer parameters (msec, unless explicitly commented) */
-#define MIN_SOL_DELAY	500
-#define MAX_SOL_DELAY	1000
-#define SOL_TIMEOUT	1000
-#define SOL_MAX_RT	120000
-#define INF_TIMEOUT	1000
-#define INF_MAX_DELAY	1000
-#define INF_MAX_RT	120000
-#define REQ_TIMEOUT	1000
-#define REQ_MAX_RT	30000
-#define REQ_MAX_RC	10      /* Max Request retry attempts */
-#define REN_TIMEOUT	10000   /* 10secs */
-#define REN_MAX_RT	600000  /* 600secs */
-#define REB_TIMEOUT	10000   /* 10secs */
-#define REB_MAX_RT	600000  /* 600secs */
-#define DEC_TIMEOUT	1000
-#define DEC_MAX_RC	5
-#define REL_TIMEOUT	1000
-#define REL_MAX_RC	5
-#define REC_TIMEOUT	2000
-#define REC_MAX_RC	8
-#define CNF_TIMEOUT	1000
-#define CNF_MAX_RD	10
-#define CNF_MAX_RT	4000
+#define MIN_SOL_DELAY 500
+#define MAX_SOL_DELAY 1000
+#define SOL_TIMEOUT   1000
+#define SOL_MAX_RT    120000
+#define INF_TIMEOUT   1000
+#define INF_MAX_DELAY 1000
+#define INF_MAX_RT    120000
+#define REQ_TIMEOUT   1000
+#define REQ_MAX_RT    30000
+#define REQ_MAX_RC    10       /* Max Request retry attempts */
+#define REN_TIMEOUT   10000    /* 10secs */
+#define REN_MAX_RT    600000   /* 600secs */
+#define REB_TIMEOUT   10000    /* 10secs */
+#define REB_MAX_RT    600000   /* 600secs */
+#define DEC_TIMEOUT   1000
+#define DEC_MAX_RC    5
+#define REL_TIMEOUT   1000
+#define REL_MAX_RC    5
+#define REC_TIMEOUT   2000
+#define REC_MAX_RC    8
+#define CNF_TIMEOUT   1000
+#define CNF_MAX_RD    10
+#define CNF_MAX_RT    4000
 
 #define DHCP6_DURATITION_INFINITE 0xffffffff
-#define DHCP6_ELAPSEDTIME_MAX	0xffff
+#define DHCP6_ELAPSEDTIME_MAX     0xffff
 
 #define IF_RA_OTHERCONF 0x80
 #define IF_RA_MANAGED   0x40
-#define RTM_F_PREFIX	0x800
+#define RTM_F_PREFIX    0x800
 
 #ifndef MAXDNAME
 #define MAXDNAME 255
@@ -112,10 +112,17 @@
 #define RESOLV_CONF_DHCPV6_FILE "/etc/resolv.conf.dhcpv6"
 char resolv_dhcpv6_file[254];
 
-typedef enum { IANA, IATA, IAPD } iatype_t;
+typedef enum {
+    IANA,
+    IATA,
+    IAPD
+} iatype_t;
 
-typedef enum { ACTIVE = 1, RENEW,
-    REBIND, EXPIRED,
+typedef enum {
+    ACTIVE = 1,
+    RENEW,
+    REBIND,
+    EXPIRED,
     INVALID
 } state_t;
 
@@ -180,8 +187,11 @@ struct dhcp6_listval {
 
 TAILQ_HEAD(dhcp6_list, dhcp6_listval);
 
-typedef enum { DHCP6_LISTVAL_NUM, DHCP6_LISTVAL_ADDR6,
-    DHCP6_LISTVAL_DHCP6ADDR, DHCP6_LISTVAL_DHCP6LEASE
+typedef enum {
+    DHCP6_LISTVAL_NUM,
+    DHCP6_LISTVAL_ADDR6,
+    DHCP6_LISTVAL_DHCP6ADDR,
+    DHCP6_LISTVAL_DHCP6LEASE
 } dhcp6_listval_type_t;
 
 /* Store the parameters in an IA option */
@@ -256,9 +266,9 @@ struct dhcp6 {
     /* options follow */
 } __attribute__ ((__packed__));
 
-#define dh6_msgtype	dh6_msgtypexid.m
-#define dh6_xid		dh6_msgtypexid.x
-#define DH6_XIDMASK	0x00ffffff
+#define dh6_msgtype dh6_msgtypexid.m
+#define dh6_xid     dh6_msgtypexid.x
+#define DH6_XIDMASK 0x00ffffff
 
 /* options */
 #define DH6OPT_CLIENTID	1
@@ -268,8 +278,8 @@ struct dhcp6 {
 #define DH6OPT_IADDR 5
 #define DH6OPT_ORO 6
 #define DH6OPT_PREFERENCE 7
-#  define DH6OPT_PREF_UNDEF 0
-#  define DH6OPT_PREF_MAX 255
+#define DH6OPT_PREF_UNDEF 0
+#define DH6OPT_PREF_MAX 255
 #define DH6OPT_ELAPSED_TIME 8
 #define DH6OPT_RELAY_MSG 9
 
@@ -277,21 +287,20 @@ struct dhcp6 {
 #define DH6OPT_UNICAST 12
 #define DH6OPT_STATUS_CODE 13
 
+#define DH6OPT_STCODE_SUCCESS 0
+#define DH6OPT_STCODE_UNSPECFAIL 1
+#define DH6OPT_STCODE_NOADDRAVAIL 2
+#define DH6OPT_STCODE_NOBINDING 3
+#define DH6OPT_STCODE_NOTONLINK 4
+#define DH6OPT_STCODE_USEMULTICAST 5
 
-#  define DH6OPT_STCODE_SUCCESS 0
-#  define DH6OPT_STCODE_UNSPECFAIL 1
-#  define DH6OPT_STCODE_NOADDRAVAIL 2
-#  define DH6OPT_STCODE_NOBINDING 3
-#  define DH6OPT_STCODE_NOTONLINK 4
-#  define DH6OPT_STCODE_USEMULTICAST 5
+#define DH6OPT_STCODE_AUTHFAILED 6
+#define DH6OPT_STCODE_ADDRUNAVAIL 7
+#define DH6OPT_STCODE_CONFNOMATCH 8
 
-#  define DH6OPT_STCODE_AUTHFAILED 6
-#  define DH6OPT_STCODE_ADDRUNAVAIL 7
-#  define DH6OPT_STCODE_CONFNOMATCH 8
+#define DH6OPT_STCODE_NOPREFIXAVAIL 10
 
-#  define DH6OPT_STCODE_NOPREFIXAVAIL 10
-
-#  define DH6OPT_STCODE_UNDEFINE 0xffff
+#define DH6OPT_STCODE_UNDEFINE 0xffff
 
 #define DH6OPT_RAPID_COMMIT 14
 #define DH6OPT_USER_CLASS 15
@@ -310,8 +319,8 @@ struct dhcp6 {
 #define DH6OPT_IAPREFIX 26
 
 #define DH6OPT_INFO_REFRESH_TIME 32
-#  define IRT_DEFAULT 86400     /* default refresh time [sec] */
-#  define IRT_MINIMUM 600       /* minimum value for the refresh time [sec] */
+#define IRT_DEFAULT 86400     /* default refresh time [sec] */
+#define IRT_MINIMUM 600       /* minimum value for the refresh time [sec] */
 
 struct dhcp6opt {
     u_int16_t dh6opt_type;
@@ -352,9 +361,9 @@ struct dhcp6_addr_info {
     u_int32_t preferlifetime;
     u_int32_t validlifetime;
 
-/*	u_int8_t plen;	
-	struct dhcp6_status_info status;
-*/
+/* u_int8_t plen;
+ * struct dhcp6_status_info status;
+ */
 } __attribute__ ((__packed__));
 
 #endif /*__DHCP6_H_DEFINED*/

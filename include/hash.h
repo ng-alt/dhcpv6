@@ -36,8 +36,8 @@
 
 #define MATCH 0
 #define MISCOMPARE 1
-#define HASH_COLLISION        2
-#define HASH_ITEM_NOT_FOUND   3
+#define HASH_COLLISION 2
+#define HASH_ITEM_NOT_FOUND 3
 
 struct hashlist_element {
     struct hashlist_element *next;
@@ -52,7 +52,6 @@ struct hash_table {
     void *(*find_hashkey) (const void *data);
     int (*compare_hashkey) (const void *data, const void *key);
 };
-
 
 extern int init_hashes(void);
 extern struct hash_table *hash_table_create(unsigned int hash_size,

@@ -1,4 +1,3 @@
-#
 # Makefile.am for dhcpv6 include subdirectory
 # Author: David Cantrell <dcantrell@redhat.com>
 

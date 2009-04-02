@@ -1,7 +1,5 @@
-#
 # Makefile.am for dhcpv6 etc/init.d subdirectory
 # Author: David Cantrell <dcantrell@redhat.com>
-#
 
 MAINTAINERCLEANFILES = Makefile.in
 

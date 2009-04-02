@@ -35,15 +35,15 @@
 #define __LEASE_H_DEFINED
 
 #define LEASE_FILENAME_SIZE
-#define ADDR_UPDATE     0
-#define ADDR_REMOVE     1
-#define ADDR_VALIDATE	2
-#define ADDR_ABANDON	3
+#define ADDR_UPDATE   0
+#define ADDR_REMOVE   1
+#define ADDR_VALIDATE 2
+#define ADDR_ABANDON  3
 
 #define PATH_SERVER6_LEASE "/var/lib/dhcpv6/server6.leases"
 #define PATH_CLIENT6_LEASE "/var/lib/dhcpv6/client6.leases"
 
-#define HASH_TABLE_COUNT 	4
+#define HASH_TABLE_COUNT 4
 
 extern struct hash_table **hash_anchors;
 
@@ -53,10 +53,16 @@ extern struct hash_table **hash_anchors;
 #define PREFIX_LEN_NOTINRA 64
 #define MAX_FILE_SIZE 512*1024
 
+typedef enum {
+    IFADDRCONF_ADD,
+    IFADDRCONF_REMOVE
+} ifaddrconf_cmd_t;
 
-typedef enum { IFADDRCONF_ADD, IFADDRCONF_REMOVE } ifaddrconf_cmd_t;
-
-enum hash_type { HT_IPV6ADDR = 0, HT_IPV6LEASE, HT_IAIDADDR };
+enum hash_type {
+    HT_IPV6ADDR = 0,
+    HT_IPV6LEASE,
+    HT_IAIDADDR
+};
 
 struct dhcp6_iaidaddr client6_iaidaddr;
 FILE *server6_lease_file;
@@ -80,7 +86,7 @@ struct dhcp6_iaidaddr {
     struct dhcp6_if *ifp;
     struct dhcp6_timer *timer;
     /* list of client leases */
-      TAILQ_HEAD(, dhcp6_lease) lease_list;
+    TAILQ_HEAD(, dhcp6_lease) lease_list;
 };
 
 extern u_int32_t do_hash __P((const void *, u_int8_t));

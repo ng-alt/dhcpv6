@@ -1,7 +1,5 @@
-#
 # Makefile.am for dhcpv6 src subdirectory
 # Author: David Cantrell <dcantrell@redhat.com>
-#
 
 INCLUDES = -I$(top_srcdir)/include
 

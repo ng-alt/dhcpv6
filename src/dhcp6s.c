@@ -110,9 +110,9 @@ struct rootgroup *globalgroup = NULL;
 #define DHCP6S_PIDFILE "/var/run/dhcpv6/dhcp6s.pid"
 
 #define DH6_VALID_MESSAGE(a) \
-	(a == DH6_SOLICIT || a == DH6_REQUEST || a == DH6_RENEW || \
-	 a == DH6_REBIND || a == DH6_CONFIRM || a == DH6_RELEASE || \
-	 a == DH6_DECLINE || a == DH6_INFORM_REQ)
+    (a == DH6_SOLICIT || a == DH6_REQUEST || a == DH6_RENEW || \
+     a == DH6_REBIND || a == DH6_CONFIRM || a == DH6_RELEASE || \
+     a == DH6_DECLINE || a == DH6_INFORM_REQ)
 
 static void usage __P((char *name));
 static void server6_init __P((void));

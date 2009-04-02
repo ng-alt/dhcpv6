@@ -32,41 +32,40 @@
 #ifndef __DHCP6R_H_DEFINED
 #define __DHCP6R_H_DEFINED
 
-#define MAX_DHCP_MSG_LENGTH     1400
-#define MESSAGE_HEADER_LENGTH   4
+#define MAX_DHCP_MSG_LENGTH        1400
+#define MESSAGE_HEADER_LENGTH      4
 #define ALL_DHCP_SERVERS           "FF05::1:3"
 #define ALL_DHCP_RELAY_AND_SERVERS "FF02::1:2"
-#define INET6_LEN               16
-#define OPAQ                    5000    // opaq value for interface id
-#define HEAD_SIZE               400
-#define HOP_COUNT_LIMIT         30
-#define DUMPFILE                "/var/log/dhcp6r.log"
-#define INTERFACEINFO           "/proc/net/if_inet6"
-#define PIDFILE                 "/var/run/dhcp6r.pid"
-#define MAXHOPCOUNT             32
-#define SERVER_PORT             547
-#define CLIENT_PORT             546
-#define TRACE                   fprintf
+#define INET6_LEN                  16
+#define OPAQ                       5000    // opaq value for interface id
+#define HEAD_SIZE                  400
+#define HOP_COUNT_LIMIT            30
+#define DUMPFILE                   "/var/log/dhcp6r.log"
+#define INTERFACEINFO              "/proc/net/if_inet6"
+#define PIDFILE                    "/var/run/dhcp6r.pid"
+#define MAXHOPCOUNT                32
+#define SERVER_PORT                547
+#define CLIENT_PORT                546
+#define TRACE                      fprintf
 
-#define SOLICIT				1
-#define ADVERTISE			2
-#define REQUEST				3
-#define CONFIRM				4
-#define RENEW				5
-#define REBIND				6
-#define REPLY				7
-#define RELEASE				8
-#define DECLINE				9
-#define RECONFIGURE			10
-#define INFORMATION_REQUEST	11
-#define RELAY_FORW			12
-#define RELAY_REPL			13
+#define SOLICIT             1
+#define ADVERTISE           2
+#define REQUEST             3
+#define CONFIRM             4
+#define RENEW               5
+#define REBIND              6
+#define REPLY               7
+#define RELEASE             8
+#define DECLINE             9
+#define RECONFIGURE         10
+#define INFORMATION_REQUEST 11
+#define RELAY_FORW          12
+#define RELAY_REPL          13
 
-#define OPTION_RELAY_MSG	9
-#define OPTION_INTERFACE_ID	18
+#define OPTION_RELAY_MSG    9
+#define OPTION_INTERFACE_ID 18
 
 char *dhcp6r_clock __P((void));
 void handler __P((int signo));
-
 
 #endif /* __DHCP6R_H_DEFINED */

@@ -240,19 +240,19 @@ struct cf_list {
 
 /* Some systems define thes in in.h */
 #ifndef IN6_IS_ADDR_UNSPECIFIED
-#define IN6_IS_ADDR_UNSPECIFIED(a) \
-	(((__const u_int32_t *) (a))[0] == 0				\
-	 && ((__const u_int32_t *) (a))[1] == 0				\
-	 && ((__const u_int32_t *) (a))[2] == 0				\
-	 && ((__const u_int32_t *) (a))[3] == 0)
+#define IN6_IS_ADDR_UNSPECIFIED(a)           \
+    (((__const u_int32_t *) (a))[0] == 0     \
+     && ((__const u_int32_t *) (a))[1] == 0  \
+     && ((__const u_int32_t *) (a))[2] == 0  \
+     && ((__const u_int32_t *) (a))[3] == 0)
 #endif
 
 #ifndef IN6_IS_ADDR_LOOPBACK
-#define IN6_IS_ADDR_LOOPBACK(a) \
-	(((__const u_int32_t *) (a))[0] == 0				\
-	 && ((__const u_int32_t *) (a))[1] == 0				\
-	 && ((__const u_int32_t *) (a))[2] == 0				\
-	 && ((__const u_int32_t *) (a))[3] == htonl (1))
+#define IN6_IS_ADDR_LOOPBACK(a)                      \
+    (((__const u_int32_t *) (a))[0] == 0             \
+     && ((__const u_int32_t *) (a))[1] == 0          \
+     && ((__const u_int32_t *) (a))[2] == 0          \
+     && ((__const u_int32_t *) (a))[3] == htonl (1))
 #endif
 
 #ifndef IN6_IS_ADDR_MULTICAST
@@ -261,28 +261,26 @@ struct cf_list {
 
 #ifndef IN6_IS_ADDR_LINKLOCAL
 #define IN6_IS_ADDR_LINKLOCAL(a) \
-	((((__const u_int32_t *) (a))[0] & htonl (0xffc00000))		\
-	 == htonl (0xfe800000))
+    ((((__const u_int32_t *) (a))[0] & htonl(0xffc00000)) == htonl(0xfe800000))
 #endif
 
 #ifndef IN6_IS_ADDR_SITELOCAL
 #define IN6_IS_ADDR_SITELOCAL(a) \
-	((((__const u_int32_t *) (a))[0] & htonl (0xffc00000))		\
-	 == htonl (0xfec00000))
+    ((((__const u_int32_t *) (a))[0] & htonl(0xffc00000)) == htonl(0xfec00000))
 #endif
 
 #ifndef IN6_ARE_ADDR_EQUAL
-#define IN6_ARE_ADDR_EQUAL(a,b) \
-	((((__const u_int32_t *) (a))[0] == ((__const u_int32_t *) (b))[0])     \
-	 && (((__const u_int32_t *) (a))[1] == ((__const u_int32_t *) (b))[1])  \
-	 && (((__const u_int32_t *) (a))[2] == ((__const u_int32_t *) (b))[2])  \
-	 && (((__const u_int32_t *) (a))[3] == ((__const u_int32_t *) (b))[3]))
+#define IN6_ARE_ADDR_EQUAL(a,b)                                             \
+    ((((__const u_int32_t *) (a))[0] == ((__const u_int32_t *) (b))[0])     \
+     && (((__const u_int32_t *) (a))[1] == ((__const u_int32_t *) (b))[1])  \
+     && (((__const u_int32_t *) (a))[2] == ((__const u_int32_t *) (b))[2])  \
+     && (((__const u_int32_t *) (a))[3] == ((__const u_int32_t *) (b))[3]))
 #endif
 
 #ifndef IN6_IS_ADDR_RESERVED
-#define IN6_IS_ADDR_RESERVED(a) \
-	IN6_IS_ADDR_MULTICAST(a) || IN6_IS_ADDR_LOOPBACK(a) 		\
-	|| IN6_IS_ADDR_UNSPECIFIED(a)
+#define IN6_IS_ADDR_RESERVED(a)                            \
+    IN6_IS_ADDR_MULTICAST(a) || IN6_IS_ADDR_LOOPBACK(a) || \
+    IN6_IS_ADDR_UNSPECIFIED(a)
 #endif
 
 /* ANYCAST later */
@@ -299,8 +297,11 @@ enum { DECL_SEND, DECL_ALLOW, DECL_INFO_ONLY, DECL_TEMP_ADDR, DECL_REQUEST,
     DHCPOPT_DOMAIN_LIST
 };
 
-typedef enum { DHCP6_MODE_SERVER, DHCP6_MODE_CLIENT, DHCP6_MODE_RELAY }
-    dhcp6_mode_t;
+typedef enum {
+    DHCP6_MODE_SERVER,
+    DHCP6_MODE_CLIENT,
+    DHCP6_MODE_RELAYxi
+} dhcp6_mode_t;
 
 extern const dhcp6_mode_t dhcp6_mode;
 extern struct cf_list *cf_dns_list;

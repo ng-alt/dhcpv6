@@ -103,7 +103,6 @@ struct link_decl {
     struct scope *group;
 };
 
-
 struct v6addrseg {
     struct v6addrseg *next;
     struct v6addrseg *prev;

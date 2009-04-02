@@ -1,7 +1,5 @@
-#
 # Makefile.am for dhcpv6 etc/sysconfig subdirectory
 # Author: David Cantrell <dcantrell@redhat.com>
-#
 
 MAINTAINERCLEANFILES = Makefile.in
 

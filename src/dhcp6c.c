@@ -174,8 +174,7 @@ static char pidfile[MAXPATHLEN];
 char client6_lease_temp[256];
 struct dhcp6_list request_list;
 
-int main(int argc, char **argv, char **envp)
-{
+int main(int argc, char **argv, char **envp) {
     int ch;
     char *progname, *conffile = DHCP6C_CONF;
     FILE *pidfp;

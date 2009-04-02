@@ -80,7 +80,7 @@ extern int in6_addrscopebyif __P((struct in6_addr *, char *));
 extern int in6_scope __P((struct in6_addr *));
 extern void setloglevel __P((int));
 
-#ifdef	__GNUC__
+#ifdef __GNUC__
 extern void dhcpv6_dprintf(int, const char *, ...)
     __attribute__ ((__format__(__printf__, 2, 3)));
 #else
