@@ -109,7 +109,6 @@ struct host_decl *host = NULL;
 struct rootgroup *globalgroup = NULL;
 
 #define DUID_FILE "/var/lib/dhcpv6/dhcp6s_duid"
-#define DHCP6S_CONF "/etc/dhcp6s.conf"
 #define DHCP6S_PIDFILE "/var/run/dhcpv6/dhcp6s.pid"
 
 #define DH6_VALID_MESSAGE(a) \
