@@ -36,7 +36,7 @@
 
 #include "hash.h"
 
-extern void dhcpv6_dprintf __P((int, const char *, ...));
+extern void dhcpv6_dprintf(int, const char *, ...);
 
 struct hash_table *hash_table_create(unsigned int hash_size,
                                      unsigned int (*hash_function) (const void

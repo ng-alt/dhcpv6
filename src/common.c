@@ -84,13 +84,12 @@ do { \
     } \
 } while (0)
 
-static int in6_matchflags __P((struct sockaddr *, size_t, char *, int));
-ssize_t gethwid __P((unsigned char *, int, const char *, u_int16_t *));
-static int get_assigned_ipv6addrs __P((unsigned char *, unsigned char *,
-                                       struct ia_listval *));
-static int dhcp6_set_ia_options __P((unsigned char **, int *,
-                                     struct ia_listval *));
-static int ia_add_address __P((struct ia_listval *, struct dhcp6_addr *));
+static int in6_matchflags(struct sockaddr *, size_t, char *, int);
+ssize_t gethwid(unsigned char *, int, const char *, u_int16_t *);
+static int get_assigned_ipv6addrs(unsigned char *, unsigned char *,
+                                  struct ia_listval *);
+static int dhcp6_set_ia_options(unsigned char **, int *, struct ia_listval *);
+static int ia_add_address(struct ia_listval *, struct dhcp6_addr *);
 
 struct dhcp6_if *find_ifconfbyname(const char *ifname) {
     struct dhcp6_if *ifp;

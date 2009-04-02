@@ -46,7 +46,7 @@
 
 #define NMASK(n) htonl((1<<(n))-1)
 
-static void download_scope __P((struct scope *, struct scope *));
+static void download_scope(struct scope *, struct scope *);
 
 int ipv6addrcmp(addr1, addr2)
      struct in6_addr *addr1;

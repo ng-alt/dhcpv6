@@ -55,34 +55,25 @@
 
 extern FILE *server6_lease_file;
 
-struct dhcp6_lease *dhcp6_find_lease
-__P((struct dhcp6_iaidaddr *, struct dhcp6_addr *));
-static int dhcp6_add_lease
-__P((struct dhcp6_iaidaddr *, struct dhcp6_addr *));
-static int dhcp6_update_lease
-__P((struct dhcp6_addr *, struct dhcp6_lease *));
-static int addr_on_segment __P((struct v6addrseg *, struct dhcp6_addr *));
-static void server6_get_newaddr
-__P((iatype_t, struct dhcp6_addr *, struct v6addrseg *));
-static void server6_get_addrpara
-__P((struct dhcp6_addr *, struct v6addrseg *));
-static void server6_get_prefixpara
-__P((struct dhcp6_addr *, struct v6prefix *));
+struct dhcp6_lease *dhcp6_find_lease(struct dhcp6_iaidaddr *,
+                                     struct dhcp6_addr *);
+static int dhcp6_add_lease(struct dhcp6_iaidaddr *, struct dhcp6_addr *);
+static int dhcp6_update_lease(struct dhcp6_addr *, struct dhcp6_lease *);
+static int addr_on_segment(struct v6addrseg *, struct dhcp6_addr *);
+static void server6_get_newaddr(iatype_t, struct dhcp6_addr *,
+                                struct v6addrseg *);
+static void server6_get_addrpara(struct dhcp6_addr *, struct v6addrseg *);
+static void server6_get_prefixpara(struct dhcp6_addr *, struct v6prefix *);
 
-struct link_decl *dhcp6_allocate_link
-__P((struct dhcp6_if *, struct rootgroup *, struct in6_addr *));
-struct host_decl *dhcp6_allocate_host
-__P((struct dhcp6_if *, struct rootgroup *, struct dhcp6_optinfo *));
-int dhcp6_get_hostconf
-__P((struct ia_listval *, struct ia_listval *, struct dhcp6_iaidaddr *,
-     struct host_decl *));
+struct link_decl *dhcp6_allocate_link(struct dhcp6_if *, struct rootgroup *,
+                                      struct in6_addr *);
+struct host_decl *dhcp6_allocate_host(struct dhcp6_if *, struct rootgroup *,
+                                      struct dhcp6_optinfo *);
+int dhcp6_get_hostconf(struct ia_listval *, struct ia_listval *,
+                       struct dhcp6_iaidaddr *, struct host_decl *);
 
-struct host_decl
- *find_hostdecl(duid, iaid, hostlist)
-     struct duid *duid;
-     u_int32_t iaid;
-     struct host_decl *hostlist;
-{
+struct host_decl *find_hostdecl(struct duid *duid, u_int32_t iaid,
+                                struct host_decl *hostlist) {
     struct host_decl *host;
 
     for (host = hostlist; host; host = host->next) {

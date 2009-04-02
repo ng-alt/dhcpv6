@@ -68,9 +68,9 @@ static struct dns_list *new_dns_list;
 static FILE *dhcp6_resolv_file;
 static int oldfd, newfd;
 
-static int yywrap __P(());
-int resolv_parse __P((struct dns_list *));
-static int update_resolver __P((struct dns_list *));
+static int yywrap();
+int resolv_parse(struct dns_list *);
+static int update_resolver(struct dns_list *);
 
 %}
 

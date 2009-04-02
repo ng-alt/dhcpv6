@@ -66,8 +66,8 @@ int cfdebug = 1;
 int cfdebug = 0;
 #endif
 
-static void cfdebug_print __P((char *, char *, int));
-extern int cf_post_config __P((void));
+static void cfdebug_print(char *, char *, int);
+extern int cf_post_config(void);
 
 extern int client6parse(void);
 extern int cf_post_config(void);

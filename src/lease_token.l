@@ -81,7 +81,7 @@
 	exit(1);	\
 } while (0)
 
-extern struct dhcp6_timer *dhcp6_lease_timo __P((void *));
+extern struct dhcp6_timer *dhcp6_lease_timo(void *);
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 
 static int num_lines = 1;
@@ -90,8 +90,8 @@ static struct client6_if client6_info;
 
 static u_int16_t lease_flags = 0;
 
-static int add_lease __P((struct dhcp6_iaidaddr *, struct dhcp6_lease *));
-static int remove_lease __P((struct dhcp6_lease *));
+static int add_lease(struct dhcp6_iaidaddr *, struct dhcp6_lease *);
+static int remove_lease(struct dhcp6_lease *);
 
 %}
 

@@ -76,20 +76,20 @@ struct IPv6_address IPv6_address_list;
 struct IPv6_uniaddr IPv6_uniaddr_list;
 struct interface interface_list;
 
-int process_RELAY_FORW __P((struct msg_parser * msg));
-int process_RELAY_REPL __P((struct msg_parser * msg));
-struct msg_parser *get_send_messages_out __P((void));
-void delete_messages __P((void));
-int check_interface_semafor __P((int index));
-struct interface *get_interface __P((int if_index));
-struct interface *get_interface_s __P((char *s));
+int process_RELAY_FORW(struct msg_parser * msg);
+int process_RELAY_REPL(struct msg_parser * msg);
+struct msg_parser *get_send_messages_out(void);
+void delete_messages(void);
+int check_interface_semafor(int index);
+struct interface *get_interface(int if_index);
+struct interface *get_interface_s(char *s);
 
 int nr_of_devices;
 int nr_of_uni_addr;
 int max_count;
 int multicast_off;
 
-void init_relay __P((void));
-void command_text __P((void));
+void init_relay(void);
+void command_text(void);
 
 #endif /* __RELAY6_DATABASE_H_DEFINED */

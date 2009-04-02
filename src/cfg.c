@@ -49,13 +49,13 @@ static struct dhcp6_list dnslist0;
 
 enum { DHCPOPTCODE_SEND, DHCPOPTCODE_REQUEST, DHCPOPTCODE_ALLOW };
 
-static int add_options __P((int, struct dhcp6_ifconf *, struct cf_list *));
-static int add_address __P((struct dhcp6_list *, struct dhcp6_addr *));
-static int add_option __P((struct dhcp6_option_list *, struct cf_list *));
-static int clear_option_list __P((struct dhcp6_option_list *));
+static int add_options(int, struct dhcp6_ifconf *, struct cf_list *);
+static int add_address(struct dhcp6_list *, struct dhcp6_addr *);
+static int add_option(struct dhcp6_option_list *, struct cf_list *);
+static int clear_option_list(struct dhcp6_option_list *);
 
-static void clear_ifconf __P((struct dhcp6_ifconf *));
-static void clear_hostconf __P((struct host_conf *));
+static void clear_ifconf(struct dhcp6_ifconf *);
+static void clear_hostconf(struct host_conf *);
 
 int configure_interface(const struct cf_namelist *iflist) {
     const struct cf_namelist *ifp;

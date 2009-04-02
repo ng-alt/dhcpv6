@@ -64,12 +64,12 @@ static struct scopelist *currentgroup = NULL;
 static int allow = 0;
 
 static void cleanup(void);
-extern void server6error __P((char *, ...))
+extern void server6error(char *, ...)
         __attribute__((__format__(__printf__, 1, 2)));
 
 #define ABORT	do { cleanup(); YYABORT; } while (0)
 
-extern int server6_tokenlex __P((void));
+extern int server6_tokenlex(void);
 %}
 %token	<str>	INTERFACE IFNAME
 %token	<str>	PREFIX

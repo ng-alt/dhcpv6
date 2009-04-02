@@ -74,23 +74,22 @@
 #include "timer.h"
 #include "lease.h"
 
-static int dhcp6_update_lease
-__P((struct dhcp6_addr *, struct dhcp6_lease *));
-static int dhcp6_add_lease __P((struct dhcp6_addr *));
-struct dhcp6_lease *dhcp6_find_lease __P((struct dhcp6_iaidaddr *,
-                                          struct dhcp6_addr *));
-int dhcp6_get_prefixlen __P((struct in6_addr *, struct dhcp6_if *));
-int client6_ifaddrconf __P((ifaddrconf_cmd_t, struct dhcp6_addr *));
-u_int32_t get_min_preferlifetime __P((struct dhcp6_iaidaddr *));
-u_int32_t get_max_validlifetime __P((struct dhcp6_iaidaddr *));
-struct dhcp6_timer *dhcp6_iaidaddr_timo __P((void *));
-struct dhcp6_timer *dhcp6_lease_timo __P((void *));
+static int dhcp6_update_lease(struct dhcp6_addr *, struct dhcp6_lease *);
+static int dhcp6_add_lease(struct dhcp6_addr *);
+struct dhcp6_lease *dhcp6_find_lease(struct dhcp6_iaidaddr *,
+                                     struct dhcp6_addr *);
+int dhcp6_get_prefixlen(struct in6_addr *, struct dhcp6_if *);
+int client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
+u_int32_t get_min_preferlifetime(struct dhcp6_iaidaddr *);
+u_int32_t get_max_validlifetime(struct dhcp6_iaidaddr *);
+struct dhcp6_timer *dhcp6_iaidaddr_timo(void *);
+struct dhcp6_timer *dhcp6_lease_timo(void *);
 
 extern struct dhcp6_iaidaddr client6_iaidaddr;
-extern struct dhcp6_timer *client6_timo __P((void *));
-extern void client6_send __P((struct dhcp6_event *));
-extern void free_servers __P((struct dhcp6_if *));
-extern ssize_t gethwid __P((unsigned char *, int, const char *, u_int16_t *));
+extern struct dhcp6_timer *client6_timo(void *);
+extern void client6_send(struct dhcp6_event *);
+extern void free_servers(struct dhcp6_if *);
+extern ssize_t gethwid(unsigned char *, int, const char *, u_int16_t *);
 
 extern int nlsock;
 extern FILE *client6_lease_file;

@@ -65,7 +65,7 @@
 #define OPTION_RELAY_MSG    9
 #define OPTION_INTERFACE_ID 18
 
-char *dhcp6r_clock __P((void));
-void handler __P((int signo));
+char *dhcp6r_clock(void);
+void handler(int signo);
 
 #endif /* __DHCP6R_H_DEFINED */

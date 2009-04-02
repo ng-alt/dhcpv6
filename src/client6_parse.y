@@ -53,9 +53,9 @@ extern int client6lex (void);
 extern int lineno;
 extern int cfdebug;
 
-extern void cpyywarn __P((char *, ...))
+extern void cpyywarn(char *, ...)
 	__attribute__((__format__(__printf__, 1, 2)));
-extern void client6error __P((char *, ...))
+extern void client6error(char *, ...)
 	__attribute__((__format__(__printf__, 1, 2)));
 
 #define MAKE_NAMELIST(l, n, p) do { \
@@ -89,11 +89,11 @@ extern void client6error __P((char *, ...))
 static struct cf_namelist *iflist_head;
 struct cf_list *cf_dns_list;
 
-extern int cpyylex __P((void));
-static void cleanup __P((void));
-static int add_namelist __P((struct cf_namelist *, struct cf_namelist **));
-static void cleanup_namelist __P((struct cf_namelist *));
-static void cleanup_cflist __P((struct cf_list *));
+extern int cpyylex(void);
+static void cleanup(void);
+static int add_namelist(struct cf_namelist *, struct cf_namelist **);
+static void cleanup_namelist(struct cf_namelist *);
+static void cleanup_cflist(struct cf_list *);
 %}
 
 %token INTERFACE IFNAME IPV6ADDR

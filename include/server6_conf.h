@@ -160,15 +160,15 @@ struct host_decl {
     struct scope *group;
 };
 
-int is_anycast __P((struct in6_addr *, int));
-extern void printf_in6addr __P((struct in6_addr *));
+int is_anycast(struct in6_addr *, int);
+extern void printf_in6addr(struct in6_addr *);
 void post_config(struct rootgroup *);
-int sfparse __P((const char *));
-int ipv6addrcmp __P((struct in6_addr *, struct in6_addr *));
-struct v6addr *getprefix __P((struct in6_addr *, int));
-struct in6_addr *inc_ipv6addr __P((struct in6_addr *));
-struct scopelist *push_double_list __P((struct scopelist *, struct scope *));
-struct scopelist *pop_double_list __P((struct scopelist *));
-int get_primary_ipv6addr __P((const char *device));
+int sfparse(const char *);
+int ipv6addrcmp(struct in6_addr *, struct in6_addr *);
+struct v6addr *getprefix(struct in6_addr *, int);
+struct in6_addr *inc_ipv6addr(struct in6_addr *);
+struct scopelist *push_double_list(struct scopelist *, struct scope *);
+struct scopelist *pop_double_list(struct scopelist *);
+int get_primary_ipv6addr(const char *device);
 
 #endif

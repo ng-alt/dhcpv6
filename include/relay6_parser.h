@@ -57,8 +57,8 @@ struct msg_parser {
 
 struct msg_parser msg_parser_list;
 
-struct msg_parser *create_parser_obj __P((void));
-int put_msg_in_store __P((struct msg_parser * mesg));
-int check_buffer __P((int ref, struct msg_parser * mesg));
+struct msg_parser *create_parser_obj(void);
+int put_msg_in_store(struct msg_parser * mesg);
+int check_buffer(int ref, struct msg_parser * mesg);
 
 #endif /* __RELAY6_PARSER_H_DEFINED */

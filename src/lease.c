@@ -61,8 +61,8 @@ extern FILE *server6_lease_file;
 extern char *server6_lease_temp;
 extern FILE *client6_lease_file;
 extern char *client6_lease_temp;
-u_int32_t do_hash __P((const void *, u_int8_t));
-static int init_lease_hashes __P((void));
+u_int32_t do_hash(const void *, u_int8_t);
+static int init_lease_hashes(void);
 
 int write_lease(const struct dhcp6_lease *lease_ptr, FILE * file) {
     struct tm brokendown_time;

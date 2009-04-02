@@ -51,13 +51,13 @@ struct relay_socket {
 
 struct relay_socket *relaysock;
 
-int send_message __P((void));
-int fill_addr_struct __P((void));
-int set_sock_opt __P((void));
-int recv_data __P((void));
-int check_select __P((void));
-int get_recv_data __P((void));
-int get_interface_info __P((void));
-void init_socket __P((void));
+int send_message(void);
+int fill_addr_struct(void);
+int set_sock_opt(void);
+int recv_data(void);
+int check_select(void);
+int get_recv_data(void);
+int get_interface_info(void);
+void init_socket(void);
 
 #endif /* __RELAY6_SOCKET_H_DEFINED */

@@ -128,41 +128,39 @@ static const struct sockaddr_in6 *sa6_allagent;
 static socklen_t sa6_alen;
 static struct duid client_duid;
 
-static void usage __P((char *name));
-static int client6_init __P((char *));
-static int client6_ifinit __P((char *));
-static iatype_t iatype_of_if __P((struct dhcp6_if *));
-void free_servers __P((struct dhcp6_if *));
-static void free_resources __P((struct dhcp6_if *));
-static int create_request_list __P((int));
-static void client6_mainloop __P((void));
-static void process_signals __P((void));
-static struct dhcp6_serverinfo *find_server __P((struct dhcp6_if *,
-                                                 struct duid *));
-static struct dhcp6_serverinfo *allocate_newserver
-__P((struct dhcp6_if *, struct dhcp6_optinfo *));
-static struct dhcp6_serverinfo *select_server __P((struct dhcp6_if *));
-void client6_send __P((struct dhcp6_event *));
-int client6_send_newstate __P((struct dhcp6_if *, int));
-static void client6_recv __P((void));
-static int client6_recvadvert __P((struct dhcp6_if *, struct dhcp6 *,
-                                   ssize_t, struct dhcp6_optinfo *));
-static int client6_recvreply __P((struct dhcp6_if *, struct dhcp6 *,
-                                  ssize_t, struct dhcp6_optinfo *));
-static int set_info_refresh_timer __P((struct dhcp6_if *, u_int32_t));
-static struct dhcp6_timer *info_refresh_timo __P((void *));
-static void client6_signal __P((int));
-static struct dhcp6_event *find_event_withid __P((struct dhcp6_if *,
-                                                  u_int32_t));
-static struct dhcp6_timer *check_lease_file_timo __P((void *));
-static struct dhcp6_timer *check_link_timo __P((void *));
-static struct dhcp6_timer *check_dad_timo __P((void *));
-static void setup_check_timer __P((struct dhcp6_if *));
-static void setup_interface __P((char *));
-struct dhcp6_timer *client6_timo __P((void *));
-extern int client6_ifaddrconf __P((ifaddrconf_cmd_t, struct dhcp6_addr *));
-extern struct dhcp6_timer *syncfile_timo __P((void *));
-extern int dad_parse __P((const char *, struct dhcp6_list *));
+static void usage(char *name);
+static int client6_init(char *);
+static int client6_ifinit(char *);
+static iatype_t iatype_of_if(struct dhcp6_if *);
+void free_servers(struct dhcp6_if *);
+static void free_resources(struct dhcp6_if *);
+static int create_request_list(int);
+static void client6_mainloop(void);
+static void process_signals(void);
+static struct dhcp6_serverinfo *find_server(struct dhcp6_if *, struct duid *);
+static struct dhcp6_serverinfo *allocate_newserver(struct dhcp6_if *,
+                                                   struct dhcp6_optinfo *);
+static struct dhcp6_serverinfo *select_server(struct dhcp6_if *);
+void client6_send(struct dhcp6_event *);
+int client6_send_newstate(struct dhcp6_if *, int);
+static void client6_recv(void);
+static int client6_recvadvert(struct dhcp6_if *, struct dhcp6 *,
+                              ssize_t, struct dhcp6_optinfo *);
+static int client6_recvreply(struct dhcp6_if *, struct dhcp6 *,
+                             ssize_t, struct dhcp6_optinfo *);
+static int set_info_refresh_timer(struct dhcp6_if *, u_int32_t);
+static struct dhcp6_timer *info_refresh_timo(void *);
+static void client6_signal(int);
+static struct dhcp6_event *find_event_withid(struct dhcp6_if *, u_int32_t);
+static struct dhcp6_timer *check_lease_file_timo(void *);
+static struct dhcp6_timer *check_link_timo(void *);
+static struct dhcp6_timer *check_dad_timo(void *);
+static void setup_check_timer(struct dhcp6_if *);
+static void setup_interface(char *);
+struct dhcp6_timer *client6_timo(void *);
+extern int client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
+extern struct dhcp6_timer *syncfile_timo(void *);
+extern int dad_parse(const char *, struct dhcp6_list *);
 
 #define DHCP6C_CONF "/etc/dhcp6c.conf"
 #define DHCP6C_PIDFILE "/var/run/dhcpv6/dhcp6c.pid"

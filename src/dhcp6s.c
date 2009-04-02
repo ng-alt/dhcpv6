@@ -114,42 +114,42 @@ struct rootgroup *globalgroup = NULL;
      a == DH6_REBIND || a == DH6_CONFIRM || a == DH6_RELEASE || \
      a == DH6_DECLINE || a == DH6_INFORM_REQ)
 
-static void usage __P((char *name));
-static void server6_init __P((void));
-static void server6_mainloop __P((void));
-static int server6_recv __P((int));
-static int handle_addr_request __P((struct dhcp6_optinfo *,
-                                    struct ia_list *, struct ia_list *,
-                                    int, int *));
-static int update_binding_ia __P((struct dhcp6_optinfo *roptinfo,
-                                  struct ia_list *ria_list,
-                                  struct ia_list *ia_list,
-                                  u_int8_t msgtype, int addr_flag,
-                                  int *status_code));
-static int server6_react_message __P((struct dhcp6_if *,
-                                      struct in6_pktinfo *, struct dhcp6 *,
-                                      struct dhcp6_optinfo *,
-                                      struct sockaddr *, int));
-static int server6_send __P((int, struct dhcp6_if *, struct dhcp6 *,
-                             struct dhcp6_optinfo *,
-                             struct sockaddr *, int, struct dhcp6_optinfo *));
-static struct dhcp6_timer *check_lease_file_timo __P((void *arg));
-static struct dhcp6 *dhcp6_parse_relay __P((struct dhcp6_relay *,
-                                            struct dhcp6_relay *,
-                                            struct dhcp6_optinfo *,
-                                            struct in6_addr *));
-static int dhcp6_set_relay __P((struct dhcp6_relay *,
-                                struct dhcp6_relay *,
-                                struct dhcp6_optinfo *));
-static void dhcp6_set_relay_option_len __P((struct dhcp6_optinfo *, int len));
-extern struct link_decl *dhcp6_allocate_link
-__P((struct dhcp6_if *, struct rootgroup *, struct in6_addr *));
-extern struct host_decl *dhcp6_allocate_host
-__P((struct dhcp6_if *, struct rootgroup *, struct dhcp6_optinfo *));
+static void usage(char *name);
+static void server6_init(void);
+static void server6_mainloop(void);
+static int server6_recv(int);
+static int handle_addr_request(struct dhcp6_optinfo *,
+                               struct ia_list *, struct ia_list *,
+                               int, int *);
+static int update_binding_ia(struct dhcp6_optinfo *roptinfo,
+                             struct ia_list *ria_list,
+                             struct ia_list *ia_list,
+                             u_int8_t msgtype, int addr_flag,
+                             int *status_code);
+static int server6_react_message(struct dhcp6_if *,
+                                 struct in6_pktinfo *, struct dhcp6 *,
+                                 struct dhcp6_optinfo *,
+                                 struct sockaddr *, int);
+static int server6_send(int, struct dhcp6_if *, struct dhcp6 *,
+                        struct dhcp6_optinfo *,
+                        struct sockaddr *, int, struct dhcp6_optinfo *);
+static struct dhcp6_timer *check_lease_file_timo(void *arg);
+static struct dhcp6 *dhcp6_parse_relay(struct dhcp6_relay *,
+                                       struct dhcp6_relay *,
+                                       struct dhcp6_optinfo *,
+                                       struct in6_addr *);
+static int dhcp6_set_relay(struct dhcp6_relay *, struct dhcp6_relay *,
+                           struct dhcp6_optinfo *);
+static void dhcp6_set_relay_option_len(struct dhcp6_optinfo *, int len);
+extern struct link_decl *dhcp6_allocate_link(struct dhcp6_if *,
+                                             struct rootgroup *,
+                                             struct in6_addr *);
+extern struct host_decl *dhcp6_allocate_host(struct dhcp6_if *,
+                                             struct rootgroup *,
+                                             struct dhcp6_optinfo *);
 
-extern int dhcp6_get_hostconf
-__P((struct ia_listval *, struct ia_listval *, struct dhcp6_iaidaddr *,
-     struct host_decl *));
+extern int dhcp6_get_hostconf(struct ia_listval *, struct ia_listval *,
+                              struct dhcp6_iaidaddr *, struct host_decl *);
 
 static void random_init(void) {
     int f, n;
