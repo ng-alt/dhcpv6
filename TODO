@@ -1,11 +1,7 @@
-- configure script should check for lex and yacc (or flex and bison)
-
 - dhcp6c can pull an IA_NA and an IA_TA, but doesn't configure the interface
   with that information
 
 - dhcp6c does not honor server preference on responses from servers
-
-- Do all of the headers that get installed need to be installed?
 
 - Can hash.c be replaced with a standard system offering?
 
