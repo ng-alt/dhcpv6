@@ -116,6 +116,10 @@ AM_CHECK_LINUX_HEADERS
 AM_CHECK_DARWIN_HEADERS
 AM_PROG_CC_C_O
 
+dnl Define paths used in the program, set at compile time
+AM_CONF_PATH([DHCP6C_CONF], [dhcp6c.conf], [Client configuration file.])
+AM_CONF_PATH([DHCP6S_CONF], [dhcp6s.conf], [Server configuration file.])
+
 AC_CONFIG_FILES([Makefile include/Makefile src/Makefile man/Makefile \
                  etc/Makefile etc/sysconfig/Makefile etc/init.d/Makefile])
 AC_OUTPUT
