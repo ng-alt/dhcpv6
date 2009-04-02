@@ -28,7 +28,7 @@ dhcp6r_SOURCES = dhcp6r.c relay6_database.c relay6_parser.c relay6_socket.c
 
 dhcp6c_CFLAGS  = -fPIE -D_GNU_SOURCE $(LIBNL_CFLAGS)
 dhcp6c_LDFLAGS = $(LDFLAGS) $(LIBNL_LIBS)
-dhcp6c_SOURCES = dhcp6c.c cfg.c client6_addr.c client6_parse.y \
+dhcp6c_SOURCES = dhcp6c.c confdata.c client6_addr.c client6_parse.y \
                  client6_token.l dad_parse.c resolv_token.l $(COMMONSRCS)
 
 CLEANFILES = $(BUILT_SOURCES)
