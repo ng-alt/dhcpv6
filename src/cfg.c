@@ -47,7 +47,11 @@ static struct dhcp6_ifconf *dhcp6_ifconflist;
 static struct host_conf *host_conflist0, *host_conflist;
 static struct dhcp6_list dnslist0;
 
-enum { DHCPOPTCODE_SEND, DHCPOPTCODE_REQUEST, DHCPOPTCODE_ALLOW };
+enum {
+    DHCPOPTCODE_SEND,
+    DHCPOPTCODE_REQUEST,
+    DHCPOPTCODE_ALLOW
+};
 
 static int add_options(int, struct dhcp6_ifconf *, struct cf_list *);
 static int add_address(struct dhcp6_list *, struct dhcp6_addr *);

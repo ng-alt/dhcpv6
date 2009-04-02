@@ -69,7 +69,10 @@
 #include "server6_conf.h"
 #include "timer.h"
 
-typedef enum { DHCP6_CONFINFO_PREFIX, DHCP6_CONFINFO_ADDRS } dhcp6_conftype_t;
+typedef enum {
+    DHCP6_CONFINFO_PREFIX,
+    DHCP6_CONFINFO_ADDRS
+} dhcp6_conftype_t;
 
 struct dhcp6_binding {
     TAILQ_ENTRY(dhcp6_binding) link;
