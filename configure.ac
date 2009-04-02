@@ -120,6 +120,28 @@ dnl Define paths used in the program, set at compile time
 AM_CONF_PATH([DHCP6C_CONF], [dhcp6c.conf], [Client configuration file.])
 AM_CONF_PATH([DHCP6S_CONF], [dhcp6s.conf], [Server configuration file.])
 
+if test x"$localstatedir" = x'${prefix}/var' ; then
+    localstatedir=/var
+fi
+
+AC_ARG_WITH(pid-path,
+    AC_HELP_STRING([--with-pid-path=PATH],
+                   [Directory for PID files.
+                    (default is LOCALSTATEDIR/run/dhcpv6)]),
+    AC_DEFINE_UNQUOTED([PID_FILE_PATH], ["$withval"],
+                       [Directory for PID files.]),
+    AC_DEFINE_UNQUOTED([PID_FILE_PATH], ["$localstatedir/run/dhcpv6"],
+                       [Directory for PID files.]))
+
+AC_ARG_WITH(db-path,
+    AC_HELP_STRING([--with-db-path=PATH],
+                   [Directory for lease databases and DUID files.
+                    (default is LOCALSTATEDIR/lib/dhcpv6)]),
+    AC_DEFINE_UNQUOTED([DB_FILE_PATH], ["$withval"],
+                       [Directory for lease databases and DUID files.]),
+    AC_DEFINE_UNQUOTED([DB_FILE_PATH], ["$localstatedir/lib/dhcpv6"],
+                       [Directory for lease databases and DUID files.]))
+
 AC_CONFIG_FILES([Makefile include/Makefile src/Makefile man/Makefile \
                  etc/Makefile etc/sysconfig/Makefile etc/init.d/Makefile])
 AC_OUTPUT
