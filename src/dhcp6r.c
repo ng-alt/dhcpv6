@@ -38,6 +38,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <sys/param.h>
+#include <errno.h>
 
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -70,6 +71,7 @@ int main(int argc, char **argv) {
     struct msg_parser *mesg;
     FILE *pidfp = NULL;
 
+    memset(&pidfile, '\0', sizeof(pidfile));
     strcpy(pidfile, DHCP6R_PIDFILE);
 
     dump = stderr;
@@ -112,6 +114,7 @@ int main(int argc, char **argv) {
                     exit(1);
                 }
 
+                memset(&pidfile, '\0', sizeof(pidfile));
                 strcpy(pidfile, argv[i]);
             } else {
                 command_text();
@@ -285,13 +288,15 @@ int main(int argc, char **argv) {
         }
     }
 
-    if ((pidfp = fopen(pidfile, "w+")) == NULL) {
-        TRACE(dump, "could not write pid file\n");
-        exit(1);
+    if ((pidfp = fopen(pidfile, "w")) != NULL) {
+        fprintf(pidfp, "%d\n", getpid());
+        fclose(pidfp);
+    } else {
+        fprintf(stderr, "Unable to write to %s: %s\n", pidfile,
+                strerror(errno));
+        fflush(stderr);
+        abort();
     }
-
-    fprintf(pidfp, "%d\n", getpid());
-    fclose(pidfp);
 
     while (1) {
         if (check_select() == 1) {

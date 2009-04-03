@@ -181,6 +181,7 @@ int main(int argc, char **argv, char **envp) {
     pid = getpid();
     srandom(time(NULL) & pid);
 
+    memset(&pidfile, '\0', sizeof(pidfile));
     strcpy(pidfile, DHCP6C_PIDFILE);
 
     if ((progname = strrchr(*argv, '/')) == NULL)
@@ -197,6 +198,7 @@ int main(int argc, char **argv, char **envp) {
                     exit(1);
                 }
 
+                memset(&pidfile, '\0', sizeof(pidfile));
                 strcpy(pidfile, optarg);
                 break;
             case 'c':
@@ -338,6 +340,11 @@ int main(int argc, char **argv, char **envp) {
     if ((pidfp = fopen(pidfile, "w")) != NULL) {
         fprintf(pidfp, "%d\n", pid);
         fclose(pidfp);
+    } else {
+        fprintf(stderr, "Unable to write to %s: %s\n", pidfile,
+                strerror(errno));
+        fflush(stderr);
+        abort();
     }
 
     ifinit(device);

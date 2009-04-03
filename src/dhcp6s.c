@@ -198,6 +198,7 @@ int main(int argc, char **argv) {
         progname++;
     }
 
+    memset(&pidfile, '\0', sizeof(pidfile));
     strcpy(pidfile, DHCP6S_PIDFILE);
 
     TAILQ_INIT(&arg_dnslist.addrlist);
@@ -211,6 +212,7 @@ int main(int argc, char **argv) {
                     exit(1);
                 }
 
+                memset(&pidfile, '\0', sizeof(pidfile));
                 strcpy(pidfile, optarg);
                 break;
             case 'c':
@@ -312,6 +314,11 @@ int main(int argc, char **argv) {
     if ((pidfp = fopen(pidfile, "w")) != NULL) {
         fprintf(pidfp, "%d\n", getpid());
         fclose(pidfp);
+    } else {
+        fprintf(stderr, "Unable to write to %s: %s\n", pidfile,
+                strerror(errno));
+        fflush(stderr);
+        abort();
     }
 
     server6_mainloop();
