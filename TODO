@@ -1,3 +1,6 @@
+- Fix RESOLV_CONF_DHCPV6_FILE and RESOLV_CONF_BAK_FILE so they use
+  mkstemp() or something a little safer.
+
 - Get rid of direct 'XXXXXX' temp file creation
 
 - Replace all instances of atoi() with strtol() and error checking
