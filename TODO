@@ -1,3 +1,5 @@
+- Make sure O_CLOEXEC is used on open files to keep SELinux happy
+
 - Fix RESOLV_CONF_DHCPV6_FILE and RESOLV_CONF_BAK_FILE so they use
   mkstemp() or something a little safer.
 
