@@ -108,8 +108,8 @@ struct link_decl *subnet = NULL;
 struct host_decl *host = NULL;
 struct rootgroup *globalgroup = NULL;
 
-#define DUID_FILE "/var/lib/dhcpv6/dhcp6s_duid"
-#define DHCP6S_PIDFILE "/var/run/dhcpv6/dhcp6s.pid"
+#define DUID_FILE DB_FILE_PATH"/dhcp6s_duid"
+#define DHCP6S_PIDFILE PID_FILE_PATH"/dhcp6s.pid"
 
 #define DH6_VALID_MESSAGE(a) \
     (a == DH6_SOLICIT || a == DH6_REQUEST || a == DH6_RENEW || \

@@ -163,8 +163,8 @@ extern int client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
 extern struct dhcp6_timer *syncfile_timo(void *);
 extern int dad_parse(const char *, struct dhcp6_list *);
 
-#define DHCP6C_PIDFILE "/var/run/dhcpv6/dhcp6c.pid"
-#define DUID_FILE "/var/lib/dhcpv6/dhcp6c_duid"
+#define DHCP6C_PIDFILE PID_FILE_PATH"/dhcp6c.pid"
+#define DUID_FILE DB_FILE_PATH"/dhcp6c_duid"
 
 static int pid;
 static char pidfile[MAXPATHLEN];

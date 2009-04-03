@@ -42,7 +42,6 @@
 #define HOP_COUNT_LIMIT            30
 #define DUMPFILE                   "/var/log/dhcp6r.log"
 #define INTERFACEINFO              "/proc/net/if_inet6"
-#define PIDFILE                    "/var/run/dhcp6r.pid"
 #define MAXHOPCOUNT                32
 #define SERVER_PORT                547
 #define CLIENT_PORT                546
