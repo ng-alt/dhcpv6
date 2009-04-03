@@ -34,6 +34,7 @@
  */
 
 #include "queue.h"
+#include <sys/param.h>
 
 #ifndef __DHCP6_H_DEFINED
 #define __DHCP6_H_DEFINED
@@ -105,11 +106,9 @@
 #endif
 #define MAXDN 100
 
-#define NETWORK_FUNCTIONS_SCRIPT "/etc/sysconfig/network-scripts/network-functions"
-
 #define RESOLV_CONF_BAK_FILE "/etc/resolv.conf.dhcpv6.bak"
 #define RESOLV_CONF_DHCPV6_FILE "/etc/resolv.conf.dhcpv6"
-char resolv_dhcpv6_file[254];
+char resolv_dhcpv6_file[MAXPATHLEN];
 
 typedef enum {
     IANA,

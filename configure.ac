@@ -116,6 +116,8 @@ AM_CHECK_LINUX_HEADERS
 AM_CHECK_DARWIN_HEADERS
 AM_PROG_CC_C_O
 
+AM_FEDORA_NETWORK_FUNCTIONS
+
 dnl Define paths used in the program, set at compile time
 AM_CONF_PATH([DHCP6C_CONF], [dhcp6c.conf], [Client configuration file.])
 AM_CONF_PATH([DHCP6S_CONF], [dhcp6s.conf], [Server configuration file.])

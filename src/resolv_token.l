@@ -140,29 +140,27 @@ nl              \n
 .	{fprintf(dhcp6_resolv_file, yytext);}
 
 %%
-int change_resolv_conf
-(   char *new_rscf
-)
-{
+#ifdef NETWORK_FUNCTIONS_SCRIPT
+int change_resolv_conf(char *new_rscf) {
     char *argv[] = { "/bin/bash", "-c", 0L, 0L };
     char *cmd;
     int l, pid, status;
     extern char **environ;
 
     if( new_rscf == 0L )
-	return -1;
-    
+        return -1;
+
     if( getuid() != 0 )
-	return 1;
-    
+        return 1;
+
     l = strlen(NETWORK_FUNCTIONS_SCRIPT) + strlen(new_rscf) + 27;
     cmd = (char*)malloc(l);
     snprintf(cmd, l, ". %s ; change_resolv_conf %s",
-		    NETWORK_FUNCTIONS_SCRIPT, new_rscf);
+            NETWORK_FUNCTIONS_SCRIPT, new_rscf);
     argv[2] = cmd;
-    
+
     if( (pid = fork()) < 0 )
-	return -1;
+        return -1;
     else
     if( pid > 0 )
     {
@@ -177,6 +175,7 @@ int change_resolv_conf
 
     return -1;
 }
+#endif
 
 int
 backup_resolv_conf()
@@ -429,18 +428,22 @@ update_resolver(struct dns_list *dns_list)
 	fclose(dhcp6_resolv_file);
 	close(newfd);
 
+#ifdef NETWORK_FUNCTIONS_SCRIPT
 	if (!lstat(NETWORK_FUNCTIONS_SCRIPT, &buf)) {
 		if (change_resolv_conf(resolv_dhcpv6_file)!=0) {
 //			dhcpv6_dprintf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
 //			needs initscripts patch!		return(-1);
 		}
 	} else {
+#endif
 		if (rename(resolv_dhcpv6_file, _PATH_RESCONF)) {
 			dhcpv6_dprintf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
 			ret = -1;
 			goto out;
 		}
+#ifdef NETWORK_FUNCTIONS_SCRIPT
         }
+#endif
 
 out:
 	if (!lstat(resolv_dhcpv6_file, &buf))
