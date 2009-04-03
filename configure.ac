@@ -1,6 +1,6 @@
 dnl configure.ac for dhcpv6
 dnl
-dnl Copyright (C) 2007, 2008  Red Hat, Inc.
+dnl Copyright (C) 2007, 2008, 2009  Red Hat, Inc.
 dnl
 dnl This program is free software; you can redistribute it and/or modify
 dnl it under the terms of the GNU Lesser General Public License as published
@@ -18,7 +18,7 @@ dnl
 dnl Author: David Cantrell <dcantrell@redhat.com>
 
 AC_PREREQ(2.61)
-AC_INIT([dhcpv6], [1.1.0], [dcantrell@redhat.com])
+AC_INIT([dhcpv6], [1.2.0], [dcantrell@redhat.com])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR([src/dhcp6s.c])
 AC_CONFIG_HEADER([config.h])
