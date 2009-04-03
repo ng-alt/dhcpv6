@@ -40,7 +40,6 @@
 #define OPAQ                       5000    // opaq value for interface id
 #define HEAD_SIZE                  400
 #define HOP_COUNT_LIMIT            30
-#define DUMPFILE                   "/var/log/dhcp6r.log"
 #define INTERFACEINFO              "/proc/net/if_inet6"
 #define MAXHOPCOUNT                32
 #define SERVER_PORT                547

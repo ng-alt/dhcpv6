@@ -142,6 +142,15 @@ AC_ARG_WITH(db-path,
     AC_DEFINE_UNQUOTED([DB_FILE_PATH], ["$localstatedir/lib/dhcpv6"],
                        [Directory for lease databases and DUID files.]))
 
+AC_ARG_WITH(relay-dump-file,
+    AC_HELP_STRING([--with-relay-dump-file=PATH],
+                   [Dump file that dhcp6r should output.
+                    (default is LOCALSTATEDIR/log/dhcp6r.log)]),
+    AC_DEFINE_UNQUOTED([RELAY_DUMP_FILE], ["$withval"],
+                       [Dump file that dhcp6r should output.]),
+    AC_DEFINE_UNQUOTED([RELAY_DUMP_FILE], ["$localstatedir/log/dhcp6r.log"],
+                       [Dump file that dhcp6r should output.]))
+
 AC_CONFIG_FILES([Makefile include/Makefile src/Makefile man/Makefile \
                  etc/Makefile etc/sysconfig/Makefile etc/init.d/Makefile])
 AC_OUTPUT

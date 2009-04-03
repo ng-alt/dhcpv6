@@ -91,9 +91,9 @@ int main(int argc, char **argv) {
     if (du == 0) {
         FILE *tmp_dump;
 
-        tmp_dump = fopen(DUMPFILE, "w+");
+        tmp_dump = fopen(RELAY_DUMP_FILE, "w+");
         if (tmp_dump == NULL) {
-            TRACE(dump, "could not write dump file: %s\n", DUMPFILE);
+            TRACE(dump, "could not write dump file: %s\n", RELAY_DUMP_FILE);
             exit(1);
         }
         dump = tmp_dump;
