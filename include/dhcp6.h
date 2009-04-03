@@ -106,8 +106,9 @@
 #endif
 #define MAXDN 100
 
-#define RESOLV_CONF_BAK_FILE "/etc/resolv.conf.dhcpv6.bak"
-#define RESOLV_CONF_DHCPV6_FILE "/etc/resolv.conf.dhcpv6"
+#define RESOLV_CONF_DHCPV6_FILE DB_FILE_PATH"/resolv.conf.dhcpv6"
+#define RESOLV_CONF_BAK_FILE RESOLV_CONF_DHCPV6_FILE".bak"
+
 char resolv_dhcpv6_file[MAXPATHLEN];
 
 typedef enum {
