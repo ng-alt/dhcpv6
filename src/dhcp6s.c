@@ -1351,8 +1351,7 @@ static int server6_send(type, ifp, origmsg, optinfo, from, fromlen, roptinfo)
     return 0;
 }
 
-static struct dhcp6_timer
- *check_lease_file_timo(void *arg) {
+static struct dhcp6_timer *check_lease_file_timo(void *arg) {
     double d;
     struct timeval timo;
     struct stat buf;

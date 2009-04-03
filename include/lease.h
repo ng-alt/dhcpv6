@@ -29,6 +29,7 @@
 
 /* Author: Shirley Ma, xma@us.ibm.com */
 
+#include "config.h"
 #include <stdio.h>
 
 #ifndef __LEASE_H_DEFINED
@@ -40,8 +41,8 @@
 #define ADDR_VALIDATE 2
 #define ADDR_ABANDON  3
 
-#define PATH_SERVER6_LEASE "/var/lib/dhcpv6/server6.leases"
-#define PATH_CLIENT6_LEASE "/var/lib/dhcpv6/client6.leases"
+#define PATH_SERVER6_LEASE DB_FILE_PATH"/server6.leases"
+#define PATH_CLIENT6_LEASE DB_FILE_PATH"/client6.leases"
 
 #define HASH_TABLE_COUNT 4
 

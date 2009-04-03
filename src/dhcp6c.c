@@ -95,12 +95,11 @@ static u_long sig_flags = 0;
 #define SIGF_HUP 0x2
 #define SIGF_CLEAN 0x4
 
-#define DHCP6S_VALID_REPLY(a) \
-	(a == DHCP6S_REQUEST || a == DHCP6S_RENEW || \
-	 a == DHCP6S_REBIND || a == DHCP6S_DECLINE || \
-	 a == DHCP6S_RELEASE || a == DHCP6S_CONFIRM || \
-	 a == DHCP6S_INFOREQ)
-
+#define DHCP6S_VALID_REPLY(a)                      \
+    (a == DHCP6S_REQUEST || a == DHCP6S_RENEW ||   \
+     a == DHCP6S_REBIND || a == DHCP6S_DECLINE ||  \
+     a == DHCP6S_RELEASE || a == DHCP6S_CONFIRM || \
+     a == DHCP6S_INFOREQ)
 
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_CLIENT;
 
@@ -108,14 +107,13 @@ static char *device = NULL;
 static int num_device = 0;
 static struct iaid_table iaidtab[MAX_DEVICE];
 static u_int8_t client6_request_flag = 0;
-static char leasename[100];
+static char leasename[MAXPATHLEN];
 
-#define CLIENT6_RELEASE_ADDR	0x1
-#define CLIENT6_CONFIRM_ADDR	0x2
-#define CLIENT6_REQUEST_ADDR	0x4
-#define CLIENT6_DECLINE_ADDR	0x8
-
-#define CLIENT6_INFO_REQ	0x10
+#define CLIENT6_RELEASE_ADDR 0x1
+#define CLIENT6_CONFIRM_ADDR 0x2
+#define CLIENT6_REQUEST_ADDR 0x4
+#define CLIENT6_DECLINE_ADDR 0x8
+#define CLIENT6_INFO_REQ     0x10
 
 int iosock = -1;                /* inbound/outbound udp port */
 int nlsock = -1;
@@ -726,6 +724,7 @@ static int client6_ifinit(char *device) {
             ((ifp->ra_flag & IF_RA_MANAGED) ||
             !(ifp->ra_flag & IF_RA_OTHERCONF))) {
         /* parse the lease file */
+        memset(&leasename, '\0', sizeof(leasename));
         strcpy(leasename, PATH_CLIENT6_LEASE);
         sprintf(iaidstr, "%u", ifp->iaidinfo.iaid);
         strcat(leasename, iaidstr);
@@ -2100,8 +2099,7 @@ static void setup_check_timer(struct dhcp6_if *ifp) {
     return;
 }
 
-static struct dhcp6_timer
- *check_lease_file_timo(void *arg) {
+static struct dhcp6_timer *check_lease_file_timo(void *arg) {
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
     double d;
     struct timeval timo;
