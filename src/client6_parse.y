@@ -53,38 +53,41 @@ extern int client6lex (void);
 extern int lineno;
 extern int cfdebug;
 
-extern void cpyywarn(char *, ...)
-	__attribute__((__format__(__printf__, 1, 2)));
-extern void client6error(char *, ...)
-	__attribute__((__format__(__printf__, 1, 2)));
+extern void cpyywarn(char *, ...) __attribute__((__format__(__printf__, 1, 2)));
+extern void client6error(char *, ...) __attribute__((__format__(__printf__, 1, 2)));
 
-#define MAKE_NAMELIST(l, n, p) do { \
-	(l) = (struct cf_namelist *)malloc(sizeof(*(l))); \
-	if ((l) == NULL) { \
-		cpyywarn("can't allocate memory"); \
-		if (p) cleanup_cflist(p); \
-		return (-1); \
-	} \
-	memset((l), 0, sizeof(*(l))); \
-	l->line = lineno; \
-	l->name = (n); \
-	l->params = (p); \
-	} while (0)
+#define MAKE_NAMELIST(l, n, p) \
+    do { \
+        (l) = (struct cf_namelist *) malloc(sizeof(*(l))); \
+        if ((l) == NULL) { \
+            cpyywarn("can't allocate memory"); \
+            if (p) \
+                cleanup_cflist(p); \
+            return (-1); \
+        } \
+        memset((l), 0, sizeof(*(l))); \
+        l->line = lineno; \
+        l->name = (n); \
+        l->params = (p); \
+    } while (0)
 
-#define MAKE_CFLIST(l, t, pp, pl) do { \
-	(l) = (struct cf_list *)malloc(sizeof(*(l))); \
-	if ((l) == NULL) { \
-		cpyywarn("can't allocate memory"); \
-		if (pp) free(pp); \
-		if (pl) cleanup_cflist(pl); \
-		return (-1); \
-	} \
-	memset((l), 0, sizeof(*(l))); \
-	l->line = lineno; \
-	l->type = (t); \
-	l->ptr = (pp); \
-	l->list = (pl); \
-	} while (0)
+#define MAKE_CFLIST(l, t, pp, pl) \
+    do { \
+        (l) = (struct cf_list *) malloc(sizeof(*(l))); \
+        if ((l) == NULL) { \
+            cpyywarn("can't allocate memory"); \
+            if (pp) \
+                free(pp); \
+            if (pl) \
+                cleanup_cflist(pl); \
+            return (-1); \
+        } \
+        memset((l), 0, sizeof(*(l))); \
+        l->line = lineno; \
+        l->type = (t); \
+        l->ptr = (pp); \
+        l->list = (pl); \
+    } while (0)
 
 static struct cf_namelist *iflist_head;
 struct cf_list *cf_dns_list;
@@ -96,20 +99,18 @@ static void cleanup_namelist(struct cf_namelist *);
 static void cleanup_cflist(struct cf_list *);
 %}
 
-%token INTERFACE IFNAME IPV6ADDR
-%token REQUEST SEND 
-%token RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS DOMAIN_LIST
-%token INFO_ONLY TEMP_ADDR
-%token ADDRESS PREFIX IAID RENEW_TIME REBIND_TIME V_TIME P_TIME PREFIX_DELEGATION_INTERFACE DEFAULT_IRT MAXIMUM_IRT
-%token NUMBER SLASH EOS BCL ECL STRING INFINITY
-%token COMMA OPTION
+%token INTERFACE IFNAME IPV6ADDR REQUEST SEND RAPID_COMMIT PREFIX_DELEGATION
+%token DNS_SERVERS DOMAIN_LIST INFO_ONLY TEMP_ADDR ADDRESS PREFIX IAID
+%token RENEW_TIME REBIND_TIME V_TIME P_TIME PREFIX_DELEGATION_INTERFACE
+%token DEFAULT_IRT MAXIMUM_IRT NUMBER SLASH EOS BCL ECL STRING INFINITY COMMA
+%token OPTION
 
 %union {
-	long long num;
-	char* str;
-	struct cf_list *list;
-	struct in6_addr addr;
-	struct dhcp6_addr *v6addr;
+    long long num;
+    char* str;
+    struct cf_list *list;
+    struct in6_addr addr;
+    struct dhcp6_addr *v6addr;
 }
 
 %type <str> IFNAME STRING
@@ -119,355 +120,312 @@ static void cleanup_cflist(struct cf_list *);
 %type <addr> IPV6ADDR
 
 %%
-statements:
-		/* empty */
-	|	statements statement
-	;
+statements
+    : /* empty */
+    | statements statement
+    ;
 
-statement:
-		interface_statement
-	;
+statement
+    : interface_statement
+    ;
 
-interface_statement:
-	INTERFACE IFNAME BCL declarations ECL EOS 
-	{
-		struct cf_namelist *ifl;
+interface_statement
+    : INTERFACE IFNAME BCL declarations ECL EOS {
+          struct cf_namelist *ifl;
 
-		MAKE_NAMELIST(ifl, $2, $4);
+          MAKE_NAMELIST(ifl, $2, $4);
 
-		if (add_namelist(ifl, &iflist_head))
-			return (-1);
-	}
-	;
+          if (add_namelist(ifl, &iflist_head))
+              return (-1);
+      }
+    ;
 
-declarations:
-		{ $$ = NULL; }
-	| 	declarations declaration 
-		{
-			struct cf_list *head;
+declarations
+    : { $$ = NULL; }
+    | declarations declaration {
+          struct cf_list *head;
 
-			if ((head = $1) == NULL) {
-				$2->next = NULL;
-				$2->tail = $2;
-				head = $2;
-			} else {
-				head->tail->next = $2;
-				head->tail = $2;
-			}
+          if ((head = $1) == NULL) {
+              $2->next = NULL;
+              $2->tail = $2;
+              head = $2;
+          } else {
+              head->tail->next = $2;
+              head->tail = $2;
+          }
 
-			$$ = head;
-		}
-	;
+          $$ = head;
+      }
+    ;
 
-declaration:
-		SEND dhcpoption EOS
-		{
-			struct cf_list *l;
+declaration
+    : SEND dhcpoption EOS {
+          struct cf_list *l;
 
-			MAKE_CFLIST(l, DECL_SEND, NULL, $2);
+          MAKE_CFLIST(l, DECL_SEND, NULL, $2);
 
-			$$ = l;
-		}
-	|	REQUEST dhcpoption EOS
-		{
-			struct cf_list *l;
+          $$ = l;
+      }
+    | REQUEST dhcpoption EOS {
+          struct cf_list *l;
 
-			MAKE_CFLIST(l, DECL_REQUEST, NULL, $2);
+          MAKE_CFLIST(l, DECL_REQUEST, NULL, $2);
 
-			$$ = l;
-		}
-	|	INFO_ONLY EOS
-		{
-			struct cf_list *l;
+          $$ = l;
+      }
+    | INFO_ONLY EOS {
+          struct cf_list *l;
 
-			MAKE_CFLIST(l, DECL_INFO_ONLY, NULL, NULL);
-			/* no value */
-			$$ = l;
-		}
-	|	DEFAULT_IRT duration EOS
-		{
-			struct cf_list *l;
+          MAKE_CFLIST(l, DECL_INFO_ONLY, NULL, NULL);
+          /* no value */
+          $$ = l;
+      }
+    | DEFAULT_IRT duration EOS {
+          struct cf_list *l;
 
-			MAKE_CFLIST(l, DECL_DEFAULT_IRT, NULL, NULL);
-			l->num = $2;
+          MAKE_CFLIST(l, DECL_DEFAULT_IRT, NULL, NULL);
+          l->num = $2;
 
-			$$ = l;
-		}
-	|	MAXIMUM_IRT duration EOS
-		{
-			struct cf_list *l;
+          $$ = l;
+      }
+    | MAXIMUM_IRT duration EOS {
+          struct cf_list *l;
 
-			MAKE_CFLIST(l, DECL_MAXIMUM_IRT, NULL, NULL);
-			l->num = $2;
+          MAKE_CFLIST(l, DECL_MAXIMUM_IRT, NULL, NULL);
+          l->num = $2;
 
-			$$ = l;
-		}
-	|	REQUEST TEMP_ADDR EOS
-		{
-			struct cf_list *l;
+          $$ = l;
+      }
+    | REQUEST TEMP_ADDR EOS {
+          struct cf_list *l;
 
-			MAKE_CFLIST(l, DECL_TEMP_ADDR, NULL, NULL);
-			/* no value */
-			$$ = l;
-		}
-	|	ADDRESS BCL addrdecl ECL EOS
-		{
-			struct cf_list *l;
+          MAKE_CFLIST(l, DECL_TEMP_ADDR, NULL, NULL);
+          /* no value */
+          $$ = l;
+      }
+    | ADDRESS BCL addrdecl ECL EOS {
+          struct cf_list *l;
 
-			MAKE_CFLIST(l, DECL_ADDRESS, $3, NULL);
+          MAKE_CFLIST(l, DECL_ADDRESS, $3, NULL);
 
-			$$ = l;
+          $$ = l;
+      }
+    | PREFIX BCL addrdecl ECL EOS {
+          struct cf_list *l;
 
-		}
-	
-	|	PREFIX BCL addrdecl ECL EOS
-		{
-			struct cf_list *l;
+          MAKE_CFLIST(l, DECL_PREFIX, $3, NULL);
 
-			MAKE_CFLIST(l, DECL_PREFIX, $3, NULL);
+          $$ = l;
+      }
+    | RENEW_TIME duration EOS {
+          struct cf_list *l;
 
-			$$ = l;
+          MAKE_CFLIST(l, DECL_RENEWTIME, NULL, NULL);
+          l->num = $2;
 
-		}
-	
-	|	RENEW_TIME duration EOS
-		{
-			struct cf_list *l;
+          $$ = l;
 
-			MAKE_CFLIST(l, DECL_RENEWTIME, NULL, NULL);
-			l->num = $2;
+      }
+    | REBIND_TIME duration EOS {
+          struct cf_list *l;
 
-			$$ = l;
+          MAKE_CFLIST(l, DECL_REBINDTIME, NULL, NULL);
+          l->num = $2;
 
-		}
-	|	REBIND_TIME duration EOS
-		{
-			struct cf_list *l;
+          $$ = l;
+      }
+    | IAID NUMBER EOS {
+          struct cf_list *l;
 
-			MAKE_CFLIST(l, DECL_REBINDTIME, NULL, NULL);
-			l->num = $2;
+          MAKE_CFLIST(l, DECL_IAID, NULL, NULL);
+          l->num = $2;
 
-			$$ = l;
+          $$ = l;
+      }
+    | PREFIX_DELEGATION_INTERFACE STRING EOS {
+          struct cf_list *l;
+          char *pp = (char*) malloc(strlen($2)+1);
+          strcpy(pp, $2);
+          MAKE_CFLIST(l, DECL_PREFIX_DELEGATION_INTERFACE, pp, NULL );
 
-		}
-	|	IAID NUMBER EOS 
-		{	
-			struct cf_list *l;
+          $$ = l;
+      }
+    ;
 
-			MAKE_CFLIST(l, DECL_IAID, NULL, NULL);
-			l->num = $2;
-		
-			$$ = l;
-		}
-        |       PREFIX_DELEGATION_INTERFACE STRING EOS
-                {
-			struct cf_list *l;
-			char *pp = (char*)malloc(strlen($2)+1);
-			strcpy(pp,$2);
-			MAKE_CFLIST(l, DECL_PREFIX_DELEGATION_INTERFACE, pp, NULL );
-			
-			$$ = l;
-                }
+dhcpoption
+    : RAPID_COMMIT {
+          struct cf_list *l;
 
-	;
+          MAKE_CFLIST(l, DHCPOPT_RAPID_COMMIT, NULL, NULL);
+          /* no value */
+          $$ = l;
+      }
+    | PREFIX_DELEGATION {
+          struct cf_list *l;
 
-dhcpoption:
-		RAPID_COMMIT
-		{
-			struct cf_list *l;
+          MAKE_CFLIST(l, DHCPOPT_PREFIX_DELEGATION, NULL, NULL);
+          /* currently no value */
+          $$ = l;
+      }
+    | DNS_SERVERS {
+          struct cf_list *l;
 
-			MAKE_CFLIST(l, DHCPOPT_RAPID_COMMIT, NULL, NULL);
-			/* no value */
-			$$ = l;
-		}
-	|	PREFIX_DELEGATION	
-		{
-			struct cf_list *l;
+          MAKE_CFLIST(l, DHCPOPT_DNS, NULL, NULL);
+          /* currently no value */
+          $$ = l;
+      }
+    | DOMAIN_LIST {
+          struct cf_list *l;
 
-			MAKE_CFLIST(l, DHCPOPT_PREFIX_DELEGATION, NULL, NULL);
-			/* currently no value */
-			$$ = l;
-		}
-	|	DNS_SERVERS	
-		{
-			struct cf_list *l;
+          MAKE_CFLIST(l, DHCPOPT_DOMAIN_LIST, NULL, NULL);
+          /* currently no value */
+          $$ = l;
+      }
+    ;
 
-			MAKE_CFLIST(l, DHCPOPT_DNS, NULL, NULL);
-			/* currently no value */
-			$$ = l;
-		}
-	|	DOMAIN_LIST     
-		{
-			struct cf_list *l;
+addrdecl
+    : addrparam addrvtime {
+          struct dhcp6_addr *addr = (struct dhcp6_addr *) $1;
 
-			MAKE_CFLIST(l, DHCPOPT_DOMAIN_LIST, NULL, NULL);
-			/* currently no value */
-			$$ = l;
-		}
-	;
+          addr->validlifetime = (u_int32_t) $2;
+          $$ = $1;
+      }
+    | addrparam addrptime {
+          struct dhcp6_addr *addr = (struct dhcp6_addr *) $1;
+          addr->preferlifetime = (u_int32_t) $2;
+          $$ = $1;
+      }
+    | addrparam addrvtime addrptime {
+          struct dhcp6_addr *addr = (struct dhcp6_addr *) $1;
+          addr->validlifetime = (u_int32_t) $2;
+          addr->preferlifetime = (u_int32_t) $3;
+          $$ = $1;
+      }
+    | addrparam addrptime addrvtime {
+          struct dhcp6_addr *addr = (struct dhcp6_addr *) $1;
+          addr->validlifetime = (u_int32_t) $3;
+          addr->preferlifetime = (u_int32_t) $2;
+          $$ = $1;
+      }
+    | addrparam {
+          $$ = $1;
+      }
+    ;
 
-addrdecl:
-       
-		addrparam addrvtime 
-		{
-		    struct dhcp6_addr *addr=(struct dhcp6_addr *)$1;
-		    
-			addr->validlifetime = (u_int32_t)$2;
-			$$ = $1;
-		}
-	|	 addrparam addrptime
-		{
-		    struct dhcp6_addr *addr=(struct dhcp6_addr *)$1;
-		        addr->preferlifetime = (u_int32_t)$2;
-			$$ = $1;
-		}
-	|	 addrparam addrvtime addrptime 
-		{
-		    struct dhcp6_addr *addr=(struct dhcp6_addr *)$1;
-			addr->validlifetime = (u_int32_t)$2;
-			addr->preferlifetime = (u_int32_t)$3;
-			$$ = $1;
-		}
-	| 	addrparam addrptime addrvtime
-		{
-		    struct dhcp6_addr *addr=(struct dhcp6_addr *)$1;
-			addr->validlifetime = (u_int32_t)$3;
-			addr->preferlifetime = (u_int32_t)$2;
-			$$ = $1;
-			}
-	| 	addrparam
-		{
-			$$ = $1;
-		}
-	;
-addrparam:
-		IPV6ADDR SLASH NUMBER EOS
-		{
-			struct dhcp6_addr *v6addr;		
-			/* validate other parameters later */
-			if ($3 < 0 || $3 > 128)
-				return (-1);
-			if ((v6addr = malloc(sizeof(*v6addr))) == NULL) {
-				cpyywarn("can't allocate memory");
-				return (-1);
-			}
-			memset(v6addr, 0, sizeof(*v6addr));
-			memcpy(&v6addr->addr, &$1, sizeof(v6addr->addr));
-			v6addr->plen = $3;
-			$$ = v6addr;
-		}
-	;
+addrparam
+    : IPV6ADDR SLASH NUMBER EOS {
+          struct dhcp6_addr *v6addr;
 
-addrvtime:
-		V_TIME duration EOS
-		{
-			$$ = $2;
-		}
-	;
+          /* validate other parameters later */
+          if ($3 < 0 || $3 > 128)
+              return (-1);
 
-addrptime:
-		P_TIME duration EOS
-		{
-			$$ = $2;
-		}
-	;
+          if ((v6addr = malloc(sizeof(*v6addr))) == NULL) {
+              cpyywarn("can't allocate memory");
+              return (-1);
+          }
 
-duration:
-		INFINITY
-		{
-			$$ = -1;
-		}
-	|	NUMBER
-		{
-			$$ = $1;
-		}
-	;
+          memset(v6addr, 0, sizeof(*v6addr));
+          memcpy(&v6addr->addr, &$1, sizeof(v6addr->addr));
+          v6addr->plen = $3;
+          $$ = v6addr;
+      }
+    ;
+
+addrvtime
+    : V_TIME duration EOS {
+          $$ = $2;
+      }
+    ;
+
+addrptime
+    : P_TIME duration EOS {
+          $$ = $2;
+      }
+    ;
+
+duration
+    : INFINITY {
+          $$ = -1;
+      }
+    | NUMBER {
+          $$ = $1;
+      }
+    ;
 
 %%
+
 /* supplement routines for configuration */
-static int
-add_namelist(new, headp)
-	struct cf_namelist *new, **headp;
-{
-	struct cf_namelist *ifp;
+static int add_namelist(struct cf_namelist *new, struct cf_namelist **headp) {
+    struct cf_namelist *ifp;
 
-	/* check for duplicated configuration */
-	for (ifp = *headp; ifp; ifp = ifp->next) {
-		if (strcmp(ifp->name, new->name) == 0) {
-			cpyywarn("duplicated interface: %s (ignored)",
-			       new->name);
-			cleanup_namelist(new);
-			return (0);
-		}
-	}
+    /* check for duplicated configuration */
+    for (ifp = *headp; ifp; ifp = ifp->next) {
+        if (strcmp(ifp->name, new->name) == 0) {
+            cpyywarn("duplicated interface: %s (ignored)", new->name);
+            cleanup_namelist(new);
+            return (0);
+        }
+    }
 
-	new->next = *headp;
-	*headp = new;
+    new->next = *headp;
+    *headp = new;
 
-	return (0);
+    return (0);
 }
 
 /* free temporary resources */
-static void
-cleanup()
-{
-	cleanup_namelist(iflist_head);
-
+static void cleanup(void) {
+    cleanup_namelist(iflist_head);
 }
 
-static void
-cleanup_namelist(head)
-	struct cf_namelist *head;
-{
-	struct cf_namelist *ifp, *ifp_next;
+static void cleanup_namelist(struct cf_namelist *head) {
+    struct cf_namelist *ifp, *ifp_next;
 
-	for (ifp = head; ifp; ifp = ifp_next) {
-		ifp_next = ifp->next;
-		cleanup_cflist(ifp->params);
-		free(ifp->name);
-		free(ifp);
-	}
+    for (ifp = head; ifp; ifp = ifp_next) {
+        ifp_next = ifp->next;
+        cleanup_cflist(ifp->params);
+        free(ifp->name);
+        free(ifp);
+    }
 }
 
-static void
-cleanup_cflist(p)
-	struct cf_list *p;
-{
-	struct cf_list *n;
+static void cleanup_cflist(struct cf_list *p) {
+    struct cf_list *n;
 
-	if (p == NULL)
-		return;
+    if (p == NULL)
+        return;
 
-	n = p->next;
-	if (p->ptr)
-		free(p->ptr);
-	if (p->list)
-		cleanup_cflist(p->list);
-	free(p);
+    n = p->next;
+    if (p->ptr)
+        free(p->ptr);
+    if (p->list)
+        cleanup_cflist(p->list);
+    free(p);
 
-	cleanup_cflist(n);
+    cleanup_cflist(n);
 }
 
 #define config_fail() \
-	do { cleanup(); configure_cleanup(); return (-1); } while(0)
+    do { \
+        cleanup(); \
+        configure_cleanup(); \
+        return (-1); \
+    } while(0)
 
-int
-cf_post_config()
-{
-	if (configure_interface(iflist_head))
-		config_fail();
+int cf_post_config(void) {
+    if (configure_interface(iflist_head))
+        config_fail();
 
-	if (configure_global_option())
-		config_fail();
+    if (configure_global_option())
+        config_fail();
 
-	configure_commit();
-	cleanup();
-	return (0);
+    configure_commit();
+    cleanup();
+    return (0);
 }
 #undef config_fail
 
-void
-cf_init()
-{
-	iflist_head = NULL;
+void cf_init(void) {
+    iflist_head = NULL;
 }
