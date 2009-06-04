@@ -55,7 +55,6 @@ enum {
 
 static int add_options(int, struct dhcp6_ifconf *, struct cf_list *);
 static int add_address(struct dhcp6_list *, struct dhcp6_addr *);
-static int add_option(struct dhcp6_option_list *, struct cf_list *);
 static int clear_option_list(struct dhcp6_option_list *);
 
 static void clear_ifconf(struct dhcp6_ifconf *);
@@ -236,15 +235,6 @@ int configure_interface(const struct cf_namelist *iflist) {
                     /* XX: ToDo */
                     break;
                 case DECL_PREFIX_INFO:
-                    break;
-                case DECL_PREFIX_DELEGATION_INTERFACE:
-                    if (add_option(&ifc->option_list, cfl)) {
-                        dhcpv6_dprintf(LOG_ERR,
-                                       "%s failed to configure prefix-delegation-interface for %s",
-                                       FNAME, ifc->ifname);
-                        goto bad;
-                    }
-
                     break;
                 default:
                     dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
@@ -665,37 +655,6 @@ add_address(struct dhcp6_list *addr_list, struct dhcp6_addr *v6addr) {
     dhcpv6_dprintf(LOG_DEBUG, "%s" "add address: %s",
                    FNAME, in6addr2str(&v6addr->addr, 0));
     TAILQ_INSERT_TAIL(addr_list, val, link);
-    return 0;
-}
-
-int add_option(struct dhcp6_option_list *opts, struct cf_list *cfl) {
-    struct dhcp6_option *opt;
-
-    if (get_if_option(opts, cfl->type) != NULL) {
-        return -1;
-    }
-
-    switch (cfl->type) {
-        case DECL_PREFIX_DELEGATION_INTERFACE:
-            opt = (struct dhcp6_option *) malloc(sizeof(struct dhcp6_option));
-            opt->type = cfl->type;
-
-            if (cfl->ptr != NULL) {
-                opt->len = strlen((char *) (cfl->ptr)) + 1;
-                opt->val = malloc(opt->len);
-                memcpy(opt->val, cfl->ptr, opt->len);
-            } else {
-                opt->val = malloc(1);
-                opt->len = 0;
-                *((char *) (opt->val)) = '\0';
-            }
-
-            TAILQ_INSERT_TAIL(opts, opt, link);
-            break;
-        default:
-            break;
-    }
-
     return 0;
 }
 

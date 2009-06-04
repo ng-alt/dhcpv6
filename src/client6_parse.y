@@ -242,14 +242,6 @@ declaration
 
           $$ = l;
       }
-    | PREFIX_DELEGATION_INTERFACE STRING EOS {
-          struct cf_list *l;
-          char *pp = (char*) malloc(strlen($2)+1);
-          strcpy(pp, $2);
-          MAKE_CFLIST(l, DECL_PREFIX_DELEGATION_INTERFACE, pp, NULL );
-
-          $$ = l;
-      }
     ;
 
 dhcpoption

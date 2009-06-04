@@ -141,7 +141,6 @@ ecl		\}
 <S_CNF>prefer-life-time { DECHO; return (P_TIME); }
 <S_CNF>renew-time { DECHO; return (RENEW_TIME); }
 <S_CNF>rebind-time { DECHO; return (REBIND_TIME); }
-<S_CNF>prefix-delegation-interface { DECHO; return (PREFIX_DELEGATION_INTERFACE); }
 	/* request */
 <S_CNF>request { DECHO; return (REQUEST); }
 
