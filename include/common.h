@@ -54,6 +54,8 @@ extern void ia_clear_list(struct ia_list *);
 extern int ia_copy_list(struct ia_list *, struct ia_list *);
 extern struct ia_listval *ia_find_listval(struct ia_list *,
                                           iatype_t, u_int32_t);
+extern void run_script (const char *iface, int old_state, int new_state,
+                        u_int32_t uuid);
 extern struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *, int);
 extern void dhcp6_remove_event(struct dhcp6_event *);
 extern int dhcp6_has_option(struct dhcp6_list * optlist, int option);

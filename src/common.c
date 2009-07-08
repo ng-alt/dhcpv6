@@ -63,11 +63,12 @@
 #include "timer.h"
 #include "lease.h"
 
+extern char *script;
+
 int foreground;
 int debug_thresh;
 struct dhcp6_if *dhcp6_if;
 struct dns_list dnslist;
-
 static struct host_conf *host_conflist;
 
 #define DPRINT_STATUS_CODE(object, num, optp, optlen) \
@@ -379,11 +380,53 @@ struct ia_listval *ia_find_listval(struct ia_list *head,
     return NULL;
 }
 
+static const char *
+state_to_str (int state)
+{
+	switch (state) {
+	case DHCP6S_INIT:
+		return "INIT";
+	case DHCP6S_SOLICIT:
+		return "SOLICIT";
+	case DHCP6S_INFOREQ:
+		return "INFOREQ";
+	case DHCP6S_REQUEST:
+		return "REQUEST";
+	case DHCP6S_RENEW:
+		return "RENEW";
+	case DHCP6S_REBIND:
+		return "REBIND";
+	case DHCP6S_CONFIRM:
+		return "CONFIRM";
+	case DHCP6S_DECLINE:
+		return "DECLINE";
+	case DHCP6S_RELEASE:
+		return "RELEASE";
+	case DHCP6S_IDLE:
+		return "IDLE";
+	default:
+		return "UNKNOWN";
+	}
+}
+
+void run_script(iface, old_state, new_state, uuid)
+     const char *iface;
+     int old_state;
+     int new_state;
+     u_int32_t uuid;
+{
+    
+
+    dhcpv6_dprintf(LOG_DEBUG, "%s" "****** SCRIPT  %s (%u)  %s -> %s",
+                   FNAME, iface, uuid, state_to_str(old_state), state_to_str(new_state));
+}
+
 struct dhcp6_event *dhcp6_create_event(ifp, state)
      struct dhcp6_if *ifp;
      int state;
 {
     struct dhcp6_event *ev;
+    static u_int32_t counter = 0;
 
     if ((ev = malloc(sizeof(*ev))) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to allocate memory for an event",
@@ -396,9 +439,11 @@ struct dhcp6_event *dhcp6_create_event(ifp, state)
 
     ev->ifp = ifp;
     ev->state = state;
+    ev->uuid = counter++;
     TAILQ_INIT(&ev->data_list);
-    dhcpv6_dprintf(LOG_DEBUG, "%s" "create an event %p xid %d for state %d",
-                   FNAME, ev, ev->xid, ev->state);
+    dhcpv6_dprintf(LOG_DEBUG, "%s" "create an event %p uuid %u for state %d",
+                   FNAME, ev, ev->uuid, ev->state);
+
     return (ev);
 }
 

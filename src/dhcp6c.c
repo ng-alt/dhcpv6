@@ -177,6 +177,8 @@ int main(int argc, char **argv, char **envp) {
     char *addr;
 
     pid = getpid();
+static char *script = NULL;
+
     srandom(time(NULL) & pid);
 
     memset(&pidfile, '\0', sizeof(pidfile));
@@ -188,7 +190,7 @@ int main(int argc, char **argv, char **envp) {
         progname++;
 
     TAILQ_INIT(&request_list);
-    while ((ch = getopt(argc, argv, "c:r:R:P:vfIp:")) != -1) {
+    while ((ch = getopt(argc, argv, "c:r:R:P:vfIp:s:")) != -1) {
         switch (ch) {
             case 'p':
                 if (strlen(optarg) >= MAXPATHLEN) {
@@ -296,6 +298,9 @@ int main(int argc, char **argv, char **envp) {
             case 'I':
                 client6_request_flag |= CLIENT6_INFO_REQ;
                 break;
+            case 's':
+                script = optarg;
+                break;
             case 'v':
                 debug = 2;
                 break;
@@ -378,6 +383,7 @@ static void usage(char *name) {
     fprintf(stderr, "    -I             Request only information from the server\n");
     fprintf(stderr, "    -v             Verbose debugging output\n");
     fprintf(stderr, "    -f             Run client as a foreground process\n");
+    fprintf(stderr, "    -s PATH        Script executed on state changes to which configuration is delegated\n");
     fprintf(stderr, "IANA is identiy association named address.\n");
     fprintf(stderr, "IAPD is identiy association prefix delegation.\n");
     fflush(stderr);
@@ -803,6 +809,7 @@ static int client6_ifinit(char *device) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to create an event", FNAME);
         return -1;
     }
+    run_script(ifp->ifname, DHCP6S_INIT, ev->state, ev->uuid);
 
     ifp->servers = NULL;
     ev->ifp->current_server = NULL;
@@ -911,6 +918,16 @@ static void client6_mainloop() {
     }
 }
 
+static void ev_set_state(struct dhcp6_event *ev, int new_state)
+{
+    int old_state = ev->state;
+
+    dhcpv6_dprintf(LOG_DEBUG, "%s" "event %p xid %d state change %d -> %d",
+                   FNAME, ev, ev->xid, ev->state, new_state);
+    ev->state = new_state;
+    run_script(ev->ifp->ifname, old_state, new_state, ev->uuid);
+}
+
 struct dhcp6_timer *client6_timo(arg)
      void *arg;
 {
@@ -949,25 +966,25 @@ struct dhcp6_timer *client6_timo(arg)
                 (client6_request_flag & CLIENT6_INFO_REQ) ||
                 (!(ifp->ra_flag & IF_RA_MANAGED) &&
                  (ifp->ra_flag & IF_RA_OTHERCONF)))
-                ev->state = DHCP6S_INFOREQ;
+                ev_set_state(ev, DHCP6S_INFOREQ);
             else if (client6_request_flag & CLIENT6_RELEASE_ADDR)
                 /* do release */
-                ev->state = DHCP6S_RELEASE;
+                ev_set_state(ev, DHCP6S_RELEASE);
             else if (client6_request_flag & CLIENT6_CONFIRM_ADDR) {
                 struct dhcp6_listval *lv;
 
                 /* do confirm for reboot for IANA, IATA */
                 if (client6_iaidaddr.client6_info.type == IAPD)
-                    ev->state = DHCP6S_REBIND;
+                    ev_set_state(ev, DHCP6S_REBIND);
                 else
-                    ev->state = DHCP6S_CONFIRM;
+                    ev_set_state(ev, DHCP6S_CONFIRM);
                 for (lv = TAILQ_FIRST(&request_list); lv;
                      lv = TAILQ_NEXT(lv, link)) {
                     lv->val_dhcp6addr.preferlifetime = 0;
                     lv->val_dhcp6addr.validlifetime = 0;
                 }
             } else
-                ev->state = DHCP6S_SOLICIT;
+                ev_set_state(ev, DHCP6S_SOLICIT);
             dhcp6_set_timeoparam(ev);
         case DHCP6S_SOLICIT:
             if (ifp->servers) {
@@ -984,7 +1001,7 @@ struct dhcp6_timer *client6_timo(arg)
                     return (NULL);
                 }
                 ev->timeouts = 0;
-                ev->state = DHCP6S_REQUEST;
+                ev_set_state(ev, DHCP6S_REQUEST);
                 dhcp6_set_timeoparam(ev);
             }
         case DHCP6S_INFOREQ:
@@ -1522,7 +1539,7 @@ static int client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
     /* if the server has an extremely high preference, just use it. */
     if (newserver->pref == DH6OPT_PREF_MAX) {
         ev->timeouts = 0;
-        ev->state = DHCP6S_REQUEST;
+        ev_set_state(ev, DHCP6S_REQUEST);
         ifp->current_server = newserver;
         dhcp6_set_timeoparam(ev);
         dhcp6_reset_timer(ev);
@@ -1640,6 +1657,7 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
     struct dhcp6_serverinfo *newserver;
     int newstate = 0;
     int err = 0;
+    int prevstate = 0;
 
     /* find the corresponding event based on the received xid */
     dhcpv6_dprintf(LOG_DEBUG, "%s" "reply message XID is (%x)",
@@ -1935,10 +1953,11 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
             break;
     }
 
+    prevstate = ev->state;
     dhcp6_remove_event(ev);
 
     if (newstate) {
-        client6_send_newstate(ifp, newstate);
+        client6_send_newstate(ifp, newstate, prevstate);
     } else {
         dhcpv6_dprintf(LOG_DEBUG, "%s" "got an expected reply, sleeping.",
                        FNAME);
@@ -2010,6 +2029,7 @@ int client6_send_newstate(struct dhcp6_if *ifp, int state) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to create an event", FNAME);
         return (-1);
     }
+    run_script(ifp->ifname, state, ev->state, ev->uuid);
 
     if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for %s",

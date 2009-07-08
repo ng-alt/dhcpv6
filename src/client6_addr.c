@@ -593,7 +593,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
     struct dhcp6_iaidaddr *sp = (struct dhcp6_iaidaddr *) arg;
     struct dhcp6_event *ev, *prev_ev = NULL;
     struct timeval timeo;
-    int dhcpstate;
+    int dhcpstate, prev_state;
     double d = 0;
 
     dhcpv6_dprintf(LOG_DEBUG, "client6_iaidaddr timeout for %d, state=%d",
@@ -638,6 +638,8 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
             return NULL;
     }
 
+    prev_state = prev_ev ? prev_ev->state : dhcpstate;
+
     /* Remove the event for the previous state */
     if (prev_ev) {
         dhcpv6_dprintf(LOG_DEBUG, "%s" "remove previous event for state=%d",
@@ -651,6 +653,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
         return NULL;          /* XXX: should try to recover reserve
                                  memory?? */
     }
+    run_script(sp->ifp->ifname, prev_state, ev->state, ev->uuid);
 
     switch (sp->state) {
         case RENEW:
