@@ -213,9 +213,7 @@ int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
     return 0;
 }
 
-int dhcp6_add_lease(addr)
-     struct dhcp6_addr *addr;
-{
+int dhcp6_add_lease(struct dhcp6_addr *addr) {
     struct dhcp6_lease *sp;
     struct timeval timo;
     double d;

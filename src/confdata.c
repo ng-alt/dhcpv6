@@ -518,8 +518,8 @@ static void clear_hostconf(struct host_conf *hlist) {
     }
 }
 
-static int
-add_options(int opcode, struct dhcp6_ifconf *ifc, struct cf_list *cfl0) {
+static int add_options(int opcode, struct dhcp6_ifconf *ifc,
+                       struct cf_list *cfl0) {
     struct dhcp6_listval *opt;
     struct cf_list *cfl;
     int opttype;
@@ -624,8 +624,8 @@ add_options(int opcode, struct dhcp6_ifconf *ifc, struct cf_list *cfl0) {
     return 0;
 }
 
-static int
-add_address(struct dhcp6_list *addr_list, struct dhcp6_addr *v6addr) {
+static int add_address(struct dhcp6_list *addr_list,
+                       struct dhcp6_addr *v6addr) {
     struct dhcp6_listval *lv, *val;
 
     /* avoid invalid addresses */

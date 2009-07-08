@@ -189,14 +189,12 @@ int dhcp6_copy_list(struct dhcp6_list *dst, const struct dhcp6_list *src) {
 
     return 0;
 
-  fail:
+fail:
     dhcp6_clear_list(dst);
     return -1;
 }
 
-void dhcp6_clear_list(head)
-     struct dhcp6_list *head;
-{
+void dhcp6_clear_list(struct dhcp6_list *head) {
     struct dhcp6_listval *v;
 
     while ((v = TAILQ_FIRST(head)) != NULL) {
@@ -207,9 +205,7 @@ void dhcp6_clear_list(head)
     return;
 }
 
-void relayfree(head)
-     struct relay_list *head;
-{
+void relayfree(struct relay_list *head) {
     struct relay_listval *v;
 
     while ((v = TAILQ_FIRST(head)) != NULL) {
@@ -225,9 +221,7 @@ void relayfree(head)
     return;
 }
 
-int dhcp6_count_list(head)
-     struct dhcp6_list *head;
-{
+int dhcp6_count_list(struct dhcp6_list *head) {
     struct dhcp6_listval *v;
     int i;
 
@@ -237,11 +231,8 @@ int dhcp6_count_list(head)
     return i;
 }
 
-struct dhcp6_listval *dhcp6_find_listval(head, val, type)
-     struct dhcp6_list *head;
-     void *val;
-     dhcp6_listval_type_t type;
-{
+struct dhcp6_listval *dhcp6_find_listval(struct dhcp6_list *head, void *val,
+                                         dhcp6_listval_type_t type) {
     struct dhcp6_listval *lv;
 
     for (lv = TAILQ_FIRST(head); lv; lv = TAILQ_NEXT(lv, link)) {
@@ -274,11 +265,8 @@ struct dhcp6_listval *dhcp6_find_listval(head, val, type)
     return (NULL);
 }
 
-struct dhcp6_listval *dhcp6_add_listval(head, val, type)
-     struct dhcp6_list *head;
-     void *val;
-     dhcp6_listval_type_t type;
-{
+struct dhcp6_listval *dhcp6_add_listval(struct dhcp6_list *head, void *val,
+                                        dhcp6_listval_type_t type) {
     struct dhcp6_listval *lv;
 
     if ((lv = malloc(sizeof(*lv))) == NULL) {
@@ -309,7 +297,7 @@ struct dhcp6_listval *dhcp6_add_listval(head, val, type)
     return (lv);
 }
 
-struct ia_listval * ia_create_listval() {
+struct ia_listval *ia_create_listval(void) {
     struct ia_listval *ia;
 
     if ((ia = malloc(sizeof(*ia))) == NULL) {
@@ -380,51 +368,41 @@ struct ia_listval *ia_find_listval(struct ia_list *head,
     return NULL;
 }
 
-static const char *
-state_to_str (int state)
-{
-	switch (state) {
-	case DHCP6S_INIT:
-		return "INIT";
-	case DHCP6S_SOLICIT:
-		return "SOLICIT";
-	case DHCP6S_INFOREQ:
-		return "INFOREQ";
-	case DHCP6S_REQUEST:
-		return "REQUEST";
-	case DHCP6S_RENEW:
-		return "RENEW";
-	case DHCP6S_REBIND:
-		return "REBIND";
-	case DHCP6S_CONFIRM:
-		return "CONFIRM";
-	case DHCP6S_DECLINE:
-		return "DECLINE";
-	case DHCP6S_RELEASE:
-		return "RELEASE";
-	case DHCP6S_IDLE:
-		return "IDLE";
-	default:
-		return "UNKNOWN";
-	}
+static const char *state_to_str(int state) {
+    switch (state) {
+        case DHCP6S_INIT:
+            return "INIT";
+        case DHCP6S_SOLICIT:
+            return "SOLICIT";
+        case DHCP6S_INFOREQ:
+            return "INFOREQ";
+        case DHCP6S_REQUEST:
+            return "REQUEST";
+        case DHCP6S_RENEW:
+            return "RENEW";
+        case DHCP6S_REBIND:
+            return "REBIND";
+        case DHCP6S_CONFIRM:
+            return "CONFIRM";
+        case DHCP6S_DECLINE:
+            return "DECLINE";
+        case DHCP6S_RELEASE:
+            return "RELEASE";
+        case DHCP6S_IDLE:
+            return "IDLE";
+        default:
+            return "UNKNOWN";
+    }
 }
 
-void run_script(iface, old_state, new_state, uuid)
-     const char *iface;
-     int old_state;
-     int new_state;
-     u_int32_t uuid;
-{
-    
-
+void run_script(const char *iface, int old_state,
+                int new_state, u_int32_t uuid) {
     dhcpv6_dprintf(LOG_DEBUG, "%s" "****** SCRIPT  %s (%u)  %s -> %s",
-                   FNAME, iface, uuid, state_to_str(old_state), state_to_str(new_state));
+                   FNAME, iface, uuid, state_to_str(old_state),
+                   state_to_str(new_state));
 }
 
-struct dhcp6_event *dhcp6_create_event(ifp, state)
-     struct dhcp6_if *ifp;
-     int state;
-{
+struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *ifp, int state) {
     struct dhcp6_event *ev;
     static u_int32_t counter = 0;
 
@@ -433,6 +411,7 @@ struct dhcp6_event *dhcp6_create_event(ifp, state)
                        FNAME);
         return (NULL);
     }
+
     /* for safety */
     memset(ev, 0, sizeof(*ev));
     ev->serverid.duid_id = NULL;
@@ -447,9 +426,7 @@ struct dhcp6_event *dhcp6_create_event(ifp, state)
     return (ev);
 }
 
-void dhcp6_remove_event(ev)
-     struct dhcp6_event *ev;
-{
+void dhcp6_remove_event(struct dhcp6_event *ev) {
     dhcpv6_dprintf(LOG_DEBUG,
                    "%s" "removing an event %p on %s, state=%d, xid=%x", FNAME,
                    ev, ev->ifp->ifname, ev->state, ev->xid);
@@ -459,10 +436,15 @@ void dhcp6_remove_event(ev)
                        "event data list is not empty", FNAME);
         exit(1);
     }
-    if (ev->serverid.duid_id != NULL)
+
+    if (ev->serverid.duid_id != NULL) {
         duidfree(&ev->serverid);
-    if (ev->timer)
+    }
+
+    if (ev->timer) {
         dhcp6_remove_timer(ev->timer);
+    }
+
     TAILQ_REMOVE(&ev->ifp->event_list, ev, link);
     free(ev);
     /* XXX: for safety */
@@ -485,14 +467,8 @@ int dhcp6_has_option(struct dhcp6_list *optlist, int option) {
     return 0;
 }
 
-int getifaddr(addr, ifnam, prefix, plen, strong, ignoreflags)
-     struct in6_addr *addr;
-     char *ifnam;
-     struct in6_addr *prefix;
-     int plen;
-     int strong;                /* if strong host model is required or not */
-     int ignoreflags;
-{
+int getifaddr(struct in6_addr *addr, char *ifnam, struct in6_addr *prefix,
+              int plen, int strong, int ignoreflags) {
     struct ifaddrs *ifap, *ifa;
     struct sockaddr_in6 sin6;
     int error = -1;
@@ -560,10 +536,7 @@ int getifaddr(addr, ifnam, prefix, plen, strong, ignoreflags)
     return (error);
 }
 
-int in6_addrscopebyif(addr, ifnam)
-     struct in6_addr *addr;
-     char *ifnam;
-{
+int in6_addrscopebyif(struct in6_addr *addr, char *ifnam) {
     u_int ifindex;
 
     if ((ifindex = if_nametoindex(ifnam)) == 0)
@@ -582,9 +555,7 @@ int in6_addrscopebyif(addr, ifnam)
 }
 
 /* XXX: this code assumes getifaddrs(3) */
-const char *getdev(addr)
-     struct sockaddr_in6 *addr;
-{
+const char *getdev(struct sockaddr_in6 *addr) {
     struct ifaddrs *ifap, *ifa;
     struct sockaddr_in6 *a6;
     static char ret_ifname[IFNAMSIZ + 1];
@@ -613,12 +584,7 @@ const char *getdev(addr)
     return (ifa ? ret_ifname : NULL);
 }
 
-int transmit_sa(s, sa, buf, len)
-     int s;
-     struct sockaddr_in6 *sa;
-     char *buf;
-     size_t len;
-{
+int transmit_sa(int s, struct sockaddr_in6 *sa, char *buf, size_t len) {
     int error;
 
     error =
@@ -628,10 +594,7 @@ int transmit_sa(s, sa, buf, len)
     return (error != len) ? -1 : 0;
 }
 
-long random_between(x, y)
-     long x;
-     long y;
-{
+long random_between(long x, long y) {
     long ratio;
 
     ratio = 1 << 16;
@@ -640,10 +603,7 @@ long random_between(x, y)
     return x + ((y - x) * (ratio - 1) / random() & (ratio - 1));
 }
 
-int prefix6_mask(in6, plen)
-     struct in6_addr *in6;
-     int plen;
-{
+int prefix6_mask(struct in6_addr *in6, int plen) {
     struct sockaddr_in6 mask6;
     int i;
 
@@ -656,10 +616,7 @@ int prefix6_mask(in6, plen)
     return (0);
 }
 
-int sa6_plen2mask(sa6, plen)
-     struct sockaddr_in6 *sa6;
-     int plen;
-{
+int sa6_plen2mask(struct sockaddr_in6 *sa6, int plen) {
     u_char *cp;
 
     if (plen < 0 || plen > 128)
@@ -675,10 +632,7 @@ int sa6_plen2mask(sa6, plen)
     return (0);
 }
 
-char *addr2str(sa, salen)
-     struct sockaddr *sa;
-     socklen_t salen;
-{
+char *addr2str(struct sockaddr *sa, socklen_t salen) {
     static char addrbuf[8][NI_MAXHOST + 1];
     static int round = 0;
     char *cp;
@@ -693,10 +647,7 @@ char *addr2str(sa, salen)
     return (cp);
 }
 
-char *in6addr2str(in6, scopeid)
-     struct in6_addr *in6;
-     int scopeid;
-{
+char *in6addr2str(struct in6_addr *in6, int scopeid) {
     struct sockaddr_in6 sa6;
 
     memset(&sa6, 0, sizeof(sa6));
@@ -708,9 +659,7 @@ char *in6addr2str(in6, scopeid)
 }
 
 /* return IPv6 address scope type. caller assumes that smaller is narrower. */
-int in6_scope(addr)
-     struct in6_addr *addr;
-{
+int in6_scope(struct in6_addr *addr) {
     int scope;
 
     if (addr->s6_addr[0] == 0xfe) {
@@ -743,12 +692,8 @@ int in6_scope(addr)
     return 14;                  /* global */
 }
 
-static int in6_matchflags(addr, addrlen, ifnam, flags)
-     struct sockaddr *addr;
-     size_t addrlen;
-     char *ifnam;
-     int flags;
-{
+static int in6_matchflags(struct sockaddr *addr, size_t addrlen,
+                          char *ifnam, int flags) {
     int s;
     struct ifreq ifr;
 
@@ -756,6 +701,7 @@ static int in6_matchflags(addr, addrlen, ifnam, flags)
         warn("in6_matchflags: socket(DGRAM6)");
         return (-1);
     }
+
     memset(&ifr, 0, sizeof(ifr));
     strncpy(ifr.ifr_name, ifnam, sizeof(ifr.ifr_name));
     ifr.ifr_addr = *(struct sockaddr *) addr;
@@ -811,7 +757,7 @@ int configure_duid(const char *str, struct duid *duid) {
     dhcpv6_dprintf(LOG_DEBUG, "configure duid is %s", duidstr(duid));
     return (0);
 
-  bad:
+bad:
     if (idbuf)
         free(idbuf);
     dhcpv6_dprintf(LOG_ERR, "%s" "assumption failure (bad string)", FNAME);
@@ -905,7 +851,7 @@ int get_duid(const char *idfile, const char *ifname, struct duid *duid) {
         fclose(fp);
     return (0);
 
-  fail:
+fail:
     if (fp)
         fclose(fp);
     if (duid->duid_id != NULL) {
@@ -949,7 +895,7 @@ int save_duid(const char *idfile, const char *ifname, struct duid *duid) {
         fclose(fp);
     return (0);
 
-  fail:
+fail:
     if (fp)
         fclose(fp);
     if (duid->duid_id != NULL) {
@@ -973,12 +919,8 @@ u_int16_t calculate_duid_len(const char *ifname, u_int16_t * hwtype) {
     return ret;
 }
 
-ssize_t gethwid(buf, len, ifname, hwtypep)
-     unsigned char *buf;
-     int len;
-     const char *ifname;
-     u_int16_t *hwtypep;
-{
+ssize_t gethwid(unsigned char *buf, int len, const char *ifname,
+                u_int16_t *hwtypep) {
     int skfd;
     ssize_t l;
     struct ifreq if_hwaddr;
@@ -1375,10 +1317,10 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
 
     return (0);
 
-  malformed:
+malformed:
     dhcpv6_dprintf(LOG_INFO, "%s" "malformed DHCP option: type %d, len %d",
                    FNAME, opt, optlen);
-  fail:
+fail:
     dhcp6_clear_options(optinfo);
     return (-1);
 }
@@ -1548,18 +1490,19 @@ static int ia_add_address(struct ia_listval *ia, struct dhcp6_addr *addr6) {
 }
 
 #define COPY_OPTION(t, l, v, p) do { \
-	if ((void *)(ep) - (void *)(p) < (l) + sizeof(struct dhcp6opt)) { \
-		dhcpv6_dprintf(LOG_INFO, "%s" "option buffer short for %s", FNAME, dhcp6optstr((t))); \
-		goto fail; \
-	} \
-	opth.dh6opt_type = htons((t)); \
-	opth.dh6opt_len = htons((l)); \
-	memcpy((p), &opth, sizeof(opth)); \
-	if ((l)) \
-		memcpy((p) + 1, (v), (l)); \
-	(p) = (struct dhcp6opt *)((char *)((p) + 1) + (l)); \
- 	(len) += sizeof(struct dhcp6opt) + (l); \
-	dhcpv6_dprintf(LOG_DEBUG, "%s" "set %s", FNAME, dhcp6optstr((t))); \
+    if ((void *)(ep) - (void *)(p) < (l) + sizeof(struct dhcp6opt)) { \
+        dhcpv6_dprintf(LOG_INFO, "%s" "option buffer short for %s", \
+                       FNAME, dhcp6optstr((t))); \
+        goto fail; \
+    } \
+    opth.dh6opt_type = htons((t)); \
+    opth.dh6opt_len = htons((l)); \
+    memcpy((p), &opth, sizeof(opth)); \
+    if ((l)) \
+        memcpy((p) + 1, (v), (l)); \
+    (p) = (struct dhcp6opt *)((char *)((p) + 1) + (l)); \
+    (len) += sizeof(struct dhcp6opt) + (l); \
+    dhcpv6_dprintf(LOG_DEBUG, "%s" "set %s", FNAME, dhcp6optstr((t))); \
 } while (0)
 
 int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
@@ -2011,9 +1954,7 @@ void dhcp6_set_timeoparam(struct dhcp6_event *ev) {
     }
 }
 
-void dhcp6_reset_timer(ev)
-     struct dhcp6_event *ev;
-{
+void dhcp6_reset_timer(struct dhcp6_event *ev) {
     double n, r;
     char *statestr;
     struct timeval interval;
@@ -2118,9 +2059,7 @@ int duidcmp(const struct duid *d1, const struct duid *d2) {
         return (-1);
 }
 
-void duidfree(duid)
-     struct duid *duid;
-{
+void duidfree(struct duid *duid) {
     dhcpv6_dprintf(LOG_DEBUG, "%s" "DUID is %s, DUID_LEN is %d",
                    FNAME, duidstr(duid), duid->duid_len);
     if (duid->duid_id != NULL && duid->duid_len != 0) {
@@ -2133,9 +2072,7 @@ void duidfree(duid)
     duid->duid_len = 0;
 }
 
-char *dhcp6optstr(type)
-     int type;
-{
+char *dhcp6optstr(int type) {
     static char genstr[sizeof("opt_65535") + 1];        /* XXX thread unsafe */
 
     if (type > 65535)
@@ -2170,9 +2107,7 @@ char *dhcp6optstr(type)
     }
 }
 
-char *dhcp6msgstr(type)
-     int type;
-{
+char *dhcp6msgstr(int type) {
     static char genstr[sizeof("msg255") + 1];   /* XXX thread unsafe */
 
     if (type > 255)
@@ -2211,9 +2146,7 @@ char *dhcp6msgstr(type)
     }
 }
 
-char *dhcp6_stcodestr(code)
-     int code;
-{
+char *dhcp6_stcodestr(int code) {
     static char genstr[sizeof("code255") + 1];  /* XXX thread unsafe */
 
     if (code > 255)
@@ -2262,9 +2195,7 @@ char *duidstr(const struct duid *duid) {
     return (duidstr);
 }
 
-void setloglevel(debuglevel)
-     int debuglevel;
-{
+void setloglevel(int debuglevel) {
     if (foreground) {
         switch (debuglevel) {
             case 0:
@@ -2312,6 +2243,7 @@ void dhcpv6_dprintf(int level, const char *fmt, ...) {
                 month[tm_now->tm_mon], tm_now->tm_mday,
                 tm_now->tm_year + 1900,
                 tm_now->tm_hour, tm_now->tm_min, tm_now->tm_sec, logbuf);
-    } else
+    } else {
         syslog(level, "%s", logbuf);
+    }
 }
