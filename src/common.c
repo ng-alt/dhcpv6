@@ -498,12 +498,7 @@ int getifaddr(struct in6_addr *addr, char *ifnam, struct in6_addr *prefix,
             continue;
 
         memcpy(&sin6, ifa->ifa_addr, sizeof(sin6));
-#ifdef __KAME__
-        if (IN6_IS_ADDR_LINKLOCAL(&sin6.sin6_addr)) {
-            sin6.sin6_addr.s6_addr[2] = 0;
-            sin6.sin6_addr.s6_addr[3] = 0;
-        }
-#endif
+
         if (plen % 8 == 0) {
             if (memcmp(&sin6.sin6_addr, prefix, plen / 8) != 0)
                 continue;
@@ -523,11 +518,8 @@ int getifaddr(struct in6_addr *addr, char *ifnam, struct in6_addr *prefix,
                 (prefix->s6_addr[plen / 8] & m.s6_addr[plen / 8]))
                 continue;
         }
+
         memcpy(addr, &sin6.sin6_addr, sizeof(*addr));
-#ifdef __KAME__
-        if (IN6_IS_ADDR_LINKLOCAL(addr))
-            addr->s6_addr[2] = addr->s6_addr[3] = 0;
-#endif
         error = 0;
         break;
     }

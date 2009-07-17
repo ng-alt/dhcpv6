@@ -435,29 +435,32 @@ void server6_init() {
         /* all the interfaces join multicast group */
         ifc.ifc_len = sizeof(buff);
         ifc.ifc_buf = buff;
+
         if ((skfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
             dhcpv6_dprintf(LOG_ERR, "new socket failed");
             exit(1);
         }
+
         if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
             dhcpv6_dprintf(LOG_ERR, "SIOCGIFCONF: %s\n", strerror(errno));
             exit(1);
         }
+
         ifr = ifc.ifc_req;
+
         for (i = ifc.ifc_len / sizeof(struct ifreq); --i >= 0; ifr++) {
             dhcpv6_dprintf(LOG_DEBUG, "found device %s", ifr->ifr_name);
             ifidx[num_device] = if_nametoindex(ifr->ifr_name);
+
             if (ifidx[num_device] < 0) {
                 dhcpv6_dprintf(LOG_ERR, "%s: unknown interface.\n",
                                ifr->ifr_name);
                 continue;
             }
+
             dhcpv6_dprintf(LOG_DEBUG, "if %s index is %d", ifr->ifr_name,
                            ifidx[num_device]);
-#ifdef mshirley
-            if (((ifr->ifr_flags & IFF_UP) == 0))
-                continue;
-#endif
+
             if (strcmp(ifr->ifr_name, "lo")) {
                 /* get our DUID */
                 if (get_duid(DUID_FILE, ifr->ifr_name, &server_duid)) {
@@ -470,10 +473,12 @@ void server6_init() {
                                    FNAME);
                 }
             }
+
             ifinit(ifr->ifr_name);
             num_device += 1;
         }
     }
+
     for (i = 0; i < num_device; i++) {
         hints.ai_flags = 0;
         error =

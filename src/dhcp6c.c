@@ -1448,9 +1448,6 @@ static void client6_recv() {
 
     if (dhcp6_get_options(p, ep, &optinfo) < 0) {
         dhcpv6_dprintf(LOG_INFO, "%s" "failed to parse options", FNAME);
-#ifdef TEST
-        return;
-#endif
     }
 
     switch (dh6->dh6_msgtype) {
