@@ -772,8 +772,7 @@ handle_addr_request(struct dhcp6_optinfo *roptinfo,
     return 0;
 
 fail:
-    if (ria != NULL)
-        free(ria);
+    free(ria);
     ia_clear_list(ia_list);
     return -1;
 }
@@ -897,8 +896,7 @@ out:
     return 0;
 
 fail:
-    if (ria != NULL)
-        free(ria);
+    free(ria);
     ia_clear_list(ria_list);
     return -1;
 }
