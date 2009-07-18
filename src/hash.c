@@ -47,16 +47,21 @@ struct hash_table *hash_table_create(unsigned int hash_size,
                                                              *hashkey)) {
     int i;
     struct hash_table *hash_tbl;
+
     hash_tbl = malloc(sizeof(struct hash_table));
+
     if (!hash_tbl) {
         dhcpv6_dprintf(LOG_ERR, "Couldn't allocate hash table");
         return NULL;
     }
+
     hash_tbl->hash_list =
         malloc(sizeof(struct hashlist_element *) * hash_size);
+
     for (i = 0; i < hash_size; i++) {
         hash_tbl->hash_list[i] = NULL;
     }
+
     hash_tbl->hash_count = 0;
     hash_tbl->hash_size = hash_size;
     hash_tbl->hash_function = hash_function;
@@ -68,20 +73,26 @@ struct hash_table *hash_table_create(unsigned int hash_size,
 int hash_add(struct hash_table *hash_tbl, const void *key, void *data) {
     int index;
     struct hashlist_element *element;
+
     element =
         (struct hashlist_element *) malloc(sizeof(struct hashlist_element));
+
     if (!element) {
         dhcpv6_dprintf(LOG_ERR, "Could not malloc hashlist_element");
         return (-1);
     }
+
     if (hash_full(hash_tbl)) {
         grow_hash(hash_tbl);
     }
+
     index = hash_tbl->hash_function(key) % hash_tbl->hash_size;
+
     if (hash_search(hash_tbl, key)) {
         dhcpv6_dprintf(LOG_DEBUG, "hash_add: duplicated item");
         return HASH_COLLISION;
     }
+
     element->next = hash_tbl->hash_list[index];
     hash_tbl->hash_list[index] = element;
     element->data = data;
@@ -95,6 +106,7 @@ int hash_delete(struct hash_table *hash_tbl, const void *key) {
 
     index = hash_tbl->hash_function(key) % hash_tbl->hash_size;
     element = hash_tbl->hash_list[index];
+
     while (element) {
         if (MATCH == hash_tbl->compare_hashkey(element->data, key)) {
             if (prev_element) {
@@ -102,14 +114,17 @@ int hash_delete(struct hash_table *hash_tbl, const void *key) {
             } else {
                 hash_tbl->hash_list[index] = element->next;
             }
+
             element->next = NULL;
             free(element);
             hash_tbl->hash_count--;
             return 0;
         }
+
         prev_element = element;
         element = element->next;
     }
+
     return HASH_ITEM_NOT_FOUND;
 }
 
@@ -119,20 +134,25 @@ void *hash_search(struct hash_table *hash_tbl, const void *key) {
 
     index = hash_tbl->hash_function(key) % hash_tbl->hash_size;
     element = hash_tbl->hash_list[index];
+
     while (element) {
         if (MATCH == hash_tbl->compare_hashkey(element->data, key)) {
             return element->data;
         }
+
         element = element->next;
     }
+
     return NULL;
 }
 
 int hash_full(struct hash_table *hash_tbl) {
     int rc = 0;
 
-    if ((hash_tbl->hash_count) * 100 / (hash_tbl->hash_size) > 90)
+    if ((hash_tbl->hash_count) * 100 / (hash_tbl->hash_size) > 90) {
         rc = 1;
+    }
+
     return rc;
 }
 
@@ -146,12 +166,15 @@ int grow_hash(struct hash_table *hash_tbl) {
     new_table = hash_table_create(hash_size, hash_tbl->hash_function,
                                   hash_tbl->find_hashkey,
                                   hash_tbl->compare_hashkey);
+
     if (!new_table) {
         dhcpv6_dprintf(LOG_ERR, "couldn't grow hash table");
         return (-1);
     }
+
     for (i = 0; i < hash_tbl->hash_size; i++) {
         element = hash_tbl->hash_list[i];
+
         while (element) {
             key = hash_tbl->find_hashkey(element->data);
             index = new_table->hash_function(key) % hash_size;
@@ -162,6 +185,7 @@ int grow_hash(struct hash_table *hash_tbl) {
             element = oldnext;
         }
     }
+
     free(hash_tbl->hash_list);
     hash_tbl->hash_count = new_table->hash_count;
     hash_tbl->hash_size = hash_size;
