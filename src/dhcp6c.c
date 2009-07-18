@@ -177,7 +177,7 @@ int main(int argc, char **argv, char **envp) {
     char *addr;
 
     pid = getpid();
-static char *script = NULL;
+    static char *script = NULL;
 
     srandom(time(NULL) & pid);
 
@@ -918,8 +918,7 @@ static void client6_mainloop() {
     }
 }
 
-static void ev_set_state(struct dhcp6_event *ev, int new_state)
-{
+static void ev_set_state(struct dhcp6_event *ev, int new_state) {
     int old_state = ev->state;
 
     dhcpv6_dprintf(LOG_DEBUG, "%s" "event %p xid %d state change %d -> %d",
@@ -928,9 +927,7 @@ static void ev_set_state(struct dhcp6_event *ev, int new_state)
     run_script(ev->ifp->ifname, old_state, new_state, ev->uuid);
 }
 
-struct dhcp6_timer *client6_timo(arg)
-     void *arg;
-{
+struct dhcp6_timer *client6_timo(void *arg) {
     struct dhcp6_event *ev = (struct dhcp6_event *) arg;
     struct dhcp6_if *ifp;
     struct timeval now;
@@ -954,6 +951,7 @@ struct dhcp6_timer *client6_timo(arg)
                go to INFOREQ state if the client requests info-only; go to
                SOLICIT state if the client requests addresses; */
             ev->timeouts = 0;   /* indicate to generate a new XID. */
+
             /* 
              * three cases client send information request:
              * 1. configuration file includes information-only
@@ -965,41 +963,48 @@ struct dhcp6_timer *client6_timo(arg)
             if ((ifp->send_flags & DHCIFF_INFO_ONLY) ||
                 (client6_request_flag & CLIENT6_INFO_REQ) ||
                 (!(ifp->ra_flag & IF_RA_MANAGED) &&
-                 (ifp->ra_flag & IF_RA_OTHERCONF)))
+                 (ifp->ra_flag & IF_RA_OTHERCONF))) {
                 ev_set_state(ev, DHCP6S_INFOREQ);
-            else if (client6_request_flag & CLIENT6_RELEASE_ADDR)
+            } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
                 /* do release */
                 ev_set_state(ev, DHCP6S_RELEASE);
-            else if (client6_request_flag & CLIENT6_CONFIRM_ADDR) {
+            } else if (client6_request_flag & CLIENT6_CONFIRM_ADDR) {
                 struct dhcp6_listval *lv;
 
                 /* do confirm for reboot for IANA, IATA */
-                if (client6_iaidaddr.client6_info.type == IAPD)
+                if (client6_iaidaddr.client6_info.type == IAPD) {
                     ev_set_state(ev, DHCP6S_REBIND);
-                else
+                } else {
                     ev_set_state(ev, DHCP6S_CONFIRM);
+                }
+
                 for (lv = TAILQ_FIRST(&request_list); lv;
                      lv = TAILQ_NEXT(lv, link)) {
                     lv->val_dhcp6addr.preferlifetime = 0;
                     lv->val_dhcp6addr.validlifetime = 0;
                 }
-            } else
+            } else {
                 ev_set_state(ev, DHCP6S_SOLICIT);
+            }
+
             dhcp6_set_timeoparam(ev);
         case DHCP6S_SOLICIT:
             if (ifp->servers) {
                 ifp->current_server = select_server(ifp);
+
                 if (ifp->current_server == NULL) {
                     /* this should not happen! */
                     dhcpv6_dprintf(LOG_ERR, "%s" "can't find a server",
                                    FNAME);
                     return (NULL);
                 }
+
                 /* if get the address assginment break */
                 if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
                     dhcp6_remove_event(ev);
                     return (NULL);
                 }
+
                 ev->timeouts = 0;
                 ev_set_state(ev, DHCP6S_REQUEST);
                 dhcp6_set_timeoparam(ev);
@@ -1013,26 +1018,26 @@ struct dhcp6_timer *client6_timo(arg)
         case DHCP6S_CONFIRM:
         case DHCP6S_RENEW:
         case DHCP6S_REBIND:
-            if (!TAILQ_EMPTY(&request_list))
+            if (!TAILQ_EMPTY(&request_list)) {
                 client6_send(ev);
-            else {
+            } else {
                 dhcpv6_dprintf(LOG_INFO, "%s"
                                "all information to be updated were canceled",
                                FNAME);
                 dhcp6_remove_event(ev);
                 return (NULL);
             }
+
             break;
         default:
             break;
     }
+
     dhcp6_reset_timer(ev);
     return (ev->timer);
 }
 
-static struct dhcp6_serverinfo *select_server(ifp)
-     struct dhcp6_if *ifp;
-{
+static struct dhcp6_serverinfo *select_server(struct dhcp6_if *ifp) {
     struct dhcp6_serverinfo *s;
 
     /* 
@@ -1051,10 +1056,7 @@ static struct dhcp6_serverinfo *select_server(ifp)
     return (NULL);
 }
 
-static void client6_signal(sig)
-     int sig;
-{
-
+static void client6_signal(int sig) {
     dhcpv6_dprintf(LOG_INFO, FNAME "received a signal (%d)", sig);
 
     switch (sig) {
@@ -1098,6 +1100,7 @@ void client6_send(struct dhcp6_event *ev) {
                 dhcpv6_dprintf(LOG_ERR, "%s" "assumption failure", FNAME);
                 return;
             }
+
             dh6->dh6_msgtype = DH6_REQUEST;
             break;
         case DHCP6S_RENEW:
@@ -1105,6 +1108,7 @@ void client6_send(struct dhcp6_event *ev) {
                 dhcpv6_dprintf(LOG_ERR, "%s" "assumption failure", FNAME);
                 return;
             }
+
             dh6->dh6_msgtype = DH6_RENEW;
             break;
         case DHCP6S_DECLINE:
@@ -1112,6 +1116,7 @@ void client6_send(struct dhcp6_event *ev) {
                 dhcpv6_dprintf(LOG_ERR, "%s" "assumption failure", FNAME);
                 return;
             }
+
             dh6->dh6_msgtype = DH6_DECLINE;
             break;
         case DHCP6S_INFOREQ:
@@ -1131,6 +1136,7 @@ void client6_send(struct dhcp6_event *ev) {
                            ev->state);
             return;
     }
+
     /* 
      * construct options
      */
@@ -1163,41 +1169,49 @@ void client6_send(struct dhcp6_event *ev) {
         gettimeofday(&now, NULL);
         timeval_sub(&now, &(ev->start_time), &duration);
         etime = (duration.tv_sec) * 100 + (duration.tv_usec) / 10000;
-        if (etime > DHCP6_ELAPSEDTIME_MAX)
+
+        if (etime > DHCP6_ELAPSEDTIME_MAX) {
             etime = DHCP6_ELAPSEDTIME_MAX;
+        }
+
         optinfo.elapsed_time = htons((uint16_t) etime);
     }
+
     dh6->dh6_xid &= ~ntohl(DH6_XIDMASK);
     dh6->dh6_xid |= htonl(ev->xid);
     len = sizeof(*dh6);
-
 
     /* server ID */
     switch (ev->state) {
         case DHCP6S_REQUEST:
         case DHCP6S_RENEW:
         case DHCP6S_DECLINE:
-            if (&ifp->current_server->optinfo == NULL)
+            if (&ifp->current_server->optinfo == NULL) {
                 return;
+            }
+
             dhcpv6_dprintf(LOG_DEBUG, "current server ID %s",
                            duidstr(&ifp->current_server->optinfo.serverID));
+
             if (duidcpy(&optinfo.serverID,
                         &ifp->current_server->optinfo.serverID)) {
                 dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy server ID",
                                FNAME);
                 goto end;
             }
+
             break;
         case DHCP6S_RELEASE:
-            if (duidcpy
-                (&optinfo.serverID,
-                 &client6_iaidaddr.client6_info.serverid)) {
+            if (duidcpy(&optinfo.serverID,
+                        &client6_iaidaddr.client6_info.serverid)) {
                 dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy server ID",
                                FNAME);
                 goto end;
             }
+
             break;
     }
+
     /* client ID */
     if (duidcpy(&optinfo.clientID, &client_duid)) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy client ID", FNAME);
@@ -1216,8 +1230,10 @@ void client6_send(struct dhcp6_event *ev) {
                        FNAME);
         goto end;
     }
+
     if (ifp->send_flags & DHCIFF_INFO_ONLY) {       /* RFC4242 */
         int opttype = DH6OPT_INFO_REFRESH_TIME;
+
         if (dhcp6_add_listval(&optinfo.reqopt_list, &opttype,
                               DHCP6_LISTVAL_NUM) == NULL) {
             dhcpv6_dprintf(LOG_ERR, "%s"
@@ -1340,15 +1356,16 @@ void client6_send(struct dhcp6_event *ev) {
                 hints.ai_family = PF_INET6;
                 hints.ai_socktype = SOCK_DGRAM;
                 hints.ai_protocol = IPPROTO_UDP;
-                error =
-                    getaddrinfo(in6addr2str
-                                (&ifp->current_server->server_addr, 0),
-                                DH6PORT_UPSTREAM, &hints, &res);
+                error = getaddrinfo(
+                            in6addr2str(&ifp->current_server->server_addr, 0),
+                                        DH6PORT_UPSTREAM, &hints, &res);
+
                 if (error) {
                     dhcpv6_dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
                                    FNAME, gai_strerror(error));
                     return;
                 }
+
                 memcpy(&dst, res->ai_addr, res->ai_addrlen);
                 salen = res->ai_addrlen;
                 break;
@@ -1366,9 +1383,9 @@ void client6_send(struct dhcp6_event *ev) {
     dhcpv6_dprintf(LOG_DEBUG, "send dst if %s addr is %s scope id is %d",
                    ifp->ifname, addr2str((struct sockaddr *) &dst, salen),
                    ifp->linkid);
-    if (sendto
-        (ifp->outsock, buf, len, MSG_DONTROUTE, (struct sockaddr *) &dst,
-         sizeof(dst)) == -1) {
+
+    if (sendto(ifp->outsock, buf, len, MSG_DONTROUTE, (struct sockaddr *) &dst,
+               sizeof(dst)) == -1) {
         dhcpv6_dprintf(LOG_ERR, FNAME "transmit failed: %s", strerror(errno));
         goto end;
     }
@@ -1377,12 +1394,12 @@ void client6_send(struct dhcp6_event *ev) {
                    dhcp6msgstr(dh6->dh6_msgtype),
                    addr2str((struct sockaddr *) &dst, salen));
 
-  end:
+end:
     dhcp6_clear_options(&optinfo);
     return;
 }
 
-static void client6_recv() {
+static void client6_recv(void) {
     char rbuf[BUFSIZ], cmsgbuf[BUFSIZ];
     struct msghdr mhdr;
     struct iovec iov;
@@ -1406,6 +1423,7 @@ static void client6_recv() {
     mhdr.msg_iovlen = 1;
     mhdr.msg_control = (caddr_t) cmsgbuf;
     mhdr.msg_controllen = sizeof(cmsgbuf);
+
     if ((len = recvmsg(iosock, &mhdr, 0)) < 0) {
         dhcpv6_dprintf(LOG_ERR, "%s" "recvmsg: %s", FNAME, strerror(errno));
         return;
@@ -1420,21 +1438,23 @@ static void client6_recv() {
             pi = (struct in6_pktinfo *) (CMSG_DATA(cm));
         }
     }
+
     if (pi == NULL) {
         dhcpv6_dprintf(LOG_NOTICE, "%s" "failed to get packet info", FNAME);
         return;
     }
+
     if ((ifp = find_ifconfbyid(pi->ipi6_ifindex)) == NULL) {
         dhcpv6_dprintf(LOG_INFO, "%s" "unexpected interface (%d)", FNAME,
                        (unsigned int) pi->ipi6_ifindex);
         return;
     }
+
     dhcpv6_dprintf(LOG_DEBUG,
                    "receive packet info ifname %s, addr is %s scope id is %d",
                    ifp->ifname, in6addr2str(&pi->ipi6_addr, 0),
                    pi->ipi6_ifindex);
     dh6 = (struct dhcp6 *) rbuf;
-
     dhcpv6_dprintf(LOG_DEBUG, "%s" "receive %s from %s scope id %d %s", FNAME,
                    dhcp6msgstr(dh6->dh6_msgtype),
                    addr2str((struct sockaddr *) &from, sizeof(from)),
@@ -1556,10 +1576,12 @@ static int client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
         tv_irt.tv_sec = (ev->init_retrans * 1000) / 1000000;
         tv_irt.tv_usec = (ev->init_retrans * 1000) % 1000000;
         timeval_sub(&tv_rt, rest, &elapsed);
-        if (TIMEVAL_LEQ(elapsed, tv_irt))
+
+        if (TIMEVAL_LEQ(elapsed, tv_irt)) {
             timeval_sub(&tv_irt, &elapsed, &timo);
-        else
+        } else {
             timo.tv_sec = timo.tv_usec = 0;
+        }
 
         dhcpv6_dprintf(LOG_DEBUG, "%s" "reset timer for %s to %d.%06d",
                        FNAME, ifp->ifname,
@@ -1578,10 +1600,8 @@ static int client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
     return 0;
 }
 
-static struct dhcp6_serverinfo *find_server(ifp, duid)
-     struct dhcp6_if *ifp;
-     struct duid *duid;
-{
+static struct dhcp6_serverinfo *find_server(struct dhcp6_if *ifp,
+                                            struct duid *duid) {
     struct dhcp6_serverinfo *s;
 
     for (s = ifp->servers; s; s = s->next) {
@@ -1592,10 +1612,8 @@ static struct dhcp6_serverinfo *find_server(ifp, duid)
     return (NULL);
 }
 
-static struct dhcp6_serverinfo *allocate_newserver(ifp, optinfo)
-     struct dhcp6_if *ifp;
-     struct dhcp6_optinfo *optinfo;
-{
+static struct dhcp6_serverinfo *allocate_newserver(struct dhcp6_if *ifp,
+                                               struct dhcp6_optinfo *optinfo) {
     struct dhcp6_serverinfo *newserver, **sp;
 
     /* keep the server */
@@ -1604,35 +1622,42 @@ static struct dhcp6_serverinfo *allocate_newserver(ifp, optinfo)
                        FNAME);
         return (NULL);
     }
+
     memset(newserver, 0, sizeof(*newserver));
     dhcp6_init_options(&newserver->optinfo);
+
     if (dhcp6_copy_options(&newserver->optinfo, optinfo)) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy options", FNAME);
         free(newserver);
         return (NULL);
     }
+
     dhcpv6_dprintf(LOG_DEBUG, "%s" "new server DUID %s, len %d ",
                    FNAME, duidstr(&newserver->optinfo.serverID),
                    newserver->optinfo.serverID.duid_len);
-    if (optinfo->pref != DH6OPT_PREF_UNDEF)
+
+    if (optinfo->pref != DH6OPT_PREF_UNDEF) {
         newserver->pref = optinfo->pref;
-    if (optinfo->flags & DHCIFF_UNICAST)
+    }
+
+    if (optinfo->flags & DHCIFF_UNICAST) {
         memcpy(&newserver->server_addr, &optinfo->server_addr,
                sizeof(newserver->server_addr));
+    }
+
     newserver->active = 1;
     for (sp = &ifp->servers; *sp; sp = &(*sp)->next) {
         if ((*sp)->pref != DH6OPT_PREF_MAX && (*sp)->pref < newserver->pref) {
             break;
         }
     }
+
     newserver->next = *sp;
     *sp = newserver;
     return newserver;
 }
 
-void free_servers(ifp)
-     struct dhcp6_if *ifp;
-{
+void free_servers(struct dhcp6_if *ifp) {
     struct dhcp6_serverinfo *sp, *sp_next;
 
     /* free all servers we've seen so far */
@@ -1643,12 +1668,13 @@ void free_servers(ifp)
         dhcp6_clear_options(&sp->optinfo);
         free(sp);
     }
+
     ifp->servers = NULL;
     ifp->current_server = NULL;
 }
 
-static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t len,
-                             struct dhcp6_optinfo *optinfo) {
+static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
+                             ssize_t len, struct dhcp6_optinfo *optinfo) {
     struct ia_listval *ia;
     struct dhcp6_event *ev;
     struct dhcp6_serverinfo *newserver;
@@ -1688,8 +1714,11 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
         case DHCP6S_CONFIRM:
         case DHCP6S_REBIND:
             newserver = allocate_newserver(ifp, optinfo);
-            if (newserver == NULL)
+
+            if (newserver == NULL) {
                 return (-1);
+            }
+
             ifp->current_server = newserver;
             duidcpy(&client6_iaidaddr.client6_info.serverid,
                     &ifp->current_server->optinfo.serverID);
@@ -1795,11 +1824,10 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
 
                         dhcp6_add_iaidaddr(optinfo, ia);
 
-                        if (ifp->dad_timer == NULL
-                            && (ifp->dad_timer =
-                                dhcp6_add_timer(check_dad_timo, ifp)) < 0) {
-                            dhcpv6_dprintf(LOG_INFO,
-                                           "%s"
+                        if (ifp->dad_timer == NULL &&
+                            (ifp->dad_timer = dhcp6_add_timer(check_dad_timo,
+                                                              ifp)) < 0) {
+                            dhcpv6_dprintf(LOG_INFO, "%s"
                                            "failed to create a timer for DAD",
                                            FNAME);
                         }
@@ -1845,8 +1873,9 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
             break;
         case DHCP6S_CONFIRM:
             /* NOtOnLink for a Confirm, send SOLICIT message */
-          rebind_confirm:client6_request_flag &=
-                ~CLIENT6_CONFIRM_ADDR;
+rebind_confirm:
+            client6_request_flag &= ~CLIENT6_CONFIRM_ADDR;
+
             switch (optinfo->status_code) {
                     struct timeb now;
                     struct timeval timo;
@@ -1876,8 +1905,7 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                     if ((client6_iaidaddr.timer =
                          dhcp6_add_timer(dhcp6_iaidaddr_timo,
                                          &client6_iaidaddr)) == NULL) {
-                        dhcpv6_dprintf(LOG_ERR,
-                                       "%s"
+                        dhcpv6_dprintf(LOG_ERR, "%s"
                                        "failed to add a timer for iaid %u",
                                        FNAME,
                                        client6_iaidaddr.client6_info.iaidinfo.
@@ -1900,12 +1928,13 @@ static int client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6, ssize_t le
                     offset = now.time - client6_iaidaddr.start_date;
 
                     if (offset >
-                        client6_iaidaddr.client6_info.iaidinfo.renewtime)
+                        client6_iaidaddr.client6_info.iaidinfo.renewtime) {
                         timo.tv_sec = 0;
-                    else
+                    } else {
                         timo.tv_sec =
                             client6_iaidaddr.client6_info.iaidinfo.renewtime -
                             offset;
+                    }
 
                     timo.tv_usec = 0;
                     dhcp6_set_timer(&timo, client6_iaidaddr.timer);
@@ -2010,7 +2039,7 @@ static int set_info_refresh_timer(struct dhcp6_if *ifp, u_int32_t offered_irt) {
 }
 
 static struct dhcp6_timer *info_refresh_timo(void *arg) {
-    struct dhcp6_if *ifp = (struct dhcp6_if *)arg;
+    struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
 
     dhcpv6_dprintf(LOG_DEBUG, "%s" "information is refreshing...", FNAME);
     dhcp6_remove_timer(ifp->info_refresh_timer);
@@ -2026,6 +2055,7 @@ int client6_send_newstate(struct dhcp6_if *ifp, int state) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to create an event", FNAME);
         return (-1);
     }
+
     run_script(ifp->ifname, state, ev->state, ev->uuid);
 
     if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
@@ -2044,10 +2074,8 @@ int client6_send_newstate(struct dhcp6_if *ifp, int state) {
     return 0;
 }
 
-static struct dhcp6_event *find_event_withid(ifp, xid)
-     struct dhcp6_if *ifp;
-     u_int32_t xid;
-{
+static struct dhcp6_event *find_event_withid(struct dhcp6_if *ifp,
+                                             u_int32_t xid) {
     struct dhcp6_event *ev;
 
     for (ev = TAILQ_FIRST(&ifp->event_list); ev; ev = TAILQ_NEXT(ev, link)) {
@@ -2074,10 +2102,12 @@ static int create_request_list(int reboot) {
                            FNAME);
             exit(1);
         }
+
         memcpy(&lv->val_dhcp6addr, &cl->lease_addr,
                sizeof(lv->val_dhcp6addr));
         lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
         TAILQ_INSERT_TAIL(&request_list, lv, link);
+
         /* config the interface for reboot */
         if (reboot && client6_iaidaddr.client6_info.type != IAPD &&
             (client6_request_flag & CLIENT6_CONFIRM_ADDR)) {
@@ -2101,6 +2131,7 @@ static void setup_check_timer(struct dhcp6_if *ifp) {
     timo.tv_usec = 0;
     dhcpv6_dprintf(LOG_DEBUG, "set timer for checking link ...");
     dhcp6_set_timer(&timo, ifp->link_timer);
+
     if (ifp->dad_timer != NULL) {
         d = DHCP6_CHECKDAD_TIME;
         timo.tv_sec = (long) d;
@@ -2108,6 +2139,7 @@ static void setup_check_timer(struct dhcp6_if *ifp) {
         dhcpv6_dprintf(LOG_DEBUG, "set timer for checking DAD ...");
         dhcp6_set_timer(&timo, ifp->dad_timer);
     }
+
     d = DHCP6_SYNCFILE_TIME;
     timo.tv_sec = (long) d;
     timo.tv_usec = 0;
@@ -2126,11 +2158,14 @@ static struct dhcp6_timer *check_lease_file_timo(void *arg) {
     stat(leasename, &buf);
     strcpy(client6_lease_temp, leasename);
     strcat(client6_lease_temp, "XXXXXX");
+
     if (buf.st_size > MAX_FILE_SIZE) {
         file = sync_leases(client6_lease_file, leasename, client6_lease_temp);
-        if (file != NULL)
+        if (file != NULL) {
             client6_lease_file = file;
+        }
     }
+
     d = DHCP6_SYNCFILE_TIME;
     timo.tv_sec = (long) d;
     timo.tv_usec = 0;
@@ -2138,23 +2173,25 @@ static struct dhcp6_timer *check_lease_file_timo(void *arg) {
     return ifp->sync_timer;
 }
 
-static struct dhcp6_timer
- *check_dad_timo(void *arg) {
+static struct dhcp6_timer *check_dad_timo(void *arg) {
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
     int newstate;
     struct dhcp6_list dad_list;
     struct dhcp6_lease *cl;
     struct dhcp6_listval *lv;
 
-    if (client6_iaidaddr.client6_info.type == IAPD)
+    if (client6_iaidaddr.client6_info.type == IAPD) {
         goto end;
-    dhcpv6_dprintf(LOG_DEBUG, "enter checking dad ...");
+    }
 
+    dhcpv6_dprintf(LOG_DEBUG, "enter checking dad ...");
     TAILQ_INIT(&dad_list);
+
     if (dad_parse("/proc/net/if_inet6", &dad_list) < 0) {
         dhcpv6_dprintf(LOG_ERR, "parse /proc/net/if_inet6 failed");
         goto end;
     }
+
     for (lv = TAILQ_FIRST(&dad_list); lv; lv = TAILQ_NEXT(lv, link)) {
         for (cl = TAILQ_FIRST(&client6_iaidaddr.lease_list);
              cl; cl = TAILQ_NEXT(cl, link)) {
@@ -2170,28 +2207,34 @@ static struct dhcp6_timer
                     TAILQ_REMOVE(&dad_list, lv, link);
                     TAILQ_INSERT_TAIL(&request_list, lv, link);
                 }
+
                 break;
             }
         }
     }
+
     dhcp6_clear_list(&dad_list);
 
-    if (TAILQ_EMPTY(&request_list))
+    if (TAILQ_EMPTY(&request_list)) {
         goto end;
+    }
+
     /* remove RENEW timer for client6_iaidaddr */
-    if (client6_iaidaddr.timer != NULL)
+    if (client6_iaidaddr.timer != NULL) {
         dhcp6_remove_timer(client6_iaidaddr.timer);
+    }
+
     newstate = DHCP6S_DECLINE;
     client6_send_newstate(ifp, newstate);
-  end:
+
+end:
     /* one time check for DAD */
     dhcp6_remove_timer(ifp->dad_timer);
     ifp->dad_timer = NULL;
     return NULL;
 }
 
-static struct dhcp6_timer
- *check_link_timo(void *arg) {
+static struct dhcp6_timer *check_link_timo(void *arg) {
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
     struct ifreq ifr;
     struct timeval timo;
@@ -2206,11 +2249,13 @@ static struct dhcp6_timer
         dhcpv6_dprintf(LOG_DEBUG, "ioctl SIOCGIFFLAGS failed");
         goto settimer;
     }
+
     if (ifr.ifr_flags & IFF_RUNNING) {
         /* check previous flag set current flag UP */
         if (ifp->link_flag & IFF_RUNNING) {
             goto settimer;
         }
+
         switch (client6_iaidaddr.client6_info.type) {
             case IAPD:
                 newstate = DHCP6S_REBIND;
@@ -2218,10 +2263,12 @@ static struct dhcp6_timer
             default:
                 /* check DAD status of the link-local address */
                 TAILQ_INIT(&dad_list);
+
                 if (dad_parse("/proc/net/if_inet6", &dad_list) < 0) {
                     dhcpv6_dprintf(LOG_ERR, "parse /proc/net/if_inet6 failed");
                     goto settimer;
                 }
+
                 for (lv = TAILQ_FIRST(&dad_list);
                      lv; lv = TAILQ_NEXT(lv, link)) {
                     if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr,
@@ -2231,6 +2278,7 @@ static struct dhcp6_timer
                         goto settimer;
                     }
                 }
+
                 dhcp6_clear_list(&dad_list);
                 newstate = DHCP6S_CONFIRM;
                 break;
@@ -2245,6 +2293,7 @@ static struct dhcp6_timer
             create_request_list(1);
             client6_send_newstate(ifp, newstate);
         }
+
         dhcpv6_dprintf(LOG_INFO, "interface is from down to up");
         ifp->link_flag |= IFF_RUNNING;
         d = DHCP6_CHECKLINK_TIME_UPCASE;
@@ -2254,7 +2303,8 @@ static struct dhcp6_timer
         ifp->link_flag &= ~IFF_RUNNING;
         d = DHCP6_CHECKLINK_TIME_DOWNCASE;
     }
-  settimer:
+
+settimer:
     timo.tv_sec = d;
     timo.tv_usec = 0;
     dhcp6_set_timer(&timo, ifp->link_timer);
