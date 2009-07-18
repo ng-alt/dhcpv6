@@ -83,8 +83,9 @@ int main(int argc, char **argv) {
     /* Specify a file stream for logging */
     if (argc > 1) {
         for (i = 1; i < argc; ++i) {
-            if (strcmp(argv[i], "-d") == 0)
+            if (strcmp(argv[i], "-d") == 0) {
                 du = 1;
+            }
         }
     }
 
@@ -96,11 +97,13 @@ int main(int argc, char **argv) {
             TRACE(dump, "could not write dump file: %s\n", RELAY_DUMP_FILE);
             exit(1);
         }
+
         dump = tmp_dump;
     }
 
-    if (get_interface_info() == 0)
+    if (get_interface_info() == 0) {
         goto ERROR;
+    }
 
     for (i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-d") == 0) {
@@ -265,16 +268,19 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (sw == 1)
+    if (sw == 1) {
         multicast_off = 0;
+    }
 
     init_socket();
 
-    if (set_sock_opt() == 0)
+    if (set_sock_opt() == 0) {
         goto ERROR;
+    }
 
-    if (fill_addr_struct() == 0)
+    if (fill_addr_struct() == 0) {
         goto ERROR;
+    }
 
     if (du == 0) {
         switch (fork()) {
@@ -303,8 +309,9 @@ int main(int argc, char **argv) {
             if (recv_data() == 1) {
                 if (get_recv_data() == 1) {
                     mesg = create_parser_obj();
-                    if (put_msg_in_store(mesg) == 0)
+                    if (put_msg_in_store(mesg) == 0) {
                         mesg->sent = 1; /* mark it for deletion */
+                    }
                 }
             }
         }
@@ -313,7 +320,7 @@ int main(int argc, char **argv) {
         delete_messages();
     }
 
-  ERROR:
+ERROR:
 
     if (err == 3) {
         TRACE(dump, "dhcp6r: malformed address '%s'\n", argv[i]);
@@ -333,14 +340,15 @@ int main(int argc, char **argv) {
     exit(1);
 }
 
-void command_text() {
+void command_text(void) {
     printf("Usage:\n");
-    printf("       dhcp6r [-p pidfile] [-d] [-cu] [-cm <interface>] [-sm <interface>] "
-           "[-su <address>] [-sf <interface>+<address>] \n");
+    printf
+        ("       dhcp6r [-p pidfile] [-d] [-cu] [-cm <interface>] [-sm <interface>] "
+         "[-su <address>] [-sf <interface>+<address>] \n");
     exit(1);
 }
 
-char *dhcp6r_clock() {
+char *dhcp6r_clock(void) {
     time_t tim;
     char *s, *p;
 
@@ -350,17 +358,20 @@ char *dhcp6r_clock() {
     p = s;
     do {
         p = strstr(p, " ");
+
         if (p != NULL) {
-            if (*(p - 1) == '/')
+            if (*(p - 1) == '/') {
                 *p = '0';
-            else
+            } else {
                 *p = '/';
+            }
         }
     } while (p != NULL);
 
     p = strstr(s, "\n");
-    if (p != NULL)
+    if (p != NULL) {
         *p = '\0';
+    }
 
     return s;
 }
