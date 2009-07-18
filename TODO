@@ -1,3 +1,7 @@
+- Use glib types for common things, and glib functions where appropriate
+
+- Clean up log messages on dhcp6r
+
 - Update LICENSE document and make sure current files are listed.
 
 - Check memset() and memcpy() calls.
@@ -30,7 +34,7 @@
 
 - dhcp6c does not honor server preference on responses from servers
 
-- Can hash.c be replaced with a standard system offering?
+- Can hash.c be replaced with a standard system offering?  yes, glib
 
 - Replace all .l files with a single lexer with multiple state paths depending
   on what we're reading.
@@ -50,11 +54,7 @@
 
 - Output timestamps using this format: http://www.w3.org/TR/NOTE-datetime
 
-- Port to MacOS X (???)
-      - rm: conftest.dSYM is a directory
-      - replacement for netlink calls
-      - We should not have to pass -D_GNU_SOURCE
-      - Would need a libnl workalike
+- Remove MacOS X specifics
 
 - Support information refresh time option in client and server
 
