@@ -64,7 +64,6 @@
 #include "lease.h"
 
 extern char *script;
-
 int foreground;
 int debug_thresh;
 struct dhcp6_if *dhcp6_if;
@@ -96,8 +95,9 @@ struct dhcp6_if *find_ifconfbyname(const char *ifname) {
     struct dhcp6_if *ifp;
 
     for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
-        if (strcmp(ifp->ifname, ifname) == 0)
+        if (strcmp(ifp->ifname, ifname) == 0) {
             return (ifp);
+        }
     }
 
     return (NULL);
@@ -128,6 +128,7 @@ struct host_conf *find_hostconf(const struct duid *duid) {
 
     return (NULL);
 }
+
 void ifinit(const char *ifname) {
     struct dhcp6_if *ifp;
 
@@ -155,7 +156,6 @@ void ifinit(const char *ifname) {
                        ifname, strerror(errno));
         goto die;
     }
-
 #ifdef HAVE_SCOPELIB
     if (inet_zoneid(AF_INET6, 2, ifname, &ifp->linkid)) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to get link ID for %s",
@@ -183,8 +183,9 @@ int dhcp6_copy_list(struct dhcp6_list *dst, const struct dhcp6_list *src) {
     struct dhcp6_listval *dent;
 
     for (ent = TAILQ_FIRST(src); ent; ent = TAILQ_NEXT(ent, link)) {
-        if ((dent = malloc(sizeof(*dent))) == NULL)
+        if ((dent = malloc(sizeof(*dent))) == NULL) {
             goto fail;
+        }
 
         memset(dent, 0, sizeof(*dent));
         memcpy(&dent->uv, &ent->uv, sizeof(ent->uv));
@@ -217,8 +218,10 @@ void relayfree(struct relay_list *head) {
         TAILQ_REMOVE(head, v, link);
 
         if (v->intf_id != NULL) {
-            if (v->intf_id->intf_id != NULL)
+            if (v->intf_id->intf_id != NULL) {
                 free(v->intf_id->intf_id);
+            }
+
             free(v->intf_id);
         }
 
@@ -314,8 +317,7 @@ struct ia_listval *ia_create_listval(void) {
 
     if ((ia = malloc(sizeof(*ia))) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s"
-                       "failed to allocate memory for ia list",
-                       FNAME);
+                       "failed to allocate memory for ia list", FNAME);
         return NULL;
     }
 
@@ -340,6 +342,7 @@ void ia_clear_list(struct ia_list *head) {
 
 int ia_copy_list(struct ia_list *dst, struct ia_list *src) {
     struct ia_listval *dent;
+
     const struct ia_listval *ent;
 
     for (ent = TAILQ_FIRST(src); ent; ent = TAILQ_NEXT(ent, link)) {
@@ -393,6 +396,7 @@ void run_script(struct dhcp6_if *ifp, int old_state, int new_state,
 
 struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *ifp, int state) {
     struct dhcp6_event *ev;
+
     static u_int32_t counter = 0;
 
     if ((ev = malloc(sizeof(*ev))) == NULL) {
@@ -460,6 +464,7 @@ int getifaddr(struct in6_addr *addr, char *ifnam, struct in6_addr *prefix,
               int plen, int strong, int ignoreflags) {
     struct ifaddrs *ifap, *ifa;
     struct sockaddr_in6 sin6;
+
     int error = -1;
 
     if (getifaddrs(&ifap) != 0) {
@@ -501,6 +506,7 @@ int getifaddr(struct in6_addr *addr, char *ifnam, struct in6_addr *prefix,
             }
         } else {
             struct in6_addr a, m;
+
             int i;
 
             memcpy(&a, &sin6.sin6_addr, sizeof(a));
@@ -567,6 +573,7 @@ const char *getdev(struct sockaddr_in6 *addr) {
         }
 
         a6 = (struct sockaddr_in6 *) ifa->ifa_addr;
+
         if (!IN6_ARE_ADDR_EQUAL(&a6->sin6_addr, &addr->sin6_addr) ||
             a6->sin6_scope_id != addr->sin6_scope_id) {
             continue;
@@ -607,6 +614,7 @@ long random_between(long x, long y) {
 
 int prefix6_mask(struct in6_addr *in6, int plen) {
     struct sockaddr_in6 mask6;
+
     int i;
 
     if (sa6_plen2mask(&mask6, plen)) {
@@ -640,7 +648,9 @@ int sa6_plen2mask(struct sockaddr_in6 *sa6, int plen) {
 
 char *addr2str(struct sockaddr *sa, socklen_t salen) {
     static char addrbuf[8][NI_MAXHOST + 1];
+
     static int round = 0;
+
     char *cp;
 
     round = (round + 1) & 7;
@@ -691,11 +701,11 @@ int in6_scope(struct in6_addr *addr) {
     }
 
     if (bcmp(&in6addr_loopback, addr, sizeof(addr) - 1) == 0) {
-        if (addr->s6_addr[15] == 1) {    /* loopback */
+        if (addr->s6_addr[15] == 1) {   /* loopback */
             return 1;
         }
 
-        if (addr->s6_addr[15] == 0) {    /* unspecified */
+        if (addr->s6_addr[15] == 0) {   /* unspecified */
             return 0;           /* XXX: good value? */
         }
     }
@@ -824,6 +834,7 @@ int get_duid(const char *idfile, const char *ifname, struct duid *duid) {
 
     memset(duid, 0, sizeof(*duid));
     duid->duid_len = len;
+
     if ((duid->duid_id = (unsigned char *) malloc(len)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to allocate memory", FNAME);
         goto fail;
@@ -849,8 +860,8 @@ int get_duid(const char *idfile, const char *ifname, struct duid *duid) {
         dp->dh6duid1_time = htonl((u_long) (t64 & 0xffffffff));
 
         if (gethwid(tmpbuf, sizeof(tmpbuf), ifname, &hwtype) < 0) {
-            dhcpv6_dprintf(LOG_DEBUG, "%s" "failed to get hw ID for %s", FNAME,
-                           ifname);
+            dhcpv6_dprintf(LOG_DEBUG, "%s" "failed to get hw ID for %s",
+                           FNAME, ifname);
             goto fail;
         }
 
@@ -950,7 +961,7 @@ u_int16_t calculate_duid_len(const char *ifname, u_int16_t * hwtype) {
 }
 
 ssize_t gethwid(unsigned char *buf, int len, const char *ifname,
-                u_int16_t *hwtypep) {
+                u_int16_t * hwtypep) {
     int skfd;
     ssize_t l;
     struct ifreq if_hwaddr;
@@ -1039,8 +1050,7 @@ void dhcp6_clear_options(struct dhcp6_optinfo *optinfo) {
     dhcp6_init_options(optinfo);
 }
 
-int dhcp6_copy_options(struct dhcp6_optinfo *dst,
-                       struct dhcp6_optinfo *src) {
+int dhcp6_copy_options(struct dhcp6_optinfo *dst, struct dhcp6_optinfo *src) {
     if (duidcpy(&dst->clientID, &src->clientID)) {
         goto fail;
     }
@@ -1192,7 +1202,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                                        "requested option", FNAME);
                         goto fail;
                     }
-nextoption:;
+                  nextoption:;
                 }
 
                 break;
@@ -1236,7 +1246,7 @@ nextoption:;
                     goto fail;
                 }
 
-                ia->iaidinfo.iaid = ntohl(*(u_int32_t *)iacp);
+                ia->iaidinfo.iaid = ntohl(*(u_int32_t *) iacp);
                 iacp += sizeof(u_int32_t);
 
                 switch (opt) {
@@ -1248,8 +1258,9 @@ nextoption:;
 
                         ia->type = IATA;
                         ia->flags |= DHCIFF_TEMP_ADDRS;
-                        dhcpv6_dprintf(LOG_DEBUG, "%s" "get option iaid is %u",
-                                FNAME, ia->iaidinfo.iaid);
+                        dhcpv6_dprintf(LOG_DEBUG,
+                                       "%s" "get option iaid is %u", FNAME,
+                                       ia->iaidinfo.iaid);
                         break;
                     case DH6OPT_IA_NA:
                     case DH6OPT_IA_PD:
@@ -1259,14 +1270,16 @@ nextoption:;
                         }
 
                         ia->type = (opt == DH6OPT_IA_NA) ? IANA : IAPD;
-                        ia->iaidinfo.renewtime = ntohl(*(u_int32_t *)iacp);
+                        ia->iaidinfo.renewtime = ntohl(*(u_int32_t *) iacp);
                         iacp += sizeof(u_int32_t);
-                        ia->iaidinfo.rebindtime = ntohl(*(u_int32_t *)iacp);
+                        ia->iaidinfo.rebindtime = ntohl(*(u_int32_t *) iacp);
                         iacp += sizeof(u_int32_t);
 
-                        dhcpv6_dprintf(LOG_DEBUG, "%s" "get option iaid is %u, "
+                        dhcpv6_dprintf(LOG_DEBUG,
+                                       "%s" "get option iaid is %u, "
                                        "renewtime %u, rebindtime %u", FNAME,
-                                       ia->iaidinfo.iaid, ia->iaidinfo.renewtime,
+                                       ia->iaidinfo.iaid,
+                                       ia->iaidinfo.renewtime,
                                        ia->iaidinfo.rebindtime);
                         break;
                 }
@@ -1313,7 +1326,7 @@ nextoption:;
                                    "DNS address (%s)", FNAME,
                                    in6addr2str((struct in6_addr *) val, 0));
 
-nextdns:;
+                  nextdns:;
                 }
 
                 break;
@@ -1730,9 +1743,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
         dst = tmpbuf;
 
         for (dlist = optinfo->dns_list.domainlist; dlist; dlist = dlist->next) {
-            int n;
-
-            n = dn_comp(dlist->name, dst, MAXDNAME, NULL, NULL);
+            int n = dn_comp(dlist->name, dst, MAXDNAME, NULL, NULL);
 
             if (n < 0) {
                 dhcpv6_dprintf(LOG_ERR, "%s" "compress domain name failed",
@@ -1753,6 +1764,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
 
     if (dhcp6_mode == DHCP6_MODE_SERVER && optinfo->irt) {
         u_int32_t irt;
+
         irt = htonl(optinfo->irt);
         COPY_OPTION(DH6OPT_INFO_REFRESH_TIME, sizeof(irt), &irt, p);
     }
@@ -1798,14 +1810,16 @@ static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
 
             if (ia->type == IATA) {
                 *optlen = sizeof(iaid);
-                dhcpv6_dprintf(LOG_DEBUG, "%s" "set IA_TA iaid information: %d",
-                               FNAME, ia->iaidinfo.iaid);
+                dhcpv6_dprintf(LOG_DEBUG,
+                               "%s" "set IA_TA iaid information: %d", FNAME,
+                               ia->iaidinfo.iaid);
                 iaid = htonl(ia->iaidinfo.iaid);
             } else {
                 *optlen = sizeof(opt_iana);
                 dhcpv6_dprintf(LOG_DEBUG, "%s" "set IA_NA iaidinfo: "
                                "iaid %u renewtime %u rebindtime %u",
-                               FNAME, ia->iaidinfo.iaid, ia->iaidinfo.renewtime,
+                               FNAME, ia->iaidinfo.iaid,
+                               ia->iaidinfo.renewtime,
                                ia->iaidinfo.rebindtime);
                 opt_iana.iaid = htonl(ia->iaidinfo.iaid);
                 opt_iana.renewtime = htonl(ia->iaidinfo.renewtime);
@@ -1813,7 +1827,7 @@ static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
             }
 
             buflen = sizeof(opt_iana) + dhcp6_count_list(&ia->addr_list) *
-                     (sizeof(ai) + sizeof(status)) + sizeof(status);
+                (sizeof(ai) + sizeof(status)) + sizeof(status);
 
             if ((*tmpbuf = malloc(buflen)) == NULL) {
                 dhcpv6_dprintf(LOG_ERR, "%s"
@@ -1834,16 +1848,19 @@ static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
                      dp = TAILQ_NEXT(dp, link)) {
                     iaddr_len = sizeof(ai) - sizeof(u_int32_t);
 
-                    if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
+                    if (dp->val_dhcp6addr.status_code !=
+                        DH6OPT_STCODE_UNDEFINE) {
                         iaddr_len += sizeof(status);
                     }
 
                     memset(&ai, 0, sizeof(ai));
                     ai.dh6_ai_type = htons(DH6OPT_IADDR);
                     ai.dh6_ai_len = htons(iaddr_len);
-                    ai.preferlifetime = htonl(dp->val_dhcp6addr.preferlifetime);
+                    ai.preferlifetime =
+                        htonl(dp->val_dhcp6addr.preferlifetime);
                     ai.validlifetime = htonl(dp->val_dhcp6addr.validlifetime);
-                    memcpy(&ai.addr, &dp->val_dhcp6addr.addr, sizeof(ai.addr));
+                    memcpy(&ai.addr, &dp->val_dhcp6addr.addr,
+                           sizeof(ai.addr));
                     memcpy(tp, &ai, sizeof(ai));
                     *optlen += sizeof(ai);
                     tp += sizeof(ai);
@@ -1851,10 +1868,12 @@ static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
                                    "set IADDR address option len %d: "
                                    "%s preferlifetime %d validlifetime %d",
                                    iaddr_len, in6addr2str(&ai.addr, 0),
-                                   ntohl(ai.preferlifetime), ntohl(ai.validlifetime));
+                                   ntohl(ai.preferlifetime),
+                                   ntohl(ai.validlifetime));
 
                     /* set up address status code if any */
-                    if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
+                    if (dp->val_dhcp6addr.status_code !=
+                        DH6OPT_STCODE_UNDEFINE) {
                         status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
                         status.dh6_status_len =
                             htons(sizeof(status.dh6_status_code));
@@ -1878,7 +1897,7 @@ static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
                 /* set up IA status code in error case */
                 num = (ia->status_code != DH6OPT_STCODE_UNDEFINE &&
                        ia->status_code != DH6OPT_STCODE_SUCCESS)
-                      ? ia->status_code : DH6OPT_STCODE_NOADDRAVAIL;
+                    ? ia->status_code : DH6OPT_STCODE_NOADDRAVAIL;
             }
 
             if (num != DH6OPT_STCODE_UNDEFINE) {
@@ -1909,7 +1928,7 @@ static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
             opt_iapd.renewtime = htonl(ia->iaidinfo.renewtime);
             opt_iapd.rebindtime = htonl(ia->iaidinfo.rebindtime);
             buflen = sizeof(opt_iapd) + dhcp6_count_list(&ia->addr_list) *
-                     (sizeof(pi) + sizeof(status)) + sizeof(status);
+                (sizeof(pi) + sizeof(status)) + sizeof(status);
 
             if ((*tmpbuf = malloc(buflen)) == NULL) {
                 dhcpv6_dprintf(LOG_ERR, "%s"
@@ -1925,14 +1944,16 @@ static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
                      dp = TAILQ_NEXT(dp, link)) {
                     iaddr_len = sizeof(pi) - sizeof(u_int32_t);
 
-                    if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
+                    if (dp->val_dhcp6addr.status_code !=
+                        DH6OPT_STCODE_UNDEFINE) {
                         iaddr_len += sizeof(status);
                     }
 
                     memset(&pi, 0, sizeof(pi));
                     pi.dh6_pi_type = htons(DH6OPT_IAPREFIX);
                     pi.dh6_pi_len = htons(iaddr_len);
-                    pi.preferlifetime = htonl(dp->val_dhcp6addr.preferlifetime);
+                    pi.preferlifetime =
+                        htonl(dp->val_dhcp6addr.preferlifetime);
                     pi.validlifetime = htonl(dp->val_dhcp6addr.validlifetime);
                     pi.plen = dp->val_dhcp6addr.plen;
                     memcpy(&pi.prefix, &dp->val_dhcp6addr.addr,
@@ -1942,12 +1963,13 @@ static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
                     tp += sizeof(pi);
                     dhcpv6_dprintf(LOG_DEBUG, "set IAPREFIX option len %d: "
                                    "%s/%d preferlifetime %d validlifetime %d",
-                                   iaddr_len, in6addr2str(&pi.prefix, 0), pi.plen,
-                                   ntohl(pi.preferlifetime),
+                                   iaddr_len, in6addr2str(&pi.prefix, 0),
+                                   pi.plen, ntohl(pi.preferlifetime),
                                    ntohl(pi.validlifetime));
 
                     /* set up address status code if any */
-                    if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
+                    if (dp->val_dhcp6addr.status_code !=
+                        DH6OPT_STCODE_UNDEFINE) {
                         status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
                         status.dh6_status_len =
                             htons(sizeof(status.dh6_status_code));
@@ -1955,7 +1977,8 @@ static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
                             htons(dp->val_dhcp6addr.status_code);
                         memcpy(tp, &status, sizeof(status));
                         DPRINT_STATUS_CODE("prefix",
-                                           dp->val_dhcp6addr.status_code, NULL, 0);
+                                           dp->val_dhcp6addr.status_code,
+                                           NULL, 0);
                         *optlen += sizeof(status);
                         tp += sizeof(status);
                         dhcpv6_dprintf(LOG_DEBUG,
@@ -1970,7 +1993,7 @@ static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
                 /* set up IA status code in error case */
                 num = (ia->status_code != DH6OPT_STCODE_UNDEFINE &&
                        ia->status_code != DH6OPT_STCODE_SUCCESS)
-                      ? ia->status_code : DH6OPT_STCODE_NOPREFIXAVAIL;
+                    ? ia->status_code : DH6OPT_STCODE_NOPREFIXAVAIL;
             }
 
             if (num != DH6OPT_STCODE_UNDEFINE) {
@@ -1982,7 +2005,7 @@ static int dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
                 *optlen += sizeof(status);
                 tp += sizeof(status);
                 dhcpv6_dprintf(LOG_DEBUG, "set IA status len %d optlen: %d",
-                        (int)sizeof(status), *optlen);
+                               (int) sizeof(status), *optlen);
                 /* XXX: copy status message if any */
             }
 
@@ -2050,7 +2073,7 @@ void dhcp6_reset_timer(struct dhcp6_event *ev) {
 
     switch (ev->state) {
         case DHCP6S_INIT:
-            /* 
+            /*
              * The first Solicit message from the client on the interface
              * MUST be delayed by a random amount of time between
              * MIN_SOL_DELAY and MAX_SOL_DELAY.
@@ -2158,6 +2181,7 @@ int duidcmp(const struct duid *d1, const struct duid *d2) {
 void duidfree(struct duid *duid) {
     dhcpv6_dprintf(LOG_DEBUG, "%s" "DUID is %s, DUID_LEN is %d",
                    FNAME, duidstr(duid), duid->duid_len);
+
     if (duid->duid_id != NULL && duid->duid_len != 0) {
         dhcpv6_dprintf(LOG_DEBUG, "%s" "removing ID (ID: %s)",
                        FNAME, duidstr(duid));
@@ -2334,6 +2358,8 @@ void setloglevel(int debuglevel) {
                 break;
         }
     }
+
+    return;
 }
 
 void dhcpv6_dprintf(int level, const char *fmt, ...) {
@@ -2364,4 +2390,6 @@ void dhcpv6_dprintf(int level, const char *fmt, ...) {
     } else {
         syslog(level, "%s", logbuf);
     }
+
+    return;
 }
