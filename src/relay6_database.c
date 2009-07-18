@@ -49,20 +49,15 @@ void init_relay(void) {
     max_count = 0;
 
     cifaces_list.next = &cifaces_list;
-
     sifaces_list.next = &sifaces_list;
-
     server_list.next = &server_list;
-
     IPv6_address_list.next = &IPv6_address_list;
-
     IPv6_uniaddr_list.next = &IPv6_uniaddr_list;
-
     interface_list.prev = &interface_list;
     interface_list.next = &interface_list;
-
     msg_parser_list.prev = &msg_parser_list;
     msg_parser_list.next = &msg_parser_list;
+    return;
 }
 
 int check_interface_semafor(int index) {
@@ -75,13 +70,15 @@ int check_interface_semafor(int index) {
         exit(1);
     }
 
-    if (cifaces_list.next == &cifaces_list)
+    if (cifaces_list.next == &cifaces_list) {
         return 1;
+    }
 
     for (iface = cifaces_list.next; iface != &cifaces_list;
          iface = iface->next) {
-        if (strcmp(device->ifname, iface->ciface) == 0)
+        if (strcmp(device->ifname, iface->ciface) == 0) {
             return 1;
+        }
     }
 
     return 0;
@@ -92,8 +89,9 @@ struct interface *get_interface(int if_index) {
 
     for (deviface = interface_list.next; deviface != &interface_list;
          deviface = deviface->next) {
-        if (deviface->devindex == if_index)
+        if (deviface->devindex == if_index) {
             return deviface;
+        }
     }
 
     return NULL;
@@ -104,8 +102,9 @@ struct interface *get_interface_s(char *s) {
 
     for (deviface = interface_list.next; deviface != &interface_list;
          deviface = deviface->next) {
-        if (strcmp(s, deviface->ifname) == 0)
+        if (strcmp(s, deviface->ifname) == 0) {
             return deviface;
+        }
     }
 
     return NULL;
@@ -115,13 +114,13 @@ struct msg_parser *get_send_messages_out(void) {
     struct msg_parser *msg;
 
     for (msg = msg_parser_list.next; msg != &msg_parser_list; msg = msg->next) {
-        if (msg->sent == 0)
+        if (msg->sent == 0) {
             return msg;
+        }
     }
 
     return NULL;
 }
-
 
 void delete_messages(void) {
     struct msg_parser *msg;
@@ -138,7 +137,6 @@ void delete_messages(void) {
         }
     }
 }
-
 
 int process_RELAY_FORW(struct msg_parser *msg) {
     uint8_t *head = (uint8_t *) malloc(HEAD_SIZE * sizeof(uint8_t));
@@ -158,12 +156,11 @@ int process_RELAY_FORW(struct msg_parser *msg) {
     }
 
     memset(head, 0, HEAD_SIZE);
-
     pointer = head;
 
-
-    if (msg->isRF == 1) {       /* got message from a relay agent to be
-                                   relayed */
+    if (msg->isRF == 1) {
+        /* got message from a relay agent to be
+         * relayed */
         (*pointer) = DH6_RELAY_FORW;
         pointer += 1;
         (*pointer) = msg->hop_count + 1;        /* increased hop-count */
@@ -176,8 +173,8 @@ int process_RELAY_FORW(struct msg_parser *msg) {
         }
 
         pointer += 1;
-
-    } else {                    /* got message from a client to be relayed */
+    } else {
+        /* got message from a client to be relayed */
         (*pointer) = DH6_RELAY_FORW;
         pointer += 1;
         (*pointer) = 0;         /* hop-count */
@@ -188,12 +185,13 @@ int process_RELAY_FORW(struct msg_parser *msg) {
             hop = (int) (*pointer);
             TRACE(dump, "%s - %s%d\n", dhcp6r_clock(), "HOPCOUNT: ", hop);
         }
+
         pointer += 1;
     }
 
     msg->msg_type = DH6_RELAY_FORW;
-
     device = get_interface(msg->interface_in);
+
     if (device == NULL) {
         TRACE(dump, "ProcessRELAYFORW--->ERROR NO INTERFACE FOUND!\n");
         exit(1);
@@ -212,7 +210,6 @@ int process_RELAY_FORW(struct msg_parser *msg) {
         pointer += INET6_LEN;
     } else {
         check = 0;
-
         memset(&sap.sin6_addr, 0, sizeof(sap.sin6_addr));
 
         if (inet_pton(AF_INET6, device->ipv6addr->gaddr, &sap.sin6_addr) <= 0) {
@@ -223,7 +220,6 @@ int process_RELAY_FORW(struct msg_parser *msg) {
         memcpy(pointer, &sap.sin6_addr, INET6_LEN);
         pointer += INET6_LEN;
     }
-
 
     /* fill in peer-addrees */
     memset(&sap.sin6_addr, 0, sizeof(sap.sin6_addr));
@@ -306,8 +302,9 @@ int process_RELAY_REPL(struct msg_parser *msg) {
         return 0;
     }
 
-    if (*pointer != DH6_RELAY_REPL)
+    if (*pointer != DH6_RELAY_REPL) {
         return 0;
+    }
 
     pointer += 1;               /* RELAY_FORW */
     msg->hop = *pointer;
@@ -391,15 +388,17 @@ int process_RELAY_REPL(struct msg_parser *msg) {
             }
 
                         /*--------------------------*/
-            if (*pointer == DH6_RELAY_FORW)
-                *pointer = DH6_RELAY_REPL;  /* is the job of the server to set
-                                               to RELAY_REPL? */
+            if (*pointer == DH6_RELAY_FORW) {
+                /* is the job of the server to set to RELAY_REPL? */
+                *pointer = DH6_RELAY_REPL;
+            }
 
                         /*--------------------------*/
             for (device = interface_list.next; device != &interface_list;
                  device = device->next) {
-                if (device->opaq == opaq)
+                if (device->opaq == opaq) {
                     break;
+                }
             }
 
             if (device != &interface_list) {
@@ -412,7 +411,6 @@ int process_RELAY_REPL(struct msg_parser *msg) {
                 free(msg->buffer);
                 msg->buffer = newbuff;
                 return 1;
-
             } else {
                 s = msg->link_addr;
 
@@ -426,11 +424,13 @@ int process_RELAY_REPL(struct msg_parser *msg) {
                             check = 1;
                             break;
                         }
+
                         ipv6a = ipv6a->next;
                     }
 
-                    if (check == 1)
+                    if (check == 1) {
                         break;
+                    }
                 }
 
                 if (check == 0) {
@@ -448,12 +448,14 @@ int process_RELAY_REPL(struct msg_parser *msg) {
                 msg->buffer = newbuff;
                 return 1;
             }
-        } else {                /* OPTION_RELAY_MSG */
+        } else {
+            /* OPTION_RELAY_MSG */
             TRACE(dump, "ProcessRELAYREPL--->ERROR MESSAGE IS MALFORMED NO "
                   "OPTION_RELAY_MSG FOUND, DROPING...!\n");
             return 0;
         }
     }
+
     /* OPTION_INTERFACE_ID */
     if (option == OPTION_RELAY_MSG) {
         pointer += 2;
@@ -469,7 +471,7 @@ int process_RELAY_REPL(struct msg_parser *msg) {
 
         opaq = 0;
         psp = (pointer + msglen);       /* jump over message, seek for
-                                           OPTION_INTERFACE_ID */
+                                         * OPTION_INTERFACE_ID */
 
         p16 = (uint16_t *) psp;
         option = ntohs(*p16);
@@ -495,15 +497,17 @@ int process_RELAY_REPL(struct msg_parser *msg) {
         }
 
                 /*--------------------------*/
-        if (*pointer == DH6_RELAY_FORW)
-            *pointer = DH6_RELAY_REPL;      /* is the job of the server to set
-                                               to RELAY_REPL? */
+        if (*pointer == DH6_RELAY_FORW) {
+            /* is the job of the server to set to RELAY_REPL? */
+            *pointer = DH6_RELAY_REPL;
+        }
 
                 /*--------------------------*/
         for (device = interface_list.next; device != &interface_list;
              device = device->next) {
-            if (device->opaq == opaq)
+            if (device->opaq == opaq) {
                 break;
+            }
         }
 
         if (device != &interface_list) {
@@ -527,11 +531,13 @@ int process_RELAY_REPL(struct msg_parser *msg) {
                         check = 1;
                         break;
                     }
+
                     ipv6a = ipv6a->next;
                 }
 
-                if (check == 1)
+                if (check == 1) {
                     break;
+                }
             }
 
             if (check == 0) {
@@ -547,7 +553,8 @@ int process_RELAY_REPL(struct msg_parser *msg) {
             msg->buffer = newbuff;
             return 1;
         }
-    } else {                    /* OPTION_RELAY_MSG */
+    } else {
+        /* OPTION_RELAY_MSG */
         TRACE(dump, "ProcessRELAYREPL--->ERROR MESSAGE IS MALFORMED NO "
               "OPTION_RELAY_MSG FOUND, DROPING...!\n");
         return 0;
