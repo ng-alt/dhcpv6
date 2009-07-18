@@ -79,7 +79,7 @@ int hash_add(struct hash_table *hash_tbl, const void *key, void *data) {
 
     if (!element) {
         dhcpv6_dprintf(LOG_ERR, "Could not malloc hashlist_element");
-        return (-1);
+        return -1;
     }
 
     if (hash_full(hash_tbl)) {
@@ -169,7 +169,7 @@ int grow_hash(struct hash_table *hash_tbl) {
 
     if (!new_table) {
         dhcpv6_dprintf(LOG_ERR, "couldn't grow hash table");
-        return (-1);
+        return -1;
     }
 
     for (i = 0; i < hash_tbl->hash_size; i++) {

@@ -109,7 +109,7 @@ int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
     /* ignore IA with T1 > T2 */
     if (ia->iaidinfo.renewtime > ia->iaidinfo.rebindtime) {
         dhcpv6_dprintf(LOG_INFO, " T1 time is greater than T2 time");
-        return (0);
+        return 0;
     }
 
     memcpy(&client6_iaidaddr.client6_info.iaidinfo, &ia->iaidinfo,
@@ -120,7 +120,7 @@ int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
     if (duidcpy(&client6_iaidaddr.client6_info.serverid, &optinfo->serverID)) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy server ID %s",
                        FNAME, duidstr(&optinfo->serverID));
-        return (-1);
+        return -1;
     }
 
     /* add new address */
@@ -185,14 +185,14 @@ int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
                    client6_iaidaddr.client6_info.iaidinfo.rebindtime);
 
     if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
-        return (0);
+        return 0;
     }
 
     if (client6_iaidaddr.client6_info.iaidinfo.renewtime ==
         DHCP6_DURATITION_INFINITE) {
         client6_iaidaddr.client6_info.iaidinfo.rebindtime =
             DHCP6_DURATITION_INFINITE;
-        return (0);
+        return 0;
     }
 
     /* set up start date, and renew timer */
@@ -200,7 +200,7 @@ int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
          dhcp6_add_timer(dhcp6_iaidaddr_timo, &client6_iaidaddr)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %u",
                        FNAME, client6_iaidaddr.client6_info.iaidinfo.iaid);
-        return (-1);
+        return -1;
     }
 
     time(&client6_iaidaddr.start_date);
@@ -228,26 +228,26 @@ int dhcp6_add_lease(struct dhcp6_addr *addr) {
                        "%s" "not successful status code for %s is %s", FNAME,
                        in6addr2str(&addr->addr, 0),
                        dhcp6_stcodestr(addr->status_code));
-        return (0);
+        return 0;
     }
 
     if (addr->validlifetime == 0 || addr->preferlifetime == 0 ||
         addr->preferlifetime > addr->validlifetime) {
         dhcpv6_dprintf(LOG_ERR, "%s" "invalid address life time for %s",
                        FNAME, in6addr2str(&addr->addr, 0));
-        return (0);
+        return 0;
     }
 
     if ((sp = dhcp6_find_lease(&client6_iaidaddr, addr)) != NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "duplicated address: %s",
                        FNAME, in6addr2str(&addr->addr, 0));
-        return (-1);
+        return -1;
     }
 
     if ((sp = (struct dhcp6_lease *) malloc(sizeof(*sp))) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to allocate memory"
                        " for a addr", FNAME);
-        return (-1);
+        return -1;
     }
 
     memset(sp, 0, sizeof(*sp));
@@ -267,7 +267,7 @@ int dhcp6_add_lease(struct dhcp6_addr *addr) {
         }
 
         free(sp);
-        return (-1);
+        return -1;
     }
 
     if (sp->lease_addr.type == IAPD) {
@@ -283,7 +283,7 @@ int dhcp6_add_lease(struct dhcp6_addr *addr) {
         }
 
         free(sp);
-        return (-1);
+        return -1;
     }
 
     TAILQ_INSERT_TAIL(&client6_iaidaddr.lease_list, sp, link);
@@ -293,7 +293,7 @@ int dhcp6_add_lease(struct dhcp6_addr *addr) {
         sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
         dhcpv6_dprintf(LOG_INFO, "%s" "infinity address life time for %s",
                        FNAME, in6addr2str(&addr->addr, 0));
-        return (0);
+        return 0;
     }
 
     /* set up expired timer for lease */
@@ -301,7 +301,7 @@ int dhcp6_add_lease(struct dhcp6_addr *addr) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for lease %s",
                        FNAME, in6addr2str(&addr->addr, 0));
         free(sp);
-        return (-1);
+        return -1;
     }
 
     d = sp->lease_addr.preferlifetime;
@@ -340,7 +340,7 @@ int dhcp6_remove_lease(struct dhcp6_lease *sp) {
         dhcpv6_dprintf(LOG_INFO, "%s"
                        "failed to write removed lease address %s to lease file",
                        FNAME, in6addr2str(&sp->lease_addr.addr, 0));
-        return (-1);
+        return -1;
     }
 
     /* XXX: ToDo: prefix delegation for client */
@@ -380,7 +380,7 @@ int dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
     if (client6_iaidaddr.client6_info.iaidinfo.renewtime >
         client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
         dhcpv6_dprintf(LOG_INFO, " T1 time is greater than T2 time");
-        return (0);
+        return 0;
     }
 
     if (flag == ADDR_REMOVE) {
@@ -435,7 +435,7 @@ int dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
         if (duidcpy
             (&client6_iaidaddr.client6_info.serverid, &optinfo->serverID)) {
             dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy server ID", FNAME);
-            return (-1);
+            return -1;
         }
     }
 
@@ -682,7 +682,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
                 dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy server ID",
                                FNAME);
                 free(ev);
-                return (NULL);
+                return NULL;
             }
         case REBIND:
             /* BUG: d not set! */
@@ -828,7 +828,7 @@ int client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr) {
         dhcpv6_dprintf(LOG_NOTICE, "%s" "failed to %s an address on %s: %s",
                        FNAME, cmdstr, ifp->ifname, strerror(errno));
         close(s);
-        return (-1);
+        return -1;
     }
 
     dhcpv6_dprintf(LOG_DEBUG, "%s" "%s an address %s on %s", FNAME, cmdstr,

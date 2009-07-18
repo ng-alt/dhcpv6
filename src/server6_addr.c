@@ -96,7 +96,7 @@ int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
 
     if (iaidaddr == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to allocate memory", FNAME);
-        return (-1);
+        return -1;
     }
 
     memset(iaidaddr, 0, sizeof(*iaidaddr));
@@ -128,7 +128,7 @@ int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
                        "%s" "no leases are added for duid %s iaid %u", FNAME,
                        duidstr(&iaidaddr->client6_info.clientid),
                        iaidaddr->client6_info.iaidinfo.iaid);
-        return (0);
+        return 0;
     }
 
     if (hash_add(server6_hash_table, &iaidaddr->client6_info, iaidaddr)) {
@@ -138,7 +138,7 @@ int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
                        FNAME, iaidaddr->client6_info.iaidinfo.iaid,
                        duidstr(&iaidaddr->client6_info.clientid));
         dhcp6_remove_iaidaddr(iaidaddr);
-        return (-1);
+        return -1;
     }
 
     dhcpv6_dprintf(LOG_DEBUG,
@@ -152,7 +152,7 @@ int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %u",
                        FNAME, iaidaddr->client6_info.iaidinfo.iaid);
         dhcp6_remove_iaidaddr(iaidaddr);
-        return (-1);
+        return -1;
     }
 
     time(&iaidaddr->start_date);
@@ -161,7 +161,7 @@ int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
     timo.tv_sec = (long) d;
     timo.tv_usec = 0;
     dhcp6_set_timer(&timo, iaidaddr->timer);
-    return (0);
+    return 0;
 }
 
 int dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
@@ -177,7 +177,7 @@ int dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
             if (dhcp6_remove_lease(lv)) {
                 dhcpv6_dprintf(LOG_ERR, "%s" "failed to remove an iaid %u",
                                FNAME, iaidaddr->client6_info.iaidinfo.iaid);
-                return (-1);
+                return -1;
             }
         }
     }
@@ -185,7 +185,7 @@ int dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
     if (hash_delete(server6_hash_table, &iaidaddr->client6_info) != 0) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to remove an iaid %u from hash",
                        FNAME, iaidaddr->client6_info.iaidinfo.iaid);
-        return (-1);
+        return -1;
     }
 
     if (iaidaddr->timer) {
@@ -195,7 +195,7 @@ int dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
     dhcpv6_dprintf(LOG_DEBUG, "%s" "removed iaidaddr %u", FNAME,
                    iaidaddr->client6_info.iaidinfo.iaid);
     free(iaidaddr);
-    return (0);
+    return 0;
 }
 
 struct dhcp6_iaidaddr *dhcp6_find_iaidaddr(struct duid *clientID,
@@ -225,14 +225,14 @@ int dhcp6_remove_lease(struct dhcp6_lease *lease) {
         dhcpv6_dprintf(LOG_ERR, "%s failed to write an invalid lease %s "
                        "to lease file", FNAME,
                        in6addr2str(&lease->lease_addr.addr, 0));
-        return (-1);
+        return -1;
     }
 
     if (hash_delete(lease_hash_table, &lease->lease_addr) != 0) {
         dhcpv6_dprintf(LOG_ERR,
                        "%s" "failed to remove an address %s from hash", FNAME,
                        in6addr2str(&lease->lease_addr.addr, 0));
-        return (-1);
+        return -1;
     }
 
     if (lease->timer) {
@@ -258,7 +258,7 @@ int dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia,
     if ((iaidaddr = dhcp6_find_iaidaddr(&optinfo->clientID,
                                         ia->iaidinfo.iaid,
                                         ia->type)) == NULL) {
-        return (-1);
+        return -1;
     }
 
     if (flag == ADDR_UPDATE) {
@@ -319,7 +319,7 @@ int dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia,
                        duidstr(&iaidaddr->client6_info.clientid),
                        iaidaddr->client6_info.iaidinfo.iaid);
         dhcp6_remove_iaidaddr(iaidaddr);
-        return (0);
+        return 0;
     }
 
     /* update the start date and timer */
@@ -328,7 +328,7 @@ int dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia,
              dhcp6_add_timer(dhcp6_iaidaddr_timo, iaidaddr)) == NULL) {
             dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %u",
                            FNAME, iaidaddr->client6_info.iaidinfo.iaid);
-            return (-1);
+            return -1;
         }
     }
 
@@ -338,7 +338,7 @@ int dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia,
     timo.tv_sec = (long) d;
     timo.tv_usec = 0;
     dhcp6_set_timer(&timo, iaidaddr->timer);
-    return (0);
+    return 0;
 }
 
 int dhcp6_validate_bindings(struct dhcp6_list *addrlist,
@@ -354,7 +354,7 @@ int dhcp6_validate_bindings(struct dhcp6_list *addrlist,
                 lv->val_dhcp6addr.preferlifetime = 0;
             }
 
-            return (-1);
+            return -1;
         }
     }
 
@@ -372,26 +372,26 @@ int dhcp6_add_lease(struct dhcp6_iaidaddr *iaidaddr, struct dhcp6_addr *addr) {
                        "%s" "not successful status code for %s is %s", FNAME,
                        in6addr2str(&addr->addr, 0),
                        dhcp6_stcodestr(addr->status_code));
-        return (0);
+        return 0;
     }
 
     /* ignore meaningless address, this never happens */
     if (addr->validlifetime == 0 || addr->preferlifetime == 0) {
         dhcpv6_dprintf(LOG_INFO, "%s" "zero address life time for %s",
                        FNAME, in6addr2str(&addr->addr, 0));
-        return (0);
+        return 0;
     }
 
     if (((sp = hash_search(lease_hash_table, (void *) addr))) != NULL) {
         dhcpv6_dprintf(LOG_INFO, "%s" "duplicated address: %s",
                        FNAME, in6addr2str(&addr->addr, 0));
-        return (-1);
+        return -1;
     }
 
     if ((sp = (struct dhcp6_lease *) malloc(sizeof(*sp))) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to allocate memory"
                        " for an address", FNAME);
-        return (-1);
+        return -1;
     }
 
     memset(sp, 0, sizeof(*sp));
@@ -410,7 +410,7 @@ int dhcp6_add_lease(struct dhcp6_iaidaddr *iaidaddr, struct dhcp6_addr *addr) {
                        in6addr2str(&sp->lease_addr.addr, 0));
         free(sp->timer);
         free(sp);
-        return (-1);
+        return -1;
     }
 
     dhcpv6_dprintf(LOG_DEBUG, "%s" "write lease %s/%d to lease file", FNAME,
@@ -421,7 +421,7 @@ int dhcp6_add_lease(struct dhcp6_iaidaddr *iaidaddr, struct dhcp6_addr *addr) {
                        FNAME);
         free(sp->timer);
         free(sp);
-        return (-1);
+        return -1;
     }
 
     TAILQ_INSERT_TAIL(&iaidaddr->lease_list, sp, link);
@@ -430,14 +430,14 @@ int dhcp6_add_lease(struct dhcp6_iaidaddr *iaidaddr, struct dhcp6_addr *addr) {
         sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
         dhcpv6_dprintf(LOG_INFO, "%s" "infinity address life time for %s",
                        FNAME, in6addr2str(&addr->addr, 0));
-        return (0);
+        return 0;
     }
 
     if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to create a new event "
                        "timer", FNAME);
         free(sp);
-        return (-1);
+        return -1;
     }
 
     d = sp->lease_addr.preferlifetime;
@@ -451,7 +451,7 @@ int dhcp6_add_lease(struct dhcp6_iaidaddr *iaidaddr, struct dhcp6_addr *addr) {
                    sp->iaidaddr->client6_info.iaidinfo.iaid,
                    sp->lease_addr.preferlifetime,
                    sp->lease_addr.validlifetime);
-    return (0);
+    return 0;
 }
 
 /* assume we've found the updated lease already */
@@ -466,7 +466,7 @@ int dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp) {
                        in6addr2str(&addr->addr, 0),
                        dhcp6_stcodestr(addr->status_code));
         dhcp6_remove_lease(sp);
-        return (0);
+        return 0;
     }
 
     /* remove lease with perferlifetime or validlifetime 0 */
@@ -474,7 +474,7 @@ int dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp) {
         dhcpv6_dprintf(LOG_INFO, "%s" "zero address life time for %s",
                        FNAME, in6addr2str(&addr->addr, 0));
         dhcp6_remove_lease(sp);
-        return (0);
+        return 0;
     }
 
     memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
@@ -485,21 +485,21 @@ int dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp) {
         dhcpv6_dprintf(LOG_ERR, "%s failed to write an updated lease %s "
                        "to lease file", FNAME,
                        in6addr2str(&sp->lease_addr.addr, 0));
-        return (-1);
+        return -1;
     }
 
     if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE ||
         sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
         dhcpv6_dprintf(LOG_INFO, "%s" "infinity address life time for %s",
                        FNAME, in6addr2str(&addr->addr, 0));
-        return (0);
+        return 0;
     }
 
     if (sp->timer == NULL) {
         if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
             dhcpv6_dprintf(LOG_ERR, "%s" "failed to create a new event "
                            "timer", FNAME);
-            return (-1);
+            return -1;
         }
     }
 
@@ -507,7 +507,7 @@ int dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp) {
     timo.tv_sec = (long) d;
     timo.tv_usec = 0;
     dhcp6_set_timer(&timo, sp->timer);
-    return (0);
+    return 0;
 }
 
 struct dhcp6_lease *dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr,
@@ -525,15 +525,15 @@ struct dhcp6_lease *dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr,
         if (IN6_ARE_ADDR_EQUAL(&sp->lease_addr.addr, &ifaddr->addr)) {
             if (ifaddr->type == IAPD) {
                 if (sp->lease_addr.plen == ifaddr->plen) {
-                    return (sp);
+                    return sp;
                 }
             } else if (ifaddr->type == IANA || ifaddr->type == IATA) {
-                return (sp);
+                return sp;
             }
         }
     }
 
-    return (NULL);
+    return NULL;
 }
 
 struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
@@ -551,7 +551,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
             break;
     }
 
-    return (NULL);
+    return NULL;
 }
 
 struct dhcp6_timer *dhcp6_lease_timo(void *arg) {
@@ -733,7 +733,7 @@ int dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
                             dhcpv6_dprintf(LOG_ERR, "%s"
                                            "fail to allocate memory %s",
                                            FNAME, strerror(errno));
-                            return (-1);
+                            return -1;
                         }
 
                         memset(v6addr, 0, sizeof(*v6addr));
@@ -755,7 +755,7 @@ int dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
             if (v6addr == NULL) {
                 dhcpv6_dprintf(LOG_ERR, "%s" "fail to allocate memory %s",
                                FNAME, strerror(errno));
-                return (-1);
+                return -1;
             }
 
             memset(v6addr, 0, sizeof(*v6addr));
@@ -771,7 +771,7 @@ int dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
         }
     }
 
-    return (0);
+    return 0;
 }
 
 static int addr_on_segment(struct v6addrseg *seg, struct dhcp6_addr *addr) {
@@ -936,7 +936,7 @@ int dhcp6_create_prefixlist(struct ia_listval *ria, struct ia_listval *ia,
 
         if (v6addr == NULL) {
             dhcpv6_dprintf(LOG_ERR, "%s" "fail to allocate memory", FNAME);
-            return (-1);
+            return -1;
         }
 
         memset(v6addr, 0, sizeof(*v6addr));
@@ -972,7 +972,7 @@ int dhcp6_create_prefixlist(struct ia_listval *ria, struct ia_listval *ia,
         }
     }
 
-    return (0);
+    return 0;
 }
 
 struct host_decl *dhcp6_allocate_host(struct dhcp6_if *ifp,

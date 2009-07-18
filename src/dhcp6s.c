@@ -1341,7 +1341,7 @@ static int server6_send(int type, struct dhcp6_if *ifp, struct dhcp6 *origmsg,
 
     if (sizeof(struct dhcp6) > sizeof(replybuf)) {
         dhcpv6_dprintf(LOG_ERR, "%s" "buffer size assumption failed", FNAME);
-        return (-1);
+        return -1;
     }
 
     if (!TAILQ_EMPTY(&optinfo->relay_list) &&
@@ -1351,7 +1351,7 @@ static int server6_send(int type, struct dhcp6_if *ifp, struct dhcp6 *origmsg,
                                     optinfo)) < 0) {
         dhcpv6_dprintf(LOG_INFO, "%s" "failed to construct relay message",
                        FNAME);
-        return (-1);
+        return -1;
     }
 
     dh6 = (struct dhcp6 *) (replybuf + relaylen);
@@ -1367,7 +1367,7 @@ static int server6_send(int type, struct dhcp6_if *ifp, struct dhcp6 *origmsg,
                                     roptinfo)) < 0) {
         dhcpv6_dprintf(LOG_INFO, "%s" "failed to construct reply options",
                        FNAME);
-        return (-1);
+        return -1;
     }
 
     len += optlen;
@@ -1402,7 +1402,7 @@ static int server6_send(int type, struct dhcp6_if *ifp, struct dhcp6 *origmsg,
         dhcpv6_dprintf(LOG_ERR, "%s" "transmit %s to %s failed", FNAME,
                        dhcp6msgstr(type), addr2str((struct sockaddr *) &dst,
                                                    sizeof(dst)));
-        return (-1);
+        return -1;
     }
 
     dhcpv6_dprintf(LOG_DEBUG, "%s" "transmit %s to %s", FNAME,

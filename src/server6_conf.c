@@ -53,7 +53,7 @@ int ipv6addrcmp(struct in6_addr *addr1, struct in6_addr *addr2) {
 
     for (i = 0; i < 16; i++) {
         if (addr1->s6_addr[i] < addr2->s6_addr[i]) {
-            return (-1);
+            return -1;
         } else if (addr1->s6_addr[i] > addr2->s6_addr[i]) {
             return 1;
         }

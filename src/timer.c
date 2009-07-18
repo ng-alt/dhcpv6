@@ -95,14 +95,14 @@ struct dhcp6_timer *dhcp6_add_timer(struct dhcp6_timer *(*timeout) (void *),
 
     if ((newtimer = malloc(sizeof(*newtimer))) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "can't allocate memory", FNAME);
-        return (NULL);
+        return NULL;
     }
 
     memset(newtimer, 0, sizeof(*newtimer));
 
     if (timeout == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "timeout function unspecified", FNAME);
-        return (NULL);
+        return NULL;
     }
 
     newtimer->expire = timeout;
@@ -111,7 +111,7 @@ struct dhcp6_timer *dhcp6_add_timer(struct dhcp6_timer *(*timeout) (void *),
 
     LIST_INSERT_HEAD(&timer_head, newtimer, link);
 
-    return (newtimer);
+    return newtimer;
 }
 
 void dhcp6_remove_timer(struct dhcp6_timer *timer) {
@@ -171,7 +171,7 @@ struct timeval *dhcp6_check_timer(void) {
 
     if (TIMEVAL_EQUAL(tm_max, tm_sentinel)) {
         /* no need to timeout */
-        return (NULL);
+        return NULL;
     } else if (TIMEVAL_LT(tm_sentinel, now)) {
         /* this may occur when the interval is too small */
         returnval.tv_sec = returnval.tv_usec = 0;
@@ -179,7 +179,7 @@ struct timeval *dhcp6_check_timer(void) {
         timeval_sub(&tm_sentinel, &now, &returnval);
     }
 
-    return (&returnval);
+    return &returnval;
 }
 
 struct timeval *dhcp6_timer_rest(struct dhcp6_timer *timer) {
@@ -196,5 +196,5 @@ struct timeval *dhcp6_timer_rest(struct dhcp6_timer *timer) {
         timeval_sub(&timer->tm, &now, &returnval);
     }
 
-    return (&returnval);
+    return &returnval;
 }
