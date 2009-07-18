@@ -1,3 +1,19 @@
+- Update LICENSE document and make sure current files are listed.
+
+- Check memset() and memcpy() calls.
+
+- Check str*() calls and make sure they are safe.
+
+- Replace strcpy() with strncpy() if necessary.
+
+- Replace sprintf() with asprintf().
+
+- Simplify free() calls.  Make sure pointers that are freed are set to NULL.
+
+- Rename static functions to have an underscore as the first character.
+
+- Clean up function prototypes (put them in header files).
+
 - Make sure O_CLOEXEC is used on open files to keep SELinux happy
 
 - Fix RESOLV_CONF_DHCPV6_FILE and RESOLV_CONF_BAK_FILE so they use
