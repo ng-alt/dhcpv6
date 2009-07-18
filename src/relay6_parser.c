@@ -44,7 +44,7 @@
 
 extern FILE *dump;
 
-struct msg_parser *create_parser_obj() {
+struct msg_parser *create_parser_obj(void) {
     struct msg_parser *msg;
 
     msg = (struct msg_parser *) malloc(sizeof(struct msg_parser));
@@ -81,23 +81,19 @@ struct msg_parser *create_parser_obj() {
     return msg;
 }
 
-int check_buffer(ref, mesg)
-     int ref;
-     struct msg_parser *mesg;
-{
+int check_buffer(int ref, struct msg_parser *mesg) {
     int diff;
 
     diff = (int) (mesg->pstart - mesg->pointer_start);
 
-    if ((((int) mesg->datalength) - diff) >= ref)
+    if ((((int) mesg->datalength) - diff) >= ref) {
         return 1;
-    else
+    } else {
         return 0;
+    }
 }
 
-int put_msg_in_store(mesg)
-     struct msg_parser *mesg;
-{
+int put_msg_in_store(struct msg_parser *mesg) {
     uint32_t msg_type;
     uint8_t *hop, msg;
 
@@ -109,141 +105,179 @@ int put_msg_in_store(mesg)
               "MESSAGE_HEADER_LENGTH, DROPING... \n");
         return 0;
     }
+
     msg_type = *((uint32_t *) mesg->pstart);
     msg_type = (ntohl(msg_type) & 0xFF000000) >> 24;
 
     if (msg_type == DH6_SOLICIT) {
-        if (check_interface_semafor(mesg->interface_in) == 0)
+        if (check_interface_semafor(mesg->interface_in) == 0) {
             return 0;
+        }
+
         TRACE(dump, "%s - %s", dhcp6r_clock(),
               "GOT MESSAGE 'SOLICIT' FROM CLIENT---> IS TO BE RELAYED\n");
         mesg->isRF = 0;
-        if (process_RELAY_FORW(mesg) == 0)
+
+        if (process_RELAY_FORW(mesg) == 0) {
             return 0;
+        }
 
         return 1;
     } else if (msg_type == DH6_REBIND) {
-        if (check_interface_semafor(mesg->interface_in) == 0)
+        if (check_interface_semafor(mesg->interface_in) == 0) {
             return 0;
+        }
 
         TRACE(dump, "%s - %s", dhcp6r_clock(),
               "GOT MESSAGE 'REBIND' FROM CLIENT---> IS TO BE RELAYED\n");
         mesg->isRF = 0;
-        if (process_RELAY_FORW(mesg) == 0)
+
+        if (process_RELAY_FORW(mesg) == 0) {
             return 0;
+        }
 
         return 1;
     } else if (msg_type == DH6_INFORM_REQ) {
-        if (check_interface_semafor(mesg->interface_in) == 0)
+        if (check_interface_semafor(mesg->interface_in) == 0) {
             return 0;
+        }
 
         TRACE(dump, "%s - %s", dhcp6r_clock(),
               "GOT MESSAGE 'INFORMATION_REQUEST' FROM CLIENT---> "
               "IS TO BE RELAYED\n");
         mesg->isRF = 0;
-        if (process_RELAY_FORW(mesg) == 0)
+
+        if (process_RELAY_FORW(mesg) == 0) {
             return 0;
+        }
 
         return 1;
     } else if (msg_type == DH6_REQUEST) {
-        if (check_interface_semafor(mesg->interface_in) == 0)
+        if (check_interface_semafor(mesg->interface_in) == 0) {
             return 0;
+        }
 
         TRACE(dump, "%s - %s", dhcp6r_clock(),
               "GOT MESSAGE 'REQUEST' FROM CLIENT---> IS TO BE RELAYED\n");
         mesg->isRF = 0;
-        if (process_RELAY_FORW(mesg) == 0)
+
+        if (process_RELAY_FORW(mesg) == 0) {
             return 0;
+        }
 
         return 1;
     } else if (msg_type == DH6_REPLY) {
-        if (check_interface_semafor(mesg->interface_in) == 0)
+        if (check_interface_semafor(mesg->interface_in) == 0) {
             return 0;
+        }
 
         TRACE(dump, "%s - %s", dhcp6r_clock(),
               "GOT MESSAGE 'REPLY' FROM CLIENT---> IS TO BE RELAYED\n");
         mesg->isRF = 0;
-        if (process_RELAY_FORW(mesg) == 0)
+
+        if (process_RELAY_FORW(mesg) == 0) {
             return 0;
+        }
 
         return 1;
     } else if (msg_type == DH6_RENEW) {
-        if (check_interface_semafor(mesg->interface_in) == 0)
+        if (check_interface_semafor(mesg->interface_in) == 0) {
             return 0;
+        }
 
         TRACE(dump, "%s - %s", dhcp6r_clock(),
               "GOT MESSAGE 'RENEW' FROM CLIENT---> IS TO BE RELAYED\n");
         mesg->isRF = 0;
-        if (process_RELAY_FORW(mesg) == 0)
+
+        if (process_RELAY_FORW(mesg) == 0) {
             return 0;
+        }
 
         return 1;
     } else if (msg_type == DH6_RECONFIGURE) {
-        if (check_interface_semafor(mesg->interface_in) == 0)
+        if (check_interface_semafor(mesg->interface_in) == 0) {
             return 0;
+        }
 
         TRACE(dump, "%s - %s", dhcp6r_clock(),
               "GOT MESSAGE 'RECONFIGURE' FROM CLIENT---> IS TO BE RELAYED\n");
         mesg->isRF = 0;
-        if (process_RELAY_FORW(mesg) == 0)
+
+        if (process_RELAY_FORW(mesg) == 0) {
             return 0;
+        }
 
         return 1;
     } else if (msg_type == DH6_CONFIRM) {
-        if (check_interface_semafor(mesg->interface_in) == 0)
+        if (check_interface_semafor(mesg->interface_in) == 0) {
             return 0;
+        }
 
         TRACE(dump, "%s - %s", dhcp6r_clock(),
               "GOT MESSAGE 'CONFIRM' FROM CLIENT---> IS TO BE RELAYED\n");
         mesg->isRF = 0;
-        if (process_RELAY_FORW(mesg) == 0)
+
+        if (process_RELAY_FORW(mesg) == 0) {
             return 0;
+        }
 
         return 1;
     } else if (msg_type == DH6_ADVERTISE) {
-        if (check_interface_semafor(mesg->interface_in) == 0)
+        if (check_interface_semafor(mesg->interface_in) == 0) {
             return 0;
+        }
 
         TRACE(dump, "%s - %s", dhcp6r_clock(),
               "GOT MESSAGE 'ADVERTISE' FROM CLIENT---> IS TO BE RELAYED\n");
         mesg->isRF = 0;
-        if (process_RELAY_FORW(mesg) == 0)
+
+        if (process_RELAY_FORW(mesg) == 0) {
             return 0;
+        }
 
         return 1;
     } else if (msg_type == DH6_DECLINE) {
-        if (check_interface_semafor(mesg->interface_in) == 0)
+        if (check_interface_semafor(mesg->interface_in) == 0) {
             return 0;
+        }
 
         TRACE(dump, "%s - %s", dhcp6r_clock(),
               "GOT MESSAGE 'DECLINE' FROM CLIENT---> IS TO BE RELAYED\n");
         mesg->isRF = 0;
-        if (process_RELAY_FORW(mesg) == 0)
+
+        if (process_RELAY_FORW(mesg) == 0) {
             return 0;
+        }
 
         return 1;
     } else if (msg_type == DH6_RELEASE) {
-        if (check_interface_semafor(mesg->interface_in) == 0)
+        if (check_interface_semafor(mesg->interface_in) == 0) {
             return 0;
+        }
 
         TRACE(dump, "%s - %s", dhcp6r_clock(),
               "GOT MESSAGE 'RELEASE' FROM CLIENT---> IS TO BE RELAYED\n");
         mesg->isRF = 0;
-        if (process_RELAY_FORW(mesg) == 0)
+
+        if (process_RELAY_FORW(mesg) == 0) {
             return 0;
+        }
 
         return 1;
     }
+
     msg = *mesg->pstart;
 
     if (msg == DH6_RELAY_FORW) {
-        if (check_interface_semafor(mesg->interface_in) == 0)
+        if (check_interface_semafor(mesg->interface_in) == 0) {
             return 0;
+        }
 
         TRACE(dump, "%s - %s", dhcp6r_clock(),
               "GOT MESSAGE 'RELAY_FORW' FROM RELAY AGENT---> "
               "IS TO BE FURTHER RELAYED\n");
         hop = (mesg->pstart + 1);
+
         if (*hop >= HOP_COUNT_LIMIT) {
             TRACE(dump, "%s - %s", dhcp6r_clock(),
                   "HOP COUNT EXCEEDED, PACKET WILL BE DROPED...\n");
@@ -253,8 +287,9 @@ int put_msg_in_store(mesg)
         mesg->hop_count = *hop;
         mesg->isRF = 1;
 
-        if (process_RELAY_FORW(mesg) == 0)
+        if (process_RELAY_FORW(mesg) == 0) {
             return 0;
+        }
 
         return 1;
     }
@@ -264,8 +299,9 @@ int put_msg_in_store(mesg)
               "GOT MESSAGE 'RELAY_REPL' FROM RELAY AGENT OR SERVER---> "
               "IS TO BE FURTHER RELAYED\n");
 
-        if (process_RELAY_REPL(mesg) == 0)
+        if (process_RELAY_REPL(mesg) == 0) {
             return 0;
+        }
 
         return 1;
     }
