@@ -162,7 +162,8 @@ int dad_parse(const char *file, struct dhcp6_list *dad_list) {
 
         ifinfo->plen = strtol(tmp, NULL, 16);
         if ((errno == EINVAL) || (errno == ERANGE)) {
-            dhcpv6_dprintf(LOG_ERR, "error reading prefix length from %s", file);
+            dhcpv6_dprintf(LOG_ERR, "error reading prefix length from %s",
+                           file);
             goto fail;
         }
 
