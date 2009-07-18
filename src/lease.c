@@ -65,7 +65,7 @@ extern char *client6_lease_temp;
 u_int32_t do_hash(const void *, u_int8_t);
 static int init_lease_hashes(void);
 
-int write_lease(const struct dhcp6_lease *lease_ptr, FILE * file) {
+int write_lease(const struct dhcp6_lease *lease_ptr, FILE *file) {
     struct tm brokendown_time;
     char addr_str[64];
 
@@ -75,13 +75,17 @@ int write_lease(const struct dhcp6_lease *lease_ptr, FILE * file) {
                        strerror(errno));
         return (-1);
     }
+
     gmtime_r(&lease_ptr->start_date, &brokendown_time);
     fprintf(file, "lease %s/%d { \n", addr_str, lease_ptr->lease_addr.plen);
     fprintf(file, "\t DUID: %s;\n",
             duidstr(&lease_ptr->iaidaddr->client6_info.clientid));
-    if (dhcp6_mode == DHCP6_MODE_CLIENT)
+
+    if (dhcp6_mode == DHCP6_MODE_CLIENT) {
         fprintf(file, "\t SDUID: %s;\n",
                 duidstr(&lease_ptr->iaidaddr->client6_info.serverid));
+    }
+
     fprintf(file, "\t IAID: %u ",
             lease_ptr->iaidaddr->client6_info.iaidinfo.iaid);
     fprintf(file, "\t type: %d;\n", lease_ptr->iaidaddr->client6_info.type);
@@ -89,6 +93,7 @@ int write_lease(const struct dhcp6_lease *lease_ptr, FILE * file) {
             lease_ptr->iaidaddr->client6_info.iaidinfo.renewtime);
     fprintf(file, "\t RebindTime: %u;\n",
             lease_ptr->iaidaddr->client6_info.iaidinfo.rebindtime);
+
     if (!IN6_IS_ADDR_UNSPECIFIED(&lease_ptr->linklocal)) {
         if ((inet_ntop(AF_INET6, &lease_ptr->linklocal, addr_str,
                        sizeof(struct in6_addr))) == 0) {
@@ -96,34 +101,40 @@ int write_lease(const struct dhcp6_lease *lease_ptr, FILE * file) {
                            strerror(errno));
             return (-1);
         }
+
         fprintf(file, "\t linklocal: %s;\n", addr_str);
     }
+
     fprintf(file, "\t state: %d;\n", lease_ptr->state);
-    if (lease_ptr->hostname != NULL)
+
+    if (lease_ptr->hostname != NULL) {
         fprintf(file, "\t hostname: %s;\n", lease_ptr->hostname);
+    }
+
     fprintf(file, "\t (start_date: %d %d/%d/%d %d:%d:%d UTC);\n",
-            brokendown_time.tm_wday,
-            brokendown_time.tm_year + 1900,
-            brokendown_time.tm_mon + 1,
-            brokendown_time.tm_mday,
-            brokendown_time.tm_hour,
-            brokendown_time.tm_min, brokendown_time.tm_sec);
+            brokendown_time.tm_wday, brokendown_time.tm_year + 1900,
+            brokendown_time.tm_mon + 1, brokendown_time.tm_mday,
+            brokendown_time.tm_hour, brokendown_time.tm_min,
+            brokendown_time.tm_sec);
     fprintf(file, "\t start date: %lu;\n", lease_ptr->start_date);
     fprintf(file, "\t PreferredLifeTime: %u;\n",
             lease_ptr->lease_addr.preferlifetime);
     fprintf(file, "\t ValidLifeTime: %u;\n",
             lease_ptr->lease_addr.validlifetime);
     fprintf(file, "}\n");
+
     if (fflush(file) == EOF) {
         dhcpv6_dprintf(LOG_INFO, "%s" "write lease fflush failed %s",
                        FNAME, strerror(errno));
         return -1;
     }
+
     if (fsync(fileno(file)) < 0) {
         dhcpv6_dprintf(LOG_INFO, "%s" "write lease fsync failed %s",
                        FNAME, strerror(errno));
         return -1;
     }
+
     return 0;
 }
 
@@ -132,19 +143,23 @@ FILE *sync_leases(FILE * file, const char *original, char *template) {
     struct hashlist_element *element;
 
     fd = mkstemp(template);
+
     if (fd < 0 || (sync_file = fdopen(fd, "w")) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "could not open sync file", FNAME);
         return (NULL);
     }
+
     if (dhcp6_mode == DHCP6_MODE_SERVER) {
         for (i = 0; i < lease_hash_table->hash_size; i++) {
             element = lease_hash_table->hash_list[i];
+
             while (element) {
                 if (write_lease((struct dhcp6_lease *) element->data,
                                 sync_file) < 0) {
                     dhcpv6_dprintf(LOG_ERR, "%s" "write lease failed", FNAME);
                     return (NULL);
                 }
+
                 element = element->next;
             }
         }
@@ -153,20 +168,26 @@ FILE *sync_leases(FILE * file, const char *original, char *template) {
 
         for (lv = TAILQ_FIRST(&client6_iaidaddr.lease_list); lv; lv = lv_next) {
             lv_next = TAILQ_NEXT(lv, link);
-            if (write_lease(lv, sync_file) < 0)
+
+            if (write_lease(lv, sync_file) < 0) {
                 dhcpv6_dprintf(LOG_ERR, "%s" "write lease failed", FNAME);
+            }
         }
     }
+
     fclose(sync_file);
     fclose(file);
+
     if (rename(template, original) < 0) {
         dhcpv6_dprintf(LOG_ERR, "%s" "Could not rename sync file", FNAME);
         return (NULL);
     }
+
     if ((file = fopen(original, "a+")) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "could not open sync file", FNAME);
         return (NULL);
     }
+
     return file;
 }
 
@@ -185,34 +206,39 @@ FILE *init_leases(const char *name) {
         dhcpv6_dprintf(LOG_ERR, "%s" "no lease file specified", FNAME);
         return (NULL);
     }
+
     if (!file) {
         dhcpv6_dprintf(LOG_ERR, "%s" "could not open lease file", FNAME);
         return (NULL);
     }
+
     if (stat(name, &stbuf)) {
         dhcpv6_dprintf(LOG_ERR, "%s" "could not stat lease file", FNAME);
         return (NULL);
     }
+
     if (0 != init_lease_hashes()) {
         dhcpv6_dprintf(LOG_ERR, "%s" "Could not initialize hash arrays",
                        FNAME);
         return (NULL);
     }
+
     if (stbuf.st_size > 0) {
         lease_parse(file);
     }
+
     return file;
 }
 
 int init_lease_hashes(void) {
-
     hash_anchors =
-        (struct hash_table **) malloc(HASH_TABLE_COUNT *
-                                      sizeof(*hash_anchors));
+        (struct hash_table **) malloc(HASH_TABLE_COUNT * sizeof(*hash_anchors));
+
     if (!hash_anchors) {
         dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't malloc hash anchors", FNAME);
         return (-1);
     }
+
     host_addr_hash_table = hash_table_create(DEFAULT_HASH_SIZE,
                                              addr_hash, v6addr_findkey,
                                              v6addr_key_compare);
@@ -220,6 +246,7 @@ int init_lease_hashes(void) {
         dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
         return (-1);
     }
+
     lease_hash_table = hash_table_create(DEFAULT_HASH_SIZE,
                                          addr_hash, lease_findkey,
                                          lease_key_compare);
@@ -227,6 +254,7 @@ int init_lease_hashes(void) {
         dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
         return (-1);
     }
+
     server6_hash_table = hash_table_create(DEFAULT_HASH_SIZE,
                                            iaid_hash, iaid_findkey,
                                            iaid_key_compare);
@@ -234,8 +262,8 @@ int init_lease_hashes(void) {
         dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
         return (-1);
     }
-    return 0;
 
+    return 0;
 }
 
 u_int32_t do_hash(const void *key, u_int8_t len) {
@@ -248,6 +276,7 @@ u_int32_t do_hash(const void *key, u_int8_t len) {
         memcpy(&tempkey, p, sizeof(tempkey));
         index ^= tempkey;
     }
+
     memcpy(&tempkey, p, len % (sizeof(tempkey)));
     index ^= tempkey;
     return index;
@@ -263,8 +292,7 @@ unsigned int iaid_hash(const void *key) {
 }
 
 unsigned int addr_hash(const void *key) {
-    const struct in6_addr *addrkey
-        =
+    const struct in6_addr *addrkey =
         (const struct in6_addr *) &(((const struct dhcp6_addr *) key)->addr);
     unsigned int index;
 
@@ -283,8 +311,9 @@ int v6addr_key_compare(const void *data, const void *key) {
 
     if (IN6_ARE_ADDR_EQUAL(&v6addr->addr, (struct in6_addr *) key)) {
         return MATCH;
-    } else
+    } else {
         return MISCOMPARE;
+    }
 }
 
 void *lease_findkey(const void *data) {
@@ -302,12 +331,15 @@ int lease_key_compare(const void *data, const void *key) {
         /* prefix match */
         if (addr6->type == IAPD) {
             /* XXX: allow duplicated PD for the same DUID */
-            if (lease_address->plen == addr6->plen)
+            if (lease_address->plen == addr6->plen) {
                 return MATCH;
+            }
             /* ipv6 address match */
-        } else if (addr6->type == IANA || addr6->type == IATA)
+        } else if (addr6->type == IANA || addr6->type == IATA) {
             return MATCH;
+        }
     }
+
     return MISCOMPARE;
 }
 
@@ -329,34 +361,37 @@ int iaid_key_compare(const void *data, const void *key) {
             return MATCH;
         }
     }
+
     return MISCOMPARE;
 }
 
-int prefixcmp(addr, prefix, len)
-     struct in6_addr *addr;
-     struct in6_addr *prefix;
-     int len;
-{
+int prefixcmp(struct in6_addr *addr, struct in6_addr *prefix, int len) {
     int i, num_bytes;
     struct in6_addr mask;
 
     num_bytes = len / 8;
+
     for (i = 0; i < num_bytes; i++) {
         mask.s6_addr[i] = 0xFF;
     }
+
     mask.s6_addr[num_bytes] = 0xFF << (8 - len % 8);
+
     for (i = 0; i < num_bytes; i++) {
-        if (addr->s6_addr[i] != prefix->s6_addr[i])
+        if (addr->s6_addr[i] != prefix->s6_addr[i]) {
             return -1;
+        }
     }
+
     if ((addr->s6_addr[num_bytes] & mask.s6_addr[num_bytes]) !=
-        (prefix->s6_addr[num_bytes] & mask.s6_addr[num_bytes]))
+        (prefix->s6_addr[num_bytes] & mask.s6_addr[num_bytes])) {
         return -1;
+    }
+
     return 0;
 }
 
 int get_linklocal(const char *ifname, struct in6_addr *linklocal) {
-
 /* XXX: fixme for MacOS X */
 #if defined(__linux__)
     struct ifaddrs *ifa = 0, *ifap = 0;
@@ -366,20 +401,29 @@ int get_linklocal(const char *ifname, struct in6_addr *linklocal) {
         dhcpv6_dprintf(LOG_ERR, "getifaddrs error");
         return -1;
     }
+
     /* ifa->ifa_addr is sockaddr_in6 */
     for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-        if (strcmp(ifa->ifa_name, ifname))
+        if (strcmp(ifa->ifa_name, ifname)) {
             continue;
+        }
+
         sd = (struct sockaddr *) ifa->ifa_addr;
-        if (!sd || sd->sa_family != AF_INET6)
+
+        if (!sd || sd->sa_family != AF_INET6) {
             continue;
-        if (!IN6_IS_ADDR_LINKLOCAL(&sd->sa_data[6]))
+        }
+
+        if (!IN6_IS_ADDR_LINKLOCAL(&sd->sa_data[6])) {
             continue;
+        }
+
         /* which linklocal do we want, if find many from scope id???
-           sa_data[32] */
+         * sa_data[32] */
         memcpy(linklocal, &sd->sa_data[6], sizeof(*linklocal));
         break;
     }
+
     freeifaddrs(ifap);
     return 0;
 #else
@@ -387,34 +431,32 @@ int get_linklocal(const char *ifname, struct in6_addr *linklocal) {
 #endif
 }
 
-int dhcp6_get_prefixlen(addr, ifp)
-     struct in6_addr *addr;
-     struct dhcp6_if *ifp;
-{
+int dhcp6_get_prefixlen(struct in6_addr *addr, struct dhcp6_if *ifp) {
     struct ra_info *rainfo;
 
     for (rainfo = ifp->ralist; rainfo; rainfo = rainfo->next) {
         /* prefixes are sorted by plen */
-        if (prefixcmp(addr, &rainfo->prefix, rainfo->plen) == 0)
+        if (prefixcmp(addr, &rainfo->prefix, rainfo->plen) == 0) {
             return rainfo->plen;
+        }
     }
+
     return PREFIX_LEN_NOTINRA;
 }
 
-int addr_on_addrlist(addrlist, addr6)
-     struct dhcp6_list *addrlist;
-     struct dhcp6_addr *addr6;
-{
+int addr_on_addrlist(struct dhcp6_list *addrlist, struct dhcp6_addr *addr6) {
     struct dhcp6_listval *lv;
 
     for (lv = TAILQ_FIRST(addrlist); lv; lv = TAILQ_NEXT(lv, link)) {
         if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &addr6->addr)) {
-            if ((lv->val_dhcp6addr.type != IAPD)
-                || ((lv->val_dhcp6addr.type == IAPD)
-                    && (lv->val_dhcp6addr.plen == addr6->plen)))
+            if ((lv->val_dhcp6addr.type != IAPD) ||
+                ((lv->val_dhcp6addr.type == IAPD) &&
+                 (lv->val_dhcp6addr.plen == addr6->plen))) {
                 return (1);
+            }
         }
     }
+
     return (0);
 }
 
@@ -422,13 +464,17 @@ u_int32_t get_min_preferlifetime(struct dhcp6_iaidaddr * sp) {
     struct dhcp6_lease *lv, *first;
     u_int32_t min;
 
-    if (TAILQ_EMPTY(&sp->lease_list))
+    if (TAILQ_EMPTY(&sp->lease_list)) {
         return 0;
+    }
+
     first = TAILQ_FIRST(&sp->lease_list);
     min = first->lease_addr.preferlifetime;
+
     for (lv = TAILQ_FIRST(&sp->lease_list); lv; lv = TAILQ_NEXT(lv, link)) {
         min = MIN(min, lv->lease_addr.preferlifetime);
     }
+
     return min;
 }
 
@@ -436,12 +482,16 @@ u_int32_t get_max_validlifetime(struct dhcp6_iaidaddr * sp) {
     struct dhcp6_lease *lv, *first;
     u_int32_t max;
 
-    if (TAILQ_EMPTY(&sp->lease_list))
+    if (TAILQ_EMPTY(&sp->lease_list)) {
         return 0;
+    }
+
     first = TAILQ_FIRST(&sp->lease_list);
     max = first->lease_addr.validlifetime;
+
     for (lv = TAILQ_FIRST(&sp->lease_list); lv; lv = TAILQ_NEXT(lv, link)) {
         max = MAX(max, lv->lease_addr.validlifetime);
     }
+
     return max;
 }
