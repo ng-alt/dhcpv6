@@ -48,41 +48,35 @@
 
 static void download_scope(struct scope *, struct scope *);
 
-int ipv6addrcmp(addr1, addr2)
-     struct in6_addr *addr1;
-     struct in6_addr *addr2;
-{
+int ipv6addrcmp(struct in6_addr *addr1, struct in6_addr *addr2) {
     int i;
 
     for (i = 0; i < 16; i++) {
-        if (addr1->s6_addr[i] < addr2->s6_addr[i])
+        if (addr1->s6_addr[i] < addr2->s6_addr[i]) {
             return (-1);
-        else if (addr1->s6_addr[i] > addr2->s6_addr[i])
+        } else if (addr1->s6_addr[i] > addr2->s6_addr[i]) {
             return 1;
+        }
     }
+
     return 0;
 }
 
-
-struct in6_addr
- *inc_ipv6addr(current)
-     struct in6_addr *current;
-{
+struct in6_addr *inc_ipv6addr(struct in6_addr *current) {
     int i;
 
     for (i = 15; i >= 0; i--) {
         current->s6_addr[i]++;
-        if (current->s6_addr[i] != 0x00)
+
+        if (current->s6_addr[i] != 0x00) {
             break;
+        }
     }
+
     return current;
 }
 
-struct v6addr
- *getprefix(addr, len)
-     struct in6_addr *addr;
-     int len;
-{
+struct v6addr *getprefix(struct in6_addr *addr, int len) {
     int i, num_bytes;
     struct v6addr *prefix;
 
@@ -91,89 +85,87 @@ struct v6addr
         dhcpv6_dprintf(LOG_ERR, "%s" "fail to malloc memory", FNAME);
         return NULL;
     }
+
     memset(prefix, 0, sizeof(*prefix));
     prefix->plen = len;
     num_bytes = len / 8;
+
     for (i = 0; i < num_bytes; i++) {
         prefix->addr.s6_addr[i] = 0xFF;
     }
+
     prefix->addr.s6_addr[num_bytes] = (0xFF << 8) - len % 8;
+
     for (i = 0; i <= num_bytes; i++) {
         prefix->addr.s6_addr[i] &= addr->s6_addr[i];
     }
+
     for (i = num_bytes + 1; i < 16; i++) {
         prefix->addr.s6_addr[i] = 0x00;
     }
+
     return prefix;
 }
 
-#if 0
-static void get_random_bytes(u_int8_t seed[], int num) {
-    int i;
-
-    for (i = 0; i < num; i++)
-        seed[i] = random();
-    return;
-}
-#endif
-
-int get_numleases(currentpool, poolfile)
-     struct pool_decl *currentpool;
-     char *poolfile;
-{
+int get_numleases(struct pool_decl *currentpool, char *poolfile) {
     return 0;
 }
 
-
-struct scopelist
- *push_double_list(current, scope)
-     struct scopelist *current;
-     struct scope *scope;
-{
+struct scopelist *push_double_list(struct scopelist *current,
+                                   struct scope *scope) {
     struct scopelist *item;
 
     item = (struct scopelist *) malloc(sizeof(*item));
+
     if (item == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "fail to allocate memory", FNAME);
         return NULL;
     }
+
     memset(item, 0, sizeof(*item));
     item->scope = scope;
+
     if (current) {
-        if (current->next)
+        if (current->next) {
             current->next->prev = item;
+        }
+
         item->next = current->next;
         current->next = item;
-    } else
+    } else {
         item->next = NULL;
+    }
+
     item->prev = current;
     current = item;
+
     return current;
 }
 
-struct scopelist
- *pop_double_list(current)
-     struct scopelist *current;
-{
+struct scopelist *pop_double_list(struct scopelist *current) {
     struct scopelist *temp;
 
     temp = current;
+
     /* current must not be NULL */
-    if (current->next)
+    if (current->next) {
         current->next->prev = current->prev;
-    if (current->prev)
+    }
+
+    if (current->prev) {
         current->prev->next = current->next;
+    }
+
     current = current->prev;
     temp->prev = NULL;
     temp->next = NULL;
     temp->scope = NULL;
     free(temp);
+
     return current;
 }
 
-void post_config(root)
-     struct rootgroup *root;
-{
+void post_config(struct rootgroup *root) {
     struct interface *ifnetwork;
     struct link_decl *link;
     struct host_decl *host;
@@ -182,74 +174,97 @@ void post_config(root)
     struct scope *current;
     struct scope *up;
 
-    if (root->group)
+    if (root->group) {
         download_scope(root->group, &root->scope);
+    }
+
     up = &root->scope;
+
     /* XXX: check the physical interfaces for the server */
     for (ifnetwork = root->iflist; ifnetwork; ifnetwork = ifnetwork->next) {
-        if (ifnetwork->group)
+        if (ifnetwork->group) {
             download_scope(ifnetwork->group, &ifnetwork->ifscope);
+        }
+
         current = &ifnetwork->ifscope;
         download_scope(up, current);
         up = &ifnetwork->ifscope;
+
         for (host = ifnetwork->hostlist; host; host = host->next) {
-            if (host->group)
+            if (host->group) {
                 download_scope(host->group, &host->hostscope);
+            }
+
             current = &host->hostscope;
             download_scope(up, current);
         }
-
     }
+
     for (ifnetwork = root->iflist; ifnetwork; ifnetwork = ifnetwork->next) {
-        if (ifnetwork->group)
+        if (ifnetwork->group) {
             download_scope(ifnetwork->group, &ifnetwork->ifscope);
+        }
+
         current = &ifnetwork->ifscope;
         download_scope(up, current);
         up = &ifnetwork->ifscope;
+
         /* XXX: check host */
         for (link = ifnetwork->linklist; link; link = link->next) {
-            if (link->group)
+            if (link->group) {
                 download_scope(link->group, &link->linkscope);
+            }
+
             current = &link->linkscope;
             download_scope(up, current);
             up = &link->linkscope;
+
             for (seg = link->seglist; seg; seg = seg->next) {
                 if (seg->pool) {
-                    if (seg->pool->group)
+                    if (seg->pool->group) {
                         download_scope(seg->pool->group,
                                        &seg->pool->poolscope);
+                    }
+
                     current = &seg->pool->poolscope;
                     download_scope(up, current);
+
                     if (current->prefer_life_time != 0 &&
                         current->valid_life_time != 0 &&
                         current->prefer_life_time >
                         current->valid_life_time) {
-                        dhcpv6_dprintf(LOG_ERR, "%s"
-                                       "preferlife time is greater than validlife time",
+                        dhcpv6_dprintf(LOG_ERR, "%s preferlife time is "
+                                       "greater than validlife time",
                                        FNAME);
                         exit(1);
                     }
+
                     memcpy(&seg->parainfo, current, sizeof(seg->parainfo));
                 } else {
                     memcpy(&seg->parainfo, up, sizeof(seg->parainfo));
                 }
             }
+
             for (prefix6 = link->prefixlist; prefix6; prefix6 = prefix6->next) {
                 if (prefix6->pool) {
-                    if (prefix6->pool->group)
+                    if (prefix6->pool->group) {
                         download_scope(prefix6->pool->group,
                                        &prefix6->pool->poolscope);
+                    }
+
                     current = &prefix6->pool->poolscope;
                     download_scope(up, current);
+
                     if (current->prefer_life_time != 0 &&
                         current->valid_life_time != 0 &&
                         current->prefer_life_time >
                         current->valid_life_time) {
-                        dhcpv6_dprintf(LOG_ERR, "%s"
-                                       "preferlife time is greater than validlife time",
+                        dhcpv6_dprintf(LOG_ERR, "%s preferlife time is "
+                                       "greater than validlife time",
                                        FNAME);
                         exit(1);
                     }
+
                     memcpy(&prefix6->parainfo, current,
                            sizeof(prefix6->parainfo));
                 } else {
@@ -258,40 +273,56 @@ void post_config(root)
             }
         }
     }
+
     return;
 }
 
-static void download_scope(up, current)
-     struct scope *up;
-     struct scope *current;
-{
-    if (current->prefer_life_time == 0 && up->prefer_life_time != 0)
+static void download_scope(struct scope *up, struct scope *current) {
+    if (current->prefer_life_time == 0 && up->prefer_life_time != 0) {
         current->prefer_life_time = up->prefer_life_time;
-    if (current->valid_life_time == 0 && up->valid_life_time != 0)
+    }
+
+    if (current->valid_life_time == 0 && up->valid_life_time != 0) {
         current->valid_life_time = up->valid_life_time;
-    if (current->renew_time == 0 && up->renew_time != 0)
+    }
+
+    if (current->renew_time == 0 && up->renew_time != 0) {
         current->renew_time = up->renew_time;
-    if (current->rebind_time == 0 && up->rebind_time != 0)
+    }
+
+    if (current->rebind_time == 0 && up->rebind_time != 0) {
         current->rebind_time = up->rebind_time;
+    }
+
     if (current->renew_time > current->rebind_time) {
         dhcpv6_dprintf(LOG_ERR, "dhcpv6 server defines T1 > T2");
         exit(1);
     }
-    if (current->irt == 0 && up->irt != 0)
+
+    if (current->irt == 0 && up->irt != 0) {
         current->irt = up->irt;
-    if (current->server_pref == 0
-        || current->server_pref == DH6OPT_PREF_UNDEF) {
-        if (up->server_pref != 0)
-            current->server_pref = up->server_pref;
-        else
-            current->server_pref = DH6OPT_PREF_UNDEF;
     }
+
+    if (current->server_pref == 0 ||
+        current->server_pref == DH6OPT_PREF_UNDEF) {
+        if (up->server_pref != 0) {
+            current->server_pref = up->server_pref;
+        } else {
+            current->server_pref = DH6OPT_PREF_UNDEF;
+        }
+    }
+
     current->allow_flags |= up->allow_flags;
     current->send_flags |= up->send_flags;
-    if (TAILQ_EMPTY(&current->dnslist.addrlist))
+
+    if (TAILQ_EMPTY(&current->dnslist.addrlist)) {
         dhcp6_copy_list(&current->dnslist.addrlist, &up->dnslist.addrlist);
-    if (current->dnslist.domainlist == NULL)
+    }
+
+    if (current->dnslist.domainlist == NULL) {
         current->dnslist.domainlist = up->dnslist.domainlist;
+    }
+
     return;
 }
 
@@ -303,18 +334,26 @@ int is_anycast(struct in6_addr *in, int plen) {
         return in->s6_addr32[2] == htonl(0xFDFFFFFF) &&
             (in->s6_addr32[3] | htonl(0x7f)) == (u_int32_t) ~ 0;
     }
+
     /* not EUI64 */
-    if (plen > 121)
+    if (plen > 121) {
         return 0;
+    }
+
     wc = plen / 32;
     if (plen) {
-        if (in->s6_addr32[wc] != NMASK(32 - (plen % 32)))
+        if (in->s6_addr32[wc] != NMASK(32 - (plen % 32))) {
             return 0;
-        wc++;
+        }
 
+        wc++;
     }
-    for ( /* empty */ ; wc < 2; wc++)
-        if (in->s6_addr32[wc] != (u_int32_t) ~ 0)
+
+    for ( /* empty */ ; wc < 2; wc++) {
+        if (in->s6_addr32[wc] != (u_int32_t) ~ 0) {
             return 0;
+        }
+    }
+
     return (in->s6_addr32[3] | htonl(0x7f)) == (u_int32_t) ~ 0;
 }
