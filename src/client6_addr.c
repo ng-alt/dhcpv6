@@ -84,7 +84,6 @@ u_int32_t get_min_preferlifetime(struct dhcp6_iaidaddr *);
 u_int32_t get_max_validlifetime(struct dhcp6_iaidaddr *);
 struct dhcp6_timer *dhcp6_iaidaddr_timo(void *);
 struct dhcp6_timer *dhcp6_lease_timo(void *);
-
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern struct dhcp6_timer *client6_timo(void *);
 extern void client6_send(struct dhcp6_event *);
@@ -163,6 +162,7 @@ int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
         client6_iaidaddr.client6_info.iaidinfo.renewtime >
         client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
         u_int32_t min_plifetime;
+
         min_plifetime = get_min_preferlifetime(&client6_iaidaddr);
 
         if (min_plifetime == DHCP6_DURATITION_INFINITE) {
@@ -230,37 +230,46 @@ int dhcp6_add_lease(struct dhcp6_addr *addr) {
                        dhcp6_stcodestr(addr->status_code));
         return (0);
     }
+
     if (addr->validlifetime == 0 || addr->preferlifetime == 0 ||
         addr->preferlifetime > addr->validlifetime) {
         dhcpv6_dprintf(LOG_ERR, "%s" "invalid address life time for %s",
                        FNAME, in6addr2str(&addr->addr, 0));
         return (0);
     }
+
     if ((sp = dhcp6_find_lease(&client6_iaidaddr, addr)) != NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "duplicated address: %s",
                        FNAME, in6addr2str(&addr->addr, 0));
         return (-1);
     }
+
     if ((sp = (struct dhcp6_lease *) malloc(sizeof(*sp))) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to allocate memory"
                        " for a addr", FNAME);
         return (-1);
     }
+
     memset(sp, 0, sizeof(*sp));
     memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
     sp->iaidaddr = &client6_iaidaddr;
     time(&sp->start_date);
     sp->state = ACTIVE;
+
     if (client6_lease_file && (write_lease(sp, client6_lease_file) != 0)) {
         dhcpv6_dprintf(LOG_ERR,
                        "%s"
                        "failed to write a new lease address %s to lease file",
                        FNAME, in6addr2str(&sp->lease_addr.addr, 0));
-        if (sp->timer)
+
+        if (sp->timer) {
             dhcp6_remove_timer(sp->timer);
+        }
+
         free(sp);
         return (-1);
     }
+
     if (sp->lease_addr.type == IAPD) {
         dhcpv6_dprintf(LOG_INFO, "request prefix is %s/%d",
                        in6addr2str(&sp->lease_addr.addr, 0),
@@ -268,8 +277,11 @@ int dhcp6_add_lease(struct dhcp6_addr *addr) {
     } else if (client6_ifaddrconf(IFADDRCONF_ADD, addr) != 0) {
         dhcpv6_dprintf(LOG_ERR, "%s" "adding address failed: %s",
                        FNAME, in6addr2str(&addr->addr, 0));
-        if (sp->timer)
+
+        if (sp->timer) {
             dhcp6_remove_timer(sp->timer);
+        }
+
         free(sp);
         return (-1);
     }
@@ -306,11 +318,15 @@ int dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
         lv_next = TAILQ_NEXT(lv, link);
         (void) dhcp6_remove_lease(lv);
     }
-    /* 
-       if (iaidaddr->client6_info.serverid.duid_id != NULL)
-       duidfree(&iaidaddr->client6_info.serverid); */
-    if (iaidaddr->timer)
+
+    /*
+     * if (iaidaddr->client6_info.serverid.duid_id != NULL)
+     * duidfree(&iaidaddr->client6_info.serverid);
+     */
+    if (iaidaddr->timer) {
         dhcp6_remove_timer(iaidaddr->timer);
+    }
+
     TAILQ_INIT(&iaidaddr->lease_list);
     return 0;
 }
@@ -339,15 +355,17 @@ int dhcp6_remove_lease(struct dhcp6_lease *sp) {
     }
 
     /* remove expired timer for this lease. */
-    if (sp->timer)
+    if (sp->timer) {
         dhcp6_remove_timer(sp->timer);
+    }
 
     TAILQ_REMOVE(&client6_iaidaddr.lease_list, sp, link);
     free(sp);
 
     /* can't remove expired iaidaddr even there is no lease in this iaidaddr
-       since the rebind->solicit timer uses this iaidaddr
-       if(TAILQ_EMPTY(&client6_iaidaddr.lease_list)) dhcp6_remove_iaidaddr(); */
+     * since the rebind->solicit timer uses this iaidaddr
+     * if(TAILQ_EMPTY(&client6_iaidaddr.lease_list)) dhcp6_remove_iaidaddr(); 
+     */
 
     return 0;
 }
@@ -429,6 +447,7 @@ int dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
     /* Should we process IA_TA, IA_NA differently */
     if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
         u_int32_t min_plifetime;
+
         min_plifetime = get_min_preferlifetime(&client6_iaidaddr);
 
         if (min_plifetime == DHCP6_DURATITION_INFINITE) {
@@ -467,8 +486,8 @@ int dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
     /* update the start date and timer */
     if (client6_iaidaddr.timer == NULL) {
         if ((client6_iaidaddr.timer =
-            dhcp6_add_timer(dhcp6_iaidaddr_timo,
-                            &client6_iaidaddr)) == NULL) {
+             dhcp6_add_timer(dhcp6_iaidaddr_timo,
+                             &client6_iaidaddr)) == NULL) {
             dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for iaid %u",
                            FNAME,
                            client6_iaidaddr.client6_info.iaidinfo.iaid);
@@ -618,8 +637,11 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
                 sp->client6_info.iaidinfo.rebindtime;
             timeo.tv_sec = (long) d;
             timeo.tv_usec = 0;
-            if (sp->client6_info.serverid.duid_id != NULL)
+
+            if (sp->client6_info.serverid.duid_id != NULL) {
                 duidfree(&sp->client6_info.serverid);
+            }
+
             break;
         case REBIND:
             dhcpv6_dprintf(LOG_INFO,
@@ -648,9 +670,10 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
     /* Create a new event for the new state */
     if ((ev = dhcp6_create_event(sp->ifp, dhcpstate)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to create a new event", FNAME);
-        return NULL;          /* XXX: should try to recover reserve
-                                 memory?? */
+        return NULL;            /* XXX: should try to recover reserve
+                                 * memory?? */
     }
+
     run_script(sp->ifp, prev_state, ev->state, ev->uuid);
 
     switch (sp->state) {
@@ -672,11 +695,13 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
     if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to create a new event timer",
                        FNAME);
+
         if (sp->state == RENEW) {
             duidfree(&ev->serverid);
         }
+
         free(ev);
-        return NULL;          /* XXX */
+        return NULL;            /* XXX */
     }
 
     TAILQ_INSERT_TAIL(&sp->ifp->event_list, ev, link);
@@ -854,8 +879,7 @@ int create_iaid(struct iaid_table *iaidtab, int num_device) {
 
         temp->hwaddr.len = gethwid(temp->hwaddr.data,
                                    sizeof(temp->hwaddr.data),
-                                   ifa->ifa_name,
-                                   &temp->hwaddr.type);
+                                   ifa->ifa_name, &temp->hwaddr.type);
 
         switch (temp->hwaddr.type) {
             case ARPHRD_ETHER:
