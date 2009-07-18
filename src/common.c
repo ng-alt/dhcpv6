@@ -380,38 +380,15 @@ struct ia_listval *ia_find_listval(struct ia_list *head,
     return NULL;
 }
 
-static const char *state_to_str(int state) {
-    switch (state) {
-        case DHCP6S_INIT:
-            return "INIT";
-        case DHCP6S_SOLICIT:
-            return "SOLICIT";
-        case DHCP6S_INFOREQ:
-            return "INFOREQ";
-        case DHCP6S_REQUEST:
-            return "REQUEST";
-        case DHCP6S_RENEW:
-            return "RENEW";
-        case DHCP6S_REBIND:
-            return "REBIND";
-        case DHCP6S_CONFIRM:
-            return "CONFIRM";
-        case DHCP6S_DECLINE:
-            return "DECLINE";
-        case DHCP6S_RELEASE:
-            return "RELEASE";
-        case DHCP6S_IDLE:
-            return "IDLE";
-        default:
-            return "UNKNOWN";
+void run_script(struct dhcp6_if *ifp, int old_state, int new_state,
+                u_int32_t uuid) {
+    if (script == NULL) {
+        /* configure the interface the old way */
     }
-}
 
-void run_script(const char *iface, int old_state,
-                int new_state, u_int32_t uuid) {
     dhcpv6_dprintf(LOG_DEBUG, "%s" "****** SCRIPT  %s (%u)  %s -> %s",
-                   FNAME, iface, uuid, state_to_str(old_state),
-                   state_to_str(new_state));
+                   FNAME, iface, uuid, dhcp6msgstr(old_state),
+                   dhcp6msgstr(new_state));
 }
 
 struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *ifp, int state) {
@@ -2213,7 +2190,7 @@ char *dhcp6optstr(int type) {
         case DH6OPT_RAPID_COMMIT:
             return "rapid commit";
         case DH6OPT_DNS_SERVERS:
-            return "DNS_SERVERS";
+            return "DNS servers";
         case DH6OPT_DOMAIN_LIST:
             return "domain search list";
         case DH6OPT_RELAY_MSG:
@@ -2236,32 +2213,45 @@ char *dhcp6msgstr(int type) {
     }
 
     switch (type) {
+        case DHCP6S_INIT:
+            return "INIT";
+        case DHCP6S_RELEASE:
+            return "RELEASE";
+        case DHCP6S_IDLE:
+            return "IDLE";
         case DH6_SOLICIT:
-            return "solicit";
+        case DHCP6S_SOLICIT:
+            return "SOLICIT";
         case DH6_ADVERTISE:
-            return "advertise";
+            return "ADVERTISE";
         case DH6_RENEW:
-            return "renew";
+        case DHCP6S_RENEW:
+            return "RENEW";
         case DH6_REBIND:
-            return "rebind";
+        case DHCP6S_REBIND:
+            return "REBIND";
         case DH6_REQUEST:
-            return "request";
+        case DHCP6S_REQUEST:
+            return "REQUEST";
         case DH6_REPLY:
-            return "reply";
+            return "REPLY";
         case DH6_CONFIRM:
-            return "confirm";
+        case DHCP6S_CONFIRM:
+            return "CONFIRM";
         case DH6_RELEASE:
-            return "release";
+            return "RELEASE";
         case DH6_DECLINE:
-            return "decline";
+        case DHCP6S_DECLINE:
+            return "DECLINE";
         case DH6_INFORM_REQ:
-            return "information request";
+        case DHCP6_INFOREQ:
+            return "INFOREQ";
         case DH6_RECONFIGURE:
-            return "reconfigure";
+            return "RECONFIGURE";
         case DH6_RELAY_FORW:
-            return "relay forwarding";
+            return "RELAY-FORW";
         case DH6_RELAY_REPL:
-            return "relay reply";
+            return "RELAY-REPL";
         default:
             sprintf(genstr, "msg%d", type);
             return (genstr);
@@ -2279,7 +2269,7 @@ char *dhcp6_stcodestr(int code) {
         case DH6OPT_STCODE_SUCCESS:
             return "success";
         case DH6OPT_STCODE_UNSPECFAIL:
-            return "unspec failure";
+            return "unspecified failure";
         case DH6OPT_STCODE_AUTHFAILED:
             return "auth fail";
         case DH6OPT_STCODE_ADDRUNAVAIL:
@@ -2291,7 +2281,7 @@ char *dhcp6_stcodestr(int code) {
         case DH6OPT_STCODE_CONFNOMATCH:
             return "confirm no match";
         case DH6OPT_STCODE_NOTONLINK:
-            return "not on-link";
+            return "not on link";
         case DH6OPT_STCODE_USEMULTICAST:
             return "use multicast";
         default:

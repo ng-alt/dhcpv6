@@ -651,7 +651,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
         return NULL;          /* XXX: should try to recover reserve
                                  memory?? */
     }
-    run_script(sp->ifp->ifname, prev_state, ev->state, ev->uuid);
+    run_script(sp->ifp, prev_state, ev->state, ev->uuid);
 
     switch (sp->state) {
         case RENEW:

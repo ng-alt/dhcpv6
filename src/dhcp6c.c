@@ -166,6 +166,7 @@ extern int dad_parse(const char *, struct dhcp6_list *);
 
 static int pid;
 static char pidfile[MAXPATHLEN];
+static char *script = NULL;
 
 char client6_lease_temp[256];
 struct dhcp6_list request_list;
@@ -177,7 +178,6 @@ int main(int argc, char **argv, char **envp) {
     char *addr;
 
     pid = getpid();
-    static char *script = NULL;
 
     srandom(time(NULL) & pid);
 
@@ -381,9 +381,9 @@ static void usage(char *name) {
     fprintf(stderr, "    -R ADDR...     Request the specified IANA address(es)\n");
     fprintf(stderr, "    -P ADDR...     Request the specified IAPD address(es)\n");
     fprintf(stderr, "    -I             Request only information from the server\n");
+    fprintf(stderr, "    -s PATH        Script executed on state changes to which configuration is delegated\n");
     fprintf(stderr, "    -v             Verbose debugging output\n");
     fprintf(stderr, "    -f             Run client as a foreground process\n");
-    fprintf(stderr, "    -s PATH        Script executed on state changes to which configuration is delegated\n");
     fprintf(stderr, "IANA is identiy association named address.\n");
     fprintf(stderr, "IAPD is identiy association prefix delegation.\n");
     fflush(stderr);
@@ -809,7 +809,7 @@ static int client6_ifinit(char *device) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to create an event", FNAME);
         return -1;
     }
-    run_script(ifp->ifname, DHCP6S_INIT, ev->state, ev->uuid);
+    run_script(ifp, DHCP6S_INIT, ev->state, ev->uuid);
 
     ifp->servers = NULL;
     ev->ifp->current_server = NULL;
@@ -924,7 +924,7 @@ static void ev_set_state(struct dhcp6_event *ev, int new_state) {
     dhcpv6_dprintf(LOG_DEBUG, "%s" "event %p xid %d state change %d -> %d",
                    FNAME, ev, ev->xid, ev->state, new_state);
     ev->state = new_state;
-    run_script(ev->ifp->ifname, old_state, new_state, ev->uuid);
+    run_script(ev->ifp, old_state, new_state, ev->uuid);
 }
 
 struct dhcp6_timer *client6_timo(void *arg) {
@@ -2056,7 +2056,7 @@ int client6_send_newstate(struct dhcp6_if *ifp, int state) {
         return (-1);
     }
 
-    run_script(ifp->ifname, state, ev->state, ev->uuid);
+    run_script(ifp, state, ev->state, ev->uuid);
 
     if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for %s",
