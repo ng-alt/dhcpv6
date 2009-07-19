@@ -97,7 +97,7 @@ AC_FUNC_REALLOC
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_FUNC_STAT
-AC_CHECK_FUNCS([bzero ftime gettimeofday memset select socket strchr strdup \
+AC_CHECK_FUNCS([ftime gettimeofday memset select socket strchr strdup \
                 strerror strrchr strstr strtol strtoul],
                [],
                [AC_MSG_FAILURE([*** Required function $ac_func not found.])])

@@ -420,7 +420,7 @@ int send_message(void) {
         return 0;
     }
 
-    bzero((char *) &sin6, sizeof(struct sockaddr_in6));
+    memset(&sin6, '\0', sizeof(struct sockaddr_in6));
     sin6.sin6_family = AF_INET6;
     sin6.sin6_flowinfo = 0;
     sin6.sin6_scope_id = 0;
@@ -521,7 +521,7 @@ int send_message(void) {
     if (mesg->msg_type == DH6_RELAY_FORW) {
         for (ipv6uni = IPv6_uniaddr_list.next; ipv6uni != &IPv6_uniaddr_list;
              ipv6uni = ipv6uni->next) {
-            bzero((char *) &sin6, sizeof(struct sockaddr_in6));
+            memset(&sin6, '\0', sizeof(struct sockaddr_in6));
             sin6.sin6_family = AF_INET6;
 
             memset(dest_addr, 0, INET6_ADDRSTRLEN);
@@ -596,7 +596,7 @@ int send_message(void) {
             uservers = iface->sname;
 
             while (uservers != NULL) {
-                bzero((char *) &sin6, sizeof(struct sockaddr_in6));
+                memset(&sin6, '\0', sizeof(struct sockaddr_in6));
                 sin6.sin6_family = AF_INET6;
 
                 memset(dest_addr, 0, INET6_ADDRSTRLEN);
@@ -679,7 +679,7 @@ int send_message(void) {
 
         for (si = sifaces_list.next; si != &sifaces_list; si = si->next) {
             *(mesg->hc_pointer) = MAXHOPCOUNT;
-            bzero((char *) &sin6, sizeof(struct sockaddr_in6));
+            memset(&sin6, '\0', sizeof(struct sockaddr_in6));
             sin6.sin6_family = AF_INET6;
 
             memset(dest_addr, 0, INET6_ADDRSTRLEN);
@@ -775,7 +775,7 @@ int send_message(void) {
                 }
 
                 *(mesg->hc_pointer) = MAXHOPCOUNT;
-                bzero((char *) &sin6, sizeof(struct sockaddr_in6));
+                memset(&sin6, '\0', sizeof(struct sockaddr_in6));
                 sin6.sin6_family = AF_INET6;
 
                 memset(dest_addr, 0, INET6_ADDRSTRLEN);
