@@ -20,7 +20,6 @@
  * Author(s): David Cantrell <dcantrell@redhat.com>
  */
 
-
 /*
  * (Adapted from dad_token.l, which is BSD licensed code from IBM.)
  *

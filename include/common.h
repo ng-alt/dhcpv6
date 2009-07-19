@@ -38,6 +38,36 @@
 #define FNAME ""
 #endif
 
+#define DPRINT_STATUS_CODE(object, num, optp, optlen) \
+do { \
+    dhcpv6_dprintf(LOG_INFO, \
+                   "status code of this %s is: %d - %s", \
+                   (object), (num), dhcp6_stcodestr((num))); \
+    if ((optp) != NULL && (optlen) > sizeof(u_int16_t)) { \
+        dhcpv6_dprintf(LOG_INFO, \
+                       "status message of this %s is: %-*s", \
+                       (object), \
+                       (optlen) - (int) sizeof(u_int16_t), \
+                       (char *) (optp) + sizeof(u_int16_t)); \
+    } \
+} while (0)
+
+#define COPY_OPTION(t, l, v, p) do { \
+    if ((void *)(ep) - (void *)(p) < (l) + sizeof(struct dhcp6opt)) { \
+        dhcpv6_dprintf(LOG_INFO, "%s" "option buffer short for %s", \
+                       FNAME, dhcp6optstr((t))); \
+        goto fail; \
+    } \
+    opth.dh6opt_type = htons((t)); \
+    opth.dh6opt_len = htons((l)); \
+    memcpy((p), &opth, sizeof(opth)); \
+    if ((l)) \
+        memcpy((p) + 1, (v), (l)); \
+    (p) = (struct dhcp6opt *)((char *)((p) + 1) + (l)); \
+    (len) += sizeof(struct dhcp6opt) + (l); \
+    dhcpv6_dprintf(LOG_DEBUG, "%s" "set %s", FNAME, dhcp6optstr((t))); \
+} while (0)
+
 extern int foreground;
 extern int debug_thresh;
 
@@ -99,3 +129,4 @@ extern struct dhcp6_if *find_ifconfbyname(const char *);
 extern struct dhcp6_if *find_ifconfbyid(unsigned int);
 extern struct prefix_ifconf *find_prefixifconf(const char *);
 extern struct host_conf *find_hostconf(const struct duid *);
+extern gethwid(unsigned char *, int, const char *, u_int16_t *);

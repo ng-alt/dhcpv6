@@ -46,7 +46,58 @@
 
 #define NMASK(n) htonl((1<<(n))-1)
 
-static void download_scope(struct scope *, struct scope *);
+/* BEGIN STATIC FUNCTIONS */
+
+static void _download_scope(struct scope *up, struct scope *current) {
+    if (current->prefer_life_time == 0 && up->prefer_life_time != 0) {
+        current->prefer_life_time = up->prefer_life_time;
+    }
+
+    if (current->valid_life_time == 0 && up->valid_life_time != 0) {
+        current->valid_life_time = up->valid_life_time;
+    }
+
+    if (current->renew_time == 0 && up->renew_time != 0) {
+        current->renew_time = up->renew_time;
+    }
+
+    if (current->rebind_time == 0 && up->rebind_time != 0) {
+        current->rebind_time = up->rebind_time;
+    }
+
+    if (current->renew_time > current->rebind_time) {
+        dhcpv6_dprintf(LOG_ERR, "dhcpv6 server defines T1 > T2");
+        exit(1);
+    }
+
+    if (current->irt == 0 && up->irt != 0) {
+        current->irt = up->irt;
+    }
+
+    if (current->server_pref == 0 ||
+        current->server_pref == DH6OPT_PREF_UNDEF) {
+        if (up->server_pref != 0) {
+            current->server_pref = up->server_pref;
+        } else {
+            current->server_pref = DH6OPT_PREF_UNDEF;
+        }
+    }
+
+    current->allow_flags |= up->allow_flags;
+    current->send_flags |= up->send_flags;
+
+    if (TAILQ_EMPTY(&current->dnslist.addrlist)) {
+        dhcp6_copy_list(&current->dnslist.addrlist, &up->dnslist.addrlist);
+    }
+
+    if (current->dnslist.domainlist == NULL) {
+        current->dnslist.domainlist = up->dnslist.domainlist;
+    }
+
+    return;
+}
+
+/* END STATIC FUNCTIONS */
 
 int ipv6addrcmp(struct in6_addr *addr1, struct in6_addr *addr2) {
     int i;
@@ -272,55 +323,6 @@ void post_config(struct rootgroup *root) {
                 }
             }
         }
-    }
-
-    return;
-}
-
-static void download_scope(struct scope *up, struct scope *current) {
-    if (current->prefer_life_time == 0 && up->prefer_life_time != 0) {
-        current->prefer_life_time = up->prefer_life_time;
-    }
-
-    if (current->valid_life_time == 0 && up->valid_life_time != 0) {
-        current->valid_life_time = up->valid_life_time;
-    }
-
-    if (current->renew_time == 0 && up->renew_time != 0) {
-        current->renew_time = up->renew_time;
-    }
-
-    if (current->rebind_time == 0 && up->rebind_time != 0) {
-        current->rebind_time = up->rebind_time;
-    }
-
-    if (current->renew_time > current->rebind_time) {
-        dhcpv6_dprintf(LOG_ERR, "dhcpv6 server defines T1 > T2");
-        exit(1);
-    }
-
-    if (current->irt == 0 && up->irt != 0) {
-        current->irt = up->irt;
-    }
-
-    if (current->server_pref == 0 ||
-        current->server_pref == DH6OPT_PREF_UNDEF) {
-        if (up->server_pref != 0) {
-            current->server_pref = up->server_pref;
-        } else {
-            current->server_pref = DH6OPT_PREF_UNDEF;
-        }
-    }
-
-    current->allow_flags |= up->allow_flags;
-    current->send_flags |= up->send_flags;
-
-    if (TAILQ_EMPTY(&current->dnslist.addrlist)) {
-        dhcp6_copy_list(&current->dnslist.addrlist, &up->dnslist.addrlist);
-    }
-
-    if (current->dnslist.domainlist == NULL) {
-        current->dnslist.domainlist = up->dnslist.domainlist;
     }
 
     return;

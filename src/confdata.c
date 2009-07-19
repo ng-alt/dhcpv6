@@ -42,6 +42,7 @@
 #include "common.h"
 
 extern int errno;
+
 static struct dhcp6_ifconf *dhcp6_ifconflist;
 static struct host_conf *host_conflist0, *host_conflist;
 static struct dhcp6_list dnslist0;
@@ -52,11 +53,185 @@ enum {
     DHCPOPTCODE_ALLOW
 };
 
-static int add_options(int, struct dhcp6_ifconf *, struct cf_list *);
-static int add_address(struct dhcp6_list *, struct dhcp6_addr *);
-static int clear_option_list(struct dhcp6_option_list *);
-static void clear_ifconf(struct dhcp6_ifconf *);
-static void clear_hostconf(struct host_conf *);
+/* BEGIN STATIC FUNCTIONS */
+
+static void _clear_ifconf(struct dhcp6_ifconf *iflist) {
+    struct dhcp6_ifconf *ifc, *ifc_next;
+
+    for (ifc = iflist; ifc; ifc = ifc_next) {
+        ifc_next = ifc->next;
+        free(ifc->ifname);
+        dhcp6_clear_list(&ifc->reqopt_list);
+        free(ifc);
+    }
+
+    return;
+}
+
+static void _clear_hostconf(struct host_conf *hlist) {
+    struct host_conf *host, *host_next;
+    struct dhcp6_listval *p;
+
+    for (host = hlist; host; host = host_next) {
+        host_next = host->next;
+        free(host->name);
+
+        while ((p = TAILQ_FIRST(&host->prefix_list)) != NULL) {
+            TAILQ_REMOVE(&host->prefix_list, p, link);
+            free(p);
+        }
+
+        if (host->duid.duid_id) {
+            free(host->duid.duid_id);
+        }
+
+        free(host);
+    }
+
+    return;
+}
+
+static int _add_options(int opcode, struct dhcp6_ifconf *ifc,
+                        struct cf_list *cfl0) {
+    struct dhcp6_listval *opt;
+    struct cf_list *cfl;
+    int opttype;
+
+    for (cfl = cfl0; cfl; cfl = cfl->next) {
+        if (opcode == DHCPOPTCODE_REQUEST) {
+            for (opt = TAILQ_FIRST(&ifc->reqopt_list); opt;
+                 opt = TAILQ_NEXT(opt, link)) {
+                if (opt->val_num == cfl->type) {
+                    dhcpv6_dprintf(LOG_INFO, "%s"
+                                   "duplicated requested"
+                                   " option: %s", FNAME,
+                                   dhcp6optstr(cfl->type));
+                    goto next;  /* ignore it */
+                }
+            }
+        }
+
+        switch (cfl->type) {
+            case DHCPOPT_RAPID_COMMIT:
+                switch (opcode) {
+                    case DHCPOPTCODE_SEND:
+                        ifc->send_flags |= DHCIFF_RAPID_COMMIT;
+                        break;
+                    case DHCPOPTCODE_ALLOW:
+                        ifc->allow_flags |= DHCIFF_RAPID_COMMIT;
+                        break;
+                    default:
+                        dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
+                                       "for option type (%d)",
+                                       FNAME, opcode, cfl->type);
+                        return -1;
+                }
+
+                break;
+            case DHCPOPT_PREFIX_DELEGATION:
+                switch (opcode) {
+                    case DHCPOPTCODE_REQUEST:
+                        ifc->send_flags |= DHCIFF_PREFIX_DELEGATION;
+                        break;
+                    default:
+                        dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
+                                       "for option type (%d)",
+                                       FNAME, opcode, cfl->type);
+                        return -1;
+                }
+
+                break;
+            case DHCPOPT_DNS:
+                switch (opcode) {
+                    case DHCPOPTCODE_REQUEST:
+                        opttype = DH6OPT_DNS_SERVERS;
+                        if (dhcp6_add_listval(&ifc->reqopt_list,
+                                              &opttype,
+                                              DHCP6_LISTVAL_NUM) == NULL) {
+                            dhcpv6_dprintf(LOG_ERR,
+                                           "%s" "failed to "
+                                           "configure an option", FNAME);
+                            return -1;
+                        }
+
+                        break;
+                    default:
+                        dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
+                                       "for option type (%d)",
+                                       FNAME, opcode, cfl->type);
+                        break;
+                }
+
+                break;
+            case DHCPOPT_DOMAIN_LIST:
+                switch (opcode) {
+                    case DHCPOPTCODE_REQUEST:
+                        opttype = DH6OPT_DOMAIN_LIST;
+                        if (dhcp6_add_listval(&ifc->reqopt_list,
+                                              &opttype,
+                                              DHCP6_LISTVAL_NUM) == NULL) {
+                            dhcpv6_dprintf(LOG_ERR,
+                                           "%s" "failed to "
+                                           "configure an option", FNAME);
+                            return -1;
+                        }
+
+                        break;
+                    default:
+                        dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
+                                       "for option type (%d)",
+                                       FNAME, opcode, cfl->type);
+                        break;
+                }
+
+                break;
+            default:
+                dhcpv6_dprintf(LOG_ERR, "%s"
+                               "unknown option type: %d", FNAME, cfl->type);
+                return -1;
+        }
+
+      next:;
+    }
+
+    return 0;
+}
+
+static int _add_address(struct dhcp6_list *addr_list,
+                        struct dhcp6_addr *v6addr) {
+    struct dhcp6_listval *lv, *val;
+
+    /* avoid invalid addresses */
+    if (IN6_IS_ADDR_RESERVED(&v6addr->addr)) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "invalid address: %s",
+                       FNAME, in6addr2str(&v6addr->addr, 0));
+        return -1;
+    }
+
+    /* address duplication check */
+    for (lv = TAILQ_FIRST(addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
+        if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &v6addr->addr) &&
+            lv->val_dhcp6addr.plen == v6addr->plen) {
+            dhcpv6_dprintf(LOG_ERR, "%s"
+                           "duplicated address: %s/%d ", FNAME,
+                           in6addr2str(&v6addr->addr, 0), v6addr->plen);
+            return -1;
+        }
+    }
+
+    if ((val = (struct dhcp6_listval *) malloc(sizeof(*val))) == NULL) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "memory allocation failed", FNAME);
+    }
+
+    memset(val, 0, sizeof(*val));
+    memcpy(&val->val_dhcp6addr, v6addr, sizeof(val->val_dhcp6addr));
+    dhcpv6_dprintf(LOG_DEBUG, "%s" "add address: %s",
+                   FNAME, in6addr2str(&v6addr->addr, 0));
+    TAILQ_INSERT_TAIL(addr_list, val, link);
+    return 0;
+}
+
+/* END STATIC FUNCTIONS */
 
 int configure_interface(const struct cf_namelist *iflist) {
     const struct cf_namelist *ifp;
@@ -488,182 +663,6 @@ void configure_commit(void) {
     host_conflist = host_conflist0;
     host_conflist0 = NULL;
     return;
-}
-
-static void clear_ifconf(struct dhcp6_ifconf *iflist) {
-    struct dhcp6_ifconf *ifc, *ifc_next;
-
-    for (ifc = iflist; ifc; ifc = ifc_next) {
-        ifc_next = ifc->next;
-        free(ifc->ifname);
-        dhcp6_clear_list(&ifc->reqopt_list);
-        free(ifc);
-    }
-
-    return;
-}
-
-static void clear_hostconf(struct host_conf *hlist) {
-    struct host_conf *host, *host_next;
-    struct dhcp6_listval *p;
-
-    for (host = hlist; host; host = host_next) {
-        host_next = host->next;
-        free(host->name);
-
-        while ((p = TAILQ_FIRST(&host->prefix_list)) != NULL) {
-            TAILQ_REMOVE(&host->prefix_list, p, link);
-            free(p);
-        }
-
-        if (host->duid.duid_id) {
-            free(host->duid.duid_id);
-        }
-
-        free(host);
-    }
-
-    return;
-}
-
-static int add_options(int opcode, struct dhcp6_ifconf *ifc,
-                       struct cf_list *cfl0) {
-    struct dhcp6_listval *opt;
-    struct cf_list *cfl;
-    int opttype;
-
-    for (cfl = cfl0; cfl; cfl = cfl->next) {
-        if (opcode == DHCPOPTCODE_REQUEST) {
-            for (opt = TAILQ_FIRST(&ifc->reqopt_list); opt;
-                 opt = TAILQ_NEXT(opt, link)) {
-                if (opt->val_num == cfl->type) {
-                    dhcpv6_dprintf(LOG_INFO, "%s"
-                                   "duplicated requested"
-                                   " option: %s", FNAME,
-                                   dhcp6optstr(cfl->type));
-                    goto next;  /* ignore it */
-                }
-            }
-        }
-
-        switch (cfl->type) {
-            case DHCPOPT_RAPID_COMMIT:
-                switch (opcode) {
-                    case DHCPOPTCODE_SEND:
-                        ifc->send_flags |= DHCIFF_RAPID_COMMIT;
-                        break;
-                    case DHCPOPTCODE_ALLOW:
-                        ifc->allow_flags |= DHCIFF_RAPID_COMMIT;
-                        break;
-                    default:
-                        dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
-                                       "for option type (%d)",
-                                       FNAME, opcode, cfl->type);
-                        return -1;
-                }
-
-                break;
-            case DHCPOPT_PREFIX_DELEGATION:
-                switch (opcode) {
-                    case DHCPOPTCODE_REQUEST:
-                        ifc->send_flags |= DHCIFF_PREFIX_DELEGATION;
-                        break;
-                    default:
-                        dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
-                                       "for option type (%d)",
-                                       FNAME, opcode, cfl->type);
-                        return -1;
-                }
-
-                break;
-            case DHCPOPT_DNS:
-                switch (opcode) {
-                    case DHCPOPTCODE_REQUEST:
-                        opttype = DH6OPT_DNS_SERVERS;
-                        if (dhcp6_add_listval(&ifc->reqopt_list,
-                                              &opttype,
-                                              DHCP6_LISTVAL_NUM) == NULL) {
-                            dhcpv6_dprintf(LOG_ERR,
-                                           "%s" "failed to "
-                                           "configure an option", FNAME);
-                            return -1;
-                        }
-
-                        break;
-                    default:
-                        dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
-                                       "for option type (%d)",
-                                       FNAME, opcode, cfl->type);
-                        break;
-                }
-
-                break;
-            case DHCPOPT_DOMAIN_LIST:
-                switch (opcode) {
-                    case DHCPOPTCODE_REQUEST:
-                        opttype = DH6OPT_DOMAIN_LIST;
-                        if (dhcp6_add_listval(&ifc->reqopt_list,
-                                              &opttype,
-                                              DHCP6_LISTVAL_NUM) == NULL) {
-                            dhcpv6_dprintf(LOG_ERR,
-                                           "%s" "failed to "
-                                           "configure an option", FNAME);
-                            return -1;
-                        }
-
-                        break;
-                    default:
-                        dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
-                                       "for option type (%d)",
-                                       FNAME, opcode, cfl->type);
-                        break;
-                }
-
-                break;
-            default:
-                dhcpv6_dprintf(LOG_ERR, "%s"
-                               "unknown option type: %d", FNAME, cfl->type);
-                return -1;
-        }
-
-      next:;
-    }
-
-    return 0;
-}
-
-static int add_address(struct dhcp6_list *addr_list,
-                       struct dhcp6_addr *v6addr) {
-    struct dhcp6_listval *lv, *val;
-
-    /* avoid invalid addresses */
-    if (IN6_IS_ADDR_RESERVED(&v6addr->addr)) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "invalid address: %s",
-                       FNAME, in6addr2str(&v6addr->addr, 0));
-        return -1;
-    }
-
-    /* address duplication check */
-    for (lv = TAILQ_FIRST(addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
-        if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &v6addr->addr) &&
-            lv->val_dhcp6addr.plen == v6addr->plen) {
-            dhcpv6_dprintf(LOG_ERR, "%s"
-                           "duplicated address: %s/%d ", FNAME,
-                           in6addr2str(&v6addr->addr, 0), v6addr->plen);
-            return -1;
-        }
-    }
-
-    if ((val = (struct dhcp6_listval *) malloc(sizeof(*val))) == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "memory allocation failed", FNAME);
-    }
-
-    memset(val, 0, sizeof(*val));
-    memcpy(&val->val_dhcp6addr, v6addr, sizeof(val->val_dhcp6addr));
-    dhcpv6_dprintf(LOG_DEBUG, "%s" "add address: %s",
-                   FNAME, in6addr2str(&v6addr->addr, 0));
-    TAILQ_INSERT_TAIL(addr_list, val, link);
-    return 0;
 }
 
 int clear_option_list(struct dhcp6_option_list *opts) {

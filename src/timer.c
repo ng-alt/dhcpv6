@@ -54,9 +54,11 @@ LIST_HEAD(, dhcp6_timer) timer_head;
 static struct timeval tm_sentinel;
 static struct timeval tm_max = { 0x7fffffff, 0x7fffffff };
 
+/* BEGIN STATIC FUNCTIONS */
+
 /* result = a + b */
-static void
-timeval_add(struct timeval *a, struct timeval *b, struct timeval *result) {
+static void _timeval_add(struct timeval *a, struct timeval *b,
+                        struct timeval *result) {
     long l;
 
     if ((l = a->tv_usec + b->tv_usec) < MILLION) {
@@ -67,6 +69,8 @@ timeval_add(struct timeval *a, struct timeval *b, struct timeval *result) {
         result->tv_sec = a->tv_sec + b->tv_sec + 1;
     }
 }
+
+/* END STATIC FUNCTIONS */
 
 /*
  * result = a - b

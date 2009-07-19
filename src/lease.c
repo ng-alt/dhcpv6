@@ -63,7 +63,46 @@ extern char *server6_lease_temp;
 extern FILE *client6_lease_file;
 extern char *client6_lease_temp;
 u_int32_t do_hash(const void *, u_int8_t);
-static int init_lease_hashes(void);
+
+/* BEGIN STATIC FUNCTIONS */
+
+static int _init_lease_hashes(void) {
+    hash_anchors =
+        (struct hash_table **) malloc(HASH_TABLE_COUNT * sizeof(*hash_anchors));
+
+    if (!hash_anchors) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't malloc hash anchors", FNAME);
+        return -1;
+    }
+
+    host_addr_hash_table = hash_table_create(DEFAULT_HASH_SIZE,
+                                             addr_hash, v6addr_findkey,
+                                             v6addr_key_compare);
+    if (!host_addr_hash_table) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
+        return -1;
+    }
+
+    lease_hash_table = hash_table_create(DEFAULT_HASH_SIZE,
+                                         addr_hash, lease_findkey,
+                                         lease_key_compare);
+    if (!lease_hash_table) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
+        return -1;
+    }
+
+    server6_hash_table = hash_table_create(DEFAULT_HASH_SIZE,
+                                           iaid_hash, iaid_findkey,
+                                           iaid_key_compare);
+    if (!server6_hash_table) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
+        return -1;
+    }
+
+    return 0;
+}
+
+/* END STATIC FUNCTIONS */
 
 int write_lease(const struct dhcp6_lease *lease_ptr, FILE *file) {
     struct tm brokendown_time;
@@ -228,42 +267,6 @@ FILE *init_leases(const char *name) {
     }
 
     return file;
-}
-
-int init_lease_hashes(void) {
-    hash_anchors =
-        (struct hash_table **) malloc(HASH_TABLE_COUNT * sizeof(*hash_anchors));
-
-    if (!hash_anchors) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't malloc hash anchors", FNAME);
-        return -1;
-    }
-
-    host_addr_hash_table = hash_table_create(DEFAULT_HASH_SIZE,
-                                             addr_hash, v6addr_findkey,
-                                             v6addr_key_compare);
-    if (!host_addr_hash_table) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
-        return -1;
-    }
-
-    lease_hash_table = hash_table_create(DEFAULT_HASH_SIZE,
-                                         addr_hash, lease_findkey,
-                                         lease_key_compare);
-    if (!lease_hash_table) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
-        return -1;
-    }
-
-    server6_hash_table = hash_table_create(DEFAULT_HASH_SIZE,
-                                           iaid_hash, iaid_findkey,
-                                           iaid_key_compare);
-    if (!server6_hash_table) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
-        return -1;
-    }
-
-    return 0;
 }
 
 u_int32_t do_hash(const void *key, u_int8_t len) {

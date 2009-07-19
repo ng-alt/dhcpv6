@@ -74,26 +74,94 @@
 #include "timer.h"
 #include "lease.h"
 
-static int dhcp6_update_lease(struct dhcp6_addr *, struct dhcp6_lease *);
-static int dhcp6_add_lease(struct dhcp6_addr *);
-struct dhcp6_lease *dhcp6_find_lease(struct dhcp6_iaidaddr *,
-                                     struct dhcp6_addr *);
-int dhcp6_get_prefixlen(struct in6_addr *, struct dhcp6_if *);
-int client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
-u_int32_t get_min_preferlifetime(struct dhcp6_iaidaddr *);
-u_int32_t get_max_validlifetime(struct dhcp6_iaidaddr *);
-struct dhcp6_timer *dhcp6_iaidaddr_timo(void *);
-struct dhcp6_timer *dhcp6_lease_timo(void *);
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern struct dhcp6_timer *client6_timo(void *);
 extern void client6_send(struct dhcp6_event *);
 extern void free_servers(struct dhcp6_if *);
-extern ssize_t gethwid(unsigned char *, int, const char *, u_int16_t *);
 
 extern int nlsock;
 extern FILE *client6_lease_file;
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern struct dhcp6_list request_list;
+
+/* BEGIN STATIC FUNCTIONS */
+
+static int _dhcp6_update_lease(struct dhcp6_addr *addr,
+                               struct dhcp6_lease *sp) {
+    struct timeval timo;
+    double d;
+
+    if (addr->status_code != DH6OPT_STCODE_SUCCESS &&
+        addr->status_code != DH6OPT_STCODE_UNDEFINE) {
+        dhcpv6_dprintf(LOG_ERR,
+                       "%s" "not successful status code for %s is %s", FNAME,
+                       in6addr2str(&addr->addr, 0),
+                       dhcp6_stcodestr(addr->status_code));
+        dhcp6_remove_lease(sp);
+        return 0;
+    }
+
+    /* remove leases with validlifetime == 0, and preferlifetime == 0 */
+    if (addr->validlifetime == 0 || addr->preferlifetime == 0 ||
+        addr->preferlifetime > addr->validlifetime) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "invalid address life time for %s",
+                       FNAME, in6addr2str(&addr->addr, 0));
+        dhcp6_remove_lease(sp);
+        return 0;
+    }
+
+    memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
+    sp->state = ACTIVE;
+    time(&sp->start_date);
+
+    if (write_lease(sp, client6_lease_file) != 0) {
+        dhcpv6_dprintf(LOG_ERR, "%s"
+                       "failed to write an updated lease address %s to lease file",
+                       FNAME, in6addr2str(&sp->lease_addr.addr, 0));
+        return -1;
+    }
+
+    if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE ||
+        sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
+        dhcpv6_dprintf(LOG_INFO, "%s" "infinity address life time for %s",
+                       FNAME, in6addr2str(&addr->addr, 0));
+
+        if (sp->timer) {
+            dhcp6_remove_timer(sp->timer);
+        }
+
+        return 0;
+    }
+
+    if (sp->timer == NULL) {
+        if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
+            dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for lease %s",
+                           FNAME, in6addr2str(&addr->addr, 0));
+            return -1;
+        }
+    }
+
+    d = sp->lease_addr.preferlifetime;
+    timo.tv_sec = (long) d;
+    timo.tv_usec = 0;
+    dhcp6_set_timer(&timo, sp->timer);
+
+    return 0;
+}
+
+static struct dhcp6_event *_dhcp6_iaidaddr_find_event(struct dhcp6_iaidaddr
+                                                      *sp, int state) {
+    struct dhcp6_event *ev;
+
+    TAILQ_FOREACH(ev, &sp->ifp->event_list, link) {
+        if (ev->state == state)
+            return ev;
+    }
+
+    return NULL;
+}
+
+/* END STATIC FUNCTIONS */
 
 void dhcp6_init_iaidaddr(void) {
     memset(&client6_iaidaddr, 0, sizeof(client6_iaidaddr));
@@ -505,68 +573,6 @@ int dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
     return 0;
 }
 
-static int dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp) {
-    struct timeval timo;
-    double d;
-
-    if (addr->status_code != DH6OPT_STCODE_SUCCESS &&
-        addr->status_code != DH6OPT_STCODE_UNDEFINE) {
-        dhcpv6_dprintf(LOG_ERR,
-                       "%s" "not successful status code for %s is %s", FNAME,
-                       in6addr2str(&addr->addr, 0),
-                       dhcp6_stcodestr(addr->status_code));
-        dhcp6_remove_lease(sp);
-        return 0;
-    }
-
-    /* remove leases with validlifetime == 0, and preferlifetime == 0 */
-    if (addr->validlifetime == 0 || addr->preferlifetime == 0 ||
-        addr->preferlifetime > addr->validlifetime) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "invalid address life time for %s",
-                       FNAME, in6addr2str(&addr->addr, 0));
-        dhcp6_remove_lease(sp);
-        return 0;
-    }
-
-    memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
-    sp->state = ACTIVE;
-    time(&sp->start_date);
-
-    if (write_lease(sp, client6_lease_file) != 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s"
-                       "failed to write an updated lease address %s to lease file",
-                       FNAME, in6addr2str(&sp->lease_addr.addr, 0));
-        return -1;
-    }
-
-    if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE ||
-        sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "infinity address life time for %s",
-                       FNAME, in6addr2str(&addr->addr, 0));
-
-        if (sp->timer) {
-            dhcp6_remove_timer(sp->timer);
-        }
-
-        return 0;
-    }
-
-    if (sp->timer == NULL) {
-        if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for lease %s",
-                           FNAME, in6addr2str(&addr->addr, 0));
-            return -1;
-        }
-    }
-
-    d = sp->lease_addr.preferlifetime;
-    timo.tv_sec = (long) d;
-    timo.tv_usec = 0;
-    dhcp6_set_timer(&timo, sp->timer);
-
-    return 0;
-}
-
 struct dhcp6_lease *dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr,
                                      struct dhcp6_addr *ifaddr) {
     struct dhcp6_lease *sp;
@@ -589,18 +595,6 @@ struct dhcp6_lease *dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr,
                 return sp;
             }
         }
-    }
-
-    return NULL;
-}
-
-static struct dhcp6_event *dhcp6_iaidaddr_find_event(struct dhcp6_iaidaddr
-                                                     *sp, int state) {
-    struct dhcp6_event *ev;
-
-    TAILQ_FOREACH(ev, &sp->ifp->event_list, link) {
-        if (ev->state == state)
-            return ev;
     }
 
     return NULL;
