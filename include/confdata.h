@@ -133,7 +133,7 @@ struct dhcp6_event {
     int timeouts;               /* number of timeouts */
 
     u_int32_t xid;              /* current transaction ID */
-    u_int32_t uuid              /* unique ID of this event */
+    u_int32_t uuid;             /* unique ID of this event */
     int state;
 
     TAILQ_HEAD(, dhcp6_eventdata) data_list;

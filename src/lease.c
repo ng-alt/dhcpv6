@@ -256,7 +256,7 @@ FILE *init_leases(const char *name) {
         return NULL;
     }
 
-    if (0 != init_lease_hashes()) {
+    if (_init_lease_hashes() != 0) {
         dhcpv6_dprintf(LOG_ERR, "%s" "Could not initialize hash arrays",
                        FNAME);
         return NULL;

@@ -273,19 +273,19 @@ int configure_interface(const struct cf_namelist *iflist) {
                         goto bad;
                     }
 
-                    if (add_options(DHCPOPTCODE_REQUEST, ifc, cfl->list)) {
+                    if (_add_options(DHCPOPTCODE_REQUEST, ifc, cfl->list)) {
                         goto bad;
                     }
 
                     break;
                 case DECL_SEND:
-                    if (add_options(DHCPOPTCODE_SEND, ifc, cfl->list)) {
+                    if (_add_options(DHCPOPTCODE_SEND, ifc, cfl->list)) {
                         goto bad;
                     }
 
                     break;
                 case DECL_ALLOW:
-                    if (add_options(DHCPOPTCODE_ALLOW, ifc, cfl->list)) {
+                    if (_add_options(DHCPOPTCODE_ALLOW, ifc, cfl->list)) {
                         goto bad;
                     }
 
@@ -399,7 +399,7 @@ int configure_interface(const struct cf_namelist *iflist) {
 
                     break;
                 case DECL_ADDRESS:
-                    if (add_address(&ifc->addr_list, cfl->ptr)) {
+                    if (_add_address(&ifc->addr_list, cfl->ptr)) {
                         dhcpv6_dprintf(LOG_ERR, "%s" "failed "
                                        "to configure ipv6address for %s",
                                        FNAME, ifc->ifname);
@@ -432,7 +432,7 @@ int configure_interface(const struct cf_namelist *iflist) {
     return 0;
 
 bad:
-    clear_ifconf(dhcp6_ifconflist);
+    _clear_ifconf(dhcp6_ifconflist);
     dhcp6_ifconflist = NULL;
     return -1;
 }
@@ -489,7 +489,7 @@ int configure_host(const struct cf_namelist *hostlist) {
                                    host->name, duidstr(&hconf->duid));
                     break;
                 case DECL_PREFIX:
-                    if (add_address(&hconf->prefix_list, cfl->ptr)) {
+                    if (_add_address(&hconf->prefix_list, cfl->ptr)) {
                         dhcpv6_dprintf(LOG_ERR, "%s" "failed "
                                        "to configure prefix for %s",
                                        FNAME, host->name);
@@ -534,7 +534,7 @@ int configure_host(const struct cf_namelist *hostlist) {
 
                     break;
                 case DECL_ADDRESS:
-                    if (add_address(&hconf->addr_list, cfl->ptr)) {
+                    if (_add_address(&hconf->addr_list, cfl->ptr)) {
                         dhcpv6_dprintf(LOG_ERR, "%s" "failed "
                                        "to configure ipv6address for %s",
                                        FNAME, host->name);
@@ -607,9 +607,9 @@ bad:
 }
 
 void configure_cleanup(void) {
-    clear_ifconf(dhcp6_ifconflist);
+    _clear_ifconf(dhcp6_ifconflist);
     dhcp6_ifconflist = NULL;
-    clear_hostconf(host_conflist0);
+    _clear_hostconf(host_conflist0);
     host_conflist0 = NULL;
     dhcp6_clear_list(&dnslist0);
     TAILQ_INIT(&dnslist0);
@@ -652,12 +652,12 @@ void configure_commit(void) {
         }
     }
 
-    clear_ifconf(dhcp6_ifconflist);
+    _clear_ifconf(dhcp6_ifconflist);
 
     /* commit prefix configuration */
     if (host_conflist) {
         /* clear previous configuration. (need more work?) */
-        clear_hostconf(host_conflist);
+        _clear_hostconf(host_conflist);
     }
 
     host_conflist = host_conflist0;

@@ -226,7 +226,7 @@ void post_config(struct rootgroup *root) {
     struct scope *up;
 
     if (root->group) {
-        download_scope(root->group, &root->scope);
+        _download_scope(root->group, &root->scope);
     }
 
     up = &root->scope;
@@ -234,51 +234,51 @@ void post_config(struct rootgroup *root) {
     /* XXX: check the physical interfaces for the server */
     for (ifnetwork = root->iflist; ifnetwork; ifnetwork = ifnetwork->next) {
         if (ifnetwork->group) {
-            download_scope(ifnetwork->group, &ifnetwork->ifscope);
+            _download_scope(ifnetwork->group, &ifnetwork->ifscope);
         }
 
         current = &ifnetwork->ifscope;
-        download_scope(up, current);
+        _download_scope(up, current);
         up = &ifnetwork->ifscope;
 
         for (host = ifnetwork->hostlist; host; host = host->next) {
             if (host->group) {
-                download_scope(host->group, &host->hostscope);
+                _download_scope(host->group, &host->hostscope);
             }
 
             current = &host->hostscope;
-            download_scope(up, current);
+            _download_scope(up, current);
         }
     }
 
     for (ifnetwork = root->iflist; ifnetwork; ifnetwork = ifnetwork->next) {
         if (ifnetwork->group) {
-            download_scope(ifnetwork->group, &ifnetwork->ifscope);
+            _download_scope(ifnetwork->group, &ifnetwork->ifscope);
         }
 
         current = &ifnetwork->ifscope;
-        download_scope(up, current);
+        _download_scope(up, current);
         up = &ifnetwork->ifscope;
 
         /* XXX: check host */
         for (link = ifnetwork->linklist; link; link = link->next) {
             if (link->group) {
-                download_scope(link->group, &link->linkscope);
+                _download_scope(link->group, &link->linkscope);
             }
 
             current = &link->linkscope;
-            download_scope(up, current);
+            _download_scope(up, current);
             up = &link->linkscope;
 
             for (seg = link->seglist; seg; seg = seg->next) {
                 if (seg->pool) {
                     if (seg->pool->group) {
-                        download_scope(seg->pool->group,
-                                       &seg->pool->poolscope);
+                        _download_scope(seg->pool->group,
+                                        &seg->pool->poolscope);
                     }
 
                     current = &seg->pool->poolscope;
-                    download_scope(up, current);
+                    _download_scope(up, current);
 
                     if (current->prefer_life_time != 0 &&
                         current->valid_life_time != 0 &&
@@ -299,12 +299,12 @@ void post_config(struct rootgroup *root) {
             for (prefix6 = link->prefixlist; prefix6; prefix6 = prefix6->next) {
                 if (prefix6->pool) {
                     if (prefix6->pool->group) {
-                        download_scope(prefix6->pool->group,
-                                       &prefix6->pool->poolscope);
+                        _download_scope(prefix6->pool->group,
+                                        &prefix6->pool->poolscope);
                     }
 
                     current = &prefix6->pool->poolscope;
-                    download_scope(up, current);
+                    _download_scope(up, current);
 
                     if (current->prefer_life_time != 0 &&
                         current->valid_life_time != 0 &&

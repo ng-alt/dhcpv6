@@ -84,8 +84,7 @@ extern void ia_clear_list(struct ia_list *);
 extern int ia_copy_list(struct ia_list *, struct ia_list *);
 extern struct ia_listval *ia_find_listval(struct ia_list *,
                                           iatype_t, u_int32_t);
-extern void run_script (const char *iface, int old_state, int new_state,
-                        u_int32_t uuid);
+extern void run_script (struct dhcp6_if *, int, int, u_int32_t);
 extern struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *, int);
 extern void dhcp6_remove_event(struct dhcp6_event *);
 extern int dhcp6_has_option(struct dhcp6_list * optlist, int option);
@@ -129,4 +128,4 @@ extern struct dhcp6_if *find_ifconfbyname(const char *);
 extern struct dhcp6_if *find_ifconfbyid(unsigned int);
 extern struct prefix_ifconf *find_prefixifconf(const char *);
 extern struct host_conf *find_hostconf(const struct duid *);
-extern gethwid(unsigned char *, int, const char *, u_int16_t *);
+extern ssize_t gethwid(unsigned char *, int, const char *, u_int16_t *);

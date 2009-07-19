@@ -81,7 +81,7 @@ static void _create_tempaddr(struct in6_addr *prefix, int plen,
     int i, num_bytes;
     u_int8_t seed[16];
 
-    get_random_bytes(seed, 16);
+    _get_random_bytes(seed, 16);
     /* address mask */
     memset(tempaddr, 0, sizeof(*tempaddr));
     num_bytes = plen / 8;
@@ -138,6 +138,34 @@ static int _addr_on_segment(struct v6addrseg *seg, struct dhcp6_addr *addr) {
     return onseg;
 }
 
+static void _server6_get_addrpara(struct dhcp6_addr *v6addr,
+                                  struct v6addrseg *seg) {
+    v6addr->plen = seg->prefix.plen;
+
+    if (seg->parainfo.prefer_life_time == 0 &&
+        seg->parainfo.valid_life_time == 0) {
+        seg->parainfo.valid_life_time = DEFAULT_VALID_LIFE_TIME;
+        seg->parainfo.prefer_life_time = DEFAULT_PREFERRED_LIFE_TIME;
+    } else if (seg->parainfo.prefer_life_time == 0) {
+        seg->parainfo.prefer_life_time = seg->parainfo.valid_life_time / 2;
+    } else if (seg->parainfo.valid_life_time == 0) {
+        seg->parainfo.valid_life_time = 2 * seg->parainfo.prefer_life_time;
+    }
+
+    dhcpv6_dprintf(LOG_DEBUG, " preferlifetime %u, validlifetime %u",
+                   seg->parainfo.prefer_life_time,
+                   seg->parainfo.valid_life_time);
+
+    dhcpv6_dprintf(LOG_DEBUG, " renewtime %u, rebindtime %u",
+                   seg->parainfo.renew_time, seg->parainfo.rebind_time);
+
+    v6addr->preferlifetime = seg->parainfo.prefer_life_time;
+    v6addr->validlifetime = seg->parainfo.valid_life_time;
+    v6addr->status_code = DH6OPT_STCODE_SUCCESS;
+    v6addr->status_msg = NULL;
+    return;
+}
+
 static void _server6_get_newaddr(iatype_t type, struct dhcp6_addr *v6addr,
                                  struct v6addrseg *seg) {
     struct in6_addr current;
@@ -151,8 +179,8 @@ static void _server6_get_newaddr(iatype_t type, struct dhcp6_addr *v6addr,
         switch (type) {
             case IATA:
                 /* assume the temp addr never being run out */
-                create_tempaddr(&seg->prefix.addr, seg->prefix.plen,
-                                &v6addr->addr);
+                _create_tempaddr(&seg->prefix.addr, seg->prefix.plen,
+                                 &v6addr->addr);
                 break;
             case IANA:
                 memcpy(&v6addr->addr, &seg->free, sizeof(v6addr->addr));
@@ -183,40 +211,12 @@ static void _server6_get_newaddr(iatype_t type, struct dhcp6_addr *v6addr,
 
     dhcpv6_dprintf(LOG_DEBUG, "new address %s is got",
                    in6addr2str(&v6addr->addr, 0));
-    server6_get_addrpara(v6addr, seg);
+    _server6_get_addrpara(v6addr, seg);
     return;
 }
 
 static void _server6_get_prefixpara(struct dhcp6_addr *v6addr,
                                     struct v6prefix *seg) {
-    v6addr->plen = seg->prefix.plen;
-
-    if (seg->parainfo.prefer_life_time == 0 &&
-        seg->parainfo.valid_life_time == 0) {
-        seg->parainfo.valid_life_time = DEFAULT_VALID_LIFE_TIME;
-        seg->parainfo.prefer_life_time = DEFAULT_PREFERRED_LIFE_TIME;
-    } else if (seg->parainfo.prefer_life_time == 0) {
-        seg->parainfo.prefer_life_time = seg->parainfo.valid_life_time / 2;
-    } else if (seg->parainfo.valid_life_time == 0) {
-        seg->parainfo.valid_life_time = 2 * seg->parainfo.prefer_life_time;
-    }
-
-    dhcpv6_dprintf(LOG_DEBUG, " preferlifetime %u, validlifetime %u",
-                   seg->parainfo.prefer_life_time,
-                   seg->parainfo.valid_life_time);
-
-    dhcpv6_dprintf(LOG_DEBUG, " renewtime %u, rebindtime %u",
-                   seg->parainfo.renew_time, seg->parainfo.rebind_time);
-
-    v6addr->preferlifetime = seg->parainfo.prefer_life_time;
-    v6addr->validlifetime = seg->parainfo.valid_life_time;
-    v6addr->status_code = DH6OPT_STCODE_SUCCESS;
-    v6addr->status_msg = NULL;
-    return;
-}
-
-static void _server6_get_addrpara(struct dhcp6_addr *v6addr,
-                                  struct v6addrseg *seg) {
     v6addr->plen = seg->prefix.plen;
 
     if (seg->parainfo.prefer_life_time == 0 &&
@@ -838,10 +838,10 @@ int dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
 
             lv->val_dhcp6addr.type = ia->type;
 
-            if (addr_on_segment(seg, &lv->val_dhcp6addr)) {
+            if (_addr_on_segment(seg, &lv->val_dhcp6addr)) {
                 if (numaddr == 0) {
                     lv->val_dhcp6addr.type = ia->type;
-                    server6_get_addrpara(&lv->val_dhcp6addr, seg);
+                    _server6_get_addrpara(&lv->val_dhcp6addr, seg);
                     numaddr += 1;
                 } else {
                     /* check the addr count per seg, we only allow one
@@ -863,7 +863,7 @@ int dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
 
             for (cl = TAILQ_FIRST(&iaidaddr->lease_list); cl;
                  cl = TAILQ_NEXT(cl, link)) {
-                if (addr_on_segment(seg, &cl->lease_addr)) {
+                if (_addr_on_segment(seg, &cl->lease_addr)) {
                     if (addr_on_addrlist(reply_list, &cl->lease_addr)) {
                         continue;
                     } else if (numaddr == 0) {
@@ -880,7 +880,7 @@ int dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
                         memcpy(&v6addr->val_dhcp6addr, &cl->lease_addr,
                                sizeof(v6addr->val_dhcp6addr));
                         v6addr->val_dhcp6addr.type = ia->type;
-                        server6_get_addrpara(&v6addr->val_dhcp6addr, seg);
+                        _server6_get_addrpara(&v6addr->val_dhcp6addr, seg);
                         numaddr += 1;
                         TAILQ_INSERT_TAIL(reply_list, v6addr, link);
                         continue;
@@ -900,7 +900,7 @@ int dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
 
             memset(v6addr, 0, sizeof(*v6addr));
             v6addr->val_dhcp6addr.type = ia->type;
-            server6_get_newaddr(ia->type, &v6addr->val_dhcp6addr, seg);
+            _server6_get_newaddr(ia->type, &v6addr->val_dhcp6addr, seg);
 
             if (IN6_IS_ADDR_UNSPECIFIED(&v6addr->val_dhcp6addr.addr)) {
                 free(v6addr);
@@ -943,7 +943,7 @@ int dhcp6_create_prefixlist(struct ia_listval *ria, struct ia_listval *ia,
                sizeof(v6addr->val_dhcp6addr.addr));
         v6addr->val_dhcp6addr.plen = prefix6->prefix.plen;
         v6addr->val_dhcp6addr.type = IAPD;
-        server6_get_prefixpara(&v6addr->val_dhcp6addr, prefix6);
+        _server6_get_prefixpara(&v6addr->val_dhcp6addr, prefix6);
         dhcpv6_dprintf(LOG_DEBUG, " get prefix %s/%d, "
                        "preferlifetime %u, validlifetime %u",
                        in6addr2str(&v6addr->val_dhcp6addr.addr, 0),

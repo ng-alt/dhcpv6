@@ -98,6 +98,26 @@ static int _in6_matchflags(struct sockaddr *addr, size_t addrlen,
     return (ifr.ifr_ifru.ifru_flags & flags);
 }
 
+static int _ia_add_address(struct ia_listval *ia, struct dhcp6_addr *addr6) {
+    /* set up address type */
+    addr6->type = ia->type;
+
+    if (dhcp6_find_listval(&ia->addr_list, addr6, DHCP6_LISTVAL_DHCP6ADDR)) {
+        dhcpv6_dprintf(LOG_INFO, "duplicated address (%s/%d)",
+                       in6addr2str(&addr6->addr, 0), addr6->plen);
+        /* XXX: decline message */
+        return 0;
+    }
+
+    if (dhcp6_add_listval(&ia->addr_list, addr6,
+                          DHCP6_LISTVAL_DHCP6ADDR) == NULL) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy an address", FNAME);
+        return -1;
+    }
+
+    return 0;
+}
+
 static int _get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
                                    struct ia_listval *ia) {
     unsigned char *np, *cp;
@@ -186,7 +206,7 @@ static int _get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
                     }
                 }
 
-                if (ia_add_address(ia, &addr6)) {
+                if (_ia_add_address(ia, &addr6)) {
                     goto fail;
                 }
 
@@ -244,7 +264,7 @@ static int _get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
                     }
                 }
 
-                if (ia_add_address(ia, &addr6)) {
+                if (_ia_add_address(ia, &addr6)) {
                     goto fail;
                 }
 
@@ -262,26 +282,6 @@ malformed:
 fail:
     dhcp6_clear_list(&ia->addr_list);
     return -1;
-}
-
-static int _ia_add_address(struct ia_listval *ia, struct dhcp6_addr *addr6) {
-    /* set up address type */
-    addr6->type = ia->type;
-
-    if (dhcp6_find_listval(&ia->addr_list, addr6, DHCP6_LISTVAL_DHCP6ADDR)) {
-        dhcpv6_dprintf(LOG_INFO, "duplicated address (%s/%d)",
-                       in6addr2str(&addr6->addr, 0), addr6->plen);
-        /* XXX: decline message */
-        return 0;
-    }
-
-    if (dhcp6_add_listval(&ia->addr_list, addr6,
-                          DHCP6_LISTVAL_DHCP6ADDR) == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy an address", FNAME);
-        return -1;
-    }
-
-    return 0;
 }
 
 static int _dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
@@ -821,7 +821,7 @@ void run_script(struct dhcp6_if *ifp, int old_state, int new_state,
     }
 
     dhcpv6_dprintf(LOG_DEBUG, "%s" "****** SCRIPT  %s (%u)  %s -> %s",
-                   FNAME, iface, uuid, dhcp6msgstr(old_state),
+                   FNAME, ifp->ifname, uuid, dhcp6msgstr(old_state),
                    dhcp6msgstr(new_state));
 }
 
@@ -923,8 +923,8 @@ int getifaddr(struct in6_addr *addr, char *ifnam, struct in6_addr *prefix,
             continue;
         }
 
-        if (in6_matchflags(ifa->ifa_addr, sizeof(sin6), ifa->ifa_name,
-                           ignoreflags)) {
+        if (_in6_matchflags(ifa->ifa_addr, sizeof(sin6), ifa->ifa_name,
+                            ignoreflags)) {
             continue;
         }
 
@@ -1697,7 +1697,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                     goto fail;
                 }
 
-                if (get_assigned_ipv6addrs(iacp, cp + optlen, ia)) {
+                if (_get_assigned_ipv6addrs(iacp, cp + optlen, ia)) {
                     free(ia);
                     goto fail;
                 }
@@ -1847,7 +1847,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
     for (ia = TAILQ_FIRST(&optinfo->ia_list); ia; ia = TAILQ_NEXT(ia, link)) {
         tmpbuf = NULL;
 
-        if (dhcp6_set_ia_options(&tmpbuf, &optlen, ia)) {
+        if (_dhcp6_set_ia_options(&tmpbuf, &optlen, ia)) {
             goto fail;
         }
 
@@ -2202,49 +2202,41 @@ char *dhcp6msgstr(int type) {
         return "INVALID msg";
     }
 
-    switch (type) {
-        case DHCP6S_INIT:
-            return "INIT";
-        case DHCP6S_RELEASE:
-            return "RELEASE";
-        case DHCP6S_IDLE:
-            return "IDLE";
-        case DH6_SOLICIT:
-        case DHCP6S_SOLICIT:
-            return "SOLICIT";
-        case DH6_ADVERTISE:
-            return "ADVERTISE";
-        case DH6_RENEW:
-        case DHCP6S_RENEW:
-            return "RENEW";
-        case DH6_REBIND:
-        case DHCP6S_REBIND:
-            return "REBIND";
-        case DH6_REQUEST:
-        case DHCP6S_REQUEST:
-            return "REQUEST";
-        case DH6_REPLY:
-            return "REPLY";
-        case DH6_CONFIRM:
-        case DHCP6S_CONFIRM:
-            return "CONFIRM";
-        case DH6_RELEASE:
-            return "RELEASE";
-        case DH6_DECLINE:
-        case DHCP6S_DECLINE:
-            return "DECLINE";
-        case DH6_INFORM_REQ:
-        case DHCP6_INFOREQ:
-            return "INFOREQ";
-        case DH6_RECONFIGURE:
-            return "RECONFIGURE";
-        case DH6_RELAY_FORW:
-            return "RELAY-FORW";
-        case DH6_RELAY_REPL:
-            return "RELAY-REPL";
-        default:
-            sprintf(genstr, "msg%d", type);
-            return genstr;
+    if (type == DHCP6S_INIT) {
+        return "INIT";
+    } else if (type == DHCP6S_RELEASE) {
+        return "RELEASE";
+    } else if (type == DHCP6S_IDLE) {
+        return "IDLE";
+    } else if (type == DH6_SOLICIT || type == DHCP6S_SOLICIT) {
+        return "SOLICIT";
+    } else if (type == DH6_ADVERTISE) {
+        return "ADVERTISE";
+    } else if (type == DH6_RENEW || type == DHCP6S_RENEW) {
+        return "RENEW";
+    } else if (type == DH6_REBIND || type == DHCP6S_REBIND) {
+        return "REBIND";
+    } else if (type == DH6_REQUEST || type == DHCP6S_REQUEST) {
+        return "REQUEST";
+    } else if (type == DH6_REPLY) {
+        return "REPLY";
+    } else if (type == DH6_CONFIRM || type == DHCP6S_CONFIRM) {
+        return "CONFIRM";
+    } else if (type == DH6_RELEASE) {
+        return "RELEASE";
+    } else if (type == DH6_DECLINE || type == DHCP6S_DECLINE) {
+        return "DECLINE";
+    } else if (type == DH6_INFORM_REQ || type == DHCP6S_INFOREQ) {
+        return "INFOREQ";
+    } else if (type == DH6_RECONFIGURE) {
+        return "RECONFIGURE";
+    } else if (type == DH6_RELAY_FORW) {
+        return "RELAY-FORW";
+    } else if (type == DH6_RELAY_REPL) {
+        return "RELAY-REPL";
+    } else {
+        sprintf(genstr, "msg%d", type);
+        return genstr;
     }
 }
 

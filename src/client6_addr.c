@@ -209,7 +209,7 @@ int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
 
         if ((cl_lease = dhcp6_find_lease(&client6_iaidaddr,
                                          &lv->val_dhcp6addr)) != NULL) {
-            dhcp6_update_lease(&lv->val_dhcp6addr, cl_lease);
+            _dhcp6_update_lease(&lv->val_dhcp6addr, cl_lease);
             continue;
         }
 
@@ -484,7 +484,7 @@ int dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
         if ((cl = dhcp6_find_lease(&client6_iaidaddr,
                                    &lv->val_dhcp6addr)) != NULL) {
             /* update leases */
-            dhcp6_update_lease(&lv->val_dhcp6addr, cl);
+            _dhcp6_update_lease(&lv->val_dhcp6addr, cl);
             continue;
         }
 
@@ -626,7 +626,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
         case RENEW:
             sp->state = REBIND;
             dhcpstate = DHCP6S_REBIND;
-            prev_ev = dhcp6_iaidaddr_find_event(sp, DHCP6S_RENEW);
+            prev_ev = _dhcp6_iaidaddr_find_event(sp, DHCP6S_RENEW);
             d = get_max_validlifetime(&client6_iaidaddr) -
                 sp->client6_info.iaidinfo.rebindtime;
             timeo.tv_sec = (long) d;
@@ -645,7 +645,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
                            client6_iaidaddr.client6_info.iaidinfo.iaid);
             sp->state = INVALID;
             dhcpstate = DHCP6S_SOLICIT;
-            prev_ev = dhcp6_iaidaddr_find_event(sp, DHCP6S_REBIND);
+            prev_ev = _dhcp6_iaidaddr_find_event(sp, DHCP6S_REBIND);
             free_servers(sp->ifp);
             break;
         default:

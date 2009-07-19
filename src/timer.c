@@ -129,7 +129,7 @@ void dhcp6_set_timer(struct timeval *tm, struct dhcp6_timer *timer) {
     /* reset the timer */
     gettimeofday(&now, NULL);
 
-    timeval_add(&now, tm, &timer->tm);
+    _timeval_add(&now, tm, &timer->tm);
 
     /* update the next expiration time */
     if (TIMEVAL_LT(timer->tm, tm_sentinel)) {
