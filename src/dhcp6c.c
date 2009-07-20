@@ -1537,21 +1537,6 @@ int main(int argc, char **argv, char **envp) {
     }
 
     device = argv[0];
-
-#ifndef __DARWIN_DEPRECATED_ATTRIBUTE
-    if (foreground == 0) {
-        if (daemon(0, 0) < 0) {
-            err(1, "daemon");
-        }
-
-        openlog(progname, LOG_NDELAY | LOG_PID, LOG_DAEMON);
-
-        /* Get out pid again now that we've daemonized so we log the proper
-         * value in the pid file */
-        pid = getpid();
-    }
-#endif
-
     setloglevel(debug);
 
     /* dump current PID */
