@@ -1,3 +1,5 @@
+- Make sure code compiles with -Werror
+
 - Use glib types for common things, and glib functions where appropriate
 
 - Clean up log messages on dhcp6r
