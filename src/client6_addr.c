@@ -814,12 +814,6 @@ int client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr) {
     req.ifr6_prefixlen = ifaddr->plen;
 #endif
 
-#if defined(__MACOSX__)
-    memcpy(&req.ifr_name, ifp->ifname, strlen(ifp->ifname));
-    memcpy(&req.ifr_ifru.ifru_addr, &ifaddr->addr,
-           sizeof(req.ifr_ifru.ifru_addr));
-#endif
-
     if (ioctl(s, ioctl_cmd, &req) && errno != EEXIST) {
         dhcpv6_dprintf(LOG_NOTICE, "%s" "failed to %s an address on %s: %s",
                        FNAME, cmdstr, ifp->ifname, strerror(errno));

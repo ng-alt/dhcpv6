@@ -395,7 +395,6 @@ int prefixcmp(struct in6_addr *addr, struct in6_addr *prefix, int len) {
 }
 
 int get_linklocal(const char *ifname, struct in6_addr *linklocal) {
-/* XXX: fixme for MacOS X */
 #if defined(__linux__)
     struct ifaddrs *ifa = 0, *ifap = 0;
     struct sockaddr *sd = 0;

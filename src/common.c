@@ -1379,7 +1379,6 @@ ssize_t gethwid(unsigned char *buf, int len, const char *ifname,
 
     strcpy(if_hwaddr.ifr_name, ifname);
 
-/* XXX: fixme on MacOS X */
 #if defined(__linux__)
     if (ioctl(skfd, SIOCGIFHWADDR, &if_hwaddr) < 0) {
         close(skfd);
