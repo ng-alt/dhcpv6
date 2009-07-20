@@ -1443,8 +1443,20 @@ int main(int argc, char **argv, char **envp) {
                     }
 
                     lv->val_dhcp6addr.type = IAPD;
-                    lv->val_dhcp6addr.plen = atoi(strtok(NULL, "/"));
                     lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
+
+                    errno = 0;
+                    lv->val_dhcp6addr.plen = strtol(strtok(NULL, "/"),
+                                                    NULL, 10);
+                    if ((errno == ERANGE &&
+                        (lv->val_dhcp6addr.plen == LONG_MIN ||
+                         lv->val_dhcp6addr.plen == LONG_MAX)) ||
+                        (errno != 0 && lv->val_dhcp6addr.plen == 0)) {
+                        dhcpv6_dprintf(LOG_ERR, "invalid ipv6 prefix length");
+                        _usage(argv[0]);
+                        exit(1);
+                    }
+
                     TAILQ_INSERT_TAIL(&request_list, lv, link);
                 }
 
