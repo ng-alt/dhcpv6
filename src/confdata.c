@@ -53,6 +53,8 @@ enum {
     DHCPOPTCODE_ALLOW
 };
 
+int clear_option_list(struct dhcp6_option_list *);
+
 /* BEGIN STATIC FUNCTIONS */
 
 static void _clear_ifconf(struct dhcp6_ifconf *iflist) {

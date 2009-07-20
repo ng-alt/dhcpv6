@@ -137,6 +137,9 @@ void free_servers(struct dhcp6_if *);
 void client6_send(struct dhcp6_event *);
 int client6_send_newstate(struct dhcp6_if *, int);
 struct dhcp6_timer *client6_timo(void *);
+int get_if_rainfo(struct dhcp6_if *);
+int client6_init(char *);
+
 extern int client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
 extern struct dhcp6_timer *syncfile_timo(void *);
 extern int dad_parse(const char *, struct dhcp6_list *);
@@ -845,7 +848,7 @@ static int _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
         case DHCP6S_SOLICIT:
             if (ia == NULL) {
                 break;
-            } else if (!optinfo->flags & DHCIFF_RAPID_COMMIT) {
+            } else if (!(optinfo->flags & DHCIFF_RAPID_COMMIT)) {
                 newstate = DHCP6S_REQUEST;
                 break;
             }
@@ -1061,7 +1064,6 @@ static int _client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
     struct ia_listval *ia;
     struct dhcp6_serverinfo *newserver;
     struct dhcp6_event *ev;
-    struct dhcp6_listval *lv;
 
     /* find the corresponding event based on the received xid */
     ev = _find_event_withid(ifp, ntohl(dh6->dh6_xid) & DH6_XIDMASK);

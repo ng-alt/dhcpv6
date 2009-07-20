@@ -63,6 +63,8 @@ struct host_decl *dhcp6_allocate_host(struct dhcp6_if *, struct rootgroup *,
                                       struct dhcp6_optinfo *);
 int dhcp6_get_hostconf(struct ia_listval *, struct ia_listval *,
                        struct dhcp6_iaidaddr *, struct host_decl *);
+int dhcp6_add_lease(struct dhcp6_iaidaddr *, struct dhcp6_addr *);
+int dhcp6_update_lease(struct dhcp6_addr *, struct dhcp6_lease *);
 
 /* BEGIN STATIC FUNCTIONS */
 

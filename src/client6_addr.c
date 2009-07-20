@@ -74,6 +74,8 @@
 #include "timer.h"
 #include "lease.h"
 
+int dhcp6_add_lease(struct dhcp6_addr *);
+
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern struct dhcp6_timer *client6_timo(void *);
 extern void client6_send(struct dhcp6_event *);

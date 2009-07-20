@@ -169,6 +169,6 @@ struct v6addr *getprefix(struct in6_addr *, int);
 struct in6_addr *inc_ipv6addr(struct in6_addr *);
 struct scopelist *push_double_list(struct scopelist *, struct scope *);
 struct scopelist *pop_double_list(struct scopelist *);
-int get_primary_ipv6addr(const char *device);
+int get_primary_ipv6addr(const char *);
 
 #endif
