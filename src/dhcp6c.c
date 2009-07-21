@@ -146,8 +146,6 @@ static void _usage(char *name) {
     fprintf(stdout,
             "    -P ADDR...     Request the specified IAPD address(es)\n");
     fprintf(stdout,
-            "    -I             Request only information from the server\n");
-    fprintf(stdout,
             "    -s PATH        Script executed on state changes to which "
                                 "configuration\n                   is "
                                 "delegated\n");
@@ -159,9 +157,11 @@ static void _usage(char *name) {
             "    -d PATH        Path to client DUID file\n"
             "                       (default: %s)\n",
             duidfile);
-    fprintf(stdout, "    -v             Verbose debugging output\n");
+    fprintf(stdout,
+            "    -I             Request only information from the server\n");
     fprintf(stdout,
             "    -f             Run client as a foreground process\n");
+    fprintf(stdout, "    -v             Verbose debugging output\n");
     fprintf(stdout, "    -?             Display this screen\n");
     fprintf(stdout, "IANA is identiy association named address.\n");
     fprintf(stdout, "IAPD is identiy association prefix delegation.\n");
