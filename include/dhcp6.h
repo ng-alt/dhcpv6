@@ -106,13 +106,34 @@
 #endif
 #define MAXDN 100
 
+#define SIGF_TERM 0x1
+#define SIGF_HUP 0x2
+#define SIGF_CLEAN 0x4
+
+#define DHCP6S_VALID_REPLY(a)                      \
+    (a == DHCP6S_REQUEST || a == DHCP6S_RENEW ||   \
+     a == DHCP6S_REBIND || a == DHCP6S_DECLINE ||  \
+     a == DHCP6S_RELEASE || a == DHCP6S_CONFIRM || \
+     a == DHCP6S_INFOREQ)
+
+#define CLIENT6_RELEASE_ADDR 0x1
+#define CLIENT6_CONFIRM_ADDR 0x2
+#define CLIENT6_REQUEST_ADDR 0x4
+#define CLIENT6_DECLINE_ADDR 0x8
+#define CLIENT6_INFO_REQ     0x10
+
+/* Default file paths (can be overridden with command line options) */
+#define DHCP6C_PIDFILE PID_FILE_PATH"/dhcp6c.pid"
+#define DHCP6C_DUID_FILE DB_FILE_PATH"/dhcp6c_duid"
+
+/* Resolver configuration file (almost always /etc/resolv.conf) */
 #define RESOLV_CONF_DHCPV6_FILE DB_FILE_PATH"/resolv.conf.dhcpv6"
 #define RESOLV_CONF_BAK_FILE RESOLV_CONF_DHCPV6_FILE".bak"
 
 char resolv_dhcpv6_file[MAXPATHLEN];
 
 typedef enum {
-    IANA,
+    IANA = 1,
     IATA,
     IAPD
 } iatype_t;

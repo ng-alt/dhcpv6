@@ -88,25 +88,6 @@
 #include "timer.h"
 #include "lease.h"
 
-#define SIGF_TERM 0x1
-#define SIGF_HUP 0x2
-#define SIGF_CLEAN 0x4
-
-#define DHCP6S_VALID_REPLY(a)                      \
-    (a == DHCP6S_REQUEST || a == DHCP6S_RENEW ||   \
-     a == DHCP6S_REBIND || a == DHCP6S_DECLINE ||  \
-     a == DHCP6S_RELEASE || a == DHCP6S_CONFIRM || \
-     a == DHCP6S_INFOREQ)
-
-#define DHCP6C_PIDFILE PID_FILE_PATH"/dhcp6c.pid"
-#define DUID_FILE DB_FILE_PATH"/dhcp6c_duid"
-
-#define CLIENT6_RELEASE_ADDR 0x1
-#define CLIENT6_CONFIRM_ADDR 0x2
-#define CLIENT6_REQUEST_ADDR 0x4
-#define CLIENT6_DECLINE_ADDR 0x8
-#define CLIENT6_INFO_REQ     0x10
-
 extern char *raproc_file;
 extern char *ifproc_file;
 extern FILE *client6_lease_file;
@@ -125,13 +106,16 @@ static char *device = NULL;
 static int num_device = 0;
 static struct iaid_table iaidtab[MAX_DEVICE];
 static u_int8_t client6_request_flag = 0;
-static char leasename[MAXPATHLEN];
 static const struct sockaddr_in6 *sa6_allagent;
 static socklen_t sa6_alen;
 static struct duid client_duid;
 static int pid;
-static char pidfile[MAXPATHLEN];
+static char leasename[MAXPATHLEN];
+
 static char *script = NULL;
+static char *path_client6_lease = NULL;
+static char *pidfile = NULL;
+static char *duidfile = NULL;
 
 void free_servers(struct dhcp6_if *);
 void client6_send(struct dhcp6_event *);
@@ -163,6 +147,14 @@ static void _usage(char *name) {
             "    -I             Request only information from the server\n");
     fprintf(stderr,
             "    -s PATH        Script executed on state changes to which configuration is delegated\n");
+    fprintf(stderr,
+            "    -l PATH        Path to lease database (default: %s)\n",
+            path_client6_lease);
+    fprintf(stderr,
+            "    -p PATH        Path to PID file (default: %s)\n", pidfile);
+    fprintf(stderr,
+            "    -d PATH        Path to client DUID file (default: %s)\n",
+            duidfile);
     fprintf(stderr, "    -v             Verbose debugging output\n");
     fprintf(stderr,
             "    -f             Run client as a foreground process\n");
@@ -187,8 +179,9 @@ static struct dhcp6_serverinfo *_find_server(struct dhcp6_if *ifp,
     struct dhcp6_serverinfo *s;
 
     for (s = ifp->servers; s; s = s->next) {
-        if (duidcmp(&s->optinfo.serverID, duid) == 0)
+        if (duidcmp(&s->optinfo.serverID, duid) == 0) {
             return s;
+        }
     }
 
     return NULL;
@@ -508,7 +501,7 @@ static int _client6_ifinit(char *device) {
     memcpy(&client6_iaidaddr.client6_info.iaidinfo, &ifp->iaidinfo,
            sizeof(client6_iaidaddr.client6_info.iaidinfo));
     duidcpy(&client6_iaidaddr.client6_info.clientid, &client_duid);
-    save_duid(DUID_FILE, device, &client_duid);
+    save_duid(duidfile, device, &client_duid);
 
     if (!(ifp->send_flags & DHCIFF_INFO_ONLY) &&
         !(client6_request_flag & CLIENT6_INFO_REQ) &&
@@ -516,7 +509,7 @@ static int _client6_ifinit(char *device) {
          !(ifp->ra_flag & IF_RA_OTHERCONF))) {
         /* parse the lease file */
         memset(&leasename, '\0', sizeof(leasename));
-        strcpy(leasename, PATH_CLIENT6_LEASE);
+        strcpy(leasename, path_client6_lease);
         sprintf(iaidstr, "%u", ifp->iaidinfo.iaid);
         strcat(leasename, iaidstr);
 
@@ -1389,14 +1382,12 @@ static void _setup_interface(char *ifname) {
 
 int main(int argc, char **argv, char **envp) {
     int ch;
-    char *progname, *conffile = DHCP6C_CONF;
+    char *progname = NULL, *conffile = DHCP6C_CONF;
     FILE *pidfp;
     char *addr;
 
     pid = getpid();
     srandom(time(NULL) & pid);
-    memset(&pidfile, '\0', sizeof(pidfile));
-    strcpy(pidfile, DHCP6C_PIDFILE);
 
     if ((progname = strrchr(*argv, '/')) == NULL) {
         progname = *argv;
@@ -1405,18 +1396,22 @@ int main(int argc, char **argv, char **envp) {
     }
 
     TAILQ_INIT(&request_list);
-    while ((ch = getopt(argc, argv, "c:r:R:P:vfIp:s:")) != -1) {
+    while ((ch = getopt(argc, argv, "c:r:R:P:vfIp:l:s:d:")) != -1) {
         switch (ch) {
             case 'p':
                 if (strlen(optarg) >= MAXPATHLEN) {
-                    dhcpv6_dprintf(LOG_ERR, "pid file name is too long");
+                    dhcpv6_dprintf(LOG_ERR, "pid filename is too long");
                     exit(1);
                 }
 
-                memset(&pidfile, '\0', sizeof(pidfile));
-                strcpy(pidfile, optarg);
+                pidfile = optarg;
                 break;
             case 'c':
+                if (strlen(optarg) >= MAXPATHLEN) {
+                    dhcpv6_dprintf(LOG_ERR, "configuration filename is too long");
+                    exit(1);
+                }
+
                 conffile = optarg;
                 break;
             case 'P':
@@ -1525,8 +1520,29 @@ int main(int argc, char **argv, char **envp) {
             case 'I':
                 client6_request_flag |= CLIENT6_INFO_REQ;
                 break;
+            case 'l':
+                if (strlen(optarg) >= MAXPATHLEN) {
+                    dhcpv6_dprintf(LOG_ERR, "lease database filename is too long");
+                    exit(1);
+                }
+
+                path_client6_lease = optarg;
+                break;
             case 's':
+                if (strlen(optarg) >= MAXPATHLEN) {
+                    dhcpv6_dprintf(LOG_ERR, "script filename is too long");
+                    exit(1);
+                }
+
                 script = optarg;
+                break;
+            case 'd':
+                if (strlen(optarg) >= MAXPATHLEN) {
+                    dhcpv6_dprintf(LOG_ERR, "DUID filename is too long");
+                    exit(1);
+                }
+
+                duidfile = optarg;
                 break;
             case 'v':
                 debug = 2;
@@ -1550,6 +1566,18 @@ int main(int argc, char **argv, char **envp) {
 
     device = argv[0];
     setloglevel(debug);
+
+    if (path_client6_lease == NULL) {
+        path_client6_lease = PATH_CLIENT6_LEASE;
+    }
+
+    if (pidfile == NULL) {
+        pidfile = DHCP6C_PIDFILE;
+    }
+
+    if (duidfile == NULL) {
+        duidfile = DHCP6C_DUID_FILE;
+    }
 
     /* dump current PID */
     if ((pidfp = fopen(pidfile, "w")) != NULL) {
@@ -1602,7 +1630,7 @@ int client6_init(char *device) {
     }
 
     /* get our DUID */
-    if (get_duid(DUID_FILE, device, &client_duid)) {
+    if (get_duid(duidfile, device, &client_duid)) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to get a DUID", FNAME);
         return -1;
     }
@@ -2141,7 +2169,7 @@ void client6_send(struct dhcp6_event *ev) {
     }
 
     /* save DUID now for persistent DUID (e.g., if client reboots) */
-    if (save_duid(DUID_FILE, device, &client_duid)) {
+    if (save_duid(duidfile, device, &client_duid)) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to save client ID", FNAME);
         goto end;
     }
