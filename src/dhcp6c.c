@@ -113,9 +113,9 @@ static int pid;
 static char leasename[MAXPATHLEN];
 
 static char *script = NULL;
-static char *path_client6_lease = NULL;
-static char *pidfile = NULL;
-static char *duidfile = NULL;
+static char *path_client6_lease = PATH_CLIENT6_LEASE;
+static char *pidfile = DHCP6C_PIDFILE;
+static char *duidfile = DHCP6C_DUID_FILE;
 
 void free_servers(struct dhcp6_if *);
 void client6_send(struct dhcp6_event *);
@@ -131,36 +131,41 @@ extern int dad_parse(const char *, struct dhcp6_list *);
 /* BEGIN STATIC FUNCTIONS */
 
 static void _usage(char *name) {
-    fprintf(stderr, "Usage: %s [options] interface\n", basename(name));
-    fprintf(stderr, "Options:\n");
-    fprintf(stderr,
-            "    -c PATH        Configuration file (e.g., /etc/dhcp6c.conf)\n");
-    fprintf(stderr, "    -p PATH        PID file name (default: %s)\n",
+    fprintf(stdout, "Usage: %s [options] interface\n", name);
+    fprintf(stdout, "Options:\n");
+    fprintf(stdout,
+            "    -c PATH        Configuration file\n"
+            "                       (default: %s)\n", DHCP6C_CONF);
+    fprintf(stdout, "    -p PATH        PID file name\n"
+                    "                       (default: %s)\n",
             DHCP6C_PIDFILE);
-    fprintf(stderr,
+    fprintf(stdout,
             "    -r ADDR...     Release the specified addresses (either \"all\" or\n                    named addresses)\n");
-    fprintf(stderr,
+    fprintf(stdout,
             "    -R ADDR...     Request the specified IANA address(es)\n");
-    fprintf(stderr,
+    fprintf(stdout,
             "    -P ADDR...     Request the specified IAPD address(es)\n");
-    fprintf(stderr,
+    fprintf(stdout,
             "    -I             Request only information from the server\n");
-    fprintf(stderr,
-            "    -s PATH        Script executed on state changes to which configuration is delegated\n");
-    fprintf(stderr,
-            "    -l PATH        Path to lease database (default: %s)\n",
+    fprintf(stdout,
+            "    -s PATH        Script executed on state changes to which "
+                                "configuration\n                   is "
+                                "delegated\n");
+    fprintf(stdout,
+            "    -l PATH        Path to lease database\n"
+            "                       (default: %s)\n",
             path_client6_lease);
-    fprintf(stderr,
-            "    -p PATH        Path to PID file (default: %s)\n", pidfile);
-    fprintf(stderr,
-            "    -d PATH        Path to client DUID file (default: %s)\n",
+    fprintf(stdout,
+            "    -d PATH        Path to client DUID file\n"
+            "                       (default: %s)\n",
             duidfile);
-    fprintf(stderr, "    -v             Verbose debugging output\n");
-    fprintf(stderr,
+    fprintf(stdout, "    -v             Verbose debugging output\n");
+    fprintf(stdout,
             "    -f             Run client as a foreground process\n");
-    fprintf(stderr, "IANA is identiy association named address.\n");
-    fprintf(stderr, "IAPD is identiy association prefix delegation.\n");
-    fflush(stderr);
+    fprintf(stdout, "    -?             Display this screen\n");
+    fprintf(stdout, "IANA is identiy association named address.\n");
+    fprintf(stdout, "IAPD is identiy association prefix delegation.\n");
+    fflush(stdout);
     return;
 }
 
@@ -1382,21 +1387,16 @@ static void _setup_interface(char *ifname) {
 
 int main(int argc, char **argv, char **envp) {
     int ch;
-    char *progname = NULL, *conffile = DHCP6C_CONF;
+    char *progname = basename(argv[0]);
+    char *conffile = DHCP6C_CONF;
     FILE *pidfp;
     char *addr;
 
     pid = getpid();
     srandom(time(NULL) & pid);
 
-    if ((progname = strrchr(*argv, '/')) == NULL) {
-        progname = *argv;
-    } else {
-        progname++;
-    }
-
     TAILQ_INIT(&request_list);
-    while ((ch = getopt(argc, argv, "c:r:R:P:vfIp:l:s:d:")) != -1) {
+    while ((ch = getopt(argc, argv, "c:r:R:P:vfIp:l:s:d:?")) != -1) {
         switch (ch) {
             case 'p':
                 if (strlen(optarg) >= MAXPATHLEN) {
@@ -1433,7 +1433,7 @@ int main(int argc, char **argv, char **envp) {
                                   &lv->val_dhcp6addr.addr) < 1) {
                         dhcpv6_dprintf(LOG_ERR,
                                        "invalid ipv6address for release");
-                        _usage(argv[0]);
+                        _usage(progname);
                         exit(1);
                     }
 
@@ -1448,7 +1448,7 @@ int main(int argc, char **argv, char **envp) {
                          lv->val_dhcp6addr.plen == LONG_MAX)) ||
                         (errno != 0 && lv->val_dhcp6addr.plen == 0)) {
                         dhcpv6_dprintf(LOG_ERR, "invalid ipv6 prefix length");
-                        _usage(argv[0]);
+                        _usage(progname);
                         exit(1);
                     }
 
@@ -1475,7 +1475,7 @@ int main(int argc, char **argv, char **envp) {
                         1) {
                         dhcpv6_dprintf(LOG_ERR,
                                        "invalid ipv6address for release");
-                        _usage(argv[0]);
+                        _usage(progname);
                         exit(1);
                     }
 
@@ -1507,7 +1507,7 @@ int main(int argc, char **argv, char **envp) {
                                       &lv->val_dhcp6addr.addr) < 1) {
                             dhcpv6_dprintf(LOG_ERR,
                                            "invalid ipv6address for release");
-                            _usage(argv[0]);
+                            _usage(progname);
                             exit(1);
                         }
 
@@ -1550,8 +1550,9 @@ int main(int argc, char **argv, char **envp) {
             case 'f':
                 foreground++;
                 break;
+            case '?':
             default:
-                _usage(argv[0]);
+                _usage(progname);
                 exit(0);
         }
     }
@@ -1560,24 +1561,12 @@ int main(int argc, char **argv, char **envp) {
     argv += optind;
 
     if (argc != 1) {
-        _usage(argv[0]);
+        _usage(progname);
         exit(0);
     }
 
     device = argv[0];
     setloglevel(debug);
-
-    if (path_client6_lease == NULL) {
-        path_client6_lease = PATH_CLIENT6_LEASE;
-    }
-
-    if (pidfile == NULL) {
-        pidfile = DHCP6C_PIDFILE;
-    }
-
-    if (duidfile == NULL) {
-        duidfile = DHCP6C_DUID_FILE;
-    }
 
     /* dump current PID */
     if ((pidfp = fopen(pidfile, "w")) != NULL) {
