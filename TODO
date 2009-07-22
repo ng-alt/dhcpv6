@@ -1,3 +1,5 @@
+- Add long options to dhcp6c, dhcp6s, and dhcp6r
+
 - Make sure code compiles with -Werror
 
 - Use glib types for common things, and glib functions where appropriate
