@@ -119,13 +119,6 @@ static char *path_client6_lease = PATH_CLIENT6_LEASE;
 static char *pidfile = DHCP6C_PIDFILE;
 static char *duidfile = DHCP6C_DUID_FILE;
 
-void free_servers(struct dhcp6_if *);
-void client6_send(struct dhcp6_event *);
-gint client6_send_newstate(struct dhcp6_if *, int);
-struct dhcp6_timer *client6_timo(void *);
-gint get_if_rainfo(struct dhcp6_if *);
-gint client6_init(char *);
-
 extern gint client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
 extern struct dhcp6_timer *syncfile_timo(void *);
 extern gint dad_parse(const char *, struct dhcp6_list *);
@@ -1387,222 +1380,6 @@ static void _setup_interface(char *ifname) {
 
 /* END STATIC FUNCTIONS */
 
-gint main(gint argc, char **argv, char **envp) {
-    gint ch;
-    char *progname = basename(argv[0]);
-    char *conffile = DHCP6C_CONF;
-    FILE *pidfp;
-    char *addr;
-
-    pid = getpid();
-    srandom(time(NULL) & pid);
-
-    TAILQ_INIT(&request_list);
-    while ((ch = getopt(argc, argv, "c:r:R:P:vfIp:l:s:d:?")) != -1) {
-        switch (ch) {
-            case 'p':
-                if (strlen(optarg) >= MAXPATHLEN) {
-                    dhcpv6_dprintf(LOG_ERR, "pid filename is too long");
-                    exit(1);
-                }
-
-                pidfile = optarg;
-                break;
-            case 'c':
-                if (strlen(optarg) >= MAXPATHLEN) {
-                    dhcpv6_dprintf(LOG_ERR, "configuration filename is too long");
-                    exit(1);
-                }
-
-                conffile = optarg;
-                break;
-            case 'P':
-                client6_request_flag |= CLIENT6_REQUEST_ADDR;
-
-                for (addr = strtok(optarg, " "); addr;
-                     addr = strtok(NULL, " ")) {
-                    struct dhcp6_listval *lv;
-
-                    if ((lv = (struct dhcp6_listval *) malloc(sizeof(*lv)))
-                        == NULL) {
-                        dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
-                        exit(1);
-                    }
-
-                    memset(lv, 0, sizeof(*lv));
-
-                    if (inet_pton(AF_INET6, strtok(addr, "/"),
-                                  &lv->val_dhcp6addr.addr) < 1) {
-                        dhcpv6_dprintf(LOG_ERR,
-                                       "invalid ipv6address for release");
-                        _usage(progname);
-                        exit(1);
-                    }
-
-                    lv->val_dhcp6addr.type = IAPD;
-                    lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
-
-                    errno = 0;
-                    lv->val_dhcp6addr.plen = strtol(strtok(NULL, "/"),
-                                                    NULL, 10);
-                    if ((errno == ERANGE &&
-                        (lv->val_dhcp6addr.plen == LONG_MIN ||
-                         lv->val_dhcp6addr.plen == LONG_MAX)) ||
-                        (errno != 0 && lv->val_dhcp6addr.plen == 0)) {
-                        dhcpv6_dprintf(LOG_ERR, "invalid ipv6 prefix length");
-                        _usage(progname);
-                        exit(1);
-                    }
-
-                    TAILQ_INSERT_TAIL(&request_list, lv, link);
-                }
-
-                break;
-            case 'R':
-                client6_request_flag |= CLIENT6_REQUEST_ADDR;
-
-                for (addr = strtok(optarg, " "); addr;
-                     addr = strtok(NULL, " ")) {
-                    struct dhcp6_listval *lv;
-
-                    if ((lv = (struct dhcp6_listval *) malloc(sizeof(*lv)))
-                        == NULL) {
-                        dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
-                        exit(1);
-                    }
-
-                    memset(lv, 0, sizeof(*lv));
-
-                    if (inet_pton(AF_INET6, addr, &lv->val_dhcp6addr.addr) <
-                        1) {
-                        dhcpv6_dprintf(LOG_ERR,
-                                       "invalid ipv6address for release");
-                        _usage(progname);
-                        exit(1);
-                    }
-
-                    lv->val_dhcp6addr.type = IANA;
-                    lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
-                    TAILQ_INSERT_TAIL(&request_list, lv, link);
-                }
-
-                break;
-            case 'r':
-                client6_request_flag |= CLIENT6_RELEASE_ADDR;
-
-                if (strcmp(optarg, "all")) {
-                    for (addr = strtok(optarg, " "); addr;
-                         addr = strtok(NULL, " ")) {
-                        struct dhcp6_listval *lv;
-
-                        if ((lv =
-                             (struct dhcp6_listval *) malloc(sizeof(*lv)))
-                            == NULL) {
-                            dhcpv6_dprintf(LOG_ERR,
-                                           "failed to allocate memory");
-                            exit(1);
-                        }
-
-                        memset(lv, 0, sizeof(*lv));
-
-                        if (inet_pton(AF_INET6, addr,
-                                      &lv->val_dhcp6addr.addr) < 1) {
-                            dhcpv6_dprintf(LOG_ERR,
-                                           "invalid ipv6address for release");
-                            _usage(progname);
-                            exit(1);
-                        }
-
-                        lv->val_dhcp6addr.type = IANA;
-                        TAILQ_INSERT_TAIL(&request_list, lv, link);
-                    }
-                }
-
-                break;
-            case 'I':
-                client6_request_flag |= CLIENT6_INFO_REQ;
-                break;
-            case 'l':
-                if (strlen(optarg) >= MAXPATHLEN) {
-                    dhcpv6_dprintf(LOG_ERR, "lease database filename is too long");
-                    exit(1);
-                }
-
-                path_client6_lease = optarg;
-                break;
-            case 's':
-                if (strlen(optarg) >= MAXPATHLEN) {
-                    dhcpv6_dprintf(LOG_ERR, "script filename is too long");
-                    exit(1);
-                }
-
-                script = optarg;
-                break;
-            case 'd':
-                if (strlen(optarg) >= MAXPATHLEN) {
-                    dhcpv6_dprintf(LOG_ERR, "DUID filename is too long");
-                    exit(1);
-                }
-
-                duidfile = optarg;
-                break;
-            case 'v':
-                debug = 2;
-                break;
-            case 'f':
-                foreground++;
-                break;
-            case '?':
-            default:
-                _usage(progname);
-                exit(0);
-        }
-    }
-
-    argc -= optind;
-    argv += optind;
-
-    if (argc != 1) {
-        _usage(progname);
-        exit(0);
-    }
-
-    device = argv[0];
-    setloglevel(debug);
-
-    /* dump current PID */
-    if ((pidfp = fopen(pidfile, "w")) != NULL) {
-        fprintf(pidfp, "%d\n", pid);
-        fclose(pidfp);
-    } else {
-        fprintf(stderr, "Unable to write to %s: %s\n", pidfile,
-                strerror(errno));
-        fflush(stderr);
-        abort();
-    }
-
-    ifinit(device);
-    _setup_interface(device);
-
-    if ((cfparse(conffile)) != 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to parse configuration file",
-                       FNAME);
-        exit(1);
-    }
-
-    if (client6_init(device)) {
-        return -1;
-    }
-
-    if (_client6_ifinit(device)) {
-        return -1;
-    }
-
-    _client6_mainloop();
-
-    return 0;
-}
-
 gint client6_init(char *device) {
     struct addrinfo hints, *res;
     static struct sockaddr_in6 sa6_allagent_storage;
@@ -2381,6 +2158,302 @@ gint client6_send_newstate(struct dhcp6_if *ifp, gint state) {
     dhcp6_set_timeoparam(ev);
     dhcp6_reset_timer(ev);
     client6_send(ev);
+
+    return 0;
+}
+
+void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
+                guint32 uuid) {
+    gchar *tmp = NULL;
+    gchar tmpaddr[INET6_ADDRSTRLEN];
+    gboolean fail = FALSE;
+
+    if (script == NULL) {
+        return;
+    }
+
+    /* set environment variables for the program we are calling */
+    if (!g_setenv(OLD_STATE, dhcp6msgstr(old_state), TRUE)) {
+        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
+                       OLD_STATE);
+    }
+
+    if (!g_setenv(NEW_STATE, dhcp6msgstr(new_state), TRUE)) {
+        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
+                       NEW_STATE);
+    }
+
+    if (!g_setenv(IFACE_NAME, ifp->ifname, TRUE)) {
+        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
+                       IFACE_NAME);
+    }
+
+    if (g_vasprintf(&tmp, "%u", ifp->ifid) > 0) {
+        if (!g_setenv(IFACE_INDEX, tmp, TRUE)) {
+            fail = TRUE;
+        } else {
+            g_free(tmp);
+        }
+    } else {
+        fail = TRUE;
+    }
+
+    if (fail) {
+        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
+                       IFACE_INDEX);
+        fail = FALSE;
+    }
+
+    memset(&tmpaddr, '\0', sizeof(tmpaddr));
+    inet_ntop(AF_INET6, tmpaddr, ifp->linklocal, sizeof(ifp->linklocal));
+    if (tmpaddr == NULL) {
+        dhcpv6_dprintf(LOG_ERR, "%s line %d: %s", __func__, __LINE__,
+                       strerror(errno));
+    } else {
+        if (!g_setenv(LINKLOCAL_ADDR, tmpaddr, TRUE)) {
+            dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
+                           LINKLOCAL_ADDR);
+        }
+    }
+
+
+
+    /*
+     * set the following information in env vars:
+     * requested options (struct dhcp6_list reqopt_list)
+     *
+     * what we got from the server:
+     *     address list (struct dhcp6_list addr_list)
+     *     prefix list (struct dhcp6_list prefix_list)
+     *     option list (struct dhcp6_option_list option_list)
+     *
+     * error code (where the hell is this?)
+     */
+
+
+    /*
+     * use old_ and new_ variable naming based on the state we're in
+     */
+
+    /*
+     * fork and exec script
+     */
+
+    return;
+}
+
+gint main(gint argc, char **argv, char **envp) {
+    gint ch;
+    char *progname = basename(argv[0]);
+    char *conffile = DHCP6C_CONF;
+    FILE *pidfp;
+    char *addr;
+
+    pid = getpid();
+    srandom(time(NULL) & pid);
+
+    TAILQ_INIT(&request_list);
+    while ((ch = getopt(argc, argv, "c:r:R:P:vfIp:l:s:d:?")) != -1) {
+        switch (ch) {
+            case 'p':
+                if (strlen(optarg) >= MAXPATHLEN) {
+                    dhcpv6_dprintf(LOG_ERR, "pid filename is too long");
+                    exit(1);
+                }
+
+                pidfile = optarg;
+                break;
+            case 'c':
+                if (strlen(optarg) >= MAXPATHLEN) {
+                    dhcpv6_dprintf(LOG_ERR, "configuration filename is too long");
+                    exit(1);
+                }
+
+                conffile = optarg;
+                break;
+            case 'P':
+                client6_request_flag |= CLIENT6_REQUEST_ADDR;
+
+                for (addr = strtok(optarg, " "); addr;
+                     addr = strtok(NULL, " ")) {
+                    struct dhcp6_listval *lv;
+
+                    if ((lv = (struct dhcp6_listval *) malloc(sizeof(*lv)))
+                        == NULL) {
+                        dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
+                        exit(1);
+                    }
+
+                    memset(lv, 0, sizeof(*lv));
+
+                    if (inet_pton(AF_INET6, strtok(addr, "/"),
+                                  &lv->val_dhcp6addr.addr) < 1) {
+                        dhcpv6_dprintf(LOG_ERR,
+                                       "invalid ipv6address for release");
+                        _usage(progname);
+                        exit(1);
+                    }
+
+                    lv->val_dhcp6addr.type = IAPD;
+                    lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
+
+                    errno = 0;
+                    lv->val_dhcp6addr.plen = strtol(strtok(NULL, "/"),
+                                                    NULL, 10);
+                    if ((errno == ERANGE &&
+                        (lv->val_dhcp6addr.plen == LONG_MIN ||
+                         lv->val_dhcp6addr.plen == LONG_MAX)) ||
+                        (errno != 0 && lv->val_dhcp6addr.plen == 0)) {
+                        dhcpv6_dprintf(LOG_ERR, "invalid ipv6 prefix length");
+                        _usage(progname);
+                        exit(1);
+                    }
+
+                    TAILQ_INSERT_TAIL(&request_list, lv, link);
+                }
+
+                break;
+            case 'R':
+                client6_request_flag |= CLIENT6_REQUEST_ADDR;
+
+                for (addr = strtok(optarg, " "); addr;
+                     addr = strtok(NULL, " ")) {
+                    struct dhcp6_listval *lv;
+
+                    if ((lv = (struct dhcp6_listval *) malloc(sizeof(*lv)))
+                        == NULL) {
+                        dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
+                        exit(1);
+                    }
+
+                    memset(lv, 0, sizeof(*lv));
+
+                    if (inet_pton(AF_INET6, addr, &lv->val_dhcp6addr.addr) <
+                        1) {
+                        dhcpv6_dprintf(LOG_ERR,
+                                       "invalid ipv6address for release");
+                        _usage(progname);
+                        exit(1);
+                    }
+
+                    lv->val_dhcp6addr.type = IANA;
+                    lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
+                    TAILQ_INSERT_TAIL(&request_list, lv, link);
+                }
+
+                break;
+            case 'r':
+                client6_request_flag |= CLIENT6_RELEASE_ADDR;
+
+                if (strcmp(optarg, "all")) {
+                    for (addr = strtok(optarg, " "); addr;
+                         addr = strtok(NULL, " ")) {
+                        struct dhcp6_listval *lv;
+
+                        if ((lv =
+                             (struct dhcp6_listval *) malloc(sizeof(*lv)))
+                            == NULL) {
+                            dhcpv6_dprintf(LOG_ERR,
+                                           "failed to allocate memory");
+                            exit(1);
+                        }
+
+                        memset(lv, 0, sizeof(*lv));
+
+                        if (inet_pton(AF_INET6, addr,
+                                      &lv->val_dhcp6addr.addr) < 1) {
+                            dhcpv6_dprintf(LOG_ERR,
+                                           "invalid ipv6address for release");
+                            _usage(progname);
+                            exit(1);
+                        }
+
+                        lv->val_dhcp6addr.type = IANA;
+                        TAILQ_INSERT_TAIL(&request_list, lv, link);
+                    }
+                }
+
+                break;
+            case 'I':
+                client6_request_flag |= CLIENT6_INFO_REQ;
+                break;
+            case 'l':
+                if (strlen(optarg) >= MAXPATHLEN) {
+                    dhcpv6_dprintf(LOG_ERR, "lease database filename is too long");
+                    exit(1);
+                }
+
+                path_client6_lease = optarg;
+                break;
+            case 's':
+                if (strlen(optarg) >= MAXPATHLEN) {
+                    dhcpv6_dprintf(LOG_ERR, "script filename is too long");
+                    exit(1);
+                }
+
+                script = optarg;
+                break;
+            case 'd':
+                if (strlen(optarg) >= MAXPATHLEN) {
+                    dhcpv6_dprintf(LOG_ERR, "DUID filename is too long");
+                    exit(1);
+                }
+
+                duidfile = optarg;
+                break;
+            case 'v':
+                debug = 2;
+                break;
+            case 'f':
+                foreground++;
+                break;
+            case '?':
+            default:
+                _usage(progname);
+                exit(0);
+        }
+    }
+
+    argc -= optind;
+    argv += optind;
+
+    if (argc != 1) {
+        _usage(progname);
+        exit(0);
+    }
+
+    device = argv[0];
+    setloglevel(debug);
+
+    /* dump current PID */
+    if ((pidfp = fopen(pidfile, "w")) != NULL) {
+        fprintf(pidfp, "%d\n", pid);
+        fclose(pidfp);
+    } else {
+        fprintf(stderr, "Unable to write to %s: %s\n", pidfile,
+                strerror(errno));
+        fflush(stderr);
+        abort();
+    }
+
+    ifinit(device);
+    _setup_interface(device);
+
+    if ((cfparse(conffile)) != 0) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "failed to parse configuration file",
+                       FNAME);
+        exit(1);
+    }
+
+    if (client6_init(device)) {
+        return -1;
+    }
+
+    if (_client6_ifinit(device)) {
+        return -1;
+    }
+
+    _client6_mainloop();
 
     return 0;
 }
