@@ -309,6 +309,7 @@ struct dhcp6 {
 #define DH6OPT_VENDOR_OPTS       17
 #define DH6OPT_INTERFACE_ID      18
 #define DH6OPT_RECONF_MSG        19
+#define DH6OPT_RECONF_ACCEPT     20
 #define DH6OPT_DNS_SERVERS       23
 #define DH6OPT_DOMAIN_LIST       24
 #define DH6OPT_IA_PD             25
