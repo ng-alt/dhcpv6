@@ -56,7 +56,7 @@
                  YY_FATAL_ERROR("error performing ECHO on yytext"); \
              }
 
-const char *configfilename;
+const gchar *configfilename;
 gint num_lines = 1;
 gint server6errorcount = 0;
 extern gint server6parse(void);
@@ -148,7 +148,7 @@ infinity	{ return INFINITY; }
 {snum}	{ server6lval.snum = strtoll(yytext, NULL, 10); return SIGNEDNUMBER; }
 {decimal} { server6lval.dec = atof(yytext); return DECIMAL; }
 {string}	{
-			static char name[MAXDNAME];
+			static gchar name[MAXDNAME];
 			strncpy(name, yytext, MAXDNAME-1);
 			name[MAXDNAME-1] = '\0';
 			server6lval.str = name;
@@ -160,9 +160,9 @@ infinity	{ return INFINITY; }
 %%
 
 static void
-server6error0(gint level, char *s, va_list ap)
+server6error0(gint level, gchar *s, va_list ap)
 {
-	char ebuf[BUFSIZ], *bp, *ep;
+	gchar ebuf[BUFSIZ], *bp, *ep;
 
 	bp = ebuf;
 	ep = ebuf + sizeof(ebuf);
@@ -174,7 +174,7 @@ server6error0(gint level, char *s, va_list ap)
 }
 
 void
-server6error(char *s, ...)
+server6error(gchar *s, ...)
 {
 	va_list ap;
 	va_start(ap, s);
@@ -184,7 +184,7 @@ server6error(char *s, ...)
 }
 
 int
-sfparse(const char *conf)
+sfparse(const gchar *conf)
 {
 	configfilename = conf;
 	if ((server6in = fopen(configfilename, "r")) == NULL) {

@@ -78,7 +78,7 @@ struct dhcp6_iaidaddr {
     TAILQ_HEAD(, dhcp6_lease) lease_list;
 };
 
-extern u_int32_t do_hash(const void *, guint8);
+extern guint32 do_hash(const void *, guint8);
 gint get_linklocal(const gchar *, struct in6_addr *);
 extern void dhcp6_init_iaidaddr(void);
 extern gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *);

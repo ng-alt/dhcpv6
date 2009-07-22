@@ -55,8 +55,8 @@ extern gint client6lex (void);
 extern gint lineno;
 extern gint cfdebug;
 
-extern void cpyywarn(char *, ...) __attribute__((__format__(__printf__, 1, 2)));
-extern void client6error(char *, ...) __attribute__((__format__(__printf__, 1, 2)));
+extern void cpyywarn(gchar *, ...) __attribute__((__format__(__printf__, 1, 2)));
+extern void client6error(gchar *, ...) __attribute__((__format__(__printf__, 1, 2)));
 
 #define MAKE_NAMELIST(l, n, p) \
     do { \
@@ -109,7 +109,7 @@ static void cleanup_cflist(struct cf_list *);
 
 %union {
     long long num;
-    char* str;
+    gchar* str;
     struct cf_list *list;
     struct in6_addr addr;
     struct dhcp6_addr *v6addr;

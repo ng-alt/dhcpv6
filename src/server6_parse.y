@@ -48,7 +48,7 @@
 #include "lease.h"
 
 extern gint server6lex (void);
-extern void server6error(char *, ...) __attribute__((__format__(__printf__, 1, 2)));
+extern void server6error(gchar *, ...) __attribute__((__format__(__printf__, 1, 2)));
 
 extern gint num_lines;
 extern gint sock;

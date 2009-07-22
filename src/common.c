@@ -77,7 +77,7 @@ static struct host_conf *_host_conflist;
 /* BEGIN STATIC FUNCTIONS */
 
 static gint _in6_matchflags(struct sockaddr *addr, size_t addrlen,
-                            char *ifnam, gint flags) {
+                            gchar *ifnam, gint flags) {
     gint s;
     struct ifreq ifr;
 
@@ -121,15 +121,15 @@ static gint _ia_add_address(struct ia_listval *ia, struct dhcp6_addr *addr6) {
     return 0;
 }
 
-static gint _get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
-                                   struct ia_listval *ia) {
-    unsigned char *np, *cp;
+static gint _get_assigned_ipv6addrs(guchar *p, guchar *ep,
+                                    struct ia_listval *ia) {
+    guchar *np, *cp;
     struct dhcp6opt opth;
     struct dhcp6_addr_info ai;
     struct dhcp6_prefix_info pi;
     struct dhcp6_addr addr6;
     gint optlen, opt;
-    u_int16_t val16;
+    guint16 val16;
     gint num;
 
     for (; p + sizeof(struct dhcp6opt) <= ep; p = np) {
@@ -158,7 +158,7 @@ static gint _get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
                 ia->status_code = num;
                 break;
             case DH6OPT_IADDR:
-                if (optlen < sizeof(ai) - sizeof(u_int32_t)) {
+                if (optlen < sizeof(ai) - sizeof(guint32)) {
                     goto malformed;
                 }
 
@@ -184,7 +184,7 @@ static gint _get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
                     goto malformed;
                 }
 
-                if (optlen == sizeof(ai) - sizeof(u_int32_t)) {
+                if (optlen == sizeof(ai) - sizeof(guint32)) {
                     addr6.status_code = DH6OPT_STCODE_UNDEFINE;
                 } else {
                     /* address status code might be added after IADDA option */
@@ -215,7 +215,7 @@ static gint _get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
 
                 break;
             case DH6OPT_IAPREFIX:
-                if (optlen < sizeof(pi) - sizeof(u_int32_t)) {
+                if (optlen < sizeof(pi) - sizeof(guint32)) {
                     goto malformed;
                 }
 
@@ -242,7 +242,7 @@ static gint _get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
                     goto malformed;
                 }
 
-                if (optlen == sizeof(pi) - sizeof(u_int32_t)) {
+                if (optlen == sizeof(pi) - sizeof(guint32)) {
                     addr6.status_code = DH6OPT_STCODE_UNDEFINE;
                 } else {
                     /* address status code might be added after IADDA option */
@@ -287,11 +287,11 @@ fail:
     return -1;
 }
 
-static gint _dhcp6_set_ia_options(unsigned char **tmpbuf, gint *optlen,
+static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen,
                                   struct ia_listval *ia) {
     gint buflen = 0;
-    unsigned char *tp = NULL;
-    u_int32_t iaid = 0;
+    guchar *tp = NULL;
+    guint32 iaid = 0;
     struct dhcp6_iaid_info opt_iana;
     struct dhcp6_iaid_info opt_iapd;
     struct dhcp6_prefix_info pi;
@@ -352,7 +352,7 @@ static gint _dhcp6_set_ia_options(unsigned char **tmpbuf, gint *optlen,
             if (!TAILQ_EMPTY(&ia->addr_list)) {
                 for (dp = TAILQ_FIRST(&ia->addr_list); dp;
                      dp = TAILQ_NEXT(dp, link)) {
-                    iaddr_len = sizeof(ai) - sizeof(u_int32_t);
+                    iaddr_len = sizeof(ai) - sizeof(guint32);
 
                     if (dp->val_dhcp6addr.status_code !=
                         DH6OPT_STCODE_UNDEFINE) {
@@ -448,7 +448,7 @@ static gint _dhcp6_set_ia_options(unsigned char **tmpbuf, gint *optlen,
             if (!TAILQ_EMPTY(&ia->addr_list)) {
                 for (dp = TAILQ_FIRST(&ia->addr_list); dp;
                      dp = TAILQ_NEXT(dp, link)) {
-                    iaddr_len = sizeof(pi) - sizeof(u_int32_t);
+                    iaddr_len = sizeof(pi) - sizeof(guint32);
 
                     if (dp->val_dhcp6addr.status_code !=
                         DH6OPT_STCODE_UNDEFINE) {
@@ -525,7 +525,7 @@ static gint _dhcp6_set_ia_options(unsigned char **tmpbuf, gint *optlen,
 
 /* END STATIC FUNCTIONS */
 
-struct dhcp6_if *find_ifconfbyname(const char *ifname) {
+struct dhcp6_if *find_ifconfbyname(const gchar *ifname) {
     struct dhcp6_if *ifp;
 
     for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
@@ -563,7 +563,7 @@ struct host_conf *find_hostconf(const struct duid *duid) {
     return NULL;
 }
 
-void ifinit(const char *ifname) {
+void ifinit(const gchar *ifname) {
     struct dhcp6_if *ifp;
 
     if ((ifp = find_ifconfbyname(ifname)) != NULL) {
@@ -580,7 +580,7 @@ void ifinit(const char *ifname) {
     memset(ifp, 0, sizeof(*ifp));
     TAILQ_INIT(&ifp->event_list);
 
-    if ((ifp->ifname = strdup((char *) ifname)) == NULL) {
+    if ((ifp->ifname = strdup((gchar *) ifname)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy ifname", FNAME);
         goto die;
     }
@@ -804,7 +804,7 @@ fail:
 }
 
 struct ia_listval *ia_find_listval(struct ia_list *head,
-                                   iatype_t type, u_int32_t iaid) {
+                                   iatype_t type, guint32 iaid) {
     struct ia_listval *lv;
 
     for (lv = TAILQ_FIRST(head); lv; lv = TAILQ_NEXT(lv, link)) {
@@ -819,7 +819,7 @@ struct ia_listval *ia_find_listval(struct ia_list *head,
 struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *ifp, int state) {
     struct dhcp6_event *ev;
 
-    static u_int32_t counter = 0;
+    static guint32 counter = 0;
 
     if ((ev = malloc(sizeof(*ev))) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to allocate memory for an event",
@@ -882,7 +882,7 @@ int dhcp6_has_option(struct dhcp6_list *optlist, int option) {
     return 0;
 }
 
-int getifaddr(struct in6_addr *addr, char *ifnam, struct in6_addr *prefix,
+int getifaddr(struct in6_addr *addr, gchar *ifnam, struct in6_addr *prefix,
               int plen, int strong, int ignoreflags) {
     struct ifaddrs *ifap, *ifa;
     struct sockaddr_in6 sin6;
@@ -956,8 +956,8 @@ int getifaddr(struct in6_addr *addr, char *ifnam, struct in6_addr *prefix,
     return error;
 }
 
-int in6_addrscopebyif(struct in6_addr *addr, char *ifnam) {
-    u_int ifindex;
+int in6_addrscopebyif(struct in6_addr *addr, gchar *ifnam) {
+    guint ifindex;
 
     if ((ifindex = if_nametoindex(ifnam)) == 0) {
         return -1;
@@ -979,10 +979,10 @@ int in6_addrscopebyif(struct in6_addr *addr, char *ifnam) {
 }
 
 /* XXX: this code assumes getifaddrs(3) */
-const char *getdev(struct sockaddr_in6 *addr) {
+const gchar *getdev(struct sockaddr_in6 *addr) {
     struct ifaddrs *ifap, *ifa;
     struct sockaddr_in6 *a6;
-    static char ret_ifname[IFNAMSIZ + 1];
+    static gchar ret_ifname[IFNAMSIZ + 1];
 
     if (getifaddrs(&ifap) != 0) {
         err(1, "getdev: getifaddrs");
@@ -1013,7 +1013,7 @@ const char *getdev(struct sockaddr_in6 *addr) {
     return (ifa ? ret_ifname : NULL);
 }
 
-int transmit_sa(int s, struct sockaddr_in6 *sa, char *buf, size_t len) {
+int transmit_sa(int s, struct sockaddr_in6 *sa, gchar *buf, size_t len) {
     int error;
 
     error = sendto(s, buf, len, MSG_DONTROUTE, (struct sockaddr *) sa,
@@ -1051,7 +1051,7 @@ int prefix6_mask(struct in6_addr *in6, int plen) {
 }
 
 int sa6_plen2mask(struct sockaddr_in6 *sa6, int plen) {
-    u_char *cp;
+    guchar *cp;
 
     if (plen < 0 || plen > 128) {
         return -1;
@@ -1060,7 +1060,7 @@ int sa6_plen2mask(struct sockaddr_in6 *sa6, int plen) {
     memset(sa6, 0, sizeof(*sa6));
     sa6->sin6_family = AF_INET6;
 
-    for (cp = (u_char *) & sa6->sin6_addr; plen > 7; plen -= 8) {
+    for (cp = (guchar *) & sa6->sin6_addr; plen > 7; plen -= 8) {
         *cp++ = 0xff;
     }
 
@@ -1068,12 +1068,12 @@ int sa6_plen2mask(struct sockaddr_in6 *sa6, int plen) {
     return 0;
 }
 
-char *addr2str(struct sockaddr *sa, socklen_t salen) {
-    static char addrbuf[8][NI_MAXHOST + 1];
+gchar *addr2str(struct sockaddr *sa, socklen_t salen) {
+    static gchar addrbuf[8][NI_MAXHOST + 1];
 
     static int round = 0;
 
-    char *cp;
+    gchar *cp;
 
     round = (round + 1) & 7;
     cp = addrbuf[round];
@@ -1086,7 +1086,7 @@ char *addr2str(struct sockaddr *sa, socklen_t salen) {
     return cp;
 }
 
-char *in6addr2str(struct in6_addr *in6, int scopeid) {
+gchar *in6addr2str(struct in6_addr *in6, int scopeid) {
     struct sockaddr_in6 sa6;
 
     memset(&sa6, 0, sizeof(sa6));
@@ -1135,11 +1135,11 @@ int in6_scope(struct in6_addr *addr) {
     return 14;                  /* global */
 }
 
-int configure_duid(const char *str, struct duid *duid) {
-    const char *cp;
-    unsigned char *bp, *idbuf = NULL;
-    u_int8_t duidlen, slen;
-    unsigned int x;
+int configure_duid(const gchar *str, struct duid *duid) {
+    const gchar *cp;
+    guchar *bp, *idbuf = NULL;
+    guint8 duidlen, slen;
+    guint x;
 
     /* calculate DUID len */
     slen = strlen(str);
@@ -1154,7 +1154,7 @@ int configure_duid(const char *str, struct duid *duid) {
     }
 
     duidlen += (slen / 3);
-    if ((idbuf = (unsigned char *) malloc(duidlen)) == NULL) {
+    if ((idbuf = (guchar *) malloc(duidlen)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "memory allocation failed", FNAME);
         return -1;
     }
@@ -1204,11 +1204,11 @@ int duid_match_llt(struct duid *client, struct duid *server) {
     return 0;
 }
 
-int get_duid(const char *idfile, const char *ifname, struct duid *duid) {
+int get_duid(const gchar *idfile, const gchar *ifname, struct duid *duid) {
     FILE *fp = NULL;
-    u_int16_t len = 0, hwtype;
+    guint16 len = 0, hwtype;
     struct dhcp6_duid_type1 *dp;        /* we only support the type1 DUID */
-    unsigned char tmpbuf[256];  /* DUID should be no more than 256 bytes */
+    guchar tmpbuf[256];  /* DUID should be no more than 256 bytes */
 
     if ((fp = fopen(idfile, "r")) == NULL && errno != ENOENT) {
         dhcpv6_dprintf(LOG_NOTICE, "%s" "failed to open DUID file: %s",
@@ -1232,7 +1232,7 @@ int get_duid(const char *idfile, const char *ifname, struct duid *duid) {
     memset(duid, 0, sizeof(*duid));
     duid->duid_len = len;
 
-    if ((duid->duid_id = (unsigned char *) malloc(len)) == NULL) {
+    if ((duid->duid_id = (guchar *) malloc(len)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to allocate memory", FNAME);
         goto fail;
     }
@@ -1248,12 +1248,12 @@ int get_duid(const char *idfile, const char *ifname, struct duid *duid) {
                        "extracted an existing DUID from %s: %s", FNAME,
                        idfile, duidstr(duid));
     } else {
-        u_int64_t t64;
+        guint64 t64;
 
         dp = (struct dhcp6_duid_type1 *) duid->duid_id;
         dp->dh6duid1_type = htons(1);   /* type 1 */
         dp->dh6duid1_hwtype = htons(hwtype);
-        t64 = (u_int64_t) (time(NULL) - 946684800);
+        t64 = (guint64) (time(NULL) - 946684800);
         dp->dh6duid1_time = htonl((u_long) (t64 & 0xffffffff));
 
         if (gethwid(tmpbuf, sizeof(tmpbuf), ifname, &hwtype) < 0) {
@@ -1293,9 +1293,9 @@ fail:
     return -1;
 }
 
-int save_duid(const char *idfile, const char *ifname, struct duid *duid) {
+int save_duid(const gchar *idfile, const gchar *ifname, struct duid *duid) {
     FILE *fp = NULL;
-    u_int16_t len = 0, hwtype;
+    guint16 len = 0, hwtype;
 
     /* calculate DUID length */
     len = calculate_duid_len(ifname, &hwtype);
@@ -1342,10 +1342,10 @@ fail:
     return -1;
 }
 
-u_int16_t calculate_duid_len(const char *ifname, u_int16_t * hwtype) {
-    int l;
-    u_int16_t ret = 0;
-    unsigned char tmpbuf[256];  /* DUID should be no more than 256 bytes */
+guint16 calculate_duid_len(const gchar *ifname, guint16 * hwtype) {
+    gint l;
+    guint16 ret = 0;
+    guchar tmpbuf[256];  /* DUID should be no more than 256 bytes */
 
     if ((l = gethwid(tmpbuf, sizeof(tmpbuf), ifname, hwtype)) < 0) {
         dhcpv6_dprintf(LOG_INFO, "%s"
@@ -1357,8 +1357,8 @@ u_int16_t calculate_duid_len(const char *ifname, u_int16_t * hwtype) {
     return ret;
 }
 
-ssize_t gethwid(unsigned char *buf, int len, const char *ifname,
-                u_int16_t * hwtypep) {
+ssize_t gethwid(guchar *buf, gint len, const gchar *ifname,
+                guint16 * hwtypep) {
     int skfd;
     ssize_t l;
     struct ifreq if_hwaddr;
@@ -1484,10 +1484,10 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                       struct dhcp6_optinfo *optinfo) {
     struct dhcp6opt *np, opth;
     struct ia_listval *ia;
-    int i, opt, optlen, reqopts, num;
-    unsigned char *cp, *val, *iacp;
-    u_int16_t val16;
-    u_int32_t val32;
+    gint i, opt, optlen, reqopts, num;
+    guchar *cp, *val, *iacp;
+    guint16 val16;
+    guint32 val32;
 
     for (; p + 1 <= ep; p = np) {
         struct duid duid0;
@@ -1500,7 +1500,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
         optlen = ntohs(opth.dh6opt_len);
         opt = ntohs(opth.dh6opt_type);
 
-        cp = (unsigned char *) (p + 1);
+        cp = (guchar *) (p + 1);
         np = (struct dhcp6opt *) (cp + optlen);
 
         dhcpv6_dprintf(LOG_DEBUG, "%s" "get DHCP option %s, len %d",
@@ -1548,7 +1548,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
 
                 break;
             case DH6OPT_ELAPSED_TIME:
-                if (optlen != sizeof(u_int16_t)) {
+                if (optlen != sizeof(guint16)) {
                     goto malformed;
                 }
 
@@ -1558,7 +1558,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                                num);
                 break;
             case DH6OPT_STATUS_CODE:
-                if (optlen < sizeof(u_int16_t)) {
+                if (optlen < sizeof(guint16)) {
                     goto malformed;
                 }
 
@@ -1575,10 +1575,10 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                 reqopts = optlen / 2;
 
                 for (i = 0, val = cp; i < reqopts;
-                     i++, val += sizeof(u_int16_t)) {
-                    u_int16_t opttype;
+                     i++, val += sizeof(guint16)) {
+                    guint16 opttype;
 
-                    memcpy(&opttype, val, sizeof(u_int16_t));
+                    memcpy(&opttype, val, sizeof(guint16));
                     num = ntohs(opttype);
 
                     dhcpv6_dprintf(LOG_DEBUG, "  requested option: %s",
@@ -1607,7 +1607,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                     goto malformed;
                 }
 
-                optinfo->pref = (u_int8_t) * (u_char *) cp;
+                optinfo->pref = (guint8) * (guchar *) cp;
                 dhcpv6_dprintf(LOG_DEBUG, "%s" "get option preference is %2x",
                                FNAME, optinfo->pref);
                 break;
@@ -1642,12 +1642,12 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                     goto fail;
                 }
 
-                ia->iaidinfo.iaid = ntohl(*(u_int32_t *) iacp);
-                iacp += sizeof(u_int32_t);
+                ia->iaidinfo.iaid = ntohl(*(guint32 *) iacp);
+                iacp += sizeof(guint32);
 
                 switch (opt) {
                     case DH6OPT_IA_TA:
-                        if (optlen < sizeof(u_int32_t)) {
+                        if (optlen < sizeof(guint32)) {
                             free(ia);
                             goto malformed;
                         }
@@ -1666,10 +1666,10 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                         }
 
                         ia->type = (opt == DH6OPT_IA_NA) ? IANA : IAPD;
-                        ia->iaidinfo.renewtime = ntohl(*(u_int32_t *) iacp);
-                        iacp += sizeof(u_int32_t);
-                        ia->iaidinfo.rebindtime = ntohl(*(u_int32_t *) iacp);
-                        iacp += sizeof(u_int32_t);
+                        ia->iaidinfo.renewtime = ntohl(*(guint32 *) iacp);
+                        iacp += sizeof(guint32);
+                        ia->iaidinfo.rebindtime = ntohl(*(guint32 *) iacp);
+                        iacp += sizeof(guint32);
 
                         dhcpv6_dprintf(LOG_DEBUG,
                                        "%s" "get option iaid is %u, "
@@ -1773,7 +1773,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
 
                 break;
             case DH6OPT_INFO_REFRESH_TIME:
-                if (optlen != sizeof(u_int32_t)) {
+                if (optlen != sizeof(guint32)) {
                     goto malformed;
                 }
 
@@ -1804,8 +1804,8 @@ fail:
 int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
                       struct dhcp6_optinfo *optinfo) {
     struct dhcp6opt *p = bp, opth;
-    int len = 0, optlen = 0;
-    unsigned char *tmpbuf = NULL;
+    gint len = 0, optlen = 0;
+    guchar *tmpbuf = NULL;
     struct ia_listval *ia;
 
     if (optinfo->clientID.duid_len) {
@@ -1859,14 +1859,14 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
     }
 
     if (dhcp6_mode == DHCP6_MODE_SERVER && optinfo->pref != DH6OPT_PREF_UNDEF) {
-        u_int8_t p8 = (u_int8_t) optinfo->pref;
+        guint8 p8 = (guint8) optinfo->pref;
 
         dhcpv6_dprintf(LOG_DEBUG, "server preference %2x", optinfo->pref);
         COPY_OPTION(DH6OPT_PREFERENCE, sizeof(p8), &p8, p);
     }
 
     if (optinfo->status_code != DH6OPT_STCODE_UNDEFINE) {
-        u_int16_t code;
+        guint16 code;
 
         code = htons(optinfo->status_code);
         COPY_OPTION(DH6OPT_STATUS_CODE, sizeof(code), &code, p);
@@ -1874,10 +1874,10 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
 
     if (!TAILQ_EMPTY(&optinfo->reqopt_list)) {
         struct dhcp6_listval *opt;
-        u_int16_t *valp;
+        guint16 *valp;
 
         tmpbuf = NULL;
-        optlen = dhcp6_count_list(&optinfo->reqopt_list) * sizeof(u_int16_t);
+        optlen = dhcp6_count_list(&optinfo->reqopt_list) * sizeof(guint16);
 
         if ((tmpbuf = malloc(optlen)) == NULL) {
             dhcpv6_dprintf(LOG_ERR, "%s"
@@ -1885,11 +1885,11 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
             goto fail;
         }
 
-        valp = (u_int16_t *) tmpbuf;
+        valp = (guint16 *) tmpbuf;
 
         for (opt = TAILQ_FIRST(&optinfo->reqopt_list); opt;
              opt = TAILQ_NEXT(opt, link), valp++) {
-            *valp = htons((u_int16_t) opt->val_num);
+            *valp = htons((guint16) opt->val_num);
         }
 
         COPY_OPTION(DH6OPT_ORO, optlen, tmpbuf, p);
@@ -1923,7 +1923,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
 
     if (optinfo->dns_list.domainlist != NULL) {
         struct domain_list *dlist;
-        unsigned char *dst;
+        guchar *dst;
 
         optlen = 0;
         tmpbuf = NULL;
@@ -1957,7 +1957,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
     }
 
     if (dhcp6_mode == DHCP6_MODE_SERVER && optinfo->irt) {
-        u_int32_t irt;
+        guint32 irt;
 
         irt = htonl(optinfo->irt);
         COPY_OPTION(DH6OPT_INFO_REFRESH_TIME, sizeof(irt), &irt, p);
@@ -2023,8 +2023,8 @@ void dhcp6_set_timeoparam(struct dhcp6_event *ev) {
 }
 
 void dhcp6_reset_timer(struct dhcp6_event *ev) {
-    double n, r;
-    char *statestr;
+    gdouble n, r;
+    gchar *statestr;
     struct timeval interval;
 
     switch (ev->state) {
@@ -2046,10 +2046,10 @@ void dhcp6_reset_timer(struct dhcp6_event *ev) {
                  * greater than 0.
                  * [dhcpv6-28 14.]
                  */
-                r = (double) ((random() % 1000) + 1) / 10000;
+                r = (gdouble) ((random() % 1000) + 1) / 10000;
                 n = ev->init_retrans + r * ev->init_retrans;
             } else {
-                r = (double) ((random() % 2000) - 1000) / 10000;
+                r = (gdouble) ((random() % 2000) - 1000) / 10000;
 
                 if (ev->timeouts == 0) {
                     n = ev->init_retrans + r * ev->init_retrans;
@@ -2271,8 +2271,8 @@ gchar *dhcp6msgstr(gint type) {
     }
 }
 
-char *dhcp6_stcodestr(int code) {
-    static char genstr[sizeof("code255") + 1];  /* XXX thread unsafe */
+gchar *dhcp6_stcodestr(int code) {
+    static gchar genstr[sizeof("code255") + 1];  /* XXX thread unsafe */
 
     if (code > 255) {
         return "INVALID code";
@@ -2303,10 +2303,10 @@ char *dhcp6_stcodestr(int code) {
     }
 }
 
-char *duidstr(const struct duid *duid) {
-    int i;
-    char *cp;
-    static char duidstr[sizeof("xx:") * 256 + sizeof("...")];
+gchar *duidstr(const struct duid *duid) {
+    gint i;
+    gchar *cp;
+    static gchar duidstr[sizeof("xx:") * 256 + sizeof("...")];
 
     duidstr[0] = '\0';
 
@@ -2351,9 +2351,9 @@ void setloglevel(int debuglevel) {
     return;
 }
 
-void dhcpv6_dprintf(int level, const char *fmt, ...) {
+void dhcpv6_dprintf(int level, const gchar *fmt, ...) {
     va_list ap;
-    char logbuf[LINE_MAX];
+    gchar logbuf[LINE_MAX];
 
     va_start(ap, fmt);
     vsnprintf(logbuf, sizeof(logbuf), fmt, ap);
@@ -2362,7 +2362,7 @@ void dhcpv6_dprintf(int level, const char *fmt, ...) {
     if (foreground && debug_thresh >= level) {
         time_t now;
         struct tm *tm_now;
-        const char *month[] = {
+        const gchar *month[] = {
             "Jan", "Feb", "Mar", "Apr", "May", "Jun",
             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
         };

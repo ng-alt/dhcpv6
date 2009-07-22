@@ -83,20 +83,20 @@ struct dhcp6_binding {
     struct duid clientid;
     void *val;
 
-    u_int32_t duration;
+    guint32 duration;
     struct dhcp6_timer *timer;
 };
 
-static char pidfile[MAXPATHLEN];
-static char *device[MAX_DEVICE];
+static gchar pidfile[MAXPATHLEN];
+static gchar *device[MAX_DEVICE];
 static gint num_device = 0;
 static gint debug = 0;
 static const struct sockaddr_in6 *sa6_any_downstream;
-static u_int16_t upstream_port;
+static guint16 upstream_port;
 static struct msghdr rmh;
-static char rdatabuf[BUFSIZ];
+static gchar rdatabuf[BUFSIZ];
 static gint rmsgctllen;
-static char *rmsgctlbuf;
+static gchar *rmsgctlbuf;
 static struct duid server_duid;
 static struct dns_list arg_dnslist;
 static struct dhcp6_timer *sync_lease_timer;
@@ -104,7 +104,7 @@ static struct dhcp6_timer *sync_lease_timer;
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_SERVER;
 gint iosock = -1;                /* inbound/outbound udp port */
 extern FILE *server6_lease_file;
-char server6_lease_temp[100];
+gchar server6_lease_temp[100];
 struct link_decl *subnet = NULL;
 struct host_decl *host = NULL;
 struct rootgroup *globalgroup = NULL;
@@ -131,7 +131,7 @@ extern gint dhcp6_get_hostconf(struct ia_listval *, struct ia_listval *,
 static void _random_init(void) {
     gint f, n;
     guint seed = time(NULL) & getpid();
-    char rand_state[256];
+    gchar rand_state[256];
 
     f = open("/dev/urandom", O_RDONLY);
 
@@ -167,7 +167,7 @@ static void _server6_sighandler(gint sig) {
     return;
 }
 
-static void _usage(char *name) {
+static void _usage(gchar *name) {
     fprintf(stderr, "Usage: %s [options] [interface]\n", basename(name));
     fprintf(stderr, "Options:\n");
     fprintf(stderr,
@@ -196,8 +196,8 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
     struct dhcp6 *relayed_msg;  /* the original message that the relay
                                  * received */
     struct dhcp6opt *option, *option_endptr = (struct dhcp6opt *) endptr;
-    u_int16_t optlen;
-    u_int16_t opt;
+    guint16 optlen;
+    guint16 opt;
 
     while ((relay_msg + 1) < endptr) {
         relay_val = (struct relay_listval *)
@@ -247,7 +247,7 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
             memcpy(&optlen, &option->dh6opt_len, sizeof(optlen));
             optlen = ntohs(optlen);
 
-            if ((char *) (option + 1) + optlen > (char *) option_endptr) {
+            if ((gchar *) (option + 1) + optlen > (gchar *) option_endptr) {
                 dhcpv6_dprintf(LOG_ERR,
                                "%s" "invalid option length in %s option",
                                FNAME, dhcp6optstr(opt));
@@ -270,7 +270,7 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
                             return NULL;
                         } else {
                             relay_val->intf_id->intf_len = optlen;
-                            relay_val->intf_id->intf_id = (char *)
+                            relay_val->intf_id->intf_id = (gchar *)
                                 malloc(optlen);
 
                             if (relay_val->intf_id->intf_id == NULL) {
@@ -282,7 +282,7 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
                             } else {    /* copy the interface identifier so
                                          * it can be sent in the reply */
                                 memcpy(relay_val->intf_id->intf_id,
-                                       ((char *) (option + 1)), optlen);
+                                       ((gchar *) (option + 1)), optlen);
                             }
                         }
                     } else {
@@ -316,7 +316,7 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
             }
 
             /* advance the option pointer */
-            option = (struct dhcp6opt *) (((char *) (option + 1)) + optlen);
+            option = (struct dhcp6opt *) (((gchar *) (option + 1)) + optlen);
         }
 
         /*
@@ -325,8 +325,8 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
          * RELAY_FORW message, then continue. If the relayed message is
          * NULL, signal an error.
          */
-        if (relayed_msg != NULL && (char *) (relayed_msg + 1) <=
-            (char *) endptr) {
+        if (relayed_msg != NULL && (gchar *) (relayed_msg + 1) <=
+            (gchar *) endptr) {
             /* done if have found the client message */
             if (relayed_msg->dh6_msgtype != DH6_RELAY_FORW) {
                 return relayed_msg;
@@ -357,7 +357,7 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
 static void _dhcp6_set_relay_option_len(struct dhcp6_optinfo *optinfo,
                                         gint reply_msg_len) {
     struct relay_listval *relay, *last = NULL;
-    u_int16_t len;
+    guint16 len;
 
     for (relay = TAILQ_LAST(&optinfo->relay_list, relay_list);
          relay; relay = TAILQ_PREV(relay, relay_list, link)) {
@@ -388,12 +388,12 @@ static gint _dhcp6_set_relay(struct dhcp6_relay *msg,
     struct relay_listval *relay;
     struct dhcp6opt *option;
     gint relaylen = 0;
-    u_int16_t type, len;
+    guint16 type, len;
 
     for (relay = TAILQ_FIRST(&optinfo->relay_list); relay;
          relay = TAILQ_NEXT(relay, link)) {
         /* bounds check */
-        if (((char *) msg) + sizeof(struct dhcp6_relay) >= (char *) endptr) {
+        if (((gchar *) msg) + sizeof(struct dhcp6_relay) >= (gchar *) endptr) {
             dhcpv6_dprintf(LOG_ERR,
                            "%s" "insufficient buffer size for RELAY-REPL",
                            FNAME);
@@ -408,8 +408,8 @@ static gint _dhcp6_set_relay(struct dhcp6_relay *msg,
          * original message */
         if (relay->intf_id != NULL) {
             /* bounds check */
-            if ((((char *) option) + sizeof(struct dhcp6opt) +
-                 relay->intf_id->intf_len) >= (char *) endptr) {
+            if ((((gchar *) option) + sizeof(struct dhcp6opt) +
+                 relay->intf_id->intf_len) >= (gchar *) endptr) {
                 dhcpv6_dprintf(LOG_ERR,
                                "%s" "insufficient buffer size for RELAY-REPL",
                                FNAME);
@@ -423,7 +423,7 @@ static gint _dhcp6_set_relay(struct dhcp6_relay *msg,
             memcpy(option + 1, relay->intf_id->intf_id,
                    relay->intf_id->intf_len);
 
-            option = (struct dhcp6opt *) (((char *) (option + 1)) +
+            option = (struct dhcp6opt *) (((gchar *) (option + 1)) +
                                           relay->intf_id->intf_len);
             relaylen += sizeof(struct dhcp6opt) + relay->intf_id->intf_len;
         }
@@ -433,7 +433,7 @@ static gint _dhcp6_set_relay(struct dhcp6_relay *msg,
         relay->option = option;
 
         /* bounds check */
-        if ((char *) (option + 1) >= (char *) endptr) {
+        if ((gchar *) (option + 1) >= (gchar *) endptr) {
             dhcpv6_dprintf(LOG_ERR,
                            "%s" "insufficient buffer size for RELAY-REPL",
                            FNAME);
@@ -465,7 +465,7 @@ static gint _server6_send(gint type, struct dhcp6_if *ifp,
                           struct dhcp6 *origmsg, struct dhcp6_optinfo *optinfo,
                           struct sockaddr *from, gint fromlen,
                           struct dhcp6_optinfo *roptinfo) {
-    char replybuf[BUFSIZ];
+    gchar replybuf[BUFSIZ];
     struct sockaddr_in6 dst;
     gint len, optlen, relaylen = 0;
     struct dhcp6 *dh6;
@@ -489,7 +489,7 @@ static gint _server6_send(gint type, struct dhcp6_if *ifp,
     len = sizeof(*dh6);
     memset(dh6, 0, sizeof(*dh6));
     dh6->dh6_msgtypexid = origmsg->dh6_msgtypexid;
-    dh6->dh6_msgtype = (u_int8_t) type;
+    dh6->dh6_msgtype = (guint8) type;
 
     /* set options in the reply message */
     if ((optlen = dhcp6_set_options((struct dhcp6opt *) (dh6 + 1),
@@ -631,7 +631,7 @@ fail:
 static gint _update_binding_ia(struct dhcp6_optinfo *roptinfo,
                                struct ia_list *ria_list,
                                struct ia_list *ia_list,
-                               u_int8_t msgtype, gint addr_flag,
+                               guint8 msgtype, gint addr_flag,
                                gint *status_code) {
     struct ia_listval *ria, *ia;
     struct dhcp6_iaidaddr *iaidaddr;
@@ -1145,7 +1145,7 @@ static gint _server6_recv(gint s) {
     gint fromlen;
     struct msghdr mhdr;
     struct iovec iov;
-    char cmsgbuf[BUFSIZ];
+    gchar cmsgbuf[BUFSIZ];
     struct cmsghdr *cm;
     struct in6_pktinfo *pi = NULL;
     struct dhcp6_if *ifp;
@@ -1302,7 +1302,7 @@ static void _server6_mainloop(void) {
 }
 
 static struct dhcp6_timer *_check_lease_file_timo(void *arg) {
-    double d;
+    gdouble d;
     struct timeval timo;
     struct stat buf;
     FILE *file;
@@ -1339,10 +1339,10 @@ void server6_init() {
     struct ipv6_mreq mreq6;
     static struct iovec iov;
     static struct sockaddr_in6 sa6_any_downstream_storage;
-    char buff[1024];
+    gchar buff[1024];
     struct ifconf ifc;
     struct ifreq *ifr;
-    double d;
+    gdouble d;
     struct timeval timo;
 
     /* initialize socket for inbound packets */
@@ -1412,7 +1412,7 @@ void server6_init() {
     rmh.msg_iovlen = 1;
 
     rmsgctllen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-    if ((rmsgctlbuf = (char *) malloc(rmsgctllen)) == NULL) {
+    if ((rmsgctlbuf = (gchar *) malloc(rmsgctllen)) == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s" "memory allocation failed", FNAME);
         exit(1);
     }
@@ -1559,9 +1559,9 @@ void server6_init() {
     return;
 }
 
-gint main(gint argc, char **argv) {
+gint main(gint argc, gchar **argv) {
     gint ch;
-    char *progname, *conffile = DHCP6S_CONF;
+    gchar *progname, *conffile = DHCP6S_CONF;
     FILE *pidfp = NULL;
     struct interface *ifnetwork;
 

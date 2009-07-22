@@ -93,7 +93,7 @@ extern struct dhcp6_list request_list;
 static gint _dhcp6_update_lease(struct dhcp6_addr *addr,
                                struct dhcp6_lease *sp) {
     struct timeval timo;
-    double d;
+    gdouble d;
 
     if (addr->status_code != DH6OPT_STCODE_SUCCESS &&
         addr->status_code != DH6OPT_STCODE_UNDEFINE) {
@@ -176,7 +176,7 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
     struct dhcp6_listval *lv, *lv_next = NULL;
     struct timeval timo;
     struct dhcp6_lease *cl_lease;
-    double d;
+    gdouble d;
 
     /* ignore IA with T1 > T2 */
     if (ia->iaidinfo.renewtime > ia->iaidinfo.rebindtime) {
@@ -233,7 +233,7 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
     if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0 ||
         client6_iaidaddr.client6_info.iaidinfo.renewtime >
         client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
-        u_int32_t min_plifetime;
+        guint32 min_plifetime;
 
         min_plifetime = get_min_preferlifetime(&client6_iaidaddr);
 
@@ -288,7 +288,7 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
 gint dhcp6_add_lease(struct dhcp6_addr *addr) {
     struct dhcp6_lease *sp;
     struct timeval timo;
-    double d;
+    gdouble d;
 
     dhcpv6_dprintf(LOG_DEBUG, "%s" "try to add address %s", FNAME,
                    in6addr2str(&addr->addr, 0));
@@ -447,7 +447,7 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
     struct dhcp6_listval *lv, *lv_next = NULL;
     struct dhcp6_lease *cl;
     struct timeval timo;
-    double d;
+    gdouble d;
 
     if (client6_iaidaddr.client6_info.iaidinfo.renewtime >
         client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
@@ -518,7 +518,7 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
     /* set up renew T1, rebind T2 timer renew/rebind based on iaid */
     /* Should we process IA_TA, IA_NA differently */
     if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
-        u_int32_t min_plifetime;
+        guint32 min_plifetime;
 
         min_plifetime = get_min_preferlifetime(&client6_iaidaddr);
 
@@ -609,7 +609,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
     struct dhcp6_event *ev, *prev_ev = NULL;
     struct timeval timeo;
     gint dhcpstate, prev_state;
-    double d = 0;
+    gdouble d = 0;
 
     dhcpv6_dprintf(LOG_DEBUG, "client6_iaidaddr timeout for %d, state=%d",
                    client6_iaidaddr.client6_info.iaidinfo.iaid, sp->state);
@@ -751,7 +751,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
 struct dhcp6_timer *dhcp6_lease_timo(void *arg) {
     struct dhcp6_lease *sp = (struct dhcp6_lease *) arg;
     struct timeval timeo;
-    double d;
+    gdouble d;
 
     dhcpv6_dprintf(LOG_DEBUG, "%s" "lease timeout for %s, state=%d", FNAME,
                    in6addr2str(&sp->lease_addr.addr, 0), sp->state);
@@ -785,8 +785,8 @@ struct dhcp6_timer *dhcp6_lease_timo(void *arg) {
 gint client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr) {
     struct in6_ifreq req;
     struct dhcp6_if *ifp = client6_iaidaddr.ifp;
-    unsigned long ioctl_cmd;
-    char *cmdstr;
+    gulong ioctl_cmd;
+    gchar *cmdstr;
     gint s, errno;
 
     switch (cmd) {
@@ -830,7 +830,7 @@ gint client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr) {
     return 0;
 }
 
-gint get_iaid(const char *ifname, const struct iaid_table *iaidtab,
+gint get_iaid(const gchar *ifname, const struct iaid_table *iaidtab,
               gint num_device) {
     struct hardware hdaddr;
     struct iaid_table *temp = (struct iaid_table *) iaidtab;

@@ -91,40 +91,40 @@
 #include "lease.h"
 
 /* External globals */
-extern char *raproc_file;
-extern char *ifproc_file;
+extern gchar *raproc_file;
+extern gchar *ifproc_file;
 extern FILE *client6_lease_file;
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 
 /* External prototypes */
 extern gint client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
 extern struct dhcp6_timer *syncfile_timo(void *);
-extern gint dad_parse(const char *, struct dhcp6_list *);
+extern gint dad_parse(const gchar *, struct dhcp6_list *);
 
 /* Globals */
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_CLIENT;
 gint iosock = -1;                /* inbound/outbound udp port */
 gint nlsock = -1;
 FILE *dhcp6_resolv_file;
-char client6_lease_temp[256];
+gchar client6_lease_temp[256];
 struct dhcp6_list request_list;
 gchar *script = NULL;
 
 /* Static globals */
 static gint debug = 0;
 static u_long sig_flags = 0;
-static char *device = NULL;
+static gchar *device = NULL;
 static gint num_device = 0;
 static struct iaid_table iaidtab[MAX_DEVICE];
-static u_int8_t client6_request_flag = 0;
+static guint8 client6_request_flag = 0;
 static const struct sockaddr_in6 *sa6_allagent;
 static socklen_t sa6_alen;
 static struct duid client_duid;
 static gint pid;
-static char leasename[MAXPATHLEN];
-static char *path_client6_lease = PATH_CLIENT6_LEASE;
-static char *pidfile = DHCP6C_PIDFILE;
-static char *duidfile = DHCP6C_DUID_FILE;
+static gchar leasename[MAXPATHLEN];
+static gchar *path_client6_lease = PATH_CLIENT6_LEASE;
+static gchar *pidfile = DHCP6C_PIDFILE;
+static gchar *duidfile = DHCP6C_DUID_FILE;
 
 /* Prototypes */
 struct dhcp6_timer *client6_timo(void *);
@@ -133,11 +133,11 @@ gint client6_send_newstate(struct dhcp6_if *, gint);
 void free_servers(struct dhcp6_if *);
 void client6_send(struct dhcp6_event *);
 gint get_if_rainfo(struct dhcp6_if *);
-gint client6_init(char *);
+gint client6_init(gchar *);
 
 /* BEGIN STATIC FUNCTIONS */
 
-static void _usage(char *name) {
+static void _usage(gchar *name) {
     fprintf(stdout, "Usage: %s [options] interface\n", name);
     fprintf(stdout, "Options:\n");
     fprintf(stdout,
@@ -200,7 +200,7 @@ static struct dhcp6_serverinfo *_find_server(struct dhcp6_if *ifp,
 }
 
 static void _setup_check_timer(struct dhcp6_if *ifp) {
-    double d;
+    gdouble d;
     struct timeval timo;
 
     d = DHCP6_CHECKLINK_TIME_UPCASE;
@@ -235,11 +235,10 @@ static struct dhcp6_timer *_info_refresh_timo(void *arg) {
     return NULL;
 }
 
-static gint _set_info_refresh_timer(struct dhcp6_if *ifp,
-                                    u_int32_t offered_irt) {
+static gint _set_info_refresh_timer(struct dhcp6_if *ifp, guint32 offered_irt) {
     gint irt;
     struct timeval timo;
-    double rval;
+    gdouble rval;
 
     if (offered_irt == 0) {
         irt = ifp->default_irt;
@@ -269,7 +268,7 @@ static gint _set_info_refresh_timer(struct dhcp6_if *ifp,
      * a random amount of time between 0 and INF_MAX_DELAY
      * [RFC4242 3.2.]
      */
-    rval = (double) random() / RAND_MAX * INF_MAX_DELAY * 1000;
+    rval = (gdouble) random() / RAND_MAX * INF_MAX_DELAY * 1000;
     timo.tv_sec = irt + (long) (rval / 1000000);
     timo.tv_usec = (long) rval % 1000000;
     dhcp6_set_timer(&timo, ifp->info_refresh_timer);
@@ -395,7 +394,7 @@ settimer:
 
 static struct dhcp6_timer *_check_lease_file_timo(void *arg) {
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
-    double d;
+    gdouble d;
     struct timeval timo;
     struct stat buf;
     FILE *file;
@@ -480,11 +479,11 @@ end:
     return NULL;
 }
 
-static gint _client6_ifinit(char *device) {
+static gint _client6_ifinit(gchar *device) {
     gint err = 0;
     struct dhcp6_if *ifp = dhcp6_if;
     struct dhcp6_event *ev;
-    char iaidstr[20];
+    gchar iaidstr[20];
 
     dhcp6_init_iaidaddr();
     /* get iaid for each interface */
@@ -600,6 +599,7 @@ static gint _client6_ifinit(char *device) {
         dhcpv6_dprintf(LOG_ERR, "%s" "failed to create an event", FNAME);
         return -1;
     }
+
     run_script(ifp, DHCP6S_INIT, ev->state, ev->uuid);
 
     ifp->servers = NULL;
@@ -682,7 +682,7 @@ static void _process_signals(void) {
 }
 
 static struct dhcp6_event *_find_event_withid(struct dhcp6_if *ifp,
-                                             u_int32_t xid) {
+                                             guint32 xid) {
     struct dhcp6_event *ev;
 
     for (ev = TAILQ_FIRST(&ifp->event_list); ev; ev = TAILQ_NEXT(ev, link)) {
@@ -1176,7 +1176,7 @@ static gint _client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
 }
 
 static void _client6_recv(void) {
-    char rbuf[BUFSIZ], cmsgbuf[BUFSIZ];
+    gchar rbuf[BUFSIZ], cmsgbuf[BUFSIZ];
     struct msghdr mhdr;
     struct iovec iov;
     struct sockaddr_storage from;
@@ -1240,7 +1240,7 @@ static void _client6_recv(void) {
     /* get options */
     dhcp6_init_options(&optinfo);
     p = (struct dhcp6opt *) (dh6 + 1);
-    ep = (struct dhcp6opt *) ((char *) dh6 + len);
+    ep = (struct dhcp6opt *) ((gchar *) dh6 + len);
 
     if (dhcp6_get_options(p, ep, &optinfo) < 0) {
         dhcpv6_dprintf(LOG_INFO, "%s" "failed to parse options", FNAME);
@@ -1338,7 +1338,7 @@ static void _client6_signal(gint sig) {
     }
 }
 
-static void _setup_interface(char *ifname) {
+static void _setup_interface(gchar *ifname) {
     struct ifreq ifr;
     gint retries = 0;
 
@@ -1392,13 +1392,13 @@ static void _setup_interface(char *ifname) {
 
 /* END STATIC FUNCTIONS */
 
-gint client6_init(char *device) {
+gint client6_init(gchar *device) {
     struct addrinfo hints, *res;
     static struct sockaddr_in6 sa6_allagent_storage;
     gint error, on = 1;
     struct dhcp6_if *ifp;
     gint ifidx;
-    char linklocal[64];
+    gchar linklocal[64];
     struct in6_addr lladdr;
     time_t retry, now;
     gint bound;
@@ -1572,7 +1572,7 @@ gint get_if_rainfo(struct dhcp6_if *ifp) {
     struct rtnl_addr *raddr = NULL;
     struct rtnl_link *link = NULL;
     struct nl_addr *addr = NULL;
-    char buf[INET6_ADDRSTRLEN + 1];
+    gchar buf[INET6_ADDRSTRLEN + 1];
     struct in6_addr *tmpaddr = NULL;
     struct ra_info *rainfo = NULL, *ra = NULL, *ra_prev = NULL;
 
@@ -1697,7 +1697,7 @@ gint get_if_rainfo(struct dhcp6_if *ifp) {
 
 void client6_send(struct dhcp6_event *ev) {
     struct dhcp6_if *ifp;
-    char buf[BUFSIZ];
+    gchar buf[BUFSIZ];
     struct sockaddr_in6 dst;
     struct dhcp6 *dh6;
     struct dhcp6_optinfo optinfo;
@@ -2254,12 +2254,12 @@ struct dhcp6_timer *client6_timo(void *arg) {
     return ev->timer;
 }
 
-gint main(gint argc, char **argv, char **envp) {
+gint main(gint argc, gchar **argv, gchar **envp) {
     gint ch;
-    char *progname = basename(argv[0]);
-    char *conffile = DHCP6C_CONF;
+    gchar *progname = basename(argv[0]);
+    gchar *conffile = DHCP6C_CONF;
     FILE *pidfp;
-    char *addr;
+    gchar *addr;
 
     pid = getpid();
     srandom(time(NULL) & pid);

@@ -160,7 +160,7 @@ struct v6addr *getprefix(struct in6_addr *addr, gint len) {
     return prefix;
 }
 
-gint get_numleases(struct pool_decl *currentpool, char *poolfile) {
+gint get_numleases(struct pool_decl *currentpool, gchar *poolfile) {
     return 0;
 }
 
@@ -336,7 +336,7 @@ gint is_anycast(struct in6_addr *in, gint plen) {
     if (plen == 64) {           /* assume EUI64 */
         /* doesn't cover none EUI64 */
         return in->s6_addr32[2] == htonl(0xFDFFFFFF) &&
-            (in->s6_addr32[3] | htonl(0x7f)) == (u_int32_t) ~ 0;
+            (in->s6_addr32[3] | htonl(0x7f)) == (guint32) ~ 0;
     }
 
     /* not EUI64 */
@@ -354,10 +354,10 @@ gint is_anycast(struct in6_addr *in, gint plen) {
     }
 
     for ( /* empty */ ; wc < 2; wc++) {
-        if (in->s6_addr32[wc] != (u_int32_t) ~ 0) {
+        if (in->s6_addr32[wc] != (guint32) ~ 0) {
             return 0;
         }
     }
 
-    return (in->s6_addr32[3] | htonl(0x7f)) == (u_int32_t) ~ 0;
+    return (in->s6_addr32[3] | htonl(0x7f)) == (guint32) ~ 0;
 }

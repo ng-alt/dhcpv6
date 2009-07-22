@@ -61,7 +61,7 @@ void init_socket(void) {
     }
 
     memset(relaysock, 0, sizeof(struct relay_socket));
-    relaysock->databuf = (char *) malloc(MAX_DHCP_MSG_LENGTH * sizeof(char));
+    relaysock->databuf = (gchar *) malloc(MAX_DHCP_MSG_LENGTH * sizeof(gchar));
 
     if (relaysock->databuf == NULL) {
         TRACE(dump, "%s - %s", dhcp6r_clock(),
@@ -213,7 +213,7 @@ gint set_sock_opt(void) {
         }
 
         if (setsockopt(relaysock->sock_desc, IPPROTO_IPV6, IPV6_JOIN_GROUP,
-                       (char *) &sock_opt, sizeof(sock_opt)) < 0) {
+                       (gchar *) &sock_opt, sizeof(sock_opt)) < 0) {
             TRACE(dump, "%s - %s", dhcp6r_clock(),
                   "failed to set socket option for IPV6_JOIN_GROUP \n");
             return 0;
@@ -227,7 +227,7 @@ gint set_sock_opt(void) {
 
 
 gint fill_addr_struct(void) {
-    memset((char *) &relaysock->from, 0, sizeof(struct sockaddr_in6));
+    memset((gchar *) &relaysock->from, 0, sizeof(struct sockaddr_in6));
 
     relaysock->from.sin6_family = AF_INET6;
     relaysock->from.sin6_addr = in6addr_any;
@@ -241,7 +241,7 @@ gint fill_addr_struct(void) {
     relaysock->msg.msg_iovlen = 1;
 
     relaysock->recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-    relaysock->recvp = (char *) malloc(relaysock->recvmsglen * sizeof(char));
+    relaysock->recvp = (gchar *) malloc(relaysock->recvmsglen * sizeof(gchar));
     relaysock->msg.msg_control = (void *) relaysock->recvp;
     relaysock->msg.msg_controllen = relaysock->recvmsglen;
 
@@ -257,7 +257,7 @@ gint fill_addr_struct(void) {
 gint recv_data(void) {
     gint count = -1;
 
-    memset(relaysock->databuf, 0, (MAX_DHCP_MSG_LENGTH * sizeof(char)));
+    memset(relaysock->databuf, 0, (MAX_DHCP_MSG_LENGTH * sizeof(gchar)));
 
     if ((count = recvmsg(relaysock->sock_desc, &relaysock->msg, 0)) < 0) {
         TRACE(dump, "%s - %s", dhcp6r_clock(),
@@ -272,11 +272,11 @@ gint recv_data(void) {
 
 gint get_interface_info(void) {
     FILE *f;
-    char addr6[40], devname[20];
+    gchar addr6[40], devname[20];
     struct sockaddr_in6 sap;
     gint plen, scope, dad_status, if_idx;
-    char addr6p[8][5];
-    char src_addr[INET6_ADDRSTRLEN];
+    gchar addr6p[8][5];
+    gchar src_addr[INET6_ADDRSTRLEN];
     struct interface *device = NULL, *next_device;
     gint opaq = OPAQ;
     gint sw = 0;
@@ -404,13 +404,13 @@ gint send_message(void) {
     struct msg_parser *mesg;
     struct in6_pktinfo *in6_pkt;
     struct cmsghdr *cmsgp;
-    char dest_addr[INET6_ADDRSTRLEN];
+    gchar dest_addr[INET6_ADDRSTRLEN];
     struct IPv6_uniaddr *ipv6uni;
     struct interface *iface;
     gint hit = 0;
     struct iovec iov[1];
     gint recvmsglen;
-    char *recvp;
+    gchar *recvp;
     struct server *uservers;
     struct sifaces *si;
 
@@ -432,7 +432,7 @@ gint send_message(void) {
         memcpy(dest_addr, mesg->peer_addr, INET6_ADDRSTRLEN);
 
         recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-        recvp = (char *) malloc(recvmsglen * sizeof(char));
+        recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
 
         if (recvp == NULL) {
             TRACE(dump, "error--> recvp no more memory available \n");
@@ -466,7 +466,7 @@ gint send_message(void) {
         iface = get_interface(mesg->if_index);
 
         if (iface != NULL) {
-            char *src_addr;
+            gchar *src_addr;
 
             if (IN6_IS_ADDR_LINKLOCAL(&sin6.sin6_addr)) {
                 src_addr = iface->link_local;
@@ -537,7 +537,7 @@ gint send_message(void) {
             }
 
             recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-            recvp = (char *) malloc(recvmsglen * sizeof(char));
+            recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
 
             if (recvp == NULL) {
                 TRACE(dump, "%s - %s", dhcp6r_clock(),
@@ -612,7 +612,7 @@ gint send_message(void) {
                 }
 
                 recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-                recvp = (char *) malloc(recvmsglen * sizeof(char));
+                recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
 
                 if (recvp == NULL) {
                     TRACE(dump, "%s - %s", dhcp6r_clock(),
@@ -695,7 +695,7 @@ gint send_message(void) {
             }
 
             recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-            recvp = (char *) malloc(recvmsglen * sizeof(char));
+            recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
 
             if (recvp == NULL) {
                 TRACE(dump, "%s - %s", dhcp6r_clock(),
@@ -791,7 +791,7 @@ gint send_message(void) {
                 }
 
                 recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-                recvp = (char *) malloc(recvmsglen * sizeof(char));
+                recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
 
                 if (recvp == NULL) {
                     TRACE(dump, "%s - %s", dhcp6r_clock(),

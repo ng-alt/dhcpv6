@@ -99,7 +99,7 @@ struct interface *get_interface(gint if_index) {
     return NULL;
 }
 
-struct interface *get_interface_s(char *s) {
+struct interface *get_interface_s(gchar *s) {
     struct interface *deviface;
 
     for (deviface = interface_list.next; deviface != &interface_list;
@@ -278,17 +278,16 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
 }
 
 gint process_RELAY_REPL(struct msg_parser *msg) {
-    uint8_t *newbuff =
-        (uint8_t *) malloc(MAX_DHCP_MSG_LENGTH * sizeof(uint8_t));
-    uint8_t *pointer, *pstart, *psp;
+    guint8 *newbuff = (guint8 *) malloc(MAX_DHCP_MSG_LENGTH * sizeof(guint8));
+    guint8 *pointer, *pstart, *psp;
     struct interface *device = NULL;
     struct sockaddr_in6 sap;
     gint check = 0;
-    uint16_t *p16, option, opaqlen, msglen;
-    uint32_t *p32;
+    guint16 *p16, option, opaqlen, msglen;
+    guint32 *p32;
     gint len, opaq;
     struct IPv6_address *ipv6a;
-    char *s;
+    gchar *s;
 
     if (newbuff == NULL) {
         TRACE(dump, "ProcessRELAYREPL--> ERROR, NO MORE MEMRY AVAILABLE  \n");

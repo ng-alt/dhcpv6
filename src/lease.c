@@ -60,9 +60,9 @@
 
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern FILE *server6_lease_file;
-extern char *server6_lease_temp;
+extern gchar *server6_lease_temp;
 extern FILE *client6_lease_file;
-extern char *client6_lease_temp;
+extern gchar *client6_lease_temp;
 
 GHashTable *host_addr_hash_table = NULL;
 GHashTable *lease_hash_table = NULL;
@@ -107,7 +107,7 @@ static void _sync_lease(gpointer key, gpointer value, gpointer user_data) {
 
 gint write_lease(const struct dhcp6_lease *lease_ptr, FILE *file) {
     struct tm brokendown_time;
-    char addr_str[64];
+    gchar addr_str[64];
 
     if ((inet_ntop(AF_INET6, &lease_ptr->lease_addr.addr,
                    addr_str, sizeof(addr_str))) == 0) {
@@ -178,7 +178,7 @@ gint write_lease(const struct dhcp6_lease *lease_ptr, FILE *file) {
     return 0;
 }
 
-FILE *sync_leases(FILE * file, const char *original, char *template) {
+FILE *sync_leases(FILE * file, const gchar *original, gchar *template) {
     gint fd;
 
     fd = mkstemp(template);
@@ -223,7 +223,7 @@ struct dhcp6_timer *syncfile_timo(void *arg) {
     return NULL;
 }
 
-FILE *init_leases(const char *name) {
+FILE *init_leases(const gchar *name) {
     FILE *file;
     struct stat stbuf;
 
@@ -283,7 +283,7 @@ gint prefixcmp(struct in6_addr *addr, struct in6_addr *prefix, gint len) {
     return 0;
 }
 
-gint get_linklocal(const char *ifname, struct in6_addr *linklocal) {
+gint get_linklocal(const gchar *ifname, struct in6_addr *linklocal) {
 #if defined(__linux__)
     struct ifaddrs *ifa = 0, *ifap = 0;
     struct sockaddr *sd = 0;
@@ -351,9 +351,9 @@ gint addr_on_addrlist(struct dhcp6_list *addrlist, struct dhcp6_addr *addr6) {
     return 0;
 }
 
-u_int32_t get_min_preferlifetime(struct dhcp6_iaidaddr * sp) {
+guint32 get_min_preferlifetime(struct dhcp6_iaidaddr * sp) {
     struct dhcp6_lease *lv, *first;
-    u_int32_t min;
+    guint32 min;
 
     if (TAILQ_EMPTY(&sp->lease_list)) {
         return 0;
@@ -369,9 +369,9 @@ u_int32_t get_min_preferlifetime(struct dhcp6_iaidaddr * sp) {
     return min;
 }
 
-u_int32_t get_max_validlifetime(struct dhcp6_iaidaddr * sp) {
+guint32 get_max_validlifetime(struct dhcp6_iaidaddr * sp) {
     struct dhcp6_lease *lv, *first;
-    u_int32_t max;
+    guint32 max;
 
     if (TAILQ_EMPTY(&sp->lease_list)) {
         return 0;

@@ -76,21 +76,21 @@ extern struct dhcp6_if *dhcp6_if;
 struct ifproc_info {
     struct ifproc_info *next;
     struct in6_addr addr;
-    char name[IF_NAMESIZE];
+    gchar name[IF_NAMESIZE];
     gint index;
     gint plen;
     gint scope;
     gint flags;
 };
 
-gint dad_parse(const char *file, struct dhcp6_list *dad_list) {
+gint dad_parse(const gchar *file, struct dhcp6_list *dad_list) {
     gint i = 0;
     gint len = 0;
     gint ret = 0;
     FILE *fp = NULL;
-    char buf[55];               /* max line length in /proc/net/if_inet6 */
-    char addrbuf[64];
-    char *tmp = NULL;
+    gchar buf[55];               /* max line length in /proc/net/if_inet6 */
+    gchar addrbuf[64];
+    gchar *tmp = NULL;
     struct in6_addr addr6;
     struct ifproc_info *ifinfo = NULL;
 

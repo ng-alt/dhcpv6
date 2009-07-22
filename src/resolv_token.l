@@ -143,11 +143,11 @@ nl              \n
 
 %%
 #ifdef NETWORK_FUNCTIONS_SCRIPT
-gint change_resolv_conf(char *new_rscf) {
-    char *argv[] = { "/bin/bash", "-c", 0L, 0L };
-    char *cmd;
+gint change_resolv_conf(gchar *new_rscf) {
+    gchar *argv[] = { "/bin/bash", "-c", 0L, 0L };
+    gchar *cmd;
     gint l, pid, status;
-    extern char **environ;
+    extern gchar **environ;
 
     if( new_rscf == 0L )
         return -1;
@@ -156,7 +156,7 @@ gint change_resolv_conf(char *new_rscf) {
         return 1;
 
     l = strlen(NETWORK_FUNCTIONS_SCRIPT) + strlen(new_rscf) + 27;
-    cmd = (char*)malloc(l);
+    cmd = (gchar*)malloc(l);
     snprintf(cmd, l, ". %s ; change_resolv_conf %s",
             NETWORK_FUNCTIONS_SCRIPT, new_rscf);
     argv[2] = cmd;
@@ -184,7 +184,7 @@ backup_resolv_conf()
 {
 	struct stat buf;
 	mode_t st_mode;
-	char str[BUFSIZ];
+	gchar str[BUFSIZ];
 	size_t rlen, wlen;
 
 	/* Do not overwrite if a backup file already exists */
@@ -267,7 +267,7 @@ int
 resolv_parse(struct dns_list *dnslist)
 {
 	struct stat buf;
-	char pidstr[128];
+	gchar pidstr[128];
 	sprintf(pidstr, "%d", getpid());
 	strcpy(resolv_dhcpv6_file, RESOLV_CONF_DHCPV6_FILE);
 	strcat(resolv_dhcpv6_file, pidstr);

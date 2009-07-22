@@ -72,7 +72,7 @@ gint dhcp6_update_lease(struct dhcp6_addr *, struct dhcp6_lease *);
 
 /* BEGIN STATIC FUNCTIONS */
 
-static void _get_random_bytes(u_int8_t seed[], gint num) {
+static void _get_random_bytes(guint8 seed[], gint num) {
     gint i;
 
     for (i = 0; i < num; i++) {
@@ -85,7 +85,7 @@ static void _get_random_bytes(u_int8_t seed[], gint num) {
 static void _create_tempaddr(struct in6_addr *prefix, gint plen,
                              struct in6_addr *tempaddr) {
     gint i, num_bytes;
-    u_int8_t seed[16];
+    guint8 seed[16];
 
     _get_random_bytes(seed, 16);
     /* address mask */
@@ -253,7 +253,7 @@ static void _server6_get_prefixpara(struct dhcp6_addr *v6addr,
 
 /* END STATIC FUNCTIONS */
 
-struct host_decl *find_hostdecl(struct duid *duid, u_int32_t iaid,
+struct host_decl *find_hostdecl(struct duid *duid, guint32 iaid,
                                 struct host_decl *hostlist) {
     struct host_decl *host;
 
@@ -273,7 +273,7 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
     struct dhcp6_iaidaddr *iaidaddr;
     struct dhcp6_listval *lv, *lv_next = NULL;
     struct timeval timo;
-    double d;
+    gdouble d;
 
     iaidaddr = (struct dhcp6_iaidaddr *) malloc(sizeof(*iaidaddr));
 
@@ -372,7 +372,7 @@ gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
 }
 
 struct dhcp6_iaidaddr *dhcp6_find_iaidaddr(struct duid *clientID,
-                                           u_int32_t iaid, iatype_t type) {
+                                           guint32 iaid, iatype_t type) {
     struct dhcp6_iaidaddr *iaidaddr;
     struct client6_if client6_info;
 
@@ -427,7 +427,7 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia,
     struct dhcp6_lease *lease, *lease_next = NULL;
     struct dhcp6_listval *lv, *lv_next = NULL;
     struct timeval timo;
-    double d;
+    gdouble d;
 
     if ((iaidaddr = dhcp6_find_iaidaddr(&optinfo->clientID,
                                         ia->iaidinfo.iaid,
@@ -538,7 +538,7 @@ gint dhcp6_validate_bindings(struct dhcp6_list *addrlist,
 gint dhcp6_add_lease(struct dhcp6_iaidaddr *iaidaddr, struct dhcp6_addr *addr) {
     struct dhcp6_lease *sp;
     struct timeval timo;
-    double d;
+    gdouble d;
 
     if (addr->status_code != DH6OPT_STCODE_SUCCESS &&
         addr->status_code != DH6OPT_STCODE_UNDEFINE) {
@@ -624,7 +624,7 @@ gint dhcp6_add_lease(struct dhcp6_iaidaddr *iaidaddr, struct dhcp6_addr *addr) {
 /* assume we've found the updated lease already */
 gint dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp) {
     struct timeval timo;
-    double d;
+    gdouble d;
 
     if (addr->status_code != DH6OPT_STCODE_SUCCESS &&
         addr->status_code != DH6OPT_STCODE_UNDEFINE) {
@@ -724,7 +724,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
 struct dhcp6_timer *dhcp6_lease_timo(void *arg) {
     struct dhcp6_lease *sp = (struct dhcp6_lease *) arg;
     struct timeval timeo;
-    double d;
+    gdouble d;
 
     dhcpv6_dprintf(LOG_DEBUG, "%s" "lease timeout for %s, state=%d", FNAME,
                    in6addr2str(&sp->lease_addr.addr, 0), sp->state);
@@ -777,7 +777,7 @@ gint dhcp6_get_hostconf(struct ia_listval *ria, struct ia_listval *ia,
 gint dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
                            const struct dhcp6_iaidaddr *iaidaddr,
                            const struct link_decl *subnet,
-                           u_int16_t *ia_status_code) {
+                           guint16 *ia_status_code) {
     struct dhcp6_listval *v6addr;
     struct v6addrseg *seg;
     struct dhcp6_list *reply_list = &ria->addr_list;
@@ -909,7 +909,7 @@ gint dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
 gint dhcp6_create_prefixlist(struct ia_listval *ria, struct ia_listval *ia,
                              const struct dhcp6_iaidaddr *iaidaddr,
                              const struct link_decl *subnet,
-                             u_int16_t *ia_status_code) {
+                             guint16 *ia_status_code) {
     struct dhcp6_listval *v6addr;
     struct v6prefix *prefix6;
     struct dhcp6_list *reply_list = &ria->addr_list;

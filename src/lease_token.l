@@ -259,7 +259,7 @@ do_iaidaddr_hash(lease_rec, key)
 	struct timeb now;
 	time_t offset;
 	struct timeval timo;
-	double d;
+	gdouble d;
 
 	if (!VALID_LEASE_FLAG(lease_flags) ||
 	    (lease_rec->lease_addr.preferlifetime > lease_rec->lease_addr.validlifetime)) {
@@ -374,7 +374,7 @@ add_lease(iaidaddr, lease)
 	struct timeb now;
 	time_t offset;
 	struct dhcp6_lease *found_lease;
-	double d;
+	gdouble d;
 	/* set up timer out for lease, iaidaddr timer out will be set up in
 	 * post_conf_lease */
 	ftime(&now);

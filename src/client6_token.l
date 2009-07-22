@@ -49,7 +49,7 @@
 #include "common.h"
 #include "client6_parse.h"
 
-const char *configfilename;
+const gchar *configfilename;
 gint lineno = 1;
 
 static gint cpyy_first_time = 1;
@@ -68,7 +68,7 @@ gint cfdebug = 1;
 gint cfdebug = 0;
 #endif
 
-static void cfdebug_print(char *, char *, int);
+static void cfdebug_print(gchar *, gchar *, gint);
 extern gint cf_post_config(void);
 
 extern gint client6parse(void);
@@ -189,7 +189,7 @@ ecl       \}
 }
 
 %%
-static void cfdebug_print(char *w, char *t, gint l) {
+static void cfdebug_print(gchar *w, gchar *t, gint l) {
     if (w) {
         dhcpv6_dprintf(LOG_DEBUG, "<%d>%s [%s] (%d)", yy_start, w, t, l);
     } else {
@@ -197,8 +197,8 @@ static void cfdebug_print(char *w, char *t, gint l) {
     }
 }
 
-static void client6error0(gint level, char *s, va_list ap) {
-    char ebuf[BUFSIZ], *bp, *ep;
+static void client6error0(gint level, gchar *s, va_list ap) {
+    gchar ebuf[BUFSIZ], *bp, *ep;
 
     bp = ebuf;
     ep = ebuf + sizeof(ebuf);
@@ -211,7 +211,7 @@ static void client6error0(gint level, char *s, va_list ap) {
     dhcpv6_dprintf(level, ebuf);
 }
 
-void client6error(char *s, ...) {
+void client6error(gchar *s, ...) {
     va_list ap;
     va_start(ap, s);
     client6error0(LOG_ERR, s, ap);
@@ -219,14 +219,14 @@ void client6error(char *s, ...) {
     client6errorcount++;
 }
 
-void cpyywarn(char *s, ...) {
+void cpyywarn(gchar *s, ...) {
     va_list ap;
     va_start(ap, s);
     client6error0(LOG_WARNING, s, ap);
     va_end(ap);
 }
 
-gint cfparse(const char *conf) {
+gint cfparse(const gchar *conf) {
     configfilename = conf;
 
     if ((client6in = fopen(configfilename, "r")) == NULL) {

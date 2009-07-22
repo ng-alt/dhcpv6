@@ -43,12 +43,12 @@ do { \
     dhcpv6_dprintf(LOG_INFO, \
                    "status code of this %s is: %d - %s", \
                    (object), (num), dhcp6_stcodestr((num))); \
-    if ((optp) != NULL && (optlen) > sizeof(u_int16_t)) { \
+    if ((optp) != NULL && (optlen) > sizeof(guint16)) { \
         dhcpv6_dprintf(LOG_INFO, \
                        "status message of this %s is: %-*s", \
                        (object), \
-                       (optlen) - (int) sizeof(u_int16_t), \
-                       (char *) (optp) + sizeof(u_int16_t)); \
+                       (optlen) - (gint) sizeof(guint16), \
+                       (gchar *) (optp) + sizeof(guint16)); \
     } \
 } while (0)
 
@@ -63,7 +63,7 @@ do { \
     memcpy((p), &opth, sizeof(opth)); \
     if ((l)) \
         memcpy((p) + 1, (v), (l)); \
-    (p) = (struct dhcp6opt *)((char *)((p) + 1) + (l)); \
+    (p) = (struct dhcp6opt *)((gchar *)((p) + 1) + (l)); \
     (len) += sizeof(struct dhcp6opt) + (l); \
     dhcpv6_dprintf(LOG_DEBUG, "%s" "set %s", FNAME, dhcp6optstr((t))); \
 } while (0)
@@ -100,7 +100,7 @@ extern const gchar *getdev(struct sockaddr_in6 *);
 extern gint in6_addrscopebyif(struct in6_addr *, gchar *);
 extern gint in6_scope(struct in6_addr *);
 extern void setloglevel(gint);
-extern void dhcpv6_dprintf(gint, const char *, ...);
+extern void dhcpv6_dprintf(gint, const gchar *, ...);
 extern gint duid_match_llt(struct duid *, struct duid *);
 extern gint get_duid(const gchar *, const gchar *, struct duid *);
 extern gint save_duid(const gchar *, const gchar *, struct duid *);

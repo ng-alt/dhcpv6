@@ -57,15 +57,15 @@
 #define DHCP6R_PIDFILE PID_FILE_PATH"/dhcp6r.pid"
 
 FILE *dump;
-static char pidfile[MAXPATHLEN];
+static gchar pidfile[MAXPATHLEN];
 
-gint main(gint argc, char **argv) {
+gint main(gint argc, gchar **argv) {
     gint err = 0, i;
     gint sw = 0;
     gint du = 0;
     struct interface *iface;
     struct sockaddr_in6 sin6;
-    char *sf, *eth, *addr;
+    gchar *sf, *eth, *addr;
     struct cifaces *ci;
     struct sifaces *si;
     struct IPv6_uniaddr *unia;
@@ -350,9 +350,9 @@ void command_text(void) {
     exit(1);
 }
 
-char *dhcp6r_clock(void) {
+gchar *dhcp6r_clock(void) {
     time_t tim;
-    char *s, *p;
+    gchar *s, *p;
 
     time(&tim);
     s = ctime(&tim);

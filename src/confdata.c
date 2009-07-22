@@ -374,7 +374,7 @@ gint configure_interface(const struct cf_namelist *iflist) {
                                        cfl->line, ifc->ifname);
                         goto bad;
                     } else {
-                        ifc->iaidinfo.iaid = (u_int32_t) cfl->num;
+                        ifc->iaidinfo.iaid = (guint32) cfl->num;
                     }
 
                     break;
@@ -386,7 +386,7 @@ gint configure_interface(const struct cf_namelist *iflist) {
                                        cfl->line, ifc->ifname);
                         goto bad;
                     } else {
-                        ifc->iaidinfo.renewtime = (u_int32_t) cfl->num;
+                        ifc->iaidinfo.renewtime = (guint32) cfl->num;
                     }
 
                     break;
@@ -398,7 +398,7 @@ gint configure_interface(const struct cf_namelist *iflist) {
                                        cfl->line, ifc->ifname);
                         goto bad;
                     } else {
-                        ifc->iaidinfo.rebindtime = (u_int32_t) cfl->num;
+                        ifc->iaidinfo.rebindtime = (guint32) cfl->num;
                     }
 
                     break;
@@ -479,7 +479,7 @@ gint configure_host(const struct cf_namelist *hostlist) {
                         goto bad;
                     }
 
-                    if ((configure_duid((char *) cfl->ptr,
+                    if ((configure_duid((gchar *) cfl->ptr,
                                         &hconf->duid)) != 0) {
                         dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
                                        "failed to configure "
@@ -509,7 +509,7 @@ gint configure_host(const struct cf_namelist *hostlist) {
                                        cfl->line, host->name);
                         goto bad;
                     } else {
-                        hconf->iaidinfo.iaid = (u_int32_t) cfl->num;
+                        hconf->iaidinfo.iaid = (guint32) cfl->num;
                     }
 
                     break;
@@ -521,7 +521,7 @@ gint configure_host(const struct cf_namelist *hostlist) {
                                        cfl->line, host->name);
                         goto bad;
                     } else {
-                        hconf->iaidinfo.renewtime = (u_int32_t) cfl->num;
+                        hconf->iaidinfo.renewtime = (guint32) cfl->num;
                     }
 
                     break;
@@ -533,7 +533,7 @@ gint configure_host(const struct cf_namelist *hostlist) {
                                        cfl->line, host->name);
                         goto bad;
                     } else {
-                        hconf->iaidinfo.rebindtime = (u_int32_t) cfl->num;
+                        hconf->iaidinfo.rebindtime = (guint32) cfl->num;
                     }
 
                     break;
