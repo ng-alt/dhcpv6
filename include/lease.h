@@ -46,11 +46,6 @@
 
 #define HASH_TABLE_COUNT 4
 
-extern struct hash_table **hash_anchors;
-
-#define server6_hash_table hash_anchors[HT_IAIDADDR]
-#define lease_hash_table hash_anchors[HT_IPV6LEASE]
-#define host_addr_hash_table hash_anchors[HT_IPV6ADDR]
 #define PREFIX_LEN_NOTINRA 64
 #define MAX_FILE_SIZE 512*1024
 
@@ -59,18 +54,11 @@ typedef enum {
     IFADDRCONF_REMOVE
 } ifaddrconf_cmd_t;
 
-enum hash_type {
-    HT_IPV6ADDR = 0,
-    HT_IPV6LEASE,
-    HT_IAIDADDR
-};
-
 struct dhcp6_iaidaddr client6_iaidaddr;
 FILE *server6_lease_file;
 FILE *client6_lease_file;
 FILE *lease_file;
 FILE *sync_file;
-struct hash_table **hash_anchors;
 
 struct client6_if {
     iatype_t type;

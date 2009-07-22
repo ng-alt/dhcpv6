@@ -54,7 +54,6 @@
 #include <glib.h>
 
 #include "dhcp6.h"
-#include "hash.h"
 #include "confdata.h"
 #include "common.h"
 #include "lease.h"
@@ -64,44 +63,44 @@ extern FILE *server6_lease_file;
 extern char *server6_lease_temp;
 extern FILE *client6_lease_file;
 extern char *client6_lease_temp;
-u_int32_t do_hash(const void *, u_int8_t);
+
+GHashTable *host_addr_hash_table = NULL;
+GHashTable *lease_hash_table = NULL;
+GHashTable *server6_hash_table = NULL;
 
 /* BEGIN STATIC FUNCTIONS */
 
 static gint _init_lease_hashes(void) {
-    hash_anchors =
-        (struct hash_table **) malloc(HASH_TABLE_COUNT * sizeof(*hash_anchors));
-
-    if (!hash_anchors) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't malloc hash anchors", FNAME);
-        return -1;
-    }
-
-    host_addr_hash_table = hash_table_create(DEFAULT_HASH_SIZE,
-                                             addr_hash, v6addr_findkey,
-                                             v6addr_key_compare);
+    host_addr_hash_table = g_hash_table_new(NULL, NULL);
     if (!host_addr_hash_table) {
         dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
         return -1;
     }
 
-    lease_hash_table = hash_table_create(DEFAULT_HASH_SIZE,
-                                         addr_hash, lease_findkey,
-                                         lease_key_compare);
+    lease_hash_table = g_hash_table_new(NULL, NULL);
     if (!lease_hash_table) {
         dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
         return -1;
     }
 
-    server6_hash_table = hash_table_create(DEFAULT_HASH_SIZE,
-                                           iaid_hash, iaid_findkey,
-                                           iaid_key_compare);
+    server6_hash_table = g_hash_table_new(NULL, NULL);
     if (!server6_hash_table) {
         dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
         return -1;
     }
 
     return 0;
+}
+
+static void _sync_lease(gpointer key, gpointer value, gpointer user_data) {
+    struct dhcp6_lease *lease = (struct dhcp6_lease *) value;
+    FILE *sync_file = (FILE *) user_data;
+
+    if (write_lease(lease, sync_file) < 0) {
+        dhcpv6_dprintf(LOG_ERR, "%s" "write lease failed", FNAME);
+    }
+
+    return;
 }
 
 /* END STATIC FUNCTIONS */
@@ -180,8 +179,7 @@ gint write_lease(const struct dhcp6_lease *lease_ptr, FILE *file) {
 }
 
 FILE *sync_leases(FILE * file, const char *original, char *template) {
-    gint i, fd;
-    struct hashlist_element *element;
+    gint fd;
 
     fd = mkstemp(template);
 
@@ -191,19 +189,7 @@ FILE *sync_leases(FILE * file, const char *original, char *template) {
     }
 
     if (dhcp6_mode == DHCP6_MODE_SERVER) {
-        for (i = 0; i < lease_hash_table->hash_size; i++) {
-            element = lease_hash_table->hash_list[i];
-
-            while (element) {
-                if (write_lease((struct dhcp6_lease *) element->data,
-                                sync_file) < 0) {
-                    dhcpv6_dprintf(LOG_ERR, "%s" "write lease failed", FNAME);
-                    return NULL;
-                }
-
-                element = element->next;
-            }
-        }
+        g_hash_table_foreach(lease_hash_table, _sync_lease, sync_file);
     } else if (dhcp6_mode == DHCP6_MODE_CLIENT) {
         struct dhcp6_lease *lv, *lv_next;
 
@@ -269,105 +255,6 @@ FILE *init_leases(const char *name) {
     }
 
     return file;
-}
-
-u_int32_t do_hash(const void *key, u_int8_t len) {
-    gint i;
-    u_int32_t *p;
-    u_int32_t index = 0;
-    u_int32_t tempkey;
-
-    for (i = 0, p = (u_int32_t *) key; i < len / sizeof(tempkey); i++, p++) {
-        memcpy(&tempkey, p, sizeof(tempkey));
-        index ^= tempkey;
-    }
-
-    memcpy(&tempkey, p, len % (sizeof(tempkey)));
-    index ^= tempkey;
-    return index;
-}
-
-guint iaid_hash(const void *key) {
-    const struct client6_if *iaidkey = (const struct client6_if *) key;
-    const struct duid *duid = &iaidkey->clientid;
-    guint index;
-
-    index = do_hash((const void *) duid->duid_id, duid->duid_len);
-    return index;
-}
-
-guint addr_hash(const void *key) {
-    const struct in6_addr *addrkey =
-        (const struct in6_addr *) &(((const struct dhcp6_addr *) key)->addr);
-    guint index;
-
-    index = do_hash((const void *) addrkey, sizeof(*addrkey));
-    return index;
-}
-
-void *v6addr_findkey(const void *data) {
-    const struct dhcp6_addr *v6addr = (const struct dhcp6_addr *) data;
-
-    return (void *) (&(v6addr->addr));
-}
-
-gint v6addr_key_compare(const void *data, const void *key) {
-    struct dhcp6_addr *v6addr = (struct dhcp6_addr *) data;
-
-    if (IN6_ARE_ADDR_EQUAL(&v6addr->addr, (struct in6_addr *) key)) {
-        return MATCH;
-    } else {
-        return MISCOMPARE;
-    }
-}
-
-void *lease_findkey(const void *data) {
-    const struct dhcp6_lease *lease = (const struct dhcp6_lease *) data;
-
-    return (void *) (&(lease->lease_addr));
-}
-
-gint lease_key_compare(const void *data, const void *key) {
-    struct dhcp6_lease *lease = (struct dhcp6_lease *) data;
-    struct dhcp6_addr *lease_address = &lease->lease_addr;
-    struct dhcp6_addr *addr6 = (struct dhcp6_addr *) key;
-
-    if (IN6_ARE_ADDR_EQUAL(&lease_address->addr, &addr6->addr)) {
-        /* prefix match */
-        if (addr6->type == IAPD) {
-            /* XXX: allow duplicated PD for the same DUID */
-            if (lease_address->plen == addr6->plen) {
-                return MATCH;
-            }
-            /* ipv6 address match */
-        } else if (addr6->type == IANA || addr6->type == IATA) {
-            return MATCH;
-        }
-    }
-
-    return MISCOMPARE;
-}
-
-void *iaid_findkey(const void *data) {
-    struct dhcp6_iaidaddr *iaidaddr = (struct dhcp6_iaidaddr *) data;
-
-    return (void *) (&(iaidaddr->client6_info));
-}
-
-gint iaid_key_compare(const void *data, const void *key) {
-    const struct dhcp6_iaidaddr *iaidaddr =
-        (const struct dhcp6_iaidaddr *) data;
-    const struct client6_if *client_key = (const struct client6_if *) key;
-
-    if (0 == duidcmp(&client_key->clientid, &iaidaddr->client6_info.clientid)) {
-        if ((client_key->type == iaidaddr->client6_info.type) &&
-            (client_key->iaidinfo.iaid ==
-             iaidaddr->client6_info.iaidinfo.iaid)) {
-            return MATCH;
-        }
-    }
-
-    return MISCOMPARE;
 }
 
 gint prefixcmp(struct in6_addr *addr, struct in6_addr *prefix, gint len) {

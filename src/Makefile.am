@@ -3,7 +3,7 @@
 
 INCLUDES = -I$(top_srcdir)/include
 
-COMMONSRCS = common.c timer.c hash.c lease.c lease_token.l
+COMMONSRCS = common.c timer.c lease.c lease_token.l
 
 AM_YFLAGS = -d -p `echo $* | cut -d '_' -f 1`
 AM_LFLAGS = -P`echo $* | cut -d '_' -f 1` -o lex.yy.c

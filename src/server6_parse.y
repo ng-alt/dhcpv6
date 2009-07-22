@@ -46,12 +46,14 @@
 #include "server6_conf.h"
 #include "common.h"
 #include "lease.h"
-#include "hash.h"
 
 extern gint server6lex (void);
+extern void server6error(char *, ...) __attribute__((__format__(__printf__, 1, 2)));
 
 extern gint num_lines;
 extern gint sock;
+extern GHashTable *host_addr_hash_table;
+
 static struct interface *ifnetworklist = NULL;
 static struct link_decl *linklist = NULL;
 static struct host_decl *hostlist = NULL;
@@ -66,7 +68,6 @@ static struct scopelist *currentgroup = NULL;
 static gint allow = 0;
 
 static void cleanup(void);
-extern void server6error(char *, ...) __attribute__((__format__(__printf__, 1, 2)));
 
 #define ABORT \
     do { \
@@ -723,12 +724,7 @@ hostpara
           }
 
           dhcp6_add_listval(&host->addrlist, $1, DHCP6_LISTVAL_DHCP6ADDR);
-          if (hash_add(host_addr_hash_table, &($1->addr), $1) != 0) {
-              dhcpv6_dprintf(LOG_ERR, "%s" "hash add lease failed for %s",
-                             FNAME, in6addr2str(&($1->addr), 0));
-              free($1);
-              return (-1);
-          }
+          g_hash_table_insert(host_addr_hash_table, &($1->addr), $1);
       }
     | hostprefix6 {
           if (host == NULL) {

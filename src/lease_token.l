@@ -48,7 +48,6 @@
 #include "confdata.h"
 #include "common.h"
 #include "lease.h"
-#include "hash.h"
 #include "timer.h"
 
 #define LEASE_ADDR_FLAG 0x01
@@ -84,7 +83,10 @@
 } while (0)
 
 extern struct dhcp6_timer *dhcp6_lease_timo(void *);
+
 extern struct dhcp6_iaidaddr client6_iaidaddr;
+extern GHashTable *lease_hash_table;
+extern GHashTable *server6_hash_table;
 
 static gint num_lines = 1;
 static struct dhcp6_lease *lease_rec;
@@ -281,7 +283,8 @@ do_iaidaddr_hash(lease_rec, key)
 		dhcpv6_dprintf(LOG_INFO, "This lease addr %s/%d is invalid. Removing.",
 		        in6addr2str(&lease_rec->lease_addr.addr, 0),
 		        lease_rec->lease_addr.plen);
-		found_lease = hash_search(lease_hash_table, &lease_rec->lease_addr);
+		found_lease = g_hash_table_lookup(lease_hash_table,
+                          (gconstpointer) &lease_rec->lease_addr);
 		/* remove the previous old lease */
 		if(found_lease) {
 			remove_lease(found_lease);
@@ -303,7 +306,7 @@ do_iaidaddr_hash(lease_rec, key)
 			return (0);
 		}
 	}
-	iaidaddr = (struct dhcp6_iaidaddr *)hash_search(server6_hash_table, key); 
+	iaidaddr = (struct dhcp6_iaidaddr *) g_hash_table_lookup(server6_hash_table, (gconstpointer) key); 
 	if (iaidaddr){
 		if (iaidaddr->client6_info.iaidinfo.iaid != client6_info.iaidinfo.iaid ||
 		    duidcmp(&iaidaddr->client6_info.clientid, &client6_info.clientid)) {
@@ -311,7 +314,7 @@ do_iaidaddr_hash(lease_rec, key)
 				"this client iaidinfo is different to others", FNAME);
 			return (-1);
 		}
-		found_lease = hash_search(lease_hash_table, &lease_rec->lease_addr);
+		found_lease = g_hash_table_lookup(lease_hash_table, &lease_rec->lease_addr);
 		/* remove the previous old lease */
 		if(found_lease) {
 			if (found_lease->start_date < lease_rec->start_date) {
@@ -338,12 +341,7 @@ do_iaidaddr_hash(lease_rec, key)
 		TAILQ_INIT(&iaidaddr->lease_list);
 		/* get the client info */
 		memcpy(&iaidaddr->client6_info, &client6_info, sizeof(iaidaddr->client6_info));
-		if (hash_add(server6_hash_table, 
-		    &iaidaddr->client6_info, iaidaddr) != 0) {
-			dhcpv6_dprintf(LOG_ERR, "%s" "hash add failed", FNAME);
-			free(iaidaddr);
-			return (-1);
-		}
+		g_hash_table_insert(server6_hash_table, &iaidaddr->client6_info, iaidaddr);
 		dhcpv6_dprintf(LOG_DEBUG, "hash add client iaidaddr %u type %d for duid %s",
 			iaidaddr->client6_info.iaidinfo.iaid,
 			iaidaddr->client6_info.type, 
@@ -455,12 +453,7 @@ add_lease(iaidaddr, lease)
 	timo.tv_usec = 0;
 	dhcp6_set_timer(&timo, lease_rec->timer);
 	if (dhcp6_mode == DHCP6_MODE_SERVER) {
-		if (hash_add(lease_hash_table, &lease_rec->lease_addr, lease_rec) != 0) {
-			dhcpv6_dprintf(LOG_ERR, "%s" "hash add lease failed for %s",
-				FNAME, in6addr2str(&lease_rec->lease_addr.addr, 0));
-			free(lease_rec);
-			return (-1);
-		}
+		g_hash_table_insert(lease_hash_table, &lease_rec->lease_addr, lease_rec);
 	}
 	lease_rec->iaidaddr = iaidaddr;
 	lease_rec->lease_addr.status_code = DH6OPT_STCODE_UNDEFINE;
@@ -476,7 +469,7 @@ remove_lease(lease)
 	struct dhcp6_lease *lease;
 {
 	if (dhcp6_mode == DHCP6_MODE_SERVER) {
-		if (hash_delete(lease_hash_table, &lease->lease_addr) != 0) {
+		if (!g_hash_table_remove(lease_hash_table, &lease->lease_addr)) {
 			dhcpv6_dprintf(LOG_ERR, "%s" "failed to remove an address %s from hash", 
 				FNAME, in6addr2str(&lease->lease_addr.addr, 0));
 			return (-1);
