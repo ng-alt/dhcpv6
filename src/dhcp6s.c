@@ -130,7 +130,7 @@ extern gint dhcp6_get_hostconf(struct ia_listval *, struct ia_listval *,
 
 static void _random_init(void) {
     gint f, n;
-    unsigned gint seed = time(NULL) & getpid();
+    guint seed = time(NULL) & getpid();
     char rand_state[256];
 
     f = open("/dev/urandom", O_RDONLY);

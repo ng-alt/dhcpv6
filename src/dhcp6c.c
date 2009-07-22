@@ -101,6 +101,7 @@ gint nlsock = -1;
 FILE *dhcp6_resolv_file;
 char client6_lease_temp[256];
 struct dhcp6_list request_list;
+gchar *script = NULL;
 
 static gint debug = 0;
 static u_long sig_flags = 0;
@@ -114,7 +115,6 @@ static struct duid client_duid;
 static gint pid;
 static char leasename[MAXPATHLEN];
 
-static char *script = NULL;
 static char *path_client6_lease = PATH_CLIENT6_LEASE;
 static char *pidfile = DHCP6C_PIDFILE;
 static char *duidfile = DHCP6C_DUID_FILE;

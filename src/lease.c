@@ -287,19 +287,19 @@ u_int32_t do_hash(const void *key, u_int8_t len) {
     return index;
 }
 
-unsigned gint iaid_hash(const void *key) {
+guint iaid_hash(const void *key) {
     const struct client6_if *iaidkey = (const struct client6_if *) key;
     const struct duid *duid = &iaidkey->clientid;
-    unsigned gint index;
+    guint index;
 
     index = do_hash((const void *) duid->duid_id, duid->duid_len);
     return index;
 }
 
-unsigned gint addr_hash(const void *key) {
+guint addr_hash(const void *key) {
     const struct in6_addr *addrkey =
         (const struct in6_addr *) &(((const struct dhcp6_addr *) key)->addr);
-    unsigned gint index;
+    guint index;
 
     index = do_hash((const void *) addrkey, sizeof(*addrkey));
     return index;

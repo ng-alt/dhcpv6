@@ -65,7 +65,8 @@
 #include "timer.h"
 #include "lease.h"
 
-extern char *script;
+extern gchar *script;
+
 gint foreground;
 gint debug_thresh;
 struct dhcp6_if *dhcp6_if;
@@ -536,7 +537,7 @@ struct dhcp6_if *find_ifconfbyname(const char *ifname) {
     return NULL;
 }
 
-struct dhcp6_if *find_ifconfbyid(unsigned gint id) {
+struct dhcp6_if *find_ifconfbyid(guint id) {
     struct dhcp6_if *ifp;
 
     for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
@@ -858,8 +859,8 @@ void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
     }
 
     memset(&tmpaddr, '\0', sizeof(tmpaddr));
-    if (inet_ntop(AF_INET6, &tmpaddr,
-                  ifp->linklocal, sizeof(ifp->linklocal)) == NULL) {
+    inet_ntop(AF_INET6, tmpaddr, ifp->linklocal, sizeof(ifp->linklocal));
+    if (tmpaddr == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s line %d: %s", __func__, __LINE__,
                        strerror(errno));
     } else {
@@ -2247,7 +2248,7 @@ gchar *dhcp6optstr(gint type) {
         return "OPTION_IAADDR";
     } else if (type == DH6OPT_ORO) {
         return "OPTION_ORO";
-    } else if (type == DH6OPT_
+    } /* else if (type == DH6OPT_
         return "OPTION_
     } else if (type == DH6OPT_
         return "OPTION_
@@ -2298,6 +2299,8 @@ gchar *dhcp6optstr(gint type) {
             sprintf(genstr, "opt_%d", type);
             return genstr;
     }
+    */
+    return "unknown";
 }
 
 gchar *dhcp6msgstr(gint type) {
@@ -2340,8 +2343,11 @@ gchar *dhcp6msgstr(gint type) {
     } else if (type == DH6_RELAY_REPL) {
         return "RELAY-REPL";
     } else {
-        sprintf(genstr, "msg%d", type);
-        return genstr;
+        if (g_vasprintf(&msgstr, "msg%d", type) <= 0) {
+            return NULL;
+        } else {
+            return msgstr;
+        }
     }
 }
 

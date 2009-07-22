@@ -117,9 +117,9 @@ extern gint server6_tokenlex(void);
 %type <dhcp6addr> hostaddr6 hostprefix6 addr6para v6address
 
 %union {
-    unsigned gint num;
+    guint num;
     gint snum;
-    char *str;
+    gchar *str;
     gint dec;
     gint bool;
     struct in6_addr addr;
