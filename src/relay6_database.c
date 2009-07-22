@@ -35,6 +35,8 @@
 #include <arpa/inet.h>
 #include <string.h>
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "dhcp6r.h"
 #include "relay6_parser.h"
@@ -60,7 +62,7 @@ void init_relay(void) {
     return;
 }
 
-int check_interface_semafor(int index) {
+gint check_interface_semafor(gint index) {
     struct interface *device = NULL;
     struct cifaces *iface;
 
@@ -84,7 +86,7 @@ int check_interface_semafor(int index) {
     return 0;
 }
 
-struct interface *get_interface(int if_index) {
+struct interface *get_interface(gint if_index) {
     struct interface *deviface;
 
     for (deviface = interface_list.next; deviface != &interface_list;
@@ -138,17 +140,17 @@ void delete_messages(void) {
     }
 }
 
-int process_RELAY_FORW(struct msg_parser *msg) {
+gint process_RELAY_FORW(struct msg_parser *msg) {
     uint8_t *head = (uint8_t *) malloc(HEAD_SIZE * sizeof(uint8_t));
     uint8_t *newbuff =
         (uint8_t *) malloc(MAX_DHCP_MSG_LENGTH * sizeof(uint8_t));
     uint8_t *pointer;
     struct interface *device = NULL;
     struct sockaddr_in6 sap;
-    int check = 0;
+    gint check = 0;
     uint16_t *p16, *optl;
     uint32_t *p32;
-    int len, hop;
+    gint len, hop;
 
     if ((head == NULL) || (newbuff == NULL)) {
         TRACE(dump, "ProcessRELAYFORW--> ERROR, NO MORE MEMRY AVAILABLE  \n");
@@ -275,16 +277,16 @@ int process_RELAY_FORW(struct msg_parser *msg) {
     return 1;
 }
 
-int process_RELAY_REPL(struct msg_parser *msg) {
+gint process_RELAY_REPL(struct msg_parser *msg) {
     uint8_t *newbuff =
         (uint8_t *) malloc(MAX_DHCP_MSG_LENGTH * sizeof(uint8_t));
     uint8_t *pointer, *pstart, *psp;
     struct interface *device = NULL;
     struct sockaddr_in6 sap;
-    int check = 0;
+    gint check = 0;
     uint16_t *p16, option, opaqlen, msglen;
     uint32_t *p32;
-    int len, opaq;
+    gint len, opaq;
     struct IPv6_address *ipv6a;
     char *s;
 

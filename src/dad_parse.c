@@ -75,16 +75,16 @@ struct ifproc_info {
     struct ifproc_info *next;
     struct in6_addr addr;
     char name[IF_NAMESIZE];
-    int index;
-    int plen;
-    int scope;
-    int flags;
+    gint index;
+    gint plen;
+    gint scope;
+    gint flags;
 };
 
-int dad_parse(const char *file, struct dhcp6_list *dad_list) {
-    int i = 0;
-    int len = 0;
-    int ret = 0;
+gint dad_parse(const char *file, struct dhcp6_list *dad_list) {
+    gint i = 0;
+    gint len = 0;
+    gint ret = 0;
     FILE *fp = NULL;
     char buf[55];               /* max line length in /proc/net/if_inet6 */
     char addrbuf[64];

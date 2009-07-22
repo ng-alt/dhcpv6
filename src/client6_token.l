@@ -42,16 +42,18 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
 #include "client6_parse.h"
 
 const char *configfilename;
-int lineno = 1;
+gint lineno = 1;
 
-static int cpyy_first_time = 1;
-static int client6errorcount = 0;
+static gint cpyy_first_time = 1;
+static gint client6errorcount = 0;
 
 #define YY_NO_UNPUT 1
 #define ECHO if (fwrite(yytext, yyleng, 1, yyout) != 1) { \
@@ -61,16 +63,16 @@ static int client6errorcount = 0;
 #ifndef NOCONFIG_DEBUG
 #define YYDEBUG 1
 
-int cfdebug = 1;
+gint cfdebug = 1;
 #else
-int cfdebug = 0;
+gint cfdebug = 0;
 #endif
 
 static void cfdebug_print(char *, char *, int);
-extern int cf_post_config(void);
+extern gint cf_post_config(void);
 
-extern int client6parse(void);
-extern int cf_post_config(void);
+extern gint client6parse(void);
+extern gint cf_post_config(void);
 
 #define DP(str) if (cfdebug) cfdebug_print(str, client6text, client6leng)
 #define DECHO if (cfdebug) cfdebug_print(NULL, client6text, client6leng);
@@ -187,7 +189,7 @@ ecl       \}
 }
 
 %%
-static void cfdebug_print(char *w, char *t, int l) {
+static void cfdebug_print(char *w, char *t, gint l) {
     if (w) {
         dhcpv6_dprintf(LOG_DEBUG, "<%d>%s [%s] (%d)", yy_start, w, t, l);
     } else {
@@ -195,7 +197,7 @@ static void cfdebug_print(char *w, char *t, int l) {
     }
 }
 
-static void client6error0(int level, char *s, va_list ap) {
+static void client6error0(gint level, char *s, va_list ap) {
     char ebuf[BUFSIZ], *bp, *ep;
 
     bp = ebuf;
@@ -224,7 +226,7 @@ void cpyywarn(char *s, ...) {
     va_end(ap);
 }
 
-int cfparse(const char *conf) {
+gint cfparse(const char *conf) {
     configfilename = conf;
 
     if ((client6in = fopen(configfilename, "r")) == NULL) {

@@ -82,6 +82,8 @@
 #include <netlink/route/addr.h>
 #include <netlink/route/link.h>
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
@@ -94,22 +96,22 @@ extern FILE *client6_lease_file;
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_CLIENT;
-int iosock = -1;                /* inbound/outbound udp port */
-int nlsock = -1;
+gint iosock = -1;                /* inbound/outbound udp port */
+gint nlsock = -1;
 FILE *dhcp6_resolv_file;
 char client6_lease_temp[256];
 struct dhcp6_list request_list;
 
-static int debug = 0;
+static gint debug = 0;
 static u_long sig_flags = 0;
 static char *device = NULL;
-static int num_device = 0;
+static gint num_device = 0;
 static struct iaid_table iaidtab[MAX_DEVICE];
 static u_int8_t client6_request_flag = 0;
 static const struct sockaddr_in6 *sa6_allagent;
 static socklen_t sa6_alen;
 static struct duid client_duid;
-static int pid;
+static gint pid;
 static char leasename[MAXPATHLEN];
 
 static char *script = NULL;
@@ -119,14 +121,14 @@ static char *duidfile = DHCP6C_DUID_FILE;
 
 void free_servers(struct dhcp6_if *);
 void client6_send(struct dhcp6_event *);
-int client6_send_newstate(struct dhcp6_if *, int);
+gint client6_send_newstate(struct dhcp6_if *, int);
 struct dhcp6_timer *client6_timo(void *);
-int get_if_rainfo(struct dhcp6_if *);
-int client6_init(char *);
+gint get_if_rainfo(struct dhcp6_if *);
+gint client6_init(char *);
 
-extern int client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
+extern gint client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
 extern struct dhcp6_timer *syncfile_timo(void *);
-extern int dad_parse(const char *, struct dhcp6_list *);
+extern gint dad_parse(const char *, struct dhcp6_list *);
 
 /* BEGIN STATIC FUNCTIONS */
 
@@ -169,8 +171,8 @@ static void _usage(char *name) {
     return;
 }
 
-static void _ev_set_state(struct dhcp6_event *ev, int new_state) {
-    int old_state = ev->state;
+static void _ev_set_state(struct dhcp6_event *ev, gint new_state) {
+    gint old_state = ev->state;
 
     dhcpv6_dprintf(LOG_DEBUG, "%s" "event %p xid %d state change %d -> %d",
                    FNAME, ev, ev->xid, ev->state, new_state);
@@ -228,9 +230,9 @@ static struct dhcp6_timer *_info_refresh_timo(void *arg) {
     return NULL;
 }
 
-static int _set_info_refresh_timer(struct dhcp6_if *ifp,
-                                   u_int32_t offered_irt) {
-    int irt;
+static gint _set_info_refresh_timer(struct dhcp6_if *ifp,
+                                    u_int32_t offered_irt) {
+    gint irt;
     struct timeval timo;
     double rval;
 
@@ -273,7 +275,7 @@ static int _set_info_refresh_timer(struct dhcp6_if *ifp,
     return 0;
 }
 
-static int _create_request_list(int reboot) {
+static gint _create_request_list(gint reboot) {
     struct dhcp6_lease *cl;
     struct dhcp6_listval *lv;
 
@@ -312,7 +314,7 @@ static struct dhcp6_timer *_check_link_timo(void *arg) {
     struct ifreq ifr;
     struct timeval timo;
     static long d = DHCP6_CHECKLINK_TIME_UPCASE;
-    int newstate;
+    gint newstate;
     struct dhcp6_list dad_list;
     struct dhcp6_listval *lv;
 
@@ -413,7 +415,7 @@ static struct dhcp6_timer *_check_lease_file_timo(void *arg) {
 
 static struct dhcp6_timer *_check_dad_timo(void *arg) {
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
-    int newstate;
+    gint newstate;
     struct dhcp6_list dad_list;
     struct dhcp6_lease *cl;
     struct dhcp6_listval *lv;
@@ -473,8 +475,8 @@ end:
     return NULL;
 }
 
-static int _client6_ifinit(char *device) {
-    int err = 0;
+static gint _client6_ifinit(char *device) {
+    gint err = 0;
     struct dhcp6_if *ifp = dhcp6_if;
     struct dhcp6_event *ev;
     char iaidstr[20];
@@ -734,14 +736,14 @@ static struct dhcp6_serverinfo *_allocate_newserver(struct dhcp6_if *ifp,
     return newserver;
 }
 
-static int _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
-                              ssize_t len, struct dhcp6_optinfo *optinfo) {
+static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
+                               ssize_t len, struct dhcp6_optinfo *optinfo) {
     struct ia_listval *ia;
     struct dhcp6_event *ev;
     struct dhcp6_serverinfo *newserver;
-    int newstate = 0;
-    int err = 0;
-    int prevstate = 0;
+    gint newstate = 0;
+    gint err = 0;
+    gint prevstate = 0;
 
     /* find the corresponding event based on the received xid */
     dhcpv6_dprintf(LOG_DEBUG, "%s" "reply message XID is (%x)",
@@ -1057,8 +1059,8 @@ static int _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
     return 0;
 }
 
-static int _client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
-                               ssize_t len, struct dhcp6_optinfo *optinfo0) {
+static gint _client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
+                                ssize_t len, struct dhcp6_optinfo *optinfo0) {
     struct ia_listval *ia;
     struct dhcp6_serverinfo *newserver;
     struct dhcp6_event *ev;
@@ -1260,7 +1262,7 @@ static void _client6_recv(void) {
 
 static void _client6_mainloop(void) {
     struct timeval *w;
-    int ret;
+    gint ret;
     fd_set r;
 
     while (1) {
@@ -1312,7 +1314,7 @@ static struct dhcp6_serverinfo *_select_server(struct dhcp6_if *ifp) {
     return NULL;
 }
 
-static void _client6_signal(int sig) {
+static void _client6_signal(gint sig) {
     dhcpv6_dprintf(LOG_INFO, FNAME "received a signal (%d)", sig);
 
     switch (sig) {
@@ -1333,7 +1335,7 @@ static void _client6_signal(int sig) {
 
 static void _setup_interface(char *ifname) {
     struct ifreq ifr;
-    int retries = 0;
+    gint retries = 0;
 
     /* check the interface */
 
@@ -1385,8 +1387,8 @@ static void _setup_interface(char *ifname) {
 
 /* END STATIC FUNCTIONS */
 
-int main(int argc, char **argv, char **envp) {
-    int ch;
+gint main(gint argc, char **argv, char **envp) {
+    gint ch;
     char *progname = basename(argv[0]);
     char *conffile = DHCP6C_CONF;
     FILE *pidfp;
@@ -1601,16 +1603,16 @@ int main(int argc, char **argv, char **envp) {
     return 0;
 }
 
-int client6_init(char *device) {
+gint client6_init(char *device) {
     struct addrinfo hints, *res;
     static struct sockaddr_in6 sa6_allagent_storage;
-    int error, on = 1;
+    gint error, on = 1;
     struct dhcp6_if *ifp;
-    int ifidx;
+    gint ifidx;
     char linklocal[64];
     struct in6_addr lladdr;
     time_t retry, now;
-    int bound;
+    gint bound;
 
     ifidx = if_nametoindex(device);
     if (ifidx == 0) {
@@ -1774,7 +1776,7 @@ int client6_init(char *device) {
 /*
  * Call libnl and collect information about the current state of the interface.
  */
-int get_if_rainfo(struct dhcp6_if *ifp) {
+gint get_if_rainfo(struct dhcp6_if *ifp) {
     struct nl_handle *handle = NULL;
     struct nl_cache *cache = NULL;
     struct nl_object *obj = NULL;
@@ -2103,7 +2105,7 @@ void client6_send(struct dhcp6_event *ev) {
                        "%s" "ifp %p event %p a new XID (%x) is generated",
                        FNAME, ifp, ev, ev->xid);
     } else {
-        unsigned int etime;
+        unsigned gint etime;
 
         gettimeofday(&now, NULL);
         timeval_sub(&now, &(ev->start_time), &duration);
@@ -2171,7 +2173,7 @@ void client6_send(struct dhcp6_event *ev) {
     }
 
     if (ifp->send_flags & DHCIFF_INFO_ONLY) {   /* RFC4242 */
-        int opttype = DH6OPT_INFO_REFRESH_TIME;
+        gint opttype = DH6OPT_INFO_REFRESH_TIME;
 
         if (dhcp6_add_listval(&optinfo.reqopt_list, &opttype,
                               DHCP6_LISTVAL_NUM) == NULL) {
@@ -2289,7 +2291,7 @@ void client6_send(struct dhcp6_event *ev) {
             if (ifp->current_server &&
                 !IN6_IS_ADDR_UNSPECIFIED(&ifp->current_server->server_addr)) {
                 struct addrinfo hints, *res;
-                int error;
+                gint error;
 
                 memset(&hints, 0, sizeof(hints));
                 hints.ai_family = PF_INET6;
@@ -2357,7 +2359,7 @@ void free_servers(struct dhcp6_if *ifp) {
     return;
 }
 
-int client6_send_newstate(struct dhcp6_if *ifp, int state) {
+gint client6_send_newstate(struct dhcp6_if *ifp, gint state) {
     struct dhcp6_event *ev;
 
     if ((ev = dhcp6_create_event(ifp, state)) == NULL) {

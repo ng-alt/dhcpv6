@@ -42,6 +42,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
@@ -84,14 +86,14 @@
 extern struct dhcp6_timer *dhcp6_lease_timo(void *);
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 
-static int num_lines = 1;
+static gint num_lines = 1;
 static struct dhcp6_lease *lease_rec;
 static struct client6_if client6_info;
 
 static u_int16_t lease_flags = 0;
 
-static int add_lease(struct dhcp6_iaidaddr *, struct dhcp6_lease *);
-static int remove_lease(struct dhcp6_lease *);
+static gint add_lease(struct dhcp6_iaidaddr *, struct dhcp6_lease *);
+static gint remove_lease(struct dhcp6_lease *);
 
 %}
 
@@ -245,7 +247,7 @@ lease_parse(file)
 	return;
 }
 
-int 
+gint 
 do_iaidaddr_hash(lease_rec, key) 
 	struct dhcp6_lease *lease_rec;
 	struct client6_if *key;
@@ -365,7 +367,7 @@ do_iaidaddr_hash(lease_rec, key)
 	return (0);
 }
 
-static int 
+static gint 
 add_lease(iaidaddr, lease)
 	struct dhcp6_iaidaddr *iaidaddr;
 	struct dhcp6_lease *lease;

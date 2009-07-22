@@ -43,6 +43,8 @@
 # include <time.h>
 #endif
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"

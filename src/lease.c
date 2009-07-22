@@ -51,6 +51,8 @@
 # include <time.h>
 #endif
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "hash.h"
 #include "confdata.h"
@@ -66,7 +68,7 @@ u_int32_t do_hash(const void *, u_int8_t);
 
 /* BEGIN STATIC FUNCTIONS */
 
-static int _init_lease_hashes(void) {
+static gint _init_lease_hashes(void) {
     hash_anchors =
         (struct hash_table **) malloc(HASH_TABLE_COUNT * sizeof(*hash_anchors));
 
@@ -104,7 +106,7 @@ static int _init_lease_hashes(void) {
 
 /* END STATIC FUNCTIONS */
 
-int write_lease(const struct dhcp6_lease *lease_ptr, FILE *file) {
+gint write_lease(const struct dhcp6_lease *lease_ptr, FILE *file) {
     struct tm brokendown_time;
     char addr_str[64];
 
@@ -178,7 +180,7 @@ int write_lease(const struct dhcp6_lease *lease_ptr, FILE *file) {
 }
 
 FILE *sync_leases(FILE * file, const char *original, char *template) {
-    int i, fd;
+    gint i, fd;
     struct hashlist_element *element;
 
     fd = mkstemp(template);
@@ -270,7 +272,7 @@ FILE *init_leases(const char *name) {
 }
 
 u_int32_t do_hash(const void *key, u_int8_t len) {
-    int i;
+    gint i;
     u_int32_t *p;
     u_int32_t index = 0;
     u_int32_t tempkey;
@@ -285,19 +287,19 @@ u_int32_t do_hash(const void *key, u_int8_t len) {
     return index;
 }
 
-unsigned int iaid_hash(const void *key) {
+unsigned gint iaid_hash(const void *key) {
     const struct client6_if *iaidkey = (const struct client6_if *) key;
     const struct duid *duid = &iaidkey->clientid;
-    unsigned int index;
+    unsigned gint index;
 
     index = do_hash((const void *) duid->duid_id, duid->duid_len);
     return index;
 }
 
-unsigned int addr_hash(const void *key) {
+unsigned gint addr_hash(const void *key) {
     const struct in6_addr *addrkey =
         (const struct in6_addr *) &(((const struct dhcp6_addr *) key)->addr);
-    unsigned int index;
+    unsigned gint index;
 
     index = do_hash((const void *) addrkey, sizeof(*addrkey));
     return index;
@@ -309,7 +311,7 @@ void *v6addr_findkey(const void *data) {
     return (void *) (&(v6addr->addr));
 }
 
-int v6addr_key_compare(const void *data, const void *key) {
+gint v6addr_key_compare(const void *data, const void *key) {
     struct dhcp6_addr *v6addr = (struct dhcp6_addr *) data;
 
     if (IN6_ARE_ADDR_EQUAL(&v6addr->addr, (struct in6_addr *) key)) {
@@ -325,7 +327,7 @@ void *lease_findkey(const void *data) {
     return (void *) (&(lease->lease_addr));
 }
 
-int lease_key_compare(const void *data, const void *key) {
+gint lease_key_compare(const void *data, const void *key) {
     struct dhcp6_lease *lease = (struct dhcp6_lease *) data;
     struct dhcp6_addr *lease_address = &lease->lease_addr;
     struct dhcp6_addr *addr6 = (struct dhcp6_addr *) key;
@@ -352,7 +354,7 @@ void *iaid_findkey(const void *data) {
     return (void *) (&(iaidaddr->client6_info));
 }
 
-int iaid_key_compare(const void *data, const void *key) {
+gint iaid_key_compare(const void *data, const void *key) {
     const struct dhcp6_iaidaddr *iaidaddr =
         (const struct dhcp6_iaidaddr *) data;
     const struct client6_if *client_key = (const struct client6_if *) key;
@@ -368,8 +370,8 @@ int iaid_key_compare(const void *data, const void *key) {
     return MISCOMPARE;
 }
 
-int prefixcmp(struct in6_addr *addr, struct in6_addr *prefix, int len) {
-    int i, num_bytes;
+gint prefixcmp(struct in6_addr *addr, struct in6_addr *prefix, gint len) {
+    gint i, num_bytes;
     struct in6_addr mask;
 
     num_bytes = len / 8;
@@ -394,7 +396,7 @@ int prefixcmp(struct in6_addr *addr, struct in6_addr *prefix, int len) {
     return 0;
 }
 
-int get_linklocal(const char *ifname, struct in6_addr *linklocal) {
+gint get_linklocal(const char *ifname, struct in6_addr *linklocal) {
 #if defined(__linux__)
     struct ifaddrs *ifa = 0, *ifap = 0;
     struct sockaddr *sd = 0;
@@ -433,7 +435,7 @@ int get_linklocal(const char *ifname, struct in6_addr *linklocal) {
 #endif
 }
 
-int dhcp6_get_prefixlen(struct in6_addr *addr, struct dhcp6_if *ifp) {
+gint dhcp6_get_prefixlen(struct in6_addr *addr, struct dhcp6_if *ifp) {
     struct ra_info *rainfo;
 
     for (rainfo = ifp->ralist; rainfo; rainfo = rainfo->next) {
@@ -446,7 +448,7 @@ int dhcp6_get_prefixlen(struct in6_addr *addr, struct dhcp6_if *ifp) {
     return PREFIX_LEN_NOTINRA;
 }
 
-int addr_on_addrlist(struct dhcp6_list *addrlist, struct dhcp6_addr *addr6) {
+gint addr_on_addrlist(struct dhcp6_list *addrlist, struct dhcp6_addr *addr6) {
     struct dhcp6_listval *lv;
 
     for (lv = TAILQ_FIRST(addrlist); lv; lv = TAILQ_NEXT(lv, link)) {

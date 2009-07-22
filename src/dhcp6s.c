@@ -62,6 +62,8 @@
 # include <linux/sockios.h>
 #endif
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
@@ -87,20 +89,20 @@ struct dhcp6_binding {
 
 static char pidfile[MAXPATHLEN];
 static char *device[MAX_DEVICE];
-static int num_device = 0;
-static int debug = 0;
+static gint num_device = 0;
+static gint debug = 0;
 static const struct sockaddr_in6 *sa6_any_downstream;
 static u_int16_t upstream_port;
 static struct msghdr rmh;
 static char rdatabuf[BUFSIZ];
-static int rmsgctllen;
+static gint rmsgctllen;
 static char *rmsgctlbuf;
 static struct duid server_duid;
 static struct dns_list arg_dnslist;
 static struct dhcp6_timer *sync_lease_timer;
 
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_SERVER;
-int iosock = -1;                /* inbound/outbound udp port */
+gint iosock = -1;                /* inbound/outbound udp port */
 extern FILE *server6_lease_file;
 char server6_lease_temp[100];
 struct link_decl *subnet = NULL;
@@ -121,14 +123,14 @@ extern struct link_decl *dhcp6_allocate_link(struct dhcp6_if *,
 extern struct host_decl *dhcp6_allocate_host(struct dhcp6_if *,
                                              struct rootgroup *,
                                              struct dhcp6_optinfo *);
-extern int dhcp6_get_hostconf(struct ia_listval *, struct ia_listval *,
-                              struct dhcp6_iaidaddr *, struct host_decl *);
+extern gint dhcp6_get_hostconf(struct ia_listval *, struct ia_listval *,
+                               struct dhcp6_iaidaddr *, struct host_decl *);
 
 /* BEGIN STATIC FUNCTIONS */
 
 static void _random_init(void) {
-    int f, n;
-    unsigned int seed = time(NULL) & getpid();
+    gint f, n;
+    unsigned gint seed = time(NULL) & getpid();
     char rand_state[256];
 
     f = open("/dev/urandom", O_RDONLY);
@@ -147,7 +149,7 @@ static void _random_init(void) {
     return;
 }
 
-static void _server6_sighandler(int sig) {
+static void _server6_sighandler(gint sig) {
     dhcpv6_dprintf(LOG_INFO, FNAME "received a signal (%d)", sig);
 
     switch (sig) {
@@ -353,7 +355,7 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
  *               non-NULL
  */
 static void _dhcp6_set_relay_option_len(struct dhcp6_optinfo *optinfo,
-                                        int reply_msg_len) {
+                                        gint reply_msg_len) {
     struct relay_listval *relay, *last = NULL;
     u_int16_t len;
 
@@ -380,12 +382,12 @@ static void _dhcp6_set_relay_option_len(struct dhcp6_optinfo *optinfo,
  * each of the relays that were in the RELAY-FORW packet that this is 
  * in response to.
  */
-static int _dhcp6_set_relay(struct dhcp6_relay *msg,
-                            struct dhcp6_relay *endptr,
-                            struct dhcp6_optinfo *optinfo) {
+static gint _dhcp6_set_relay(struct dhcp6_relay *msg,
+                             struct dhcp6_relay *endptr,
+                             struct dhcp6_optinfo *optinfo) {
     struct relay_listval *relay;
     struct dhcp6opt *option;
-    int relaylen = 0;
+    gint relaylen = 0;
     u_int16_t type, len;
 
     for (relay = TAILQ_FIRST(&optinfo->relay_list); relay;
@@ -459,12 +461,13 @@ static int _dhcp6_set_relay(struct dhcp6_relay *msg,
     }
 }
 
-static int _server6_send(int type, struct dhcp6_if *ifp, struct dhcp6 *origmsg,
-                         struct dhcp6_optinfo *optinfo, struct sockaddr *from,
-                         int fromlen, struct dhcp6_optinfo *roptinfo) {
+static gint _server6_send(gint type, struct dhcp6_if *ifp,
+                          struct dhcp6 *origmsg, struct dhcp6_optinfo *optinfo,
+                          struct sockaddr *from, gint fromlen,
+                          struct dhcp6_optinfo *roptinfo) {
     char replybuf[BUFSIZ];
     struct sockaddr_in6 dst;
-    int len, optlen, relaylen = 0;
+    gint len, optlen, relaylen = 0;
     struct dhcp6 *dh6;
 
     if (sizeof(struct dhcp6) > sizeof(replybuf)) {
@@ -540,14 +543,14 @@ static int _server6_send(int type, struct dhcp6_if *ifp, struct dhcp6 *origmsg,
     return 0;
 }
 
-static int _handle_addr_request(struct dhcp6_optinfo *roptinfo,
-                                struct ia_list *ria_list,
-                                struct ia_list *ia_list, int resptype,
-                                int *status_code) {
+static gint _handle_addr_request(struct dhcp6_optinfo *roptinfo,
+                                 struct ia_list *ria_list,
+                                 struct ia_list *ia_list, gint resptype,
+                                 gint *status_code) {
     struct ia_listval *ria, *ia;
     struct dhcp6_iaidaddr *iaidaddr;
-    int addr_flag = 0;
-    int found_binding = 0;
+    gint addr_flag = 0;
+    gint found_binding = 0;
 
     for (ia = TAILQ_FIRST(ia_list); ia; ia = TAILQ_NEXT(ia, link)) {
         /* find bindings */
@@ -625,11 +628,11 @@ fail:
     return -1;
 }
 
-static int _update_binding_ia(struct dhcp6_optinfo *roptinfo,
-                              struct ia_list *ria_list,
-                              struct ia_list *ia_list,
-                              u_int8_t msgtype, int addr_flag,
-                              int *status_code) {
+static gint _update_binding_ia(struct dhcp6_optinfo *roptinfo,
+                               struct ia_list *ria_list,
+                               struct ia_list *ia_list,
+                               u_int8_t msgtype, gint addr_flag,
+                               gint *status_code) {
     struct ia_listval *ria, *ia;
     struct dhcp6_iaidaddr *iaidaddr;
     size_t num_ia = 0;
@@ -767,15 +770,15 @@ fail:
     return -1;
 }
 
-static int _server6_react_message(struct dhcp6_if *ifp,
-                                  struct in6_pktinfo *pi,
-                                  struct dhcp6 *dh6,
-                                  struct dhcp6_optinfo *optinfo,
-                                  struct sockaddr *from, int fromlen) {
+static gint _server6_react_message(struct dhcp6_if *ifp,
+                                   struct in6_pktinfo *pi,
+                                   struct dhcp6 *dh6,
+                                   struct dhcp6_optinfo *optinfo,
+                                   struct sockaddr *from, gint fromlen) {
     struct dhcp6_optinfo roptinfo;
-    int addr_flag = 0;
-    int resptype = DH6_REPLY;
-    int num = DH6OPT_STCODE_UNDEFINE;
+    gint addr_flag = 0;
+    gint resptype = DH6_REPLY;
+    gint num = DH6OPT_STCODE_UNDEFINE;
 
     /* message validation according to Section 18.2 of dhcpv6-28 */
 
@@ -1136,10 +1139,10 @@ fail:
     return -1;
 }
 
-static int _server6_recv(int s) {
+static gint _server6_recv(gint s) {
     ssize_t len;
     struct sockaddr_storage from;
-    int fromlen;
+    gint fromlen;
     struct msghdr mhdr;
     struct iovec iov;
     char cmsgbuf[BUFSIZ];
@@ -1267,7 +1270,7 @@ static int _server6_recv(int s) {
 
 static void _server6_mainloop(void) {
     struct timeval *w;
-    int ret;
+    gint ret;
     fd_set r;
 
     while (1) {
@@ -1330,9 +1333,9 @@ static struct dhcp6_timer *_check_lease_file_timo(void *arg) {
 void server6_init() {
     struct addrinfo hints;
     struct addrinfo *res, *res2;
-    int error, skfd, i;
-    int on = 1;
-    int ifidx[MAX_DEVICE];
+    gint error, skfd, i;
+    gint on = 1;
+    gint ifidx[MAX_DEVICE];
     struct ipv6_mreq mreq6;
     static struct iovec iov;
     static struct sockaddr_in6 sa6_any_downstream_storage;
@@ -1556,8 +1559,8 @@ void server6_init() {
     return;
 }
 
-int main(int argc, char **argv) {
-    int ch;
+gint main(gint argc, char **argv) {
+    gint ch;
     char *progname, *conffile = DHCP6S_CONF;
     FILE *pidfp = NULL;
     struct interface *ifnetwork;

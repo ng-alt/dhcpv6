@@ -37,6 +37,8 @@
 #include <arpa/inet.h>
 #include <net/if.h>
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "dhcp6r.h"
 #include "relay6_socket.h"
@@ -73,7 +75,7 @@ void init_socket(void) {
     }
 }
 
-int get_recv_data(void) {
+gint get_recv_data(void) {
     struct cmsghdr *cm;
     struct in6_pktinfo *pi;
     struct sockaddr_in6 dst;
@@ -130,9 +132,9 @@ int get_recv_data(void) {
     return 0;
 }
 
-int check_select(void) {
-    int i = 0;
-    int flag = 0;
+gint check_select(void) {
+    gint i = 0;
+    gint flag = 0;
     struct timeval tv;
 
     tv.tv_sec = 0;
@@ -157,11 +159,11 @@ int check_select(void) {
     return flag;
 }
 
-int set_sock_opt(void) {
-    int on = 1;
-    int hop_limit;
+gint set_sock_opt(void) {
+    gint on = 1;
+    gint hop_limit;
     struct interface *device;
-    int flag;
+    gint flag;
     struct cifaces *iface;
     struct ipv6_mreq sock_opt;
 
@@ -224,7 +226,7 @@ int set_sock_opt(void) {
 }
 
 
-int fill_addr_struct(void) {
+gint fill_addr_struct(void) {
     memset((char *) &relaysock->from, 0, sizeof(struct sockaddr_in6));
 
     relaysock->from.sin6_family = AF_INET6;
@@ -252,8 +254,8 @@ int fill_addr_struct(void) {
     return 1;
 }
 
-int recv_data(void) {
-    int count = -1;
+gint recv_data(void) {
+    gint count = -1;
 
     memset(relaysock->databuf, 0, (MAX_DHCP_MSG_LENGTH * sizeof(char)));
 
@@ -268,16 +270,16 @@ int recv_data(void) {
     return 1;
 }
 
-int get_interface_info(void) {
+gint get_interface_info(void) {
     FILE *f;
     char addr6[40], devname[20];
     struct sockaddr_in6 sap;
-    int plen, scope, dad_status, if_idx;
+    gint plen, scope, dad_status, if_idx;
     char addr6p[8][5];
     char src_addr[INET6_ADDRSTRLEN];
     struct interface *device = NULL, *next_device;
-    int opaq = OPAQ;
-    int sw = 0;
+    gint opaq = OPAQ;
+    gint sw = 0;
     struct IPv6_address *ipv6addr;
 
     if ((f = fopen(INTERFACEINFO, "r")) == NULL) {
@@ -395,7 +397,7 @@ int get_interface_info(void) {
     return 1;
 }
 
-int send_message(void) {
+gint send_message(void) {
     struct sockaddr_in6 sin6;   /* my address information */
     struct msghdr msg;
     uint32_t count = 0;
@@ -405,9 +407,9 @@ int send_message(void) {
     char dest_addr[INET6_ADDRSTRLEN];
     struct IPv6_uniaddr *ipv6uni;
     struct interface *iface;
-    int hit = 0;
+    gint hit = 0;
     struct iovec iov[1];
-    int recvmsglen;
+    gint recvmsglen;
     char *recvp;
     struct server *uservers;
     struct sifaces *si;

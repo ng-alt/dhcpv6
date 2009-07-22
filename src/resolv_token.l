@@ -42,6 +42,8 @@
 #include <arpa/inet.h>
 #include <resolv.h>
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
@@ -64,14 +66,14 @@
 
 
 extern struct dhcp6_if *dhcp6_if;
-static int num_lines = 0;
+static gint num_lines = 0;
 static struct dns_list *new_dns_list;
 static FILE *dhcp6_resolv_file;
-static int oldfd, newfd;
+static gint oldfd, newfd;
 
-static int yywrap();
-int resolv_parse(struct dns_list *);
-static int update_resolver(struct dns_list *);
+static gint yywrap();
+gint resolv_parse(struct dns_list *);
+static gint update_resolver(struct dns_list *);
 
 %}
 
@@ -141,10 +143,10 @@ nl              \n
 
 %%
 #ifdef NETWORK_FUNCTIONS_SCRIPT
-int change_resolv_conf(char *new_rscf) {
+gint change_resolv_conf(char *new_rscf) {
     char *argv[] = { "/bin/bash", "-c", 0L, 0L };
     char *cmd;
-    int l, pid, status;
+    gint l, pid, status;
     extern char **environ;
 
     if( new_rscf == 0L )
@@ -339,8 +341,8 @@ update_resolver(struct dns_list *dns_list)
 	struct domain_list *oldlist, *dprev, *dlist, *dlist_next;
 	struct dhcp6_listval *d, *d_next;
 	struct stat buf;
-	int i = 0;
-	int ret = 0;
+	gint i = 0;
+	gint ret = 0;
 
 	fseek(dhcp6_resolv_file, 0, SEEK_CUR);
 	if (!TAILQ_EMPTY(&dns_list->addrlist)) {
@@ -374,7 +376,7 @@ update_resolver(struct dns_list *dns_list)
 		i = 0;
 		for (dlist = dns_list->domainlist, dprev = dns_list->domainlist;
 		     dlist; i++, dlist = dlist_next) {
-			int found = 0;
+			gint found = 0;
 			dhcpv6_dprintf(LOG_DEBUG, "%s" " received domainname[%d] %s",
 				FNAME, i, dlist->name);
 			if (dhcp6_if->dnslist.domainlist == NULL) 
@@ -451,7 +453,7 @@ out:
 	return ret;
 }
 
-static int 
+static gint 
 yywrap()
 {
         update_resolver(new_dns_list);

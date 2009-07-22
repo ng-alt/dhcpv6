@@ -39,6 +39,8 @@
 #include <sys/socket.h>
 #include <net/if.h>
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
@@ -99,8 +101,8 @@ static void _download_scope(struct scope *up, struct scope *current) {
 
 /* END STATIC FUNCTIONS */
 
-int ipv6addrcmp(struct in6_addr *addr1, struct in6_addr *addr2) {
-    int i;
+gint ipv6addrcmp(struct in6_addr *addr1, struct in6_addr *addr2) {
+    gint i;
 
     for (i = 0; i < 16; i++) {
         if (addr1->s6_addr[i] < addr2->s6_addr[i]) {
@@ -114,7 +116,7 @@ int ipv6addrcmp(struct in6_addr *addr1, struct in6_addr *addr2) {
 }
 
 struct in6_addr *inc_ipv6addr(struct in6_addr *current) {
-    int i;
+    gint i;
 
     for (i = 15; i >= 0; i--) {
         current->s6_addr[i]++;
@@ -127,8 +129,8 @@ struct in6_addr *inc_ipv6addr(struct in6_addr *current) {
     return current;
 }
 
-struct v6addr *getprefix(struct in6_addr *addr, int len) {
-    int i, num_bytes;
+struct v6addr *getprefix(struct in6_addr *addr, gint len) {
+    gint i, num_bytes;
     struct v6addr *prefix;
 
     prefix = (struct v6addr *) malloc(sizeof(*prefix));
@@ -158,7 +160,7 @@ struct v6addr *getprefix(struct in6_addr *addr, int len) {
     return prefix;
 }
 
-int get_numleases(struct pool_decl *currentpool, char *poolfile) {
+gint get_numleases(struct pool_decl *currentpool, char *poolfile) {
     return 0;
 }
 
@@ -328,8 +330,8 @@ void post_config(struct rootgroup *root) {
     return;
 }
 
-int is_anycast(struct in6_addr *in, int plen) {
-    int wc;
+gint is_anycast(struct in6_addr *in, gint plen) {
+    gint wc;
 
     if (plen == 64) {           /* assume EUI64 */
         /* doesn't cover none EUI64 */

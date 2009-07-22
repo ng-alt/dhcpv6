@@ -36,6 +36,8 @@
 #include <arpa/inet.h>
 #include <string.h>
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "dhcp6r.h"
 #include "relay6_parser.h"
@@ -81,8 +83,8 @@ struct msg_parser *create_parser_obj(void) {
     return msg;
 }
 
-int check_buffer(int ref, struct msg_parser *mesg) {
-    int diff;
+gint check_buffer(gint ref, struct msg_parser *mesg) {
+    gint diff;
 
     diff = (int) (mesg->pstart - mesg->pointer_start);
 
@@ -93,7 +95,7 @@ int check_buffer(int ref, struct msg_parser *mesg) {
     }
 }
 
-int put_msg_in_store(struct msg_parser *mesg) {
+gint put_msg_in_store(struct msg_parser *mesg) {
     uint32_t msg_type;
     uint8_t *hop, msg;
 

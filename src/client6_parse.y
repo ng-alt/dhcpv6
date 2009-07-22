@@ -44,14 +44,16 @@
 # include <time.h>
 #endif
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
 
-extern int client6lex (void);
+extern gint client6lex (void);
 
-extern int lineno;
-extern int cfdebug;
+extern gint lineno;
+extern gint cfdebug;
 
 extern void cpyywarn(char *, ...) __attribute__((__format__(__printf__, 1, 2)));
 extern void client6error(char *, ...) __attribute__((__format__(__printf__, 1, 2)));
@@ -92,9 +94,9 @@ extern void client6error(char *, ...) __attribute__((__format__(__printf__, 1, 2
 static struct cf_namelist *iflist_head;
 struct cf_list *cf_dns_list;
 
-extern int cpyylex(void);
+extern gint cpyylex(void);
 static void cleanup(void);
-static int add_namelist(struct cf_namelist *, struct cf_namelist **);
+static gint add_namelist(struct cf_namelist *, struct cf_namelist **);
 static void cleanup_namelist(struct cf_namelist *);
 static void cleanup_cflist(struct cf_list *);
 %}
@@ -348,7 +350,7 @@ duration
 %%
 
 /* supplement routines for configuration */
-static int add_namelist(struct cf_namelist *new, struct cf_namelist **headp) {
+static gint add_namelist(struct cf_namelist *new, struct cf_namelist **headp) {
     struct cf_namelist *ifp;
 
     /* check for duplicated configuration */
@@ -405,7 +407,7 @@ static void cleanup_cflist(struct cf_list *p) {
         return (-1); \
     } while(0)
 
-int cf_post_config(void) {
+gint cf_post_config(void) {
     if (configure_interface(iflist_head))
         config_fail();
 

@@ -47,6 +47,8 @@
 # include <time.h>
 #endif
 
+#include <glib.h>
+
 #include "dhcp6r.h"
 #include "relay6_parser.h"
 #include "relay6_socket.h"
@@ -57,10 +59,10 @@
 FILE *dump;
 static char pidfile[MAXPATHLEN];
 
-int main(int argc, char **argv) {
-    int err = 0, i;
-    int sw = 0;
-    int du = 0;
+gint main(gint argc, char **argv) {
+    gint err = 0, i;
+    gint sw = 0;
+    gint du = 0;
     struct interface *iface;
     struct sockaddr_in6 sin6;
     char *sf, *eth, *addr;
@@ -376,7 +378,7 @@ char *dhcp6r_clock(void) {
     return s;
 }
 
-void handler(int signo) {
+void handler(gint signo) {
     close(relaysock->sock_desc);
     TRACE(dump, "%s - %s", dhcp6r_clock(),
           "RELAY AGENT IS STOPPING............\n");

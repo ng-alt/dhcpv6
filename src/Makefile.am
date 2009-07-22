@@ -17,17 +17,17 @@ BUILT_SOURCES = server6_parse.c server6_parse.h client6_parse.c \
 
 sbin_PROGRAMS = dhcp6s dhcp6r dhcp6c
 
-dhcp6s_CFLAGS  = -fPIE -D_GNU_SOURCE
-dhcp6s_LDFLAGS = $(LDFLAGS)
+dhcp6s_CFLAGS  = -fPIE -D_GNU_SOURCE $(GLIB_CFLAGS)
+dhcp6s_LDFLAGS = $(LDFLAGS) $(GLIB_LIBS)
 dhcp6s_SOURCES = dhcp6s.c server6_conf.c server6_addr.c server6_parse.y \
                  server6_token.l $(COMMONSRCS)
 
-dhcp6r_CFLAGS  = -fPIE -D_GNU_SOURCE
-dhcp6r_LDFLAGS = $(LDFLAGS)
+dhcp6r_CFLAGS  = -fPIE -D_GNU_SOURCE $(GLIB_CFLAGS)
+dhcp6r_LDFLAGS = $(LDFLAGS) $(GLIB_LIBS)
 dhcp6r_SOURCES = dhcp6r.c relay6_database.c relay6_parser.c relay6_socket.c
 
-dhcp6c_CFLAGS  = -fPIE -D_GNU_SOURCE $(LIBNL_CFLAGS)
-dhcp6c_LDFLAGS = $(LDFLAGS) $(LIBNL_LIBS)
+dhcp6c_CFLAGS  = -fPIE -D_GNU_SOURCE $(LIBNL_CFLAGS) $(GLIB_CFLAGS)
+dhcp6c_LDFLAGS = $(LDFLAGS) $(LIBNL_LIBS) $(GLIB_LIBS)
 dhcp6c_SOURCES = dhcp6c.c confdata.c client6_addr.c client6_parse.y \
                  client6_token.l dad_parse.c resolv_token.l $(COMMONSRCS)
 

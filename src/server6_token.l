@@ -43,6 +43,8 @@
 #include <netinet/in.h>
 #include <net/if.h>
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
@@ -55,9 +57,9 @@
              }
 
 const char *configfilename;
-int num_lines = 1;
-int server6errorcount = 0;
-extern int server6parse(void);
+gint num_lines = 1;
+gint server6errorcount = 0;
+extern gint server6parse(void);
 extern struct rootgroup *globalgroup;
 
 %}
@@ -130,7 +132,7 @@ infinity	{ return INFINITY; }
 {whitespace}		{}
 {ipv6addr} {
 			struct in6_addr addr;
-			int i;
+			gint i;
 				
 			i = inet_pton(AF_INET6, yytext, &addr);
 			if (i < 1) {
@@ -158,7 +160,7 @@ infinity	{ return INFINITY; }
 %%
 
 static void
-server6error0(int level, char *s, va_list ap)
+server6error0(gint level, char *s, va_list ap)
 {
 	char ebuf[BUFSIZ], *bp, *ep;
 

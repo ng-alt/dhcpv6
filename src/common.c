@@ -57,6 +57,8 @@
 # include <time.h>
 #endif
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
@@ -64,8 +66,8 @@
 #include "lease.h"
 
 extern char *script;
-int foreground;
-int debug_thresh;
+gint foreground;
+gint debug_thresh;
 struct dhcp6_if *dhcp6_if;
 struct dns_list dnslist;
 
@@ -73,9 +75,9 @@ static struct host_conf *_host_conflist;
 
 /* BEGIN STATIC FUNCTIONS */
 
-static int _in6_matchflags(struct sockaddr *addr, size_t addrlen,
-                           char *ifnam, int flags) {
-    int s;
+static gint _in6_matchflags(struct sockaddr *addr, size_t addrlen,
+                            char *ifnam, gint flags) {
+    gint s;
     struct ifreq ifr;
 
     if ((s = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
@@ -98,7 +100,7 @@ static int _in6_matchflags(struct sockaddr *addr, size_t addrlen,
     return (ifr.ifr_ifru.ifru_flags & flags);
 }
 
-static int _ia_add_address(struct ia_listval *ia, struct dhcp6_addr *addr6) {
+static gint _ia_add_address(struct ia_listval *ia, struct dhcp6_addr *addr6) {
     /* set up address type */
     addr6->type = ia->type;
 
@@ -118,16 +120,16 @@ static int _ia_add_address(struct ia_listval *ia, struct dhcp6_addr *addr6) {
     return 0;
 }
 
-static int _get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
+static gint _get_assigned_ipv6addrs(unsigned char *p, unsigned char *ep,
                                    struct ia_listval *ia) {
     unsigned char *np, *cp;
     struct dhcp6opt opth;
     struct dhcp6_addr_info ai;
     struct dhcp6_prefix_info pi;
     struct dhcp6_addr addr6;
-    int optlen, opt;
+    gint optlen, opt;
     u_int16_t val16;
-    int num;
+    gint num;
 
     for (; p + sizeof(struct dhcp6opt) <= ep; p = np) {
         memcpy(&opth, p, sizeof(opth));
@@ -284,9 +286,9 @@ fail:
     return -1;
 }
 
-static int _dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
-                                 struct ia_listval *ia) {
-    int buflen = 0;
+static gint _dhcp6_set_ia_options(unsigned char **tmpbuf, gint *optlen,
+                                  struct ia_listval *ia) {
+    gint buflen = 0;
     unsigned char *tp = NULL;
     u_int32_t iaid = 0;
     struct dhcp6_iaid_info opt_iana;
@@ -295,8 +297,8 @@ static int _dhcp6_set_ia_options(unsigned char **tmpbuf, int *optlen,
     struct dhcp6_addr_info ai;
     struct dhcp6_status_info status;
     struct dhcp6_listval *dp = NULL;
-    int iaddr_len = 0;
-    int num = 0;
+    gint iaddr_len = 0;
+    gint num = 0;
 
     memset(&opt_iana, 0, sizeof(opt_iana));
     memset(&opt_iapd, 0, sizeof(opt_iapd));
@@ -534,7 +536,7 @@ struct dhcp6_if *find_ifconfbyname(const char *ifname) {
     return NULL;
 }
 
-struct dhcp6_if *find_ifconfbyid(unsigned int id) {
+struct dhcp6_if *find_ifconfbyid(unsigned gint id) {
     struct dhcp6_if *ifp;
 
     for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
@@ -609,7 +611,7 @@ die:
     exit(1);
 }
 
-int dhcp6_copy_list(struct dhcp6_list *dst, const struct dhcp6_list *src) {
+gint dhcp6_copy_list(struct dhcp6_list *dst, const struct dhcp6_list *src) {
     const struct dhcp6_listval *ent;
     struct dhcp6_listval *dent;
 
@@ -662,9 +664,9 @@ void relayfree(struct relay_list *head) {
     return;
 }
 
-int dhcp6_count_list(struct dhcp6_list *head) {
+gint dhcp6_count_list(struct dhcp6_list *head) {
     struct dhcp6_listval *v;
-    int i;
+    gint i;
 
     for (i = 0, v = TAILQ_FIRST(head); v; v = TAILQ_NEXT(v, link)) {
         i++;
@@ -680,7 +682,7 @@ struct dhcp6_listval *dhcp6_find_listval(struct dhcp6_list *head, void *val,
     for (lv = TAILQ_FIRST(head); lv; lv = TAILQ_NEXT(lv, link)) {
         switch (type) {
             case DHCP6_LISTVAL_NUM:
-                if (lv->val_num == *(int *) val) {
+                if (lv->val_num == *(gint *) val) {
                     return lv;
                 }
 
@@ -705,7 +707,6 @@ struct dhcp6_listval *dhcp6_find_listval(struct dhcp6_list *head, void *val,
                 /* FIXME */
                 break;
         }
-
     }
 
     return NULL;
@@ -725,7 +726,7 @@ struct dhcp6_listval *dhcp6_add_listval(struct dhcp6_list *head, void *val,
 
     switch (type) {
         case DHCP6_LISTVAL_NUM:
-            lv->val_num = *(int *) val;
+            lv->val_num = *(gint *) val;
             break;
         case DHCP6_LISTVAL_ADDR6:
             lv->val_addr6 = *(struct in6_addr *) val;
@@ -771,7 +772,7 @@ void ia_clear_list(struct ia_list *head) {
     return;
 }
 
-int ia_copy_list(struct ia_list *dst, struct ia_list *src) {
+gint ia_copy_list(struct ia_list *dst, struct ia_list *src) {
     struct ia_listval *dent;
 
     const struct ia_listval *ent;
@@ -814,15 +815,84 @@ struct ia_listval *ia_find_listval(struct ia_list *head,
     return NULL;
 }
 
-void run_script(struct dhcp6_if *ifp, int old_state, int new_state,
-                u_int32_t uuid) {
+void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
+                guint32 uuid) {
+    gchar *tmp = NULL;
+    gchar tmpaddr[INET6_ADDRSTRLEN];
+    gboolean fail = FALSE;
+
     if (script == NULL) {
-        /* configure the interface the old way */
+        return;
     }
 
-    dhcpv6_dprintf(LOG_DEBUG, "%s" "****** SCRIPT  %s (%u)  %s -> %s",
-                   FNAME, ifp->ifname, uuid, dhcp6msgstr(old_state),
-                   dhcp6msgstr(new_state));
+    /* set environment variables for the program we are calling */
+    if (!g_setenv(OLD_STATE, dhcp6msgstr(old_state), TRUE)) {
+        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
+                       OLD_STATE);
+    }
+
+    if (!g_setenv(NEW_STATE, dhcp6msgstr(new_state), TRUE)) {
+        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
+                       NEW_STATE);
+    }
+
+    if (!g_setenv(IFACE_NAME, ifp->ifname, TRUE)) {
+        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
+                       IFACE_NAME);
+    }
+
+    if (g_vasprintf(&tmp, "%u", ifp->ifid) > 0) {
+        if (!g_setenv(IFACE_INDEX, tmp, TRUE)) {
+            fail = TRUE;
+        } else {
+            g_free(tmp);
+        }
+    } else {
+        fail = TRUE;
+    }
+
+    if (fail) {
+        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
+                       IFACE_INDEX);
+        fail = FALSE;
+    }
+
+    memset(&tmpaddr, '\0', sizeof(tmpaddr));
+    if (inet_ntop(AF_INET6, &tmpaddr,
+                  ifp->linklocal, sizeof(ifp->linklocal)) == NULL) {
+        dhcpv6_dprintf(LOG_ERR, "%s line %d: %s", __func__, __LINE__,
+                       strerror(errno));
+    } else {
+        if (!g_setenv(LINKLOCAL_ADDR, tmpaddr, TRUE)) {
+            dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
+                           LINKLOCAL_ADDR);
+        }
+    }
+
+
+
+    /*
+     * set the following information in env vars:
+     * requested options (struct dhcp6_list reqopt_list)
+     *
+     * what we got from the server:
+     *     address list (struct dhcp6_list addr_list)
+     *     prefix list (struct dhcp6_list prefix_list)
+     *     option list (struct dhcp6_option_list option_list)
+     *
+     * error code (where the hell is this?)
+     */
+
+
+    /*
+     * use old_ and new_ variable naming based on the state we're in
+     */
+
+    /*
+     * fork and exec script
+     */
+
+    return;
 }
 
 struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *ifp, int state) {
@@ -2158,26 +2228,60 @@ void duidfree(struct duid *duid) {
     duid->duid_len = 0;
 }
 
-char *dhcp6optstr(int type) {
-    static char genstr[sizeof("opt_65535") + 1];        /* XXX thread unsafe */
+gchar *dhcp6optstr(gint type) {
+    gchar *optstr = NULL;
 
     if (type > 65535) {
-        return "INVALID option";
+        return "OPTION_INVALID";
     }
 
-    switch (type) {
-        case DH6OPT_CLIENTID:
-            return "client ID";
-        case DH6OPT_SERVERID:
-            return "server ID";
-        case DH6OPT_ORO:
-            return "option request";
+    if (type == DH6OPT_CLIENTID) {
+        return "OPTION_CLIENTID";
+    } else if (type == DH6OPT_SERVERID) {
+        return "OPTION_SERVERID";
+    } else if (type == DH6OPT_IA_NA) {
+        return "OPTION_IA_NA";
+    } else if (type == DH6OPT_IA_TA) {
+        return "OPTION_IA_TA";
+    } else if (type == DH6OPT_IADDR) {
+        return "OPTION_IAADDR";
+    } else if (type == DH6OPT_ORO) {
+        return "OPTION_ORO";
+    } else if (type == DH6OPT_
+        return "OPTION_
+    } else if (type == DH6OPT_
+        return "OPTION_
+    } else if (type == DH6OPT_
+        return "OPTION_
+    } else if (type == DH6OPT_
+        return "OPTION_
+    } else if (type == DH6OPT_
+        return "OPTION_
+    } else if (type == DH6OPT_
+        return "OPTION_
+    } else if (type == DH6OPT_
+        return "OPTION_
+    } else if (type == DH6OPT_
+        return "OPTION_
+    } else if (type == DH6OPT_
+        return "OPTION_
+    } else if (type == DH6OPT_
+        return "OPTION_
+    } else if (type == DH6OPT_
+        return "OPTION_
+
         case DH6OPT_PREFERENCE:
             return "preference";
+        case DH6OPT_ELAPSED_TIME:
+        case DH6OPT_AUTH:
+        case DH6OPT_UNICAST:
         case DH6OPT_STATUS_CODE:
             return "status code";
         case DH6OPT_RAPID_COMMIT:
             return "rapid commit";
+        case DH6OPT_USER_CLASS:
+        case DH6OPT_VENDOR_CLASS:
+        case DH6OPT_VENDOR_OPTS:
         case DH6OPT_DNS_SERVERS:
             return "DNS servers";
         case DH6OPT_DOMAIN_LIST:
@@ -2188,14 +2292,16 @@ char *dhcp6optstr(int type) {
             return "interface identifier";
         case DH6OPT_INFO_REFRESH_TIME:
             return "information refresh time";
+        case DH6OPT_IA_PD:
+        case DH6OPT_IAPREFIX:
         default:
             sprintf(genstr, "opt_%d", type);
             return genstr;
     }
 }
 
-char *dhcp6msgstr(int type) {
-    static char genstr[sizeof("msg255") + 1];   /* XXX thread unsafe */
+gchar *dhcp6msgstr(gint type) {
+    gchar *msgstr = NULL;
 
     if (type > 255) {
         return "INVALID msg";

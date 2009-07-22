@@ -117,6 +117,9 @@ AM_PROG_CC_C_O
 
 AM_FEDORA_NETWORK_FUNCTIONS
 
+PKG_PROG_PKG_CONFIG([0.23])
+PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.21.4])
+
 dnl Define paths used in the program, set at compile time
 AM_CONF_PATH([DHCP6C_CONF], [dhcp6c.conf], [Client configuration file.])
 AM_CONF_PATH([DHCP6S_CONF], [dhcp6s.conf], [Server configuration file.])

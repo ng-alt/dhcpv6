@@ -39,6 +39,8 @@
 #include <netinet/in.h>
 #include <net/if.h>
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "server6_conf.h"
@@ -46,10 +48,10 @@
 #include "lease.h"
 #include "hash.h"
 
-extern int server6lex (void);
+extern gint server6lex (void);
 
-extern int num_lines;
-extern int sock;
+extern gint num_lines;
+extern gint sock;
 static struct interface *ifnetworklist = NULL;
 static struct link_decl *linklist = NULL;
 static struct host_decl *hostlist = NULL;
@@ -61,7 +63,7 @@ static struct host_decl *host = NULL;
 static struct pool_decl *pool = NULL;
 static struct scopelist *currentscope = NULL;
 static struct scopelist *currentgroup = NULL;
-static int allow = 0;
+static gint allow = 0;
 
 static void cleanup(void);
 extern void server6error(char *, ...) __attribute__((__format__(__printf__, 1, 2)));
@@ -72,7 +74,7 @@ extern void server6error(char *, ...) __attribute__((__format__(__printf__, 1, 2
         YYABORT; \
     } while (0)
 
-extern int server6_tokenlex(void);
+extern gint server6_tokenlex(void);
 %}
 %token <str> INTERFACE IFNAME
 %token <str> PREFIX
@@ -115,11 +117,11 @@ extern int server6_tokenlex(void);
 %type <dhcp6addr> hostaddr6 hostprefix6 addr6para v6address
 
 %union {
-    unsigned int num;
-    int snum;
+    unsigned gint num;
+    gint snum;
     char *str;
-    int dec;
-    int bool;
+    gint dec;
+    gint bool;
     struct in6_addr addr;
     struct dhcp6_addr *dhcp6addr;
 }
@@ -881,7 +883,7 @@ dns_para
       }
     | STRING {
           struct domain_list *domainname, *temp;
-          int len = 0;
+          gint len = 0;
 
           domainname = (struct domain_list *) malloc(sizeof(*domainname));
           if (domainname == NULL)

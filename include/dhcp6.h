@@ -334,6 +334,18 @@ struct dhcp6 {
 #define IRT_DEFAULT 86400     /* default refresh time [sec] */
 #define IRT_MINIMUM 600       /* minimum value for the refresh time [sec] */
 
+/* environment variable names for run_script() */
+#define _ENV_VAR_PREFIX   "dhcpv6_"
+#define OLD_STATE         _ENV_VAR_PREFIX"old_state"
+#define NEW_STATE         _ENV_VAR_PREFIX"new_state"
+#define IFACE_NAME        _ENV_VAR_PREFIX"iface_name"
+#define IFACE_INDEX       _ENV_VAR_PREFIX"iface_index"
+#define LINKLOCAL_ADDR    _ENV_VAR_PREFIX"linklocal_address"
+#define REQUESTED_OPTIONS _ENV_VAR_PREFIX"requested_options"
+#define ADDRESS_LIST      _ENV_VAR_PREFIX"address_list"
+#define PREFIX_LIST       _ENV_VAR_PREFIX"prefix_list"
+#define OPTIONS           _ENV_VAR_PREFIX"options"
+
 struct dhcp6opt {
     u_int16_t dh6opt_type;
     u_int16_t dh6opt_len;

@@ -68,27 +68,29 @@
 # include <netinet6/in6_var.h>
 #endif
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
 #include "timer.h"
 #include "lease.h"
 
-int dhcp6_add_lease(struct dhcp6_addr *);
+gint dhcp6_add_lease(struct dhcp6_addr *);
 
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern struct dhcp6_timer *client6_timo(void *);
 extern void client6_send(struct dhcp6_event *);
 extern void free_servers(struct dhcp6_if *);
 
-extern int nlsock;
+extern gint nlsock;
 extern FILE *client6_lease_file;
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern struct dhcp6_list request_list;
 
 /* BEGIN STATIC FUNCTIONS */
 
-static int _dhcp6_update_lease(struct dhcp6_addr *addr,
+static gint _dhcp6_update_lease(struct dhcp6_addr *addr,
                                struct dhcp6_lease *sp) {
     struct timeval timo;
     double d;
@@ -152,7 +154,7 @@ static int _dhcp6_update_lease(struct dhcp6_addr *addr,
 }
 
 static struct dhcp6_event *_dhcp6_iaidaddr_find_event(struct dhcp6_iaidaddr
-                                                      *sp, int state) {
+                                                      *sp, gint state) {
     struct dhcp6_event *ev;
 
     TAILQ_FOREACH(ev, &sp->ifp->event_list, link) {
@@ -170,7 +172,7 @@ void dhcp6_init_iaidaddr(void) {
     TAILQ_INIT(&client6_iaidaddr.lease_list);
 }
 
-int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
+gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
     struct dhcp6_listval *lv, *lv_next = NULL;
     struct timeval timo;
     struct dhcp6_lease *cl_lease;
@@ -283,7 +285,7 @@ int dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
     return 0;
 }
 
-int dhcp6_add_lease(struct dhcp6_addr *addr) {
+gint dhcp6_add_lease(struct dhcp6_addr *addr) {
     struct dhcp6_lease *sp;
     struct timeval timo;
     double d;
@@ -381,7 +383,7 @@ int dhcp6_add_lease(struct dhcp6_addr *addr) {
     return 0;
 }
 
-int dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
+gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
     struct dhcp6_lease *lv, *lv_next;
 
     for (lv = TAILQ_FIRST(&iaidaddr->lease_list); lv; lv = lv_next) {
@@ -401,7 +403,7 @@ int dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
     return 0;
 }
 
-int dhcp6_remove_lease(struct dhcp6_lease *sp) {
+gint dhcp6_remove_lease(struct dhcp6_lease *sp) {
     dhcpv6_dprintf(LOG_DEBUG, "%s" "removing address %s", FNAME,
                    in6addr2str(&sp->lease_addr.addr, 0));
     sp->state = INVALID;
@@ -440,8 +442,8 @@ int dhcp6_remove_lease(struct dhcp6_lease *sp) {
     return 0;
 }
 
-int dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
-                          struct ia_listval *ia, int flag) {
+gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
+                           struct ia_listval *ia, gint flag) {
     struct dhcp6_listval *lv, *lv_next = NULL;
     struct dhcp6_lease *cl;
     struct timeval timo;
@@ -606,7 +608,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
     struct dhcp6_iaidaddr *sp = (struct dhcp6_iaidaddr *) arg;
     struct dhcp6_event *ev, *prev_ev = NULL;
     struct timeval timeo;
-    int dhcpstate, prev_state;
+    gint dhcpstate, prev_state;
     double d = 0;
 
     dhcpv6_dprintf(LOG_DEBUG, "client6_iaidaddr timeout for %d, state=%d",
@@ -780,12 +782,12 @@ struct dhcp6_timer *dhcp6_lease_timo(void *arg) {
     return sp->timer;
 }
 
-int client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr) {
+gint client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr) {
     struct in6_ifreq req;
     struct dhcp6_if *ifp = client6_iaidaddr.ifp;
     unsigned long ioctl_cmd;
     char *cmdstr;
-    int s, errno;
+    gint s, errno;
 
     switch (cmd) {
         case IFADDRCONF_ADD:
@@ -828,11 +830,11 @@ int client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr) {
     return 0;
 }
 
-int get_iaid(const char *ifname, const struct iaid_table *iaidtab,
-             int num_device) {
+gint get_iaid(const char *ifname, const struct iaid_table *iaidtab,
+              gint num_device) {
     struct hardware hdaddr;
     struct iaid_table *temp = (struct iaid_table *) iaidtab;
-    int i;
+    gint i;
 
     hdaddr.len = gethwid(hdaddr.data, 6, ifname, &hdaddr.type);
 
@@ -851,10 +853,10 @@ int get_iaid(const char *ifname, const struct iaid_table *iaidtab,
     return 0;
 }
 
-int create_iaid(struct iaid_table *iaidtab, int num_device) {
+gint create_iaid(struct iaid_table *iaidtab, gint num_device) {
     struct iaid_table *temp = iaidtab;
     struct ifaddrs *ifa = NULL, *ifap = NULL;
-    int i;
+    gint i;
 
     if (getifaddrs(&ifap) != 0) {
         dhcpv6_dprintf(LOG_ERR, "%s" "getifaddrs", FNAME);

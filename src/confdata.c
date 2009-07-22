@@ -41,7 +41,7 @@
 #include "confdata.h"
 #include "common.h"
 
-extern int errno;
+extern gint errno;
 
 static struct dhcp6_ifconf *dhcp6_ifconflist;
 static struct host_conf *host_conflist0, *host_conflist;
@@ -53,7 +53,7 @@ enum {
     DHCPOPTCODE_ALLOW
 };
 
-int clear_option_list(struct dhcp6_option_list *);
+gint clear_option_list(struct dhcp6_option_list *);
 
 /* BEGIN STATIC FUNCTIONS */
 
@@ -93,11 +93,11 @@ static void _clear_hostconf(struct host_conf *hlist) {
     return;
 }
 
-static int _add_options(int opcode, struct dhcp6_ifconf *ifc,
-                        struct cf_list *cfl0) {
+static gint _add_options(gint opcode, struct dhcp6_ifconf *ifc,
+                         struct cf_list *cfl0) {
     struct dhcp6_listval *opt;
     struct cf_list *cfl;
-    int opttype;
+    gint opttype;
 
     for (cfl = cfl0; cfl; cfl = cfl->next) {
         if (opcode == DHCPOPTCODE_REQUEST) {
@@ -199,8 +199,8 @@ static int _add_options(int opcode, struct dhcp6_ifconf *ifc,
     return 0;
 }
 
-static int _add_address(struct dhcp6_list *addr_list,
-                        struct dhcp6_addr *v6addr) {
+static gint _add_address(struct dhcp6_list *addr_list,
+                         struct dhcp6_addr *v6addr) {
     struct dhcp6_listval *lv, *val;
 
     /* avoid invalid addresses */
@@ -235,7 +235,7 @@ static int _add_address(struct dhcp6_list *addr_list,
 
 /* END STATIC FUNCTIONS */
 
-int configure_interface(const struct cf_namelist *iflist) {
+gint configure_interface(const struct cf_namelist *iflist) {
     const struct cf_namelist *ifp;
     struct dhcp6_ifconf *ifc;
 
@@ -439,7 +439,7 @@ bad:
     return -1;
 }
 
-int configure_host(const struct cf_namelist *hostlist) {
+gint configure_host(const struct cf_namelist *hostlist) {
     const struct cf_namelist *host;
     struct host_conf *hconf;
 
@@ -573,7 +573,7 @@ bad:
     return -1;
 }
 
-int configure_global_option(void) {
+gint configure_global_option(void) {
     struct cf_list *cl;
 
     /* DNS servers */
@@ -667,7 +667,7 @@ void configure_commit(void) {
     return;
 }
 
-int clear_option_list(struct dhcp6_option_list *opts) {
+gint clear_option_list(struct dhcp6_option_list *opts) {
     struct dhcp6_option *opt;
 
     while ((opt = TAILQ_FIRST(opts)) != NULL) {
@@ -678,7 +678,7 @@ int clear_option_list(struct dhcp6_option_list *opts) {
     return 0;
 }
 
-void *get_if_option(struct dhcp6_option_list *opts, int type) {
+void *get_if_option(struct dhcp6_option_list *opts, gint type) {
     struct dhcp6_option *opt;
 
     TAILQ_FOREACH(opt, opts, link) {
