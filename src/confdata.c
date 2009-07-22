@@ -37,6 +37,8 @@
 #include <netinet/in.h>
 #include <sys/types.h>
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"

@@ -856,7 +856,10 @@ gint get_iaid(const char *ifname, const struct iaid_table *iaidtab,
 gint create_iaid(struct iaid_table *iaidtab, gint num_device) {
     struct iaid_table *temp = iaidtab;
     struct ifaddrs *ifa = NULL, *ifap = NULL;
-    gint i;
+    gint i, j;
+    guint8 len;
+    guint32 *p = NULL;
+    guint32 tempkey;
 
     if (getifaddrs(&ifap) != 0) {
         dhcpv6_dprintf(LOG_ERR, "%s" "getifaddrs", FNAME);
@@ -881,8 +884,17 @@ gint create_iaid(struct iaid_table *iaidtab, gint num_device) {
                 break;
 #if defined(__linux__)
             case ARPHRD_PPP:
-                temp->iaid = do_hash(ifa->ifa_name, sizeof(ifa->ifa_name))
-                    + if_nametoindex(ifa->ifa_name);
+                temp->iaid = 0;
+                len = sizeof(ifa->ifa_name);
+
+                for (i = 0; p = (guint32 *) ifa->ifa_name; i < len) {
+                    memcpy(&tempkey, p, sizeof(tempkey));
+                    temp->iaid ^= tempkey;
+                }
+
+                memcpy(&tempkey, p, len % sizeof(tempkey));
+                temp->iaid ^= tempkey;
+                temp->iaid += if_nametoindex(ifa->ifa_name);
                 break;
 #endif
             default:

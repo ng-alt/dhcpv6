@@ -62,6 +62,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include <glib.h>
+
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"

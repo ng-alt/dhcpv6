@@ -90,11 +90,18 @@
 #include "timer.h"
 #include "lease.h"
 
+/* External globals */
 extern char *raproc_file;
 extern char *ifproc_file;
 extern FILE *client6_lease_file;
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 
+/* External prototypes */
+extern gint client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
+extern struct dhcp6_timer *syncfile_timo(void *);
+extern gint dad_parse(const char *, struct dhcp6_list *);
+
+/* Globals */
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_CLIENT;
 gint iosock = -1;                /* inbound/outbound udp port */
 gint nlsock = -1;
@@ -103,6 +110,7 @@ char client6_lease_temp[256];
 struct dhcp6_list request_list;
 gchar *script = NULL;
 
+/* Static globals */
 static gint debug = 0;
 static u_long sig_flags = 0;
 static char *device = NULL;
@@ -114,14 +122,18 @@ static socklen_t sa6_alen;
 static struct duid client_duid;
 static gint pid;
 static char leasename[MAXPATHLEN];
-
 static char *path_client6_lease = PATH_CLIENT6_LEASE;
 static char *pidfile = DHCP6C_PIDFILE;
 static char *duidfile = DHCP6C_DUID_FILE;
 
-extern gint client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
-extern struct dhcp6_timer *syncfile_timo(void *);
-extern gint dad_parse(const char *, struct dhcp6_list *);
+/* Prototypes */
+struct dhcp6_timer *client6_timo(void *);
+void run_script(struct dhcp6_if *, gint, gint, guint32);
+gint client6_send_newstate(struct dhcp6_if *, gint);
+void free_servers(struct dhcp6_if *);
+void client6_send(struct dhcp6_event *);
+gint get_if_rainfo(struct dhcp6_if *);
+gint client6_init(char *);
 
 /* BEGIN STATIC FUNCTIONS */
 
@@ -1683,117 +1695,6 @@ gint get_if_rainfo(struct dhcp6_if *ifp) {
     return 0;
 }
 
-struct dhcp6_timer *client6_timo(void *arg) {
-    struct dhcp6_event *ev = (struct dhcp6_event *) arg;
-    struct dhcp6_if *ifp;
-    struct timeval now;
-
-    ifp = ev->ifp;
-    ev->timeouts++;
-    gettimeofday(&now, NULL);
-
-    if ((ev->max_retrans_cnt && ev->timeouts >= ev->max_retrans_cnt) ||
-        (ev->max_retrans_dur && (now.tv_sec - ev->start_time.tv_sec)
-         >= ev->max_retrans_dur)) {
-        /* XXX: check up the duration time for renew & rebind */
-        dhcpv6_dprintf(LOG_INFO, "%s" "no responses were received", FNAME);
-        dhcp6_remove_event(ev); /* XXX: should free event data? */
-        return NULL;
-    }
-
-    switch (ev->state) {
-        case DHCP6S_INIT:
-            /* From INIT state client could go to CONFIRM state if the client 
-             * reboots; go to RELEASE state if the client issues a release;
-             * go to INFOREQ state if the client requests info-only; go to
-             * SOLICIT state if the client requests addresses; */
-            ev->timeouts = 0;   /* indicate to generate a new XID. */
-
-            /* 
-             * three cases client send information request:
-             * 1. configuration file includes information-only
-             * 2. command line includes -I
-             * 3. check interface flags if managed bit isn't set and
-             *    if otherconf bit set by RA
-             *    and information-only, conmand line -I are not set.
-             */
-            if ((ifp->send_flags & DHCIFF_INFO_ONLY) ||
-                (client6_request_flag & CLIENT6_INFO_REQ) ||
-                (!(ifp->ra_flag & IF_RA_MANAGED) &&
-                 (ifp->ra_flag & IF_RA_OTHERCONF))) {
-                _ev_set_state(ev, DHCP6S_INFOREQ);
-            } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
-                /* do release */
-                _ev_set_state(ev, DHCP6S_RELEASE);
-            } else if (client6_request_flag & CLIENT6_CONFIRM_ADDR) {
-                struct dhcp6_listval *lv;
-
-                /* do confirm for reboot for IANA, IATA */
-                if (client6_iaidaddr.client6_info.type == IAPD) {
-                    _ev_set_state(ev, DHCP6S_REBIND);
-                } else {
-                    _ev_set_state(ev, DHCP6S_CONFIRM);
-                }
-
-                for (lv = TAILQ_FIRST(&request_list); lv;
-                     lv = TAILQ_NEXT(lv, link)) {
-                    lv->val_dhcp6addr.preferlifetime = 0;
-                    lv->val_dhcp6addr.validlifetime = 0;
-                }
-            } else {
-                _ev_set_state(ev, DHCP6S_SOLICIT);
-            }
-
-            dhcp6_set_timeoparam(ev);
-        case DHCP6S_SOLICIT:
-            if (ifp->servers) {
-                ifp->current_server = _select_server(ifp);
-
-                if (ifp->current_server == NULL) {
-                    /* this should not happen! */
-                    dhcpv6_dprintf(LOG_ERR, "%s" "can't find a server",
-                                   FNAME);
-                    return NULL;
-                }
-
-                /* if get the address assginment break */
-                if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
-                    dhcp6_remove_event(ev);
-                    return NULL;
-                }
-
-                ev->timeouts = 0;
-                _ev_set_state(ev, DHCP6S_REQUEST);
-                dhcp6_set_timeoparam(ev);
-            }
-        case DHCP6S_INFOREQ:
-        case DHCP6S_REQUEST:
-            client6_send(ev);
-            break;
-        case DHCP6S_RELEASE:
-        case DHCP6S_DECLINE:
-        case DHCP6S_CONFIRM:
-        case DHCP6S_RENEW:
-        case DHCP6S_REBIND:
-            if (!TAILQ_EMPTY(&request_list)) {
-                client6_send(ev);
-            } else {
-                dhcpv6_dprintf(LOG_INFO, "%s"
-                               "all information to be updated were canceled",
-                               FNAME);
-                dhcp6_remove_event(ev);
-                return NULL;
-            }
-
-            break;
-        default:
-            break;
-    }
-
-    dhcp6_reset_timer(ev);
-    return ev->timer;
-}
-
 void client6_send(struct dhcp6_event *ev) {
     struct dhcp6_if *ifp;
     char buf[BUFSIZ];
@@ -1882,7 +1783,7 @@ void client6_send(struct dhcp6_event *ev) {
                        "%s" "ifp %p event %p a new XID (%x) is generated",
                        FNAME, ifp, ev, ev->xid);
     } else {
-        unsigned gint etime;
+        guint etime;
 
         gettimeofday(&now, NULL);
         timeval_sub(&now, &(ev->start_time), &duration);
@@ -2205,7 +2106,7 @@ void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
     }
 
     memset(&tmpaddr, '\0', sizeof(tmpaddr));
-    inet_ntop(AF_INET6, tmpaddr, ifp->linklocal, sizeof(ifp->linklocal));
+    inet_ntop(AF_INET6, &ifp->linklocal, tmpaddr, sizeof(ifp->linklocal));
     if (tmpaddr == NULL) {
         dhcpv6_dprintf(LOG_ERR, "%s line %d: %s", __func__, __LINE__,
                        strerror(errno));
@@ -2240,6 +2141,117 @@ void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
      */
 
     return;
+}
+
+struct dhcp6_timer *client6_timo(void *arg) {
+    struct dhcp6_event *ev = (struct dhcp6_event *) arg;
+    struct dhcp6_if *ifp;
+    struct timeval now;
+
+    ifp = ev->ifp;
+    ev->timeouts++;
+    gettimeofday(&now, NULL);
+
+    if ((ev->max_retrans_cnt && ev->timeouts >= ev->max_retrans_cnt) ||
+        (ev->max_retrans_dur && (now.tv_sec - ev->start_time.tv_sec)
+         >= ev->max_retrans_dur)) {
+        /* XXX: check up the duration time for renew & rebind */
+        dhcpv6_dprintf(LOG_INFO, "%s" "no responses were received", FNAME);
+        dhcp6_remove_event(ev); /* XXX: should free event data? */
+        return NULL;
+    }
+
+    switch (ev->state) {
+        case DHCP6S_INIT:
+            /* From INIT state client could go to CONFIRM state if the client 
+             * reboots; go to RELEASE state if the client issues a release;
+             * go to INFOREQ state if the client requests info-only; go to
+             * SOLICIT state if the client requests addresses; */
+            ev->timeouts = 0;   /* indicate to generate a new XID. */
+
+            /* 
+             * three cases client send information request:
+             * 1. configuration file includes information-only
+             * 2. command line includes -I
+             * 3. check interface flags if managed bit isn't set and
+             *    if otherconf bit set by RA
+             *    and information-only, conmand line -I are not set.
+             */
+            if ((ifp->send_flags & DHCIFF_INFO_ONLY) ||
+                (client6_request_flag & CLIENT6_INFO_REQ) ||
+                (!(ifp->ra_flag & IF_RA_MANAGED) &&
+                 (ifp->ra_flag & IF_RA_OTHERCONF))) {
+                _ev_set_state(ev, DHCP6S_INFOREQ);
+            } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
+                /* do release */
+                _ev_set_state(ev, DHCP6S_RELEASE);
+            } else if (client6_request_flag & CLIENT6_CONFIRM_ADDR) {
+                struct dhcp6_listval *lv;
+
+                /* do confirm for reboot for IANA, IATA */
+                if (client6_iaidaddr.client6_info.type == IAPD) {
+                    _ev_set_state(ev, DHCP6S_REBIND);
+                } else {
+                    _ev_set_state(ev, DHCP6S_CONFIRM);
+                }
+
+                for (lv = TAILQ_FIRST(&request_list); lv;
+                     lv = TAILQ_NEXT(lv, link)) {
+                    lv->val_dhcp6addr.preferlifetime = 0;
+                    lv->val_dhcp6addr.validlifetime = 0;
+                }
+            } else {
+                _ev_set_state(ev, DHCP6S_SOLICIT);
+            }
+
+            dhcp6_set_timeoparam(ev);
+        case DHCP6S_SOLICIT:
+            if (ifp->servers) {
+                ifp->current_server = _select_server(ifp);
+
+                if (ifp->current_server == NULL) {
+                    /* this should not happen! */
+                    dhcpv6_dprintf(LOG_ERR, "%s" "can't find a server",
+                                   FNAME);
+                    return NULL;
+                }
+
+                /* if get the address assginment break */
+                if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
+                    dhcp6_remove_event(ev);
+                    return NULL;
+                }
+
+                ev->timeouts = 0;
+                _ev_set_state(ev, DHCP6S_REQUEST);
+                dhcp6_set_timeoparam(ev);
+            }
+        case DHCP6S_INFOREQ:
+        case DHCP6S_REQUEST:
+            client6_send(ev);
+            break;
+        case DHCP6S_RELEASE:
+        case DHCP6S_DECLINE:
+        case DHCP6S_CONFIRM:
+        case DHCP6S_RENEW:
+        case DHCP6S_REBIND:
+            if (!TAILQ_EMPTY(&request_list)) {
+                client6_send(ev);
+            } else {
+                dhcpv6_dprintf(LOG_INFO, "%s"
+                               "all information to be updated were canceled",
+                               FNAME);
+                dhcp6_remove_event(ev);
+                return NULL;
+            }
+
+            break;
+        default:
+            break;
+    }
+
+    dhcp6_reset_timer(ev);
+    return ev->timer;
 }
 
 gint main(gint argc, char **argv, char **envp) {
