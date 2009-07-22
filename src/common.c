@@ -2168,59 +2168,49 @@ gchar *dhcp6optstr(gint type) {
         return "OPTION_IAADDR";
     } else if (type == DH6OPT_ORO) {
         return "OPTION_ORO";
-    } /* else if (type == DH6OPT_
-        return "OPTION_
-    } else if (type == DH6OPT_
-        return "OPTION_
-    } else if (type == DH6OPT_
-        return "OPTION_
-    } else if (type == DH6OPT_
-        return "OPTION_
-    } else if (type == DH6OPT_
-        return "OPTION_
-    } else if (type == DH6OPT_
-        return "OPTION_
-    } else if (type == DH6OPT_
-        return "OPTION_
-    } else if (type == DH6OPT_
-        return "OPTION_
-    } else if (type == DH6OPT_
-        return "OPTION_
-    } else if (type == DH6OPT_
-        return "OPTION_
-    } else if (type == DH6OPT_
-        return "OPTION_
-
-        case DH6OPT_PREFERENCE:
-            return "preference";
-        case DH6OPT_ELAPSED_TIME:
-        case DH6OPT_AUTH:
-        case DH6OPT_UNICAST:
-        case DH6OPT_STATUS_CODE:
-            return "status code";
-        case DH6OPT_RAPID_COMMIT:
-            return "rapid commit";
-        case DH6OPT_USER_CLASS:
-        case DH6OPT_VENDOR_CLASS:
-        case DH6OPT_VENDOR_OPTS:
-        case DH6OPT_DNS_SERVERS:
-            return "DNS servers";
-        case DH6OPT_DOMAIN_LIST:
-            return "domain search list";
-        case DH6OPT_RELAY_MSG:
-            return "relay message";
-        case DH6OPT_INTERFACE_ID:
-            return "interface identifier";
-        case DH6OPT_INFO_REFRESH_TIME:
-            return "information refresh time";
-        case DH6OPT_IA_PD:
-        case DH6OPT_IAPREFIX:
-        default:
-            sprintf(genstr, "opt_%d", type);
-            return genstr;
+    } else if (type == DH6OPT_PREFERENCE) {
+        return "OPTION_PREFERENCE";
+    } else if (type == DH6OPT_ELAPSED_TIME) {
+        return "OPTION_ELAPSED_TIME";
+    } else if (type == DH6OPT_RELAY_MSG) {
+        return "OPTION_RELAY_MSG";
+    } else if (type == DH6OPT_AUTH) {
+        return "OPTION_AUTH";
+    } else if (type == DH6OPT_UNICAST) {
+        return "OPTION_UNICAST";
+    } else if (type == DH6OPT_STATUS_CODE) {
+        return "OPTION_STATUS_CODE";
+    } else if (type == DH6OPT_RAPID_COMMIT) {
+        return "OPTION_RAPID_COMMIT";
+    } else if (type == DH6OPT_USER_CLASS) {
+        return "OPTION_USER_CLASS";
+    } else if (type == DH6OPT_VENDOR_CLASS) {
+        return "OPTION_VENDOR_CLASS";
+    } else if (type == DH6OPT_VENDOR_OPTS) {
+        return "OPTION_VENDOR_OPTS";
+    } else if (type == DH6OPT_INTERFACE_ID) {
+        return "OPTION_INTERFACE_ID";
+    } else if (type == DH6OPT_RECONF_MSG) {
+        return "OPTION_RECONF_MSG";
+    } else if (type == DH6OPT_RECONF_ACCEPT) {
+        return "OPTION_RECONF_ACCEPT";
+    } else if (type == DH6OPT_DNS_SERVERS) {
+        return "OPTION_DNS_SERVERS";
+    } else if (type == DH6OPT_DOMAIN_LIST) {
+        return "OPTION_DOMAIN_LIST";
+    } else if (type == DH6OPT_IA_PD) {
+        return "OPTION_IA_PD";
+    } else if (type == DH6OPT_IAPREFIX) {
+        return "OPTION_IAPREFIX";
+    } else if (type == DH6OPT_INFO_REFRESH_TIME) {
+        return "OPTION_INFORMATION_REFRESH_TIME";
+    } else {
+        if (g_vasprintf(&msgstr, "OPTION_%d", type) <= 0) {
+            return NULL;
+        } else {
+            return msgstr;
+        }
     }
-    */
-    return "unknown";
 }
 
 gchar *dhcp6msgstr(gint type) {
@@ -2263,7 +2253,7 @@ gchar *dhcp6msgstr(gint type) {
     } else if (type == DH6_RELAY_REPL) {
         return "RELAY-REPL";
     } else {
-        if (g_vasprintf(&msgstr, "msg%d", type) <= 0) {
+        if (g_vasprintf(&msgstr, "UNKNOWN_MESSAGE_ID_%d", type) <= 0) {
             return NULL;
         } else {
             return msgstr;
@@ -2272,34 +2262,36 @@ gchar *dhcp6msgstr(gint type) {
 }
 
 gchar *dhcp6_stcodestr(int code) {
-    static gchar genstr[sizeof("code255") + 1];  /* XXX thread unsafe */
+    gchar *codestr = NULL;
 
     if (code > 255) {
-        return "INVALID code";
+        return "STATUS_INVALID";
     }
 
-    switch (code) {
-        case DH6OPT_STCODE_SUCCESS:
-            return "success";
-        case DH6OPT_STCODE_UNSPECFAIL:
-            return "unspecified failure";
-        case DH6OPT_STCODE_AUTHFAILED:
-            return "auth fail";
-        case DH6OPT_STCODE_ADDRUNAVAIL:
-            return "address unavailable";
-        case DH6OPT_STCODE_NOADDRAVAIL:
-            return "no addresses";
-        case DH6OPT_STCODE_NOBINDING:
-            return "no binding";
-        case DH6OPT_STCODE_CONFNOMATCH:
-            return "confirm no match";
-        case DH6OPT_STCODE_NOTONLINK:
-            return "not on link";
-        case DH6OPT_STCODE_USEMULTICAST:
-            return "use multicast";
-        default:
-            sprintf(genstr, "code%d", code);
-            return genstr;
+    if (code == DH6OPT_STCODE_SUCCESS) {
+        return "Success";
+    } else if (code == DH6OPT_STCODE_UNSPECFAIL) {
+        return "UnspecFail";
+    } else if (code == DH6OPT_STCODE_AUTHFAILED) {
+        return "AuthFail";
+    } else if (code == DH6OPT_STCODE_ADDRUNAVAIL) {
+        return "AddrUnavail";
+    } else if (code == DH6OPT_STCODE_NOADDRAVAIL) {
+        return "NoAddrsAvail";
+    } else if (code == DH6OPT_STCODE_NOBINDING) {
+        return "NoBinding";
+    } else if (code == DH6OPT_STCODE_CONFNOMATCH) {
+        return "ConfirmNoMatch";
+    } else if (code == DH6OPT_STCODE_NOTONLINK) {
+        return "NotOnLink";
+    } else if (code == DH6OPT_STCODE_USEMULTICAST) {
+        return "UseMulticast";
+    } else {
+        if (g_vasprintf(&msgstr, "STATUS_CODE_%d", type) <= 0) {
+            return NULL;
+        } else {
+            return msgstr;
+        }
     }
 }
 
