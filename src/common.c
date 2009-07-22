@@ -2205,10 +2205,10 @@ gchar *dhcp6optstr(gint type) {
     } else if (type == DH6OPT_INFO_REFRESH_TIME) {
         return "OPTION_INFORMATION_REFRESH_TIME";
     } else {
-        if (g_vasprintf(&msgstr, "OPTION_%d", type) <= 0) {
+        if (g_vasprintf(&optstr, "OPTION_%d", type) <= 0) {
             return NULL;
         } else {
-            return msgstr;
+            return optstr;
         }
     }
 }
@@ -2287,10 +2287,10 @@ gchar *dhcp6_stcodestr(int code) {
     } else if (code == DH6OPT_STCODE_USEMULTICAST) {
         return "UseMulticast";
     } else {
-        if (g_vasprintf(&msgstr, "STATUS_CODE_%d", type) <= 0) {
+        if (g_vasprintf(&codestr, "STATUS_CODE_%d", code) <= 0) {
             return NULL;
         } else {
-            return msgstr;
+            return codestr;
         }
     }
 }
