@@ -32,27 +32,27 @@
 
 struct cifaces {
     struct cifaces *next;
-    char *ciface;
+    gchar *ciface;
 };
 
 struct sifaces {
     struct sifaces *next;
-    char *siface;
+    gchar *siface;
 };
 
 struct server {
     struct server *next;
-    char *serv;
+    gchar *serv;
 };
 
 struct IPv6_address {
     struct IPv6_address *next;
-    char *gaddr;
+    gchar *gaddr;
 };
 
 struct IPv6_uniaddr {           /* STORAGE OF UNICAST DEST. SERVER ADRESSES */
     struct IPv6_uniaddr *next;
-    char *uniaddr;
+    gchar *uniaddr;
 };
 
 struct interface {
@@ -62,11 +62,11 @@ struct interface {
     struct server *sname;
     struct IPv6_address *ipv6addr;
 
-    int got_addr;
-    char *ifname;
-    uint32_t devindex;
-    char *link_local;
-    int opaq;
+    gint got_addr;
+    gchar *ifname;
+    guint32 devindex;
+    gchar *link_local;
+    gint opaq;
 };
 
 struct cifaces cifaces_list;
@@ -76,18 +76,18 @@ struct IPv6_address IPv6_address_list;
 struct IPv6_uniaddr IPv6_uniaddr_list;
 struct interface interface_list;
 
-int process_RELAY_FORW(struct msg_parser * msg);
-int process_RELAY_REPL(struct msg_parser * msg);
+gint process_RELAY_FORW(struct msg_parser * msg);
+gint process_RELAY_REPL(struct msg_parser * msg);
 struct msg_parser *get_send_messages_out(void);
 void delete_messages(void);
-int check_interface_semafor(int index);
-struct interface *get_interface(int if_index);
-struct interface *get_interface_s(char *s);
+gint check_interface_semafor(gint index);
+struct interface *get_interface(gint if_index);
+struct interface *get_interface_s(gchar *s);
 
-int nr_of_devices;
-int nr_of_uni_addr;
-int max_count;
-int multicast_off;
+gint nr_of_devices;
+gint nr_of_uni_addr;
+gint max_count;
+gint multicast_off;
 
 void init_relay(void);
 void command_text(void);

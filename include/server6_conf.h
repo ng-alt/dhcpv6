@@ -39,14 +39,14 @@ struct rootgroup *globalgroup;
 
 /* provide common paramters within scopes */
 struct scope {
-    int32_t prefer_life_time;
-    int32_t valid_life_time;
-    int32_t renew_time;
-    int32_t rebind_time;
-    int32_t irt;
-    int8_t server_pref;
-    u_int8_t send_flags;
-    u_int8_t allow_flags;
+    gint32 prefer_life_time;
+    gint32 valid_life_time;
+    gint32 renew_time;
+    gint32 rebind_time;
+    gint32 irt;
+    gint8 server_pref;
+    guint8 send_flags;
+    guint8 allow_flags;
     struct dns_list dnslist;
 };
 
@@ -64,7 +64,7 @@ struct rootgroup {
 
 struct v6addr {
     struct in6_addr addr;
-    u_int8_t plen;
+    guint8 plen;
 };
 
 /* interface network declaration */
@@ -74,7 +74,7 @@ struct v6addr {
 /* and pool declared within it are connected to the same network segment */
 struct interface {
     struct interface *next;
-    char name[IFNAMSIZ];
+    gchar name[IFNAMSIZ];
     struct hardware hw_address;
     struct in6_addr primary_v6addr;
     struct in6_addr linklocal;
@@ -93,7 +93,7 @@ struct interface {
 /* link */
 struct link_decl {
     struct link_decl *next;
-    char name[IFNAMSIZ];
+    gchar name[IFNAMSIZ];
     struct v6addrlist *relaylist;
     struct v6addrseg *seglist;
     struct v6prefix *prefixlist;
@@ -150,7 +150,7 @@ struct v6addrlist {
 /* host declaration provides information about a particular DHCPv6 client */
 struct host_decl {
     struct host_decl *next;
-    char name[IFNAMSIZ];
+    gchar name[IFNAMSIZ];
     struct duid cid;
     struct dhcp6_iaid_info iaidinfo;
     struct dhcp6_list addrlist;
@@ -160,15 +160,15 @@ struct host_decl {
     struct scope *group;
 };
 
-int is_anycast(struct in6_addr *, int);
+gint is_anycast(struct in6_addr *, gint);
 extern void printf_in6addr(struct in6_addr *);
 void post_config(struct rootgroup *);
-int sfparse(const char *);
-int ipv6addrcmp(struct in6_addr *, struct in6_addr *);
-struct v6addr *getprefix(struct in6_addr *, int);
+gint sfparse(const gchar *);
+gint ipv6addrcmp(struct in6_addr *, struct in6_addr *);
+struct v6addr *getprefix(struct in6_addr *, gint);
 struct in6_addr *inc_ipv6addr(struct in6_addr *);
 struct scopelist *push_double_list(struct scopelist *, struct scope *);
 struct scopelist *pop_double_list(struct scopelist *);
-int get_primary_ipv6addr(const char *);
+gint get_primary_ipv6addr(const gchar *);
 
 #endif

@@ -35,28 +35,28 @@
 #define MAX_DEVICE 100
 
 struct hardware {
-    u_int16_t type;
-    u_int8_t len;
-    unsigned char data[6];
+    guint16 type;
+    guint8 len;
+    guchar data[6];
 };
 
 struct iaid_table {
     /* so far we support ethernet cards only */
     struct hardware hwaddr;
-    u_int32_t iaid;
+    guint32 iaid;
 };
 
 struct ra_info {
     struct ra_info *next;
     struct in6_addr prefix;
-    int plen;
-    int flags;
+    gint plen;
+    gint flags;
 };
 
 struct dhcp6_option {
     TAILQ_ENTRY(dhcp6_option) link;
-    int type;
-    int len;
+    gint type;
+    gint len;
     void *val;
 };
 
@@ -66,7 +66,7 @@ TAILQ_HEAD(dhcp6_option_list, dhcp6_option);
 struct dhcp6_if {
     struct dhcp6_if *next;
 
-    int outsock;
+    gint outsock;
 
     /* timer for the interface to sync file every 5 mins */
     struct dhcp6_timer *sync_timer;
@@ -83,18 +83,18 @@ struct dhcp6_if {
     TAILQ_HEAD(, dhcp6_event) event_list;
 
     /* static parameters of the interface */
-    char *ifname;
-    unsigned int ifid;
+    gchar *ifname;
+    guint ifid;
     struct ra_info *ralist;
     struct dns_list dnslist;
-    u_int32_t linkid;           /* to send link-local packets */
+    guint32 linkid;           /* to send link-local packets */
     struct dhcp6_iaid_info iaidinfo;
 
-    u_int16_t ra_flag;
-    u_int16_t link_flag;
+    guint16 ra_flag;
+    guint16 link_flag;
     /* configuration parameters */
-    u_long send_flags;
-    u_long allow_flags;
+    gulong send_flags;
+    gulong allow_flags;
 
 #define DHCIFF_INFO_ONLY 0x1
 #define DHCIFF_RAPID_COMMIT 0x2
@@ -103,9 +103,9 @@ struct dhcp6_if {
 #define DHCIFF_UNICAST 0x10
 
     struct in6_addr linklocal;
-    int server_pref;            /* server preference (server only) */
-    u_int32_t default_irt;  /* default information refresh time (client only) */
-    u_int32_t maximum_irt;  /* maximum information refresh time (client only) */
+    gint server_pref;            /* server preference (server only) */
+    guint32 default_irt;  /* default information refresh time (client only) */
+    guint32 maximum_irt;  /* maximum information refresh time (client only) */
     struct dhcp6_list reqopt_list;
     /* request specific addresses list from client */
     struct dhcp6_list addr_list;
@@ -125,16 +125,16 @@ struct dhcp6_event {
 
     /* internal timer parameters */
     struct timeval start_time;
-    long retrans;
-    long init_retrans;
-    long max_retrans_cnt;
-    long max_retrans_time;
-    long max_retrans_dur;
-    int timeouts;               /* number of timeouts */
+    glong retrans;
+    glong init_retrans;
+    glong max_retrans_cnt;
+    glong max_retrans_time;
+    glong max_retrans_dur;
+    gint timeouts;               /* number of timeouts */
 
-    u_int32_t xid;              /* current transaction ID */
-    u_int32_t uuid;             /* unique ID of this event */
-    int state;
+    guint32 xid;              /* current transaction ID */
+    guint32 uuid;             /* unique ID of this event */
+    gint state;
 
     TAILQ_HEAD(, dhcp6_eventdata) data_list;
 };
@@ -158,8 +158,8 @@ struct dhcp6_serverinfo {
     /* option information provided in the advertisement */
     struct dhcp6_optinfo optinfo;
     struct in6_addr server_addr;
-    u_int8_t pref;              /* preference */
-    int active;                 /* bool; if this server is active or not */
+    guint8 pref;                 /* preference */
+    gint active;                 /* bool; if this server is active or not */
     /* TODO: remember available information from the server */
 };
 
@@ -180,15 +180,15 @@ enum {
 struct dhcp6_ifconf {
     struct dhcp6_ifconf *next;
 
-    char *ifname;
+    gchar *ifname;
 
     /* configuration flags */
-    u_long send_flags;
-    u_long allow_flags;
+    gulong send_flags;
+    gulong allow_flags;
 
-    int server_pref;            /* server preference (server only) */
-    u_int32_t default_irt;  /* default information refresh time (client only) */
-    u_int32_t maximum_irt;  /* maximum information refresh time (client only) */
+    gint server_pref;     /* server preference (server only) */
+    guint32 default_irt;  /* default information refresh time (client only) */
+    guint32 maximum_irt;  /* maximum information refresh time (client only) */
     struct dhcp6_iaid_info iaidinfo;
 
     struct dhcp6_list prefix_list;
@@ -201,12 +201,12 @@ struct dhcp6_ifconf {
 struct prefix_ifconf {
     struct prefix_ifconf *next;
 
-    char *ifname;               /* interface name such as eth0 */
-    int sla_len;                /* SLA ID length in bits */
-    u_int32_t sla_id;           /* need more than 32bits? */
-    int ifid_len;               /* interface ID length in bits */
-    int ifid_type;              /* EUI-64 and manual (unused?) */
-    char ifid[16];              /* Interface ID, up to 128bits */
+    gchar *ifname;               /* interface name such as eth0 */
+    gint sla_len;                /* SLA ID length in bits */
+    guint32 sla_id;              /* need more than 32bits? */
+    gint ifid_len;               /* interface ID length in bits */
+    gint ifid_type;              /* EUI-64 and manual (unused?) */
+    gchar ifid[16];              /* Interface ID, up to 128bits */
 };
 
 #define IFID_LEN_DEFAULT 64
@@ -216,8 +216,8 @@ struct prefix_ifconf {
 struct host_conf {
     struct host_conf *next;
 
-    char *name;                 /* host name to identify the host */
-    struct duid duid;           /* DUID for the host */
+    gchar *name;                 /* host name to identify the host */
+    struct duid duid;            /* DUID for the host */
     struct dhcp6_iaid_info iaidinfo;
     struct in6_addr linklocal;
     /* delegated prefixes for the host: */
@@ -233,16 +233,16 @@ struct host_conf {
 /* structures and definitions used in the config file parser */
 struct cf_namelist {
     struct cf_namelist *next;
-    char *name;
-    int line;                   /* the line number of the config file */
+    gchar *name;
+    gint line;                   /* the line number of the config file */
     struct cf_list *params;
 };
 
 struct cf_list {
     struct cf_list *next;
     struct cf_list *tail;
-    int type;
-    int line;                   /* the line number of the config file */
+    gint type;
+    gint line;                   /* the line number of the config file */
 
     /* type dependent values: */
     long long num;
@@ -253,40 +253,40 @@ struct cf_list {
 /* Some systems define thes in in.h */
 #ifndef IN6_IS_ADDR_UNSPECIFIED
 #define IN6_IS_ADDR_UNSPECIFIED(a)           \
-    (((__const u_int32_t *) (a))[0] == 0     \
-     && ((__const u_int32_t *) (a))[1] == 0  \
-     && ((__const u_int32_t *) (a))[2] == 0  \
-     && ((__const u_int32_t *) (a))[3] == 0)
+    (((__const guint32 *) (a))[0] == 0     \
+     && ((__const guint32 *) (a))[1] == 0  \
+     && ((__const guint32 *) (a))[2] == 0  \
+     && ((__const guint32 *) (a))[3] == 0)
 #endif
 
 #ifndef IN6_IS_ADDR_LOOPBACK
 #define IN6_IS_ADDR_LOOPBACK(a)                      \
-    (((__const u_int32_t *) (a))[0] == 0             \
-     && ((__const u_int32_t *) (a))[1] == 0          \
-     && ((__const u_int32_t *) (a))[2] == 0          \
-     && ((__const u_int32_t *) (a))[3] == htonl (1))
+    (((__const guint32 *) (a))[0] == 0             \
+     && ((__const guint32 *) (a))[1] == 0          \
+     && ((__const guint32 *) (a))[2] == 0          \
+     && ((__const guint32 *) (a))[3] == htonl (1))
 #endif
 
 #ifndef IN6_IS_ADDR_MULTICAST
-#define IN6_IS_ADDR_MULTICAST(a) (((__const u_int8_t *) (a))[0] == 0xff)
+#define IN6_IS_ADDR_MULTICAST(a) (((__const guint8 *) (a))[0] == 0xff)
 #endif
 
 #ifndef IN6_IS_ADDR_LINKLOCAL
 #define IN6_IS_ADDR_LINKLOCAL(a) \
-    ((((__const u_int32_t *) (a))[0] & htonl(0xffc00000)) == htonl(0xfe800000))
+    ((((__const guint32 *) (a))[0] & htonl(0xffc00000)) == htonl(0xfe800000))
 #endif
 
 #ifndef IN6_IS_ADDR_SITELOCAL
 #define IN6_IS_ADDR_SITELOCAL(a) \
-    ((((__const u_int32_t *) (a))[0] & htonl(0xffc00000)) == htonl(0xfec00000))
+    ((((__const guint32 *) (a))[0] & htonl(0xffc00000)) == htonl(0xfec00000))
 #endif
 
 #ifndef IN6_ARE_ADDR_EQUAL
 #define IN6_ARE_ADDR_EQUAL(a,b)                                             \
-    ((((__const u_int32_t *) (a))[0] == ((__const u_int32_t *) (b))[0])     \
-     && (((__const u_int32_t *) (a))[1] == ((__const u_int32_t *) (b))[1])  \
-     && (((__const u_int32_t *) (a))[2] == ((__const u_int32_t *) (b))[2])  \
-     && (((__const u_int32_t *) (a))[3] == ((__const u_int32_t *) (b))[3]))
+    ((((__const guint32 *) (a))[0] == ((__const guint32 *) (b))[0])     \
+     && (((__const guint32 *) (a))[1] == ((__const guint32 *) (b))[1])  \
+     && (((__const guint32 *) (a))[2] == ((__const guint32 *) (b))[2])  \
+     && (((__const guint32 *) (a))[3] == ((__const guint32 *) (b))[3]))
 #endif
 
 #ifndef IN6_IS_ADDR_RESERVED
@@ -333,20 +333,20 @@ typedef enum {
 
 extern const dhcp6_mode_t dhcp6_mode;
 extern struct cf_list *cf_dns_list;
-extern const char *configfilename;
+extern const gchar *configfilename;
 
 extern struct dhcp6_if *dhcp6_if;
 extern struct dhcp6_ifconf *dhcp6_iflist;
 extern struct prefix_ifconf *prefix_ifconflist;
 extern struct dns_list dnslist;
 
-extern int configure_interface(const struct cf_namelist *);
-extern int configure_prefix_interface(struct cf_namelist *);
-extern int configure_host(const struct cf_namelist *);
-extern int configure_global_option(void);
+extern gint configure_interface(const struct cf_namelist *);
+extern gint configure_prefix_interface(struct cf_namelist *);
+extern gint configure_host(const struct cf_namelist *);
+extern gint configure_global_option(void);
 extern void configure_cleanup(void);
 extern void configure_commit(void);
-extern int cfparse(const char *);
-extern int resolv_parse(struct dns_list *);
+extern gint cfparse(const gchar *);
+extern gint resolv_parse(struct dns_list *);
 
-extern void *get_if_option(struct dhcp6_option_list *, int);
+extern void *get_if_option(struct dhcp6_option_list *, gint);

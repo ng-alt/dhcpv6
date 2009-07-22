@@ -149,36 +149,36 @@ typedef enum {
 /* Internal data structure */
 
 struct duid {
-    u_int8_t duid_len;          /* length */
-    unsigned char *duid_id;     /* variable length ID value (must be opaque) */
+    guint8 duid_len;            /* length */
+    guchar *duid_id;            /* variable length ID value (must be opaque) */
 };
 
 struct intf_id {
-    u_int16_t intf_len;         /* length */
-    char *intf_id;              /* variable length ID value (must be opaque) */
+    guint16 intf_len;           /* length */
+    gchar *intf_id;             /* variable length ID value (must be opaque) */
 };
 
 /* iaid info for the IA_NA */
 struct dhcp6_iaid_info {
-    u_int32_t iaid;
-    u_int32_t renewtime;
-    u_int32_t rebindtime;
+    guint32 iaid;
+    guint32 renewtime;
+    guint32 rebindtime;
 };
 
 /* dhcpv6 addr */
 struct dhcp6_addr {
-    u_int32_t validlifetime;
-    u_int32_t preferlifetime;
+    guint32 validlifetime;
+    guint32 preferlifetime;
     struct in6_addr addr;
-    u_int8_t plen;
+    guint8 plen;
     iatype_t type;
-    u_int16_t status_code;
-    char *status_msg;
+    guint16 status_code;
+    gchar *status_msg;
 };
 
 struct dhcp6_lease {
     TAILQ_ENTRY(dhcp6_lease) link;
-    char hostname[1024];
+    gchar hostname[1024];
     struct in6_addr linklocal;
     struct dhcp6_addr lease_addr;
     iatype_t addr_type;
@@ -193,7 +193,7 @@ struct dhcp6_listval {
     TAILQ_ENTRY(dhcp6_listval) link;
 
     union {
-        int uv_num;
+        gint uv_num;
         struct in6_addr uv_addr6;
         struct dhcp6_addr uv_dhcp6_addr;
         struct dhcp6_lease uv_dhcp6_lease;
@@ -219,18 +219,18 @@ struct ia_listval {
     TAILQ_ENTRY(ia_listval) link;
 
     iatype_t type;                      /* type of IA (e.g. IANA) */
-    u_int8_t flags;                     /* flags for temp address */
+    guint8 flags;                       /* flags for temp address */
     struct dhcp6_iaid_info iaidinfo;    /* IAID, renewtime and rebindtime */
     struct dhcp6_list addr_list;        /* assigned ipv6 address list */
-    u_int16_t status_code;              /* status code */
-    char *status_msg;                   /* status message */
+    guint16 status_code;                /* status code */
+    gchar *status_msg;                  /* status message */
 };
 
 TAILQ_HEAD(ia_list, ia_listval);
 
 struct domain_list {
     struct domain_list *next;
-    char name[MAXDNAME];
+    gchar name[MAXDNAME];
 };
 
 struct dns_list {
@@ -240,8 +240,8 @@ struct dns_list {
 
 /* DHCP6 relay agent base packet format */
 struct dhcp6_relay {
-    u_int8_t dh6_msg_type;
-    u_int8_t dh6_hop_count;
+    guint8 dh6_msg_type;
+    guint8 dh6_hop_count;
     struct in6_addr link_addr;
     struct in6_addr peer_addr;
     /* options follow */
@@ -262,25 +262,25 @@ TAILQ_HEAD(relay_list, relay_listval);
 struct dhcp6_optinfo {
     struct duid clientID;          /* DUID */
     struct duid serverID;          /* DUID */
-    u_int16_t elapsed_time;
+    guint16 elapsed_time;
     struct ia_list ia_list;        /* list of the IAs in a message */
-    u_int8_t flags;                /* flags for rapid commit, info only */
-    u_int8_t pref;                 /* server preference */
-    u_int32_t irt;                 /* information refresh time */
+    guint8 flags;                  /* flags for rapid commit, info only */
+    guint8 pref;                   /* server preference */
+    guint32 irt;                   /* information refresh time */
     struct in6_addr server_addr;
     struct dhcp6_list reqopt_list; /* options in option request */
     struct dns_list dns_list;      /* DNS server list */
     struct relay_list relay_list;  /* list of the relays the message
                                       passed through on to the server */
-    u_int16_t status_code;         /* status code */
-    char *status_msg;              /* status message */
+    guint16 status_code;           /* status code */
+    gchar *status_msg;             /* status message */
 };
 
 /* DHCP6 base packet format */
 struct dhcp6 {
     union {
-        u_int8_t m;
-        u_int32_t x;
+        guint8 m;
+        guint32 x;
     } dh6_msgtypexid;
     /* options follow */
 };
@@ -347,45 +347,45 @@ struct dhcp6 {
 #define OPTIONS           _ENV_VAR_PREFIX"options"
 
 struct dhcp6opt {
-    u_int16_t dh6opt_type;
-    u_int16_t dh6opt_len;
+    guint16 dh6opt_type;
+    guint16 dh6opt_len;
     /* type-dependent data follows */
 };
 
 /* DUID type 1 */
 struct dhcp6_duid_type1 {
-    u_int16_t dh6duid1_type;
-    u_int16_t dh6duid1_hwtype;
-    u_int32_t dh6duid1_time;
+    guint16 dh6duid1_type;
+    guint16 dh6duid1_hwtype;
+    guint32 dh6duid1_time;
     /* link-layer address follows */
 };
 
 /* Prefix Information */
 struct dhcp6_prefix_info {
-    u_int16_t dh6_pi_type;
-    u_int16_t dh6_pi_len;
-    u_int32_t preferlifetime;
-    u_int32_t validlifetime;
-    u_int8_t plen;
+    guint16 dh6_pi_type;
+    guint16 dh6_pi_len;
+    guint32 preferlifetime;
+    guint32 validlifetime;
+    guint8 plen;
     struct in6_addr prefix;
 };
 
 /* status code info */
 struct dhcp6_status_info {
-    u_int16_t dh6_status_type;
-    u_int16_t dh6_status_len;
-    u_int16_t dh6_status_code;
+    guint16 dh6_status_type;
+    guint16 dh6_status_len;
+    guint16 dh6_status_code;
 };
 
 /* IPv6 address info */
 struct dhcp6_addr_info {
-    u_int16_t dh6_ai_type;
-    u_int16_t dh6_ai_len;
+    guint16 dh6_ai_type;
+    guint16 dh6_ai_len;
     struct in6_addr addr;
-    u_int32_t preferlifetime;
-    u_int32_t validlifetime;
+    guint32 preferlifetime;
+    guint32 validlifetime;
 
-/* u_int8_t plen;
+/* guint8 plen;
  * struct dhcp6_status_info status;
  */
 };

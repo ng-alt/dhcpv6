@@ -38,27 +38,27 @@ struct msg_parser {
     struct msg_parser *next;
     struct msg_parser *prev;
 
-    int if_index;
-    uint8_t msg_type;
-    uint8_t hop;
-    uint8_t *buffer;
-    uint8_t *ptomsg;
-    uint8_t *pstart, *pointer_start, *hc_pointer;
-    uint32_t datalength;        /* the length of the DHCPv6 message */
-    int dst_addr_type;
-    char src_addr[INET6_ADDRSTRLEN];    /* source address from the UDP packet 
-                                         */
-    char peer_addr[INET6_ADDRSTRLEN];
-    char link_addr[INET6_ADDRSTRLEN];
-    int interface_in, hop_count;
-    int sent;
-    int isRF;
+    gint if_index;
+    guint8 msg_type;
+    guint8 hop;
+    guint8 *buffer;
+    guint8 *ptomsg;
+    guint8 *pstart, *pointer_start, *hc_pointer;
+    guint32 datalength;        /* the length of the DHCPv6 message */
+    gint dst_addr_type;
+    gchar src_addr[INET6_ADDRSTRLEN];    /* source address from the UDP packet 
+                                          */
+    gchar peer_addr[INET6_ADDRSTRLEN];
+    gchar link_addr[INET6_ADDRSTRLEN];
+    gint interface_in, hop_count;
+    gint sent;
+    gint isRF;
 };
 
 struct msg_parser msg_parser_list;
 
 struct msg_parser *create_parser_obj(void);
-int put_msg_in_store(struct msg_parser * mesg);
-int check_buffer(int ref, struct msg_parser * mesg);
+gint put_msg_in_store(struct msg_parser * mesg);
+gint check_buffer(gint ref, struct msg_parser * mesg);
 
 #endif /* __RELAY6_PARSER_H_DEFINED */

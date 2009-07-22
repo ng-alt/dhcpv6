@@ -53,7 +53,7 @@ struct dhcp6_timer {
     LIST_ENTRY(dhcp6_timer) link;
 
     struct timeval tm;
-    int flag;
+    gint flag;
 
     struct dhcp6_timer *(*expire)(void *);
     void *expire_data;

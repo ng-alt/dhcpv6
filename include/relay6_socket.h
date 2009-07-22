@@ -31,7 +31,7 @@
 #define __RELAY6_SOCKET_H_DEFINED
 
 fd_set readfd;
-int fdmax;
+gint fdmax;
 
 struct relay_socket {
     struct msghdr msg;
@@ -39,25 +39,25 @@ struct relay_socket {
     struct cmsghdr *cmsgp;
     struct sockaddr_in6 sin6;   /* my address information */
     struct sockaddr_in6 from;
-    int recvmsglen;
-    char *recvp;
-    char src_addr[INET6_ADDRSTRLEN];
-    int pkt_interface;
-    int buflength;
-    int dst_addr_type;
-    char *databuf;
-    int sock_desc;
+    gint recvmsglen;
+    gchar *recvp;
+    gchar src_addr[INET6_ADDRSTRLEN];
+    gint pkt_interface;
+    gint buflength;
+    gint dst_addr_type;
+    gchar *databuf;
+    gint sock_desc;
 };
 
 struct relay_socket *relaysock;
 
-int send_message(void);
-int fill_addr_struct(void);
-int set_sock_opt(void);
-int recv_data(void);
-int check_select(void);
-int get_recv_data(void);
-int get_interface_info(void);
+gint send_message(void);
+gint fill_addr_struct(void);
+gint set_sock_opt(void);
+gint recv_data(void);
+gint check_select(void);
+gint get_recv_data(void);
+gint get_interface_info(void);
 void init_socket(void);
 
 #endif /* __RELAY6_SOCKET_H_DEFINED */
