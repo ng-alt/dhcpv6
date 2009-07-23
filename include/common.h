@@ -40,22 +40,20 @@
 
 #define DPRINT_STATUS_CODE(object, num, optp, optlen) \
 do { \
-    dhcpv6_dprintf(LOG_INFO, \
-                   "status code of this %s is: %d - %s", \
-                   (object), (num), dhcp6_stcodestr((num))); \
+    g_message("status code of this %s is: %d - %s", \
+              (object), (num), dhcp6_stcodestr((num))); \
     if ((optp) != NULL && (optlen) > sizeof(guint16)) { \
-        dhcpv6_dprintf(LOG_INFO, \
-                       "status message of this %s is: %-*s", \
-                       (object), \
-                       (optlen) - (gint) sizeof(guint16), \
-                       (gchar *) (optp) + sizeof(guint16)); \
+        g_message("status message of this %s is: %-*s", \
+                  (object), \
+                  (optlen) - (gint) sizeof(guint16), \
+                  (gchar *) (optp) + sizeof(guint16)); \
     } \
 } while (0)
 
 #define COPY_OPTION(t, l, v, p) do { \
     if ((void *)(ep) - (void *)(p) < (l) + sizeof(struct dhcp6opt)) { \
-        dhcpv6_dprintf(LOG_INFO, "%s" "option buffer short for %s", \
-                       FNAME, dhcp6optstr((t))); \
+        g_message("%s option buffer short for %s", \
+                  FNAME, dhcp6optstr((t))); \
         goto fail; \
     } \
     opth.dh6opt_type = htons((t)); \
@@ -65,11 +63,8 @@ do { \
         memcpy((p) + 1, (v), (l)); \
     (p) = (struct dhcp6opt *)((gchar *)((p) + 1) + (l)); \
     (len) += sizeof(struct dhcp6opt) + (l); \
-    dhcpv6_dprintf(LOG_DEBUG, "%s" "set %s", FNAME, dhcp6optstr((t))); \
+    g_debug("%s set %s", FNAME, dhcp6optstr((t))); \
 } while (0)
-
-extern gint foreground;
-extern gint debug_thresh;
 
 /* common.c */
 extern gint dhcp6_copy_list(struct dhcp6_list *, const struct dhcp6_list *);
@@ -99,8 +94,6 @@ extern gchar *in6addr2str(struct in6_addr *, gint);
 extern const gchar *getdev(struct sockaddr_in6 *);
 extern gint in6_addrscopebyif(struct in6_addr *, gchar *);
 extern gint in6_scope(struct in6_addr *);
-extern void setloglevel(gint);
-extern void dhcpv6_dprintf(gint, const gchar *, ...);
 extern gint duid_match_llt(struct duid *, struct duid *);
 extern gint get_duid(const gchar *, const gchar *, struct duid *);
 extern gint save_duid(const gchar *, const gchar *, struct duid *);
@@ -130,3 +123,14 @@ extern struct dhcp6_if *find_ifconfbyid(guint);
 extern struct prefix_ifconf *find_prefixifconf(const gchar *);
 extern struct host_conf *find_hostconf(const struct duid *);
 extern ssize_t gethwid(guchar *, gint, const gchar *, guint16 *);
+
+/* Logging types and functions */
+typedef struct _log_properties {
+    gboolean foreground;
+    GLogLevelFlags threshold;
+    gchar *progname;
+    pid_t pid;
+} log_properties_t;
+
+extern void setup_logging(gchar *, gboolean, log_properties_t *);
+extern void log_handler(const gchar *, GLogLevelFlags, const gchar *, gpointer);

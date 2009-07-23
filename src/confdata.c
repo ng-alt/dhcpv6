@@ -106,10 +106,8 @@ static gint _add_options(gint opcode, struct dhcp6_ifconf *ifc,
             for (opt = TAILQ_FIRST(&ifc->reqopt_list); opt;
                  opt = TAILQ_NEXT(opt, link)) {
                 if (opt->val_num == cfl->type) {
-                    dhcpv6_dprintf(LOG_INFO, "%s"
-                                   "duplicated requested"
-                                   " option: %s", FNAME,
-                                   dhcp6optstr(cfl->type));
+                    g_message("%s duplicated requested option: %s", FNAME,
+                              dhcp6optstr(cfl->type));
                     goto next;  /* ignore it */
                 }
             }
@@ -125,9 +123,9 @@ static gint _add_options(gint opcode, struct dhcp6_ifconf *ifc,
                         ifc->allow_flags |= DHCIFF_RAPID_COMMIT;
                         break;
                     default:
-                        dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
-                                       "for option type (%d)",
-                                       FNAME, opcode, cfl->type);
+                        g_error("%s invalid operation (%d) "
+                                "for option type (%d)",
+                                FNAME, opcode, cfl->type);
                         return -1;
                 }
 
@@ -138,9 +136,9 @@ static gint _add_options(gint opcode, struct dhcp6_ifconf *ifc,
                         ifc->send_flags |= DHCIFF_PREFIX_DELEGATION;
                         break;
                     default:
-                        dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
-                                       "for option type (%d)",
-                                       FNAME, opcode, cfl->type);
+                        g_error("%s invalid operation (%d) "
+                                "for option type (%d)",
+                                FNAME, opcode, cfl->type);
                         return -1;
                 }
 
@@ -152,17 +150,15 @@ static gint _add_options(gint opcode, struct dhcp6_ifconf *ifc,
                         if (dhcp6_add_listval(&ifc->reqopt_list,
                                               &opttype,
                                               DHCP6_LISTVAL_NUM) == NULL) {
-                            dhcpv6_dprintf(LOG_ERR,
-                                           "%s" "failed to "
-                                           "configure an option", FNAME);
+                            g_error("%s failed to configure an option", FNAME);
                             return -1;
                         }
 
                         break;
                     default:
-                        dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
-                                       "for option type (%d)",
-                                       FNAME, opcode, cfl->type);
+                        g_error("%s invalid operation (%d) "
+                                "for option type (%d)",
+                                FNAME, opcode, cfl->type);
                         break;
                 }
 
@@ -174,24 +170,21 @@ static gint _add_options(gint opcode, struct dhcp6_ifconf *ifc,
                         if (dhcp6_add_listval(&ifc->reqopt_list,
                                               &opttype,
                                               DHCP6_LISTVAL_NUM) == NULL) {
-                            dhcpv6_dprintf(LOG_ERR,
-                                           "%s" "failed to "
-                                           "configure an option", FNAME);
+                            g_error("%s failed to configure an option", FNAME);
                             return -1;
                         }
 
                         break;
                     default:
-                        dhcpv6_dprintf(LOG_ERR, "%s" "invalid operation (%d) "
-                                       "for option type (%d)",
-                                       FNAME, opcode, cfl->type);
+                        g_error("%s invalid operation (%d) "
+                                "for option type (%d)",
+                                FNAME, opcode, cfl->type);
                         break;
                 }
 
                 break;
             default:
-                dhcpv6_dprintf(LOG_ERR, "%s"
-                               "unknown option type: %d", FNAME, cfl->type);
+                g_error("%s unknown option type: %d", FNAME, cfl->type);
                 return -1;
         }
 
@@ -207,8 +200,8 @@ static gint _add_address(struct dhcp6_list *addr_list,
 
     /* avoid invalid addresses */
     if (IN6_IS_ADDR_RESERVED(&v6addr->addr)) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "invalid address: %s",
-                       FNAME, in6addr2str(&v6addr->addr, 0));
+        g_error("%s invalid address: %s", FNAME,
+                in6addr2str(&v6addr->addr, 0));
         return -1;
     }
 
@@ -216,21 +209,19 @@ static gint _add_address(struct dhcp6_list *addr_list,
     for (lv = TAILQ_FIRST(addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
         if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &v6addr->addr) &&
             lv->val_dhcp6addr.plen == v6addr->plen) {
-            dhcpv6_dprintf(LOG_ERR, "%s"
-                           "duplicated address: %s/%d ", FNAME,
-                           in6addr2str(&v6addr->addr, 0), v6addr->plen);
+            g_error("%s duplicated address: %s/%d", FNAME,
+                    in6addr2str(&v6addr->addr, 0), v6addr->plen);
             return -1;
         }
     }
 
     if ((val = (struct dhcp6_listval *) malloc(sizeof(*val))) == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "memory allocation failed", FNAME);
+        g_error("%s memory allocation failed", FNAME);
     }
 
     memset(val, 0, sizeof(*val));
     memcpy(&val->val_dhcp6addr, v6addr, sizeof(val->val_dhcp6addr));
-    dhcpv6_dprintf(LOG_DEBUG, "%s" "add address: %s",
-                   FNAME, in6addr2str(&v6addr->addr, 0));
+    g_debug("%s add address: %s", FNAME, in6addr2str(&v6addr->addr, 0));
     TAILQ_INSERT_TAIL(addr_list, val, link);
     return 0;
 }
@@ -245,9 +236,7 @@ gint configure_interface(const struct cf_namelist *iflist) {
         struct cf_list *cfl;
 
         if ((ifc = malloc(sizeof(*ifc))) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "%s"
-                           "memory allocation for %s failed", FNAME,
-                           ifp->name);
+            g_error("%s memory allocation for %s failed", FNAME, ifp->name);
             goto bad;
         }
 
@@ -256,7 +245,7 @@ gint configure_interface(const struct cf_namelist *iflist) {
         dhcp6_ifconflist = ifc;
 
         if ((ifc->ifname = strdup(ifp->name)) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy ifname", FNAME);
+            g_error("%s failed to copy ifname", FNAME);
             goto bad;
         }
 
@@ -271,9 +260,8 @@ gint configure_interface(const struct cf_namelist *iflist) {
             switch (cfl->type) {
                 case DECL_REQUEST:
                     if (dhcp6_mode != DHCP6_MODE_CLIENT) {
-                        dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
-                                       "client-only configuration",
-                                       FNAME, configfilename, cfl->line);
+                        g_message("%s %s:%d client-only configuration",
+                                  FNAME, configfilename, cfl->line);
                         goto bad;
                     }
 
@@ -302,9 +290,8 @@ gint configure_interface(const struct cf_namelist *iflist) {
                     break;
                 case DECL_DEFAULT_IRT:
                     if (dhcp6_mode != DHCP6_MODE_CLIENT) {
-                        dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
-                                       "client-only configuration",
-                                       FNAME, configfilename, cfl->line);
+                        g_message("%s %s:%d client-only configuration",
+                                  FNAME, configfilename, cfl->line);
                         goto bad;
                     }
 
@@ -312,9 +299,8 @@ gint configure_interface(const struct cf_namelist *iflist) {
                         cfl->num = DHCP6_DURATITION_INFINITE;
                     } else if (cfl->num < IRT_MINIMUM ||
                                DHCP6_DURATITION_INFINITE < cfl->num) {
-                        dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
-                                       "bad value: %lld", FNAME,
-                                       configfilename, cfl->line, cfl->num);
+                        g_message("%s %s:%d bad value: %lld", FNAME,
+                                  configfilename, cfl->line, cfl->num);
                         goto bad;
                     }
 
@@ -323,9 +309,8 @@ gint configure_interface(const struct cf_namelist *iflist) {
                     break;
                 case DECL_MAXIMUM_IRT:
                     if (dhcp6_mode != DHCP6_MODE_CLIENT) {
-                        dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
-                                       "client-only configuration",
-                                       FNAME, configfilename, cfl->line);
+                        g_message("%s %s:%d client-only configuration",
+                                  FNAME, configfilename, cfl->line);
                         goto bad;
                     }
 
@@ -333,9 +318,8 @@ gint configure_interface(const struct cf_namelist *iflist) {
                         cfl->num = DHCP6_DURATITION_INFINITE;
                     } else if (cfl->num < IRT_MINIMUM ||
                                DHCP6_DURATITION_INFINITE < cfl->num) {
-                        dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
-                                       "bad value: %lld", FNAME,
-                                       configfilename, cfl->line, cfl->num);
+                        g_message("%s %s:%d bad value: %lld", FNAME,
+                                  configfilename, cfl->line, cfl->num);
                         goto bad;
                     }
 
@@ -349,29 +333,25 @@ gint configure_interface(const struct cf_namelist *iflist) {
                     break;
                 case DECL_PREFERENCE:
                     if (dhcp6_mode != DHCP6_MODE_SERVER) {
-                        dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
-                                       "server-only configuration",
-                                       FNAME, configfilename, cfl->line);
+                        g_message("%s %s:%d server-only configuration",
+                                  FNAME, configfilename, cfl->line);
                         goto bad;
                     }
 
                     ifc->server_pref = (int) cfl->num;
 
                     if (ifc->server_pref < 0 || ifc->server_pref > 255) {
-                        dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d "
-                                       "bad value: %d", FNAME,
-                                       configfilename, cfl->line,
-                                       ifc->server_pref);
+                        g_message("%s %s:%d bad value: %d", FNAME,
+                                  configfilename, cfl->line, ifc->server_pref);
                         goto bad;
                     }
 
                     break;
                 case DECL_IAID:
                     if (ifc->iaidinfo.iaid) {
-                        dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
-                                       "duplicated IAID for %s",
-                                       FNAME, configfilename,
-                                       cfl->line, ifc->ifname);
+                        g_error("%s %s:%d duplicated IAID for %s",
+                                FNAME, configfilename,
+                                cfl->line, ifc->ifname);
                         goto bad;
                     } else {
                         ifc->iaidinfo.iaid = (guint32) cfl->num;
@@ -380,10 +360,9 @@ gint configure_interface(const struct cf_namelist *iflist) {
                     break;
                 case DECL_RENEWTIME:
                     if (ifc->iaidinfo.renewtime) {
-                        dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
-                                       "duplicated renewtime for %s",
-                                       FNAME, configfilename,
-                                       cfl->line, ifc->ifname);
+                        g_error("%s %s:%d duplicated renewtime for %s",
+                                FNAME, configfilename,
+                                cfl->line, ifc->ifname);
                         goto bad;
                     } else {
                         ifc->iaidinfo.renewtime = (guint32) cfl->num;
@@ -392,10 +371,9 @@ gint configure_interface(const struct cf_namelist *iflist) {
                     break;
                 case DECL_REBINDTIME:
                     if (ifc->iaidinfo.iaid) {
-                        dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
-                                       "duplicated rebindtime for %s",
-                                       FNAME, configfilename,
-                                       cfl->line, ifc->ifname);
+                        g_error("%s %s:%d duplicated rebindtime for %s",
+                                FNAME, configfilename,
+                                cfl->line, ifc->ifname);
                         goto bad;
                     } else {
                         ifc->iaidinfo.rebindtime = (guint32) cfl->num;
@@ -404,9 +382,8 @@ gint configure_interface(const struct cf_namelist *iflist) {
                     break;
                 case DECL_ADDRESS:
                     if (_add_address(&ifc->addr_list, cfl->ptr)) {
-                        dhcpv6_dprintf(LOG_ERR, "%s" "failed "
-                                       "to configure ipv6address for %s",
-                                       FNAME, ifc->ifname);
+                        g_error("%s failed to configure ipv6address for %s",
+                                FNAME, ifc->ifname);
                         goto bad;
                     }
 
@@ -417,18 +394,17 @@ gint configure_interface(const struct cf_namelist *iflist) {
                 case DECL_PREFIX_INFO:
                     break;
                 default:
-                    dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
-                                   "invalid interface configuration",
-                                   FNAME, configfilename, cfl->line);
+                    g_error("%s %s:%d invalid interface configuration",
+                            FNAME, configfilename, cfl->line);
                     goto bad;
             }
         }
 
         if (ifc->default_irt > ifc->maximum_irt) {
-            dhcpv6_dprintf(LOG_INFO, "%s" "%s information refresh time: "
-                           "default (%u) is bigger than maximum (%u)",
-                           FNAME, configfilename,
-                           ifc->default_irt, ifc->maximum_irt);
+            g_message("%s %s information refresh time: "
+                      "default (%u) is bigger than maximum (%u)",
+                      FNAME, configfilename,
+                      ifc->default_irt, ifc->maximum_irt);
             goto bad;
         }
     }
@@ -449,8 +425,8 @@ gint configure_host(const struct cf_namelist *hostlist) {
         struct cf_list *cfl;
 
         if ((hconf = malloc(sizeof(*hconf))) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "%s" "memory allocation failed "
-                           "for host %s", FNAME, host->name);
+            g_error("%s memory allocation failed for host %s",
+                    FNAME, host->name);
             goto bad;
         }
 
@@ -463,8 +439,7 @@ gint configure_host(const struct cf_namelist *hostlist) {
         host_conflist0 = hconf;
 
         if ((hconf->name = strdup(host->name)) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy host name: %s",
-                           FNAME, host->name);
+            g_error("%s failed to copy host name: %s", FNAME, host->name);
             goto bad;
         }
 
@@ -472,41 +447,35 @@ gint configure_host(const struct cf_namelist *hostlist) {
             switch (cfl->type) {
                 case DECL_DUID:
                     if (hconf->duid.duid_id) {
-                        dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
-                                       "duplicated DUID for %s",
-                                       FNAME, configfilename,
-                                       cfl->line, host->name);
+                        g_error("%s %s:%d duplicated DUID for %s",
+                                FNAME, configfilename,
+                                cfl->line, host->name);
                         goto bad;
                     }
 
                     if ((configure_duid((gchar *) cfl->ptr,
                                         &hconf->duid)) != 0) {
-                        dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
-                                       "failed to configure "
-                                       "DUID for %s", FNAME,
-                                       configfilename, cfl->line, host->name);
+                        g_error("%s %s:%d failed to configure DUID for %s",
+                                FNAME, configfilename, cfl->line, host->name);
                         goto bad;
                     }
 
-                    dhcpv6_dprintf(LOG_DEBUG, "%s"
-                                   "configure DUID for %s: %s", FNAME,
-                                   host->name, duidstr(&hconf->duid));
+                    g_debug("%s configure DUID for %s: %s", FNAME,
+                            host->name, duidstr(&hconf->duid));
                     break;
                 case DECL_PREFIX:
                     if (_add_address(&hconf->prefix_list, cfl->ptr)) {
-                        dhcpv6_dprintf(LOG_ERR, "%s" "failed "
-                                       "to configure prefix for %s",
-                                       FNAME, host->name);
+                        g_error("%s failed to configure prefix for %s",
+                                FNAME, host->name);
                         goto bad;
                     }
 
                     break;
                 case DECL_IAID:
                     if (hconf->iaidinfo.iaid) {
-                        dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
-                                       "duplicated IAID for %s",
-                                       FNAME, configfilename,
-                                       cfl->line, host->name);
+                        g_error("%s %s:%d duplicated IAID for %s",
+                                FNAME, configfilename,
+                                cfl->line, host->name);
                         goto bad;
                     } else {
                         hconf->iaidinfo.iaid = (guint32) cfl->num;
@@ -515,10 +484,9 @@ gint configure_host(const struct cf_namelist *hostlist) {
                     break;
                 case DECL_RENEWTIME:
                     if (hconf->iaidinfo.renewtime) {
-                        dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
-                                       "duplicated renewtime for %s",
-                                       FNAME, configfilename,
-                                       cfl->line, host->name);
+                        g_error("%s %s:%d duplicated renewtime for %s",
+                                FNAME, configfilename,
+                                cfl->line, host->name);
                         goto bad;
                     } else {
                         hconf->iaidinfo.renewtime = (guint32) cfl->num;
@@ -527,10 +495,9 @@ gint configure_host(const struct cf_namelist *hostlist) {
                     break;
                 case DECL_REBINDTIME:
                     if (hconf->iaidinfo.rebindtime) {
-                        dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
-                                       "duplicated rebindtime for %s",
-                                       FNAME, configfilename,
-                                       cfl->line, host->name);
+                        g_error("%s %s:%d duplicated rebindtime for %s",
+                                FNAME, configfilename,
+                                cfl->line, host->name);
                         goto bad;
                     } else {
                         hconf->iaidinfo.rebindtime = (guint32) cfl->num;
@@ -539,19 +506,17 @@ gint configure_host(const struct cf_namelist *hostlist) {
                     break;
                 case DECL_ADDRESS:
                     if (_add_address(&hconf->addr_list, cfl->ptr)) {
-                        dhcpv6_dprintf(LOG_ERR, "%s" "failed "
-                                       "to configure ipv6address for %s",
-                                       FNAME, host->name);
+                        g_error("%s failed to configure ipv6address for %s",
+                                FNAME, host->name);
                         goto bad;
                     }
 
                     break;
                 case DECL_LINKLOCAL:
                     if (IN6_IS_ADDR_UNSPECIFIED(&hconf->linklocal)) {
-                        dhcpv6_dprintf(LOG_ERR, "%s" "%s:%d "
-                                       "duplicated linklocal for %s",
-                                       FNAME, configfilename,
-                                       cfl->line, host->name);
+                        g_error("%s %s:%d duplicated linklocal for %s",
+                                FNAME, configfilename,
+                                cfl->line, host->name);
                         goto bad;
                     } else {
                         memcpy(&hconf->linklocal, cfl->ptr,
@@ -560,9 +525,8 @@ gint configure_host(const struct cf_namelist *hostlist) {
 
                     break;
                 default:
-                    dhcpv6_dprintf(LOG_ERR,
-                                   "%s: %d invalid host configuration for %s",
-                                   configfilename, cfl->line, host->name);
+                    g_error("%s: %d invalid host configuration for %s",
+                            configfilename, cfl->line, host->name);
                     goto bad;
             }
         }
@@ -580,8 +544,8 @@ gint configure_global_option(void) {
 
     /* DNS servers */
     if (cf_dns_list && dhcp6_mode != DHCP6_MODE_SERVER) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "%s:%d server-only configuration",
-                       FNAME, configfilename, cf_dns_list->line);
+        g_message("%s %s:%d server-only configuration",
+                  FNAME, configfilename, cf_dns_list->line);
         goto bad;
     }
 
@@ -590,16 +554,15 @@ gint configure_global_option(void) {
     for (cl = cf_dns_list; cl; cl = cl->next) {
         /* duplication check */
         if (dhcp6_find_listval(&dnslist0, cl->ptr, DHCP6_LISTVAL_ADDR6)) {
-            dhcpv6_dprintf(LOG_INFO, "%s"
-                           "%s:%d duplicated DNS server: %s", FNAME,
-                           configfilename, cl->line,
-                           in6addr2str((struct in6_addr *) cl->ptr, 0));
+            g_message("%s %s:%d duplicated DNS server: %s", FNAME,
+                      configfilename, cl->line,
+                      in6addr2str((struct in6_addr *) cl->ptr, 0));
             goto bad;
         }
 
         if (dhcp6_add_listval(&dnslist0, cl->ptr,
                               DHCP6_LISTVAL_ADDR6) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a DNS server", FNAME);
+            g_error("%s failed to add a DNS server", FNAME);
             goto bad;
         }
     }

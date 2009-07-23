@@ -133,7 +133,7 @@ ecl       \}
     DECHO;
 
     if (inet_pton(AF_INET6, client6text, &addr) < 1) {
-        dhcpv6_dprintf(LOG_ERR, "invalid address in line %d", lineno);
+        g_error("invalid address in line %d", lineno);
         return (-1);
     }
 
@@ -191,13 +191,13 @@ ecl       \}
 %%
 static void cfdebug_print(gchar *w, gchar *t, gint l) {
     if (w) {
-        dhcpv6_dprintf(LOG_DEBUG, "<%d>%s [%s] (%d)", yy_start, w, t, l);
+        g_debug("<%d>%s [%s] (%d)", yy_start, w, t, l);
     } else {
-        dhcpv6_dprintf(LOG_DEBUG, "<%d>[%s] (%d)", yy_start, t, l);
+        g_debug("<%d>[%s] (%d)", yy_start, t, l);
     }
 }
 
-static void client6error0(gint level, gchar *s, va_list ap) {
+static void client6error0(GLogLevelFlags level, gchar *s, va_list ap) {
     gchar ebuf[BUFSIZ], *bp, *ep;
 
     bp = ebuf;
@@ -208,13 +208,17 @@ static void client6error0(gint level, gchar *s, va_list ap) {
         bp += vsnprintf(bp, ep - bp, s, ap);
     }
 
-    dhcpv6_dprintf(level, ebuf);
+    if (level == G_LOG_LEVEL_ERROR) {
+        g_error(ebuf);
+    } else if (level == G_LOG_LEVEL_WARNING) {
+        g_warning(ebuf);
+    }
 }
 
 void client6error(gchar *s, ...) {
     va_list ap;
     va_start(ap, s);
-    client6error0(LOG_ERR, s, ap);
+    client6error0(G_LOG_LEVEL_ERROR, s, ap);
     va_end(ap);
     client6errorcount++;
 }
@@ -222,7 +226,7 @@ void client6error(gchar *s, ...) {
 void cpyywarn(gchar *s, ...) {
     va_list ap;
     va_start(ap, s);
-    client6error0(LOG_WARNING, s, ap);
+    client6error0(G_LOG_LEVEL_WARNING, s, ap);
     va_end(ap);
 }
 
@@ -234,8 +238,7 @@ gint cfparse(const gchar *conf) {
             return (0);
         }
 
-        dhcpv6_dprintf(LOG_ERR, "cfparse: fopen(%s): %s",
-                       configfilename, strerror(errno));
+        g_error("cfparse: fopen(%s): %s", configfilename, strerror(errno));
         return (-1);
     }
 

@@ -100,14 +100,14 @@ struct dhcp6_timer *dhcp6_add_timer(struct dhcp6_timer *(*timeout) (void *),
     struct dhcp6_timer *newtimer;
 
     if ((newtimer = malloc(sizeof(*newtimer))) == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "can't allocate memory", FNAME);
+        g_error("%s" "can't allocate memory", FNAME);
         return NULL;
     }
 
     memset(newtimer, 0, sizeof(*newtimer));
 
     if (timeout == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "timeout function unspecified", FNAME);
+        g_error("%s" "timeout function unspecified", FNAME);
         return NULL;
     }
 
@@ -195,8 +195,7 @@ struct timeval *dhcp6_timer_rest(struct dhcp6_timer *timer) {
     gettimeofday(&now, NULL);
 
     if (TIMEVAL_LEQ(timer->tm, now)) {
-        syslog(LOG_DEBUG,
-               "<%s> a timer must be expired, but not yet", __FUNCTION__);
+        g_debug("<%s> a timer must be expired, but not yet", __FUNCTION__);
         returnval.tv_sec = returnval.tv_usec = 0;
     } else {
         timeval_sub(&timer->tm, &now, &returnval);

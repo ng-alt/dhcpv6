@@ -68,7 +68,7 @@ static void _download_scope(struct scope *up, struct scope *current) {
     }
 
     if (current->renew_time > current->rebind_time) {
-        dhcpv6_dprintf(LOG_ERR, "dhcpv6 server defines T1 > T2");
+        g_error("dhcpv6 server defines T1 > T2");
         exit(1);
     }
 
@@ -135,7 +135,7 @@ struct v6addr *getprefix(struct in6_addr *addr, gint len) {
 
     prefix = (struct v6addr *) malloc(sizeof(*prefix));
     if (prefix == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "fail to malloc memory", FNAME);
+        g_error("%s fail to malloc memory", FNAME);
         return NULL;
     }
 
@@ -171,7 +171,7 @@ struct scopelist *push_double_list(struct scopelist *current,
     item = (struct scopelist *) malloc(sizeof(*item));
 
     if (item == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "fail to allocate memory", FNAME);
+        g_error("%s fail to allocate memory", FNAME);
         return NULL;
     }
 
@@ -286,9 +286,8 @@ void post_config(struct rootgroup *root) {
                         current->valid_life_time != 0 &&
                         current->prefer_life_time >
                         current->valid_life_time) {
-                        dhcpv6_dprintf(LOG_ERR, "%s preferlife time is "
-                                       "greater than validlife time",
-                                       FNAME);
+                        g_error("%s preferlife time is greater than "
+                                "validlife time", FNAME);
                         exit(1);
                     }
 
@@ -312,9 +311,8 @@ void post_config(struct rootgroup *root) {
                         current->valid_life_time != 0 &&
                         current->prefer_life_time >
                         current->valid_life_time) {
-                        dhcpv6_dprintf(LOG_ERR, "%s preferlife time is "
-                                       "greater than validlife time",
-                                       FNAME);
+                        g_error("%s preferlife time is greater than "
+                                "validlife time", FNAME);
                         exit(1);
                     }
 

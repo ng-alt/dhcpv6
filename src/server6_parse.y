@@ -155,8 +155,7 @@ ifdef
           if (currentgroup)
               ifnetwork->group = currentgroup->scope;
 
-          dhcpv6_dprintf(LOG_DEBUG, "interface definition for %s is ok",
-                         ifnetwork->name);
+          g_debug("interface definition for %s is ok", ifnetwork->name);
           ifnetwork->next = ifnetworklist;
           ifnetworklist = ifnetwork;
           ifnetwork = NULL;
@@ -177,9 +176,8 @@ ifhead
 
           while (temp_if) {
               if (!strcmp(temp_if->name, $2)) {
-                  dhcpv6_dprintf(LOG_ERR,
-                                 "duplicate interface definition for %s",
-                                 temp_if->name);
+                  g_error("duplicate interface definition for %s",
+                          temp_if->name);
                   ABORT;
               }
 
@@ -189,7 +187,7 @@ ifhead
           ifnetwork = (struct interface *) malloc(sizeof(*ifnetwork));
 
           if (ifnetwork == NULL) {
-              dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
+              g_error("failed to allocate memory");
               ABORT;
           }
 
@@ -198,8 +196,7 @@ ifhead
           strncpy(ifnetwork->name, $2, strlen($2));
 
           if (get_linklocal(ifnetwork->name, &ifnetwork->linklocal) < 0) {
-              dhcpv6_dprintf(LOG_ERR, "get device %s linklocal failed",
-                             ifnetwork->name);
+              g_error("get device %s linklocal failed", ifnetwork->name);
           }
 
           /* check device, if the device is not available,
@@ -207,7 +204,7 @@ ifhead
            * so keep this in the configuration file.
            */
           if (if_nametoindex(ifnetwork->name) == 0) {
-              dhcpv6_dprintf(LOG_ERR, "this device %s doesn't exist.", $2);
+              g_error("this device %s doesn't exist.", $2);
           }
 
           /* set up hw_addr, link local, primary ipv6addr */
@@ -255,7 +252,7 @@ linkhead
           link = (struct link_decl *) malloc(sizeof(*link));
 
           if (link == NULL) {
-              dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
+              g_error("failed to allocate memory");
               ABORT;
           }
 
@@ -264,8 +261,7 @@ linkhead
 
           while (temp_sub) {
               if (!strcmp(temp_sub->name, $2)) {
-                  dhcpv6_dprintf(LOG_ERR, "duplicate link definition for %s",
-                                 $2);
+                  g_error("duplicate link definition for %s", $2);
                   ABORT;
               }
 
@@ -314,13 +310,13 @@ relaypara
           struct v6addrlist *temprelay;
 
           if (!link) {
-              dhcpv6_dprintf(LOG_ERR, "relay must be defined under link");
+              g_error("relay must be defined under link");
               ABORT;
           }
 
           temprelay = (struct v6addrlist *) malloc(sizeof(*temprelay));
           if (temprelay == NULL) {
-              dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
+              g_error("failed to allocate memory");
               ABORT;
           }
 
@@ -348,14 +344,14 @@ pooldef
 poolhead
     : POOL {
           if (!link) {
-              dhcpv6_dprintf(LOG_ERR, "pooldef must be defined under link");
+              g_error("pooldef must be defined under link");
               ABORT;
           }
 
           pool = (struct pool_decl *) malloc(sizeof(*pool));
 
           if (pool == NULL) {
-              dhcpv6_dprintf(LOG_ERR, "fail to allocate memory");
+              g_error("fail to allocate memory");
               ABORT;
           }
 
@@ -392,14 +388,14 @@ prefixdef
           struct v6addr *prefix;
 
           if (!link) {
-              dhcpv6_dprintf(LOG_ERR, "prefix must be defined under link");
+              g_error("prefix must be defined under link");
               ABORT;
           }
 
           v6prefix = (struct v6prefix *) malloc(sizeof(*v6prefix));
 
           if (v6prefix == NULL) {
-              dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
+              g_error("failed to allocate memory");
               ABORT;
           }
 
@@ -411,8 +407,7 @@ prefixdef
 
           /* make sure the range ipv6 address within the prefixaddr */
           if ($4 > 128 || $4 < 0) {
-              dhcpv6_dprintf(LOG_ERR, "invalid prefix length in line %d",
-                             num_lines);
+              g_error("invalid prefix length in line %d", num_lines);
               ABORT;
           }
 
@@ -421,15 +416,14 @@ prefixdef
                v6prefix0 = v6prefix0->next) {
               if (IN6_ARE_ADDR_EQUAL(prefix, &v6prefix0->prefix.addr) &&
                   $4 == v6prefix0->prefix.plen) {
-                  dhcpv6_dprintf(LOG_ERR,
-                                 "duplicated prefix defined within same link");
+                  g_error("duplicated prefix defined within same link");
                   ABORT;
               }
           }
 
           /* check the assigned prefix is not reserved pv6 addresses */
           if (IN6_IS_ADDR_RESERVED(prefix)) {
-              dhcpv6_dprintf(LOG_ERR, "config reserved prefix");
+              g_error("config reserved prefix");
               ABORT;
           }
 
@@ -446,14 +440,14 @@ rangedef
           struct v6addr *prefix1, *prefix2;
 
           if (!link) {
-              dhcpv6_dprintf(LOG_ERR, "range must be defined under link");
+              g_error("range must be defined under link");
               ABORT;
           }
 
           seg = (struct v6addrseg *) malloc(sizeof(*seg));
 
           if (seg == NULL) {
-              dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
+              g_error("failed to allocate memory");
               ABORT;
           }
 
@@ -466,8 +460,7 @@ rangedef
 
           /* make sure the range ipv6 address within the prefixaddr */
           if ($6 > 128 || $6 < 0) {
-              dhcpv6_dprintf(LOG_ERR, "invalid prefix length in line %d",
-                             num_lines);
+              g_error("invalid prefix length in line %d", num_lines);
               ABORT;
           }
 
@@ -475,13 +468,13 @@ rangedef
           prefix2 = getprefix(&$4, $6);
 
           if (!prefix1 || !prefix2) {
-              dhcpv6_dprintf(LOG_ERR, "address range defined error");
+              g_error("address range defined error");
               ABORT;
           }
 
           if (ipv6addrcmp(&prefix1->addr, &prefix2->addr)) {
-              dhcpv6_dprintf(LOG_ERR, "address range defined doesn't in the "
-                             "same prefix range");
+              g_error("address range defined doesn't in the "
+                      "same prefix range");
               ABORT;
           }
 
@@ -496,7 +489,7 @@ rangedef
           /* check the assigned addresses are not reserved ipv6 addresses */
           if (IN6_IS_ADDR_RESERVED(&seg->max) ||
               IN6_IS_ADDR_RESERVED(&seg->max)) {
-              dhcpv6_dprintf(LOG_ERR, "config reserved ipv6address");
+              g_error("config reserved ipv6address");
               ABORT;
           }
 
@@ -530,8 +523,7 @@ rangedef
                   if (prefix1->plen == temp_seg->prefix.plen) {
                       if (!(ipv6addrcmp(&seg->min, &temp_seg->max) > 0 ||
                           ipv6addrcmp(&seg->max, &temp_seg->min) < 0)) {
-                             dhcpv6_dprintf(LOG_ERR,
-                                            "overlap range addr defined");
+                             g_error("overlap range addr defined");
                              ABORT;
                       }
                   }
@@ -586,7 +578,7 @@ grouphead
 
           groupscope = (struct scope *) malloc(sizeof(*groupscope));
           if (groupscope == NULL) {
-              dhcpv6_dprintf(LOG_ERR, "group memory allocation failed");
+              g_error("group memory allocation failed");
               ABORT;
           }
 
@@ -611,9 +603,8 @@ hostdef
           while (temp_host) {
               if (temp_host->iaidinfo.iaid == host->iaidinfo.iaid) {
                   if (0 == duidcmp(&temp_host->cid, &host->cid)) {
-                      dhcpv6_dprintf(LOG_ERR,
-                                    "duplicated host DUID=%s IAID=%u redefined",
-                                     duidstr(&host->cid), host->iaidinfo.iaid);
+                      g_error("duplicated host DUID=%s IAID=%u redefined",
+                              duidstr(&host->cid), host->iaidinfo.iaid);
                       ABORT;
                   }
               }
@@ -638,7 +629,7 @@ hosthead
 
           while (temp_host) {
               if (!strcmp(temp_host->name, $2)) {
-                  dhcpv6_dprintf(LOG_ERR, "duplicated host %s redefined", $2);
+                  g_error("duplicated host %s redefined", $2);
                   ABORT;
               }
 
@@ -647,7 +638,7 @@ hosthead
 
           host = (struct host_decl *)malloc(sizeof(*host));
           if (host == NULL) {
-              dhcpv6_dprintf(LOG_ERR, "fail to allocate memory");
+              g_error("fail to allocate memory");
               ABORT;
           }
 
@@ -672,8 +663,7 @@ hostbody
 hostdecl
     : DUID DUID_ID ';' {
           if (host == NULL) {
-              dhcpv6_dprintf(LOG_DEBUG,
-                             "duid should be defined under host decl");
+              g_debug("duid should be defined under host decl");
               ABORT;
           }
 
@@ -701,8 +691,7 @@ iaidbody
 iaidpara
     : IAID NUMBER ';' {
           if (host == NULL) {
-              dhcpv6_dprintf(LOG_DEBUG,
-                             "iaid should be defined under host decl");
+              g_debug("iaid should be defined under host decl");
               ABORT;
           }
 
@@ -718,8 +707,7 @@ hostparas
 hostpara
     : hostaddr6 {
           if (host == NULL) {
-              dhcpv6_dprintf(LOG_DEBUG,
-                             "address should be defined under host decl");
+              g_debug("address should be defined under host decl");
               ABORT;
           }
 
@@ -728,8 +716,7 @@ hostpara
       }
     | hostprefix6 {
           if (host == NULL) {
-              dhcpv6_dprintf(LOG_DEBUG,
-                             "prefix should be defined under host decl");
+              g_debug("prefix should be defined under host decl");
               ABORT;
           }
 
@@ -770,7 +757,7 @@ v6address
 
           temp = (struct dhcp6_addr *) malloc(sizeof(*temp));
           if (temp == NULL) {
-              dhcpv6_dprintf(LOG_ERR, "v6addr memory allocation failed");
+              g_error("v6addr memory allocation failed");
               ABORT;
           }
 
@@ -778,8 +765,7 @@ v6address
           memcpy(&temp->addr, &$1, sizeof(temp->addr));
 
           if ($3 > 128 || $3 < 0) {
-              dhcpv6_dprintf(LOG_ERR, "invalid prefix length in line %d",
-                             num_lines);
+              g_error("invalid prefix length in line %d", num_lines);
               ABORT;
           }
 
@@ -855,9 +841,7 @@ optionpara
           }
 
           if ($2 < IRT_MINIMUM || DHCP6_DURATITION_INFINITE < $2) {
-              dhcpv6_dprintf(LOG_ERR, "%s"
-                             "bad information refresh time",
-                             FNAME);
+              g_error("%s bad information refresh time", FNAME);
               ABORT;
           }
 
@@ -895,13 +879,12 @@ dns_para
 
           if (currentscope->scope->dnslist.domainlist == NULL) {
               currentscope->scope->dnslist.domainlist = domainname;
-              dhcpv6_dprintf(LOG_DEBUG, "add domain name %s", domainname->name);
+              g_debug("add domain name %s", domainname->name);
           } else {
               for (temp = currentscope->scope->dnslist.domainlist; temp;
                    temp = temp->next) {
                   if (temp->next == NULL) {
-                      dhcpv6_dprintf(LOG_DEBUG, "add domain name %s",
-                                     domainname->name);
+                      g_debug("add domain name %s", domainname->name);
                       temp->next = domainname;
                       break;
                   }
@@ -949,9 +932,7 @@ paradecl
           if (currentscope->scope->prefer_life_time != 0 && 
               currentscope->scope->valid_life_time <
               currentscope->scope->prefer_life_time) {
-              dhcpv6_dprintf(LOG_ERR,
-                             "validlifetime is less than preferlifetime",
-                             FNAME);
+              g_error("validlifetime is less than preferlifetime", FNAME);
               ABORT;
           }
       }
@@ -968,9 +949,7 @@ paradecl
           if (currentscope->scope->valid_life_time != 0 &&
               currentscope->scope->valid_life_time <
               currentscope->scope->prefer_life_time) {
-              dhcpv6_dprintf(LOG_ERR,
-                             "validlifetime is less than preferlifetime",
-                             FNAME);
+              g_error("validlifetime is less than preferlifetime", FNAME);
               ABORT;
           }
       }
@@ -982,8 +961,9 @@ paradecl
                   ABORT;
           }
 
-          if ($2 < 0 || $2 > 255)
-              dhcpv6_dprintf(LOG_ERR, "bad server preference number", FNAME);
+          if ($2 < 0 || $2 > 255) {
+              g_error("bad server preference number", FNAME);
+          }
 
           currentscope->scope->server_pref = $2;
       }

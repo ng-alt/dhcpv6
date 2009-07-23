@@ -73,19 +73,19 @@ GHashTable *server6_hash_table = NULL;
 static gint _init_lease_hashes(void) {
     host_addr_hash_table = g_hash_table_new(NULL, NULL);
     if (!host_addr_hash_table) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
+        g_error("%s Couldn't create hash table", FNAME);
         return -1;
     }
 
     lease_hash_table = g_hash_table_new(NULL, NULL);
     if (!lease_hash_table) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
+        g_error("%s Couldn't create hash table", FNAME);
         return -1;
     }
 
     server6_hash_table = g_hash_table_new(NULL, NULL);
     if (!server6_hash_table) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "Couldn't create hash table", FNAME);
+        g_error("%s Couldn't create hash table", FNAME);
         return -1;
     }
 
@@ -97,7 +97,7 @@ static void _sync_lease(gpointer key, gpointer value, gpointer user_data) {
     FILE *sync_file = (FILE *) user_data;
 
     if (write_lease(lease, sync_file) < 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "write lease failed", FNAME);
+        g_error("%s write lease failed", FNAME);
     }
 
     return;
@@ -111,8 +111,7 @@ gint write_lease(const struct dhcp6_lease *lease_ptr, FILE *file) {
 
     if ((inet_ntop(AF_INET6, &lease_ptr->lease_addr.addr,
                    addr_str, sizeof(addr_str))) == 0) {
-        dhcpv6_dprintf(LOG_DEBUG, "%s" "inet_ntop %s", FNAME,
-                       strerror(errno));
+        g_debug("%s inet_ntop %s", FNAME, strerror(errno));
         return -1;
     }
 
@@ -137,8 +136,7 @@ gint write_lease(const struct dhcp6_lease *lease_ptr, FILE *file) {
     if (!IN6_IS_ADDR_UNSPECIFIED(&lease_ptr->linklocal)) {
         if ((inet_ntop(AF_INET6, &lease_ptr->linklocal, addr_str,
                        sizeof(struct in6_addr))) == 0) {
-            dhcpv6_dprintf(LOG_DEBUG, "%s" "inet_ntop %s", FNAME,
-                           strerror(errno));
+            g_debug("%s inet_ntop %s", FNAME, strerror(errno));
             return -1;
         }
 
@@ -164,14 +162,14 @@ gint write_lease(const struct dhcp6_lease *lease_ptr, FILE *file) {
     fprintf(file, "}\n");
 
     if (fflush(file) == EOF) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "write lease fflush failed %s",
-                       FNAME, strerror(errno));
+        g_message("%s write lease fflush failed %s",
+                  FNAME, strerror(errno));
         return -1;
     }
 
     if (fsync(fileno(file)) < 0) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "write lease fsync failed %s",
-                       FNAME, strerror(errno));
+        g_message("%s write lease fsync failed %s",
+                  FNAME, strerror(errno));
         return -1;
     }
 
@@ -184,7 +182,7 @@ FILE *sync_leases(FILE * file, const gchar *original, gchar *template) {
     fd = mkstemp(template);
 
     if (fd < 0 || (sync_file = fdopen(fd, "w")) == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "could not open sync file", FNAME);
+        g_error("%s could not open sync file", FNAME);
         return NULL;
     }
 
@@ -197,7 +195,7 @@ FILE *sync_leases(FILE * file, const gchar *original, gchar *template) {
             lv_next = TAILQ_NEXT(lv, link);
 
             if (write_lease(lv, sync_file) < 0) {
-                dhcpv6_dprintf(LOG_ERR, "%s" "write lease failed", FNAME);
+                g_error("%s write lease failed", FNAME);
             }
         }
     }
@@ -206,12 +204,12 @@ FILE *sync_leases(FILE * file, const gchar *original, gchar *template) {
     fclose(file);
 
     if (rename(template, original) < 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "Could not rename sync file", FNAME);
+        g_error("%s Could not rename sync file", FNAME);
         return NULL;
     }
 
     if ((file = fopen(original, "a+")) == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "could not open sync file", FNAME);
+        g_error("%s could not open sync file", FNAME);
         return NULL;
     }
 
@@ -230,23 +228,22 @@ FILE *init_leases(const gchar *name) {
     if (name != NULL) {
         file = fopen(name, "a+");
     } else {
-        dhcpv6_dprintf(LOG_ERR, "%s" "no lease file specified", FNAME);
+        g_error("%s no lease file specified", FNAME);
         return NULL;
     }
 
     if (!file) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "could not open lease file", FNAME);
+        g_error("%s could not open lease file", FNAME);
         return NULL;
     }
 
     if (stat(name, &stbuf)) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "could not stat lease file", FNAME);
+        g_error("%s could not stat lease file", FNAME);
         return NULL;
     }
 
     if (_init_lease_hashes() != 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "Could not initialize hash arrays",
-                       FNAME);
+        g_error("%s Could not initialize hash arrays", FNAME);
         return NULL;
     }
 
@@ -289,7 +286,7 @@ gint get_linklocal(const gchar *ifname, struct in6_addr *linklocal) {
     struct sockaddr *sd = 0;
 
     if (getifaddrs(&ifap) < 0) {
-        dhcpv6_dprintf(LOG_ERR, "getifaddrs error");
+        g_error("getifaddrs error");
         return -1;
     }
 

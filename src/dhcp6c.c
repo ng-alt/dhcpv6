@@ -111,7 +111,6 @@ struct dhcp6_list request_list;
 gchar *script = NULL;
 
 /* Static globals */
-static gint debug = 0;
 static u_long sig_flags = 0;
 static gchar *device = NULL;
 static gint num_device = 0;
@@ -168,7 +167,7 @@ static void _usage(gchar *name) {
             "    -I             Request only information from the server\n");
     fprintf(stdout,
             "    -f             Run client as a foreground process\n");
-    fprintf(stdout, "    -v             Verbose debugging output\n");
+    fprintf(stdout, "    -v             Verbose log output (include debug messages)\n");
     fprintf(stdout, "    -?             Display this screen\n");
     fprintf(stdout, "IANA is identiy association named address.\n");
     fprintf(stdout, "IAPD is identiy association prefix delegation.\n");
@@ -179,8 +178,8 @@ static void _usage(gchar *name) {
 static void _ev_set_state(struct dhcp6_event *ev, gint new_state) {
     gint old_state = ev->state;
 
-    dhcpv6_dprintf(LOG_DEBUG, "%s" "event %p xid %d state change %d -> %d",
-                   FNAME, ev, ev->xid, ev->state, new_state);
+    g_debug("%s event %p xid %d state change %d -> %d",
+            FNAME, ev, ev->xid, ev->state, new_state);
     ev->state = new_state;
     run_script(ev->ifp, old_state, new_state, ev->uuid);
     return;
@@ -206,21 +205,21 @@ static void _setup_check_timer(struct dhcp6_if *ifp) {
     d = DHCP6_CHECKLINK_TIME_UPCASE;
     timo.tv_sec = (long) d;
     timo.tv_usec = 0;
-    dhcpv6_dprintf(LOG_DEBUG, "set timer for checking link ...");
+    g_debug("set timer for checking link ...");
     dhcp6_set_timer(&timo, ifp->link_timer);
 
     if (ifp->dad_timer != NULL) {
         d = DHCP6_CHECKDAD_TIME;
         timo.tv_sec = (long) d;
         timo.tv_usec = 0;
-        dhcpv6_dprintf(LOG_DEBUG, "set timer for checking DAD ...");
+        g_debug("set timer for checking DAD ...");
         dhcp6_set_timer(&timo, ifp->dad_timer);
     }
 
     d = DHCP6_SYNCFILE_TIME;
     timo.tv_sec = (long) d;
     timo.tv_usec = 0;
-    dhcpv6_dprintf(LOG_DEBUG, "set timer for syncing file ...");
+    g_debug("set timer for syncing file ...");
     dhcp6_set_timer(&timo, ifp->sync_timer);
     return;
 }
@@ -228,7 +227,7 @@ static void _setup_check_timer(struct dhcp6_if *ifp) {
 static struct dhcp6_timer *_info_refresh_timo(void *arg) {
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
 
-    dhcpv6_dprintf(LOG_DEBUG, "%s" "information is refreshing...", FNAME);
+    g_debug("%s information is refreshing...", FNAME);
     dhcp6_remove_timer(ifp->info_refresh_timer);
     ifp->info_refresh_timer = NULL;
     client6_send_newstate(ifp, DHCP6S_INFOREQ);
@@ -251,15 +250,13 @@ static gint _set_info_refresh_timer(struct dhcp6_if *ifp, guint32 offered_irt) {
     }
 
     if (irt == DHCP6_DURATITION_INFINITE) {
-        dhcpv6_dprintf(LOG_DEBUG, "%s"
-                       "information would not be refreshed any more", FNAME);
+        g_debug("%s information would not be refreshed any more", FNAME);
         return 0;
     }
 
     if ((ifp->info_refresh_timer =
          dhcp6_add_timer(_info_refresh_timo, ifp)) == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for %s",
-                       FNAME, ifp->ifname);
+        g_error("%s failed to add a timer for %s", FNAME, ifp->ifname);
         return -1;
     }
 
@@ -272,9 +269,8 @@ static gint _set_info_refresh_timer(struct dhcp6_if *ifp, guint32 offered_irt) {
     timo.tv_sec = irt + (long) (rval / 1000000);
     timo.tv_usec = (long) rval % 1000000;
     dhcp6_set_timer(&timo, ifp->info_refresh_timer);
-    dhcpv6_dprintf(LOG_DEBUG, "%s"
-                   "information will be refreshed in %ld.%06ld [sec]",
-                   FNAME, timo.tv_sec, timo.tv_usec);
+    g_debug("%s information will be refreshed in %ld.%06ld [sec]",
+            FNAME, timo.tv_sec, timo.tv_usec);
 
     return 0;
 }
@@ -288,9 +284,7 @@ static gint _create_request_list(gint reboot) {
          cl = TAILQ_NEXT(cl, link)) {
         /* IANA, IAPD */
         if ((lv = malloc(sizeof(*lv))) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "%s"
-                           "failed to allocate memory for an ipv6 addr",
-                           FNAME);
+            g_error("%s failed to allocate memory for an ipv6 addr", FNAME);
             exit(1);
         }
 
@@ -303,8 +297,8 @@ static gint _create_request_list(gint reboot) {
         if (reboot && client6_iaidaddr.client6_info.type != IAPD &&
             (client6_request_flag & CLIENT6_CONFIRM_ADDR)) {
             if (client6_ifaddrconf(IFADDRCONF_ADD, &cl->lease_addr) != 0) {
-                dhcpv6_dprintf(LOG_INFO, "config address failed: %s",
-                               in6addr2str(&cl->lease_addr.addr, 0));
+                g_message("config address failed: %s",
+                          in6addr2str(&cl->lease_addr.addr, 0));
                 return -1;
             }
         }
@@ -322,11 +316,11 @@ static struct dhcp6_timer *_check_link_timo(void *arg) {
     struct dhcp6_list dad_list;
     struct dhcp6_listval *lv;
 
-    dhcpv6_dprintf(LOG_DEBUG, "enter checking link ...");
+    g_debug("enter checking link ...");
     strncpy(ifr.ifr_name, dhcp6_if->ifname, IFNAMSIZ);
 
     if (ioctl(nlsock, SIOCGIFFLAGS, &ifr) < 0) {
-        dhcpv6_dprintf(LOG_DEBUG, "ioctl SIOCGIFFLAGS failed");
+        g_debug("ioctl SIOCGIFFLAGS failed");
         goto settimer;
     }
 
@@ -345,8 +339,7 @@ static struct dhcp6_timer *_check_link_timo(void *arg) {
                 TAILQ_INIT(&dad_list);
 
                 if (dad_parse("/proc/net/if_inet6", &dad_list) < 0) {
-                    dhcpv6_dprintf(LOG_ERR,
-                                   "parse /proc/net/if_inet6 failed");
+                    g_error("parse /proc/net/if_inet6 failed");
                     goto settimer;
                 }
 
@@ -354,7 +347,7 @@ static struct dhcp6_timer *_check_link_timo(void *arg) {
                      lv; lv = TAILQ_NEXT(lv, link)) {
                     if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr,
                                            &ifp->linklocal)) {
-                        dprintf(LOG_DEBUG, "wait for the DAD completion");
+                        g_debug("wait for the DAD completion");
                         dhcp6_clear_list(&dad_list);
                         goto settimer;
                     }
@@ -375,11 +368,11 @@ static struct dhcp6_timer *_check_link_timo(void *arg) {
             client6_send_newstate(ifp, newstate);
         }
 
-        dhcpv6_dprintf(LOG_INFO, "interface is from down to up");
+        g_message("interface is from down to up");
         ifp->link_flag |= IFF_RUNNING;
         d = DHCP6_CHECKLINK_TIME_UPCASE;
     } else {
-        dhcpv6_dprintf(LOG_INFO, "interface is down");
+        g_message("interface is down");
         /* set flag_prev flag DOWN */
         ifp->link_flag &= ~IFF_RUNNING;
         d = DHCP6_CHECKLINK_TIME_DOWNCASE;
@@ -428,11 +421,11 @@ static struct dhcp6_timer *_check_dad_timo(void *arg) {
         goto end;
     }
 
-    dhcpv6_dprintf(LOG_DEBUG, "enter checking dad ...");
+    g_debug("enter checking dad ...");
     TAILQ_INIT(&dad_list);
 
     if (dad_parse("/proc/net/if_inet6", &dad_list) < 0) {
-        dhcpv6_dprintf(LOG_ERR, "parse /proc/net/if_inet6 failed");
+        g_error("parse /proc/net/if_inet6 failed");
         goto end;
     }
 
@@ -445,8 +438,7 @@ static struct dhcp6_timer *_check_dad_timo(void *arg) {
                 /* deconfigure the interface's the address assgined by dhcpv6 
                  */
                 if (dhcp6_remove_lease(cl) != 0) {
-                    dprintf(LOG_ERR,
-                            "remove duplicated address failed: %s",
+                    g_error("remove duplicated address failed: %s",
                             in6addr2str(&cl->lease_addr.addr, 0));
                 } else {
                     TAILQ_REMOVE(&dad_list, lv, link);
@@ -498,14 +490,13 @@ static gint _client6_ifinit(gchar *device) {
         }
 
         if (ifp->iaidinfo.iaid == 0) {
-            dhcpv6_dprintf(LOG_DEBUG, "%s"
-                           "interface %s iaid failed to be created",
-                           FNAME, ifp->ifname);
+            g_debug("%s interface %s iaid failed to be created",
+                    FNAME, ifp->ifname);
             return -1;
         }
 
-        dhcpv6_dprintf(LOG_DEBUG, "%s" "interface %s iaid is %u",
-                       FNAME, ifp->ifname, ifp->iaidinfo.iaid);
+        g_debug("%s interface %s iaid is %u", FNAME, ifp->ifname,
+                ifp->iaidinfo.iaid);
     }
 
     client6_iaidaddr.ifp = ifp;
@@ -525,7 +516,7 @@ static gint _client6_ifinit(gchar *device) {
         strcat(leasename, iaidstr);
 
         if ((client6_lease_file = init_leases(leasename)) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "%s" "failed to parse lease file", FNAME);
+            g_error("%s failed to parse lease file", FNAME);
             return -1;
         }
 
@@ -555,17 +546,15 @@ static gint _client6_ifinit(gchar *device) {
                      lv = TAILQ_NEXT(lv, link)) {
                     if (dhcp6_find_lease(&client6_iaidaddr,
                                          &lv->val_dhcp6addr) == NULL) {
-                        dhcpv6_dprintf(LOG_INFO, "this address %s is not"
-                                       " leased by this client",
-                                       in6addr2str(&lv->val_dhcp6addr.addr,
-                                                   0));
+                        g_message("this address %s is not leased by "
+                                  "this client",
+                                  in6addr2str(&lv->val_dhcp6addr.addr, 0));
                         return -1;
                     }
                 }
             }
         } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
-            dhcpv6_dprintf(LOG_INFO,
-                           "no ipv6 addresses are leased by client");
+            g_message("no ipv6 addresses are leased by client");
             return -1;
         }
     }
@@ -575,19 +564,18 @@ static gint _client6_ifinit(gchar *device) {
     /* get addrconf prefix from kernel */
     err = get_if_rainfo(ifp);
     if (err) {
-        dhcpv6_dprintf(LOG_ERR, "failed to get interface info via libnl: %d",
-                       err);
+        g_error("failed to get interface info via libnl: %d", err);
         return -1;
     }
 
     /* set up check link timer and sync file timer */
     if ((ifp->link_timer = dhcp6_add_timer(_check_link_timo, ifp)) < 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to create a timer", FNAME);
+        g_error("%s failed to create a timer", FNAME);
         return -1;
     }
 
     if ((ifp->sync_timer = dhcp6_add_timer(_check_lease_file_timo, ifp)) < 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to create a timer", FNAME);
+        g_error("%s failed to create a timer", FNAME);
         return -1;
     }
 
@@ -596,7 +584,7 @@ static gint _client6_ifinit(gchar *device) {
 
     /* create an event for the initial delay */
     if ((ev = dhcp6_create_event(ifp, DHCP6S_INIT)) == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to create an event", FNAME);
+        g_error("%s failed to create an event", FNAME);
         return -1;
     }
 
@@ -607,8 +595,7 @@ static gint _client6_ifinit(gchar *device) {
     TAILQ_INSERT_TAIL(&ifp->event_list, ev, link);
 
     if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for %s",
-                       FNAME, ifp->ifname);
+        g_error("%s failed to add a timer for %s", FNAME, ifp->ifname);
         return -1;
     }
 
@@ -634,11 +621,11 @@ static void _free_resources(struct dhcp6_if *ifp) {
     for (sp = TAILQ_FIRST(&client6_iaidaddr.lease_list); sp; sp = sp_next) {
         sp_next = TAILQ_NEXT(sp, link);
         if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0)
-            dhcpv6_dprintf(LOG_INFO, "%s" "deconfiging address %s failed",
-                           FNAME, in6addr2str(&sp->lease_addr.addr, 0));
+            g_message("%s deconfiging address %s failed",
+                      FNAME, in6addr2str(&sp->lease_addr.addr, 0));
     }
 
-    dhcpv6_dprintf(LOG_DEBUG, "%s" " remove all events on interface", FNAME);
+    g_debug("%s remove all events on interface", FNAME);
 
     /* cancel all outstanding events for each interface */
     for (ev = TAILQ_FIRST(&ifp->event_list); ev; ev = ev_next) {
@@ -649,8 +636,7 @@ static void _free_resources(struct dhcp6_if *ifp) {
     /* restore /etc/resolv.conf.dhcpv6.bak back to /etc/resolv.conf */
     if (!lstat(RESOLV_CONF_BAK_FILE, &buf)) {
         if (rename(RESOLV_CONF_BAK_FILE, _PATH_RESCONF)) {
-            dhcpv6_dprintf(LOG_ERR, "%s" " failed to backup resolv.conf",
-                           FNAME);
+            g_error("%s failed to backup resolv.conf", FNAME);
         }
     }
 
@@ -659,14 +645,14 @@ static void _free_resources(struct dhcp6_if *ifp) {
 
 static void _process_signals(void) {
     if ((sig_flags & SIGF_TERM)) {
-        dhcpv6_dprintf(LOG_INFO, FNAME "exiting");
+        g_message("%s exiting", FNAME);
         _free_resources(dhcp6_if);
         unlink(pidfile);
         exit(0);
     }
 
     if ((sig_flags & SIGF_HUP)) {
-        dhcpv6_dprintf(LOG_INFO, FNAME "restarting");
+        g_message("%s restarting", FNAME);
         _free_resources(dhcp6_if);
         _client6_ifinit(device);
     }
@@ -686,8 +672,7 @@ static struct dhcp6_event *_find_event_withid(struct dhcp6_if *ifp,
     struct dhcp6_event *ev;
 
     for (ev = TAILQ_FIRST(&ifp->event_list); ev; ev = TAILQ_NEXT(ev, link)) {
-        dhcpv6_dprintf(LOG_DEBUG, "%s" "ifp %p event %p id is %x",
-                       FNAME, ifp, ev, ev->xid);
+        g_debug("%s ifp %p event %p id is %x", FNAME, ifp, ev, ev->xid);
         if (ev->xid == xid)
             return ev;
     }
@@ -702,8 +687,7 @@ static struct dhcp6_serverinfo *_allocate_newserver(struct dhcp6_if *ifp,
 
     /* keep the server */
     if ((newserver = malloc(sizeof(*newserver))) == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "memory allocation failed for server",
-                       FNAME);
+        g_error("%s memory allocation failed for server", FNAME);
         return NULL;
     }
 
@@ -711,14 +695,14 @@ static struct dhcp6_serverinfo *_allocate_newserver(struct dhcp6_if *ifp,
     dhcp6_init_options(&newserver->optinfo);
 
     if (dhcp6_copy_options(&newserver->optinfo, optinfo)) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy options", FNAME);
+        g_error("%s failed to copy options", FNAME);
         free(newserver);
         return NULL;
     }
 
-    dhcpv6_dprintf(LOG_DEBUG, "%s" "new server DUID %s, len %d ",
-                   FNAME, duidstr(&newserver->optinfo.serverID),
-                   newserver->optinfo.serverID.duid_len);
+    g_debug("%s new server DUID %s, len %d ",
+            FNAME, duidstr(&newserver->optinfo.serverID),
+            newserver->optinfo.serverID.duid_len);
 
     if (optinfo->pref != DH6OPT_PREF_UNDEF) {
         newserver->pref = optinfo->pref;
@@ -751,30 +735,30 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
     gint prevstate = 0;
 
     /* find the corresponding event based on the received xid */
-    dhcpv6_dprintf(LOG_DEBUG, "%s" "reply message XID is (%x)",
-                   FNAME, ntohl(dh6->dh6_xid) & DH6_XIDMASK);
+    g_debug("%s reply message XID is (%x)",
+            FNAME, ntohl(dh6->dh6_xid) & DH6_XIDMASK);
     ev = _find_event_withid(ifp, ntohl(dh6->dh6_xid) & DH6_XIDMASK);
 
     if (ev == NULL) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "XID mismatch", FNAME);
+        g_message("%s XID mismatch", FNAME);
         return -1;
     }
 
     if (!(DHCP6S_VALID_REPLY(ev->state)) &&
         (ev->state != DHCP6S_SOLICIT ||
          !(optinfo->flags & DHCIFF_RAPID_COMMIT))) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "unexpected reply", FNAME);
+        g_message("%s unexpected reply", FNAME);
         return -1;
     }
 
     /* A Reply message must contain a Server ID option */
     if (optinfo->serverID.duid_len == 0) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "no server ID option", FNAME);
+        g_message("%s no server ID option", FNAME);
         return -1;
     }
 
-    dhcpv6_dprintf(LOG_DEBUG, "%s" "serverID is %s len is %d", FNAME,
-                   duidstr(&optinfo->serverID), optinfo->serverID.duid_len);
+    g_debug("%s serverID is %s len is %d", FNAME,
+            duidstr(&optinfo->serverID), optinfo->serverID.duid_len);
 
     /* get current server */
     switch (ev->state) {
@@ -800,12 +784,12 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
      * client implementation) must match ours.
      */
     if (optinfo->clientID.duid_len == 0) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "no client ID option", FNAME);
+        g_message("%s no client ID option", FNAME);
         return -1;
     }
 
     if (duidcmp(&optinfo->clientID, &client_duid)) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "client DUID mismatch", FNAME);
+        g_message("%s client DUID mismatch", FNAME);
         return -1;
     }
 
@@ -820,18 +804,18 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
      * [dhcpv6-26 Section 18.1.8]
      */
     if (optinfo->status_code != DH6OPT_STCODE_UNDEFINE) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "status code of message: %s",
-                       FNAME, dhcp6_stcodestr(optinfo->status_code));
+        g_message("%s status code of message: %s",
+                  FNAME, dhcp6_stcodestr(optinfo->status_code));
     }
 
     ia = ia_find_listval(&optinfo->ia_list,
                          _iatype_of_if(ifp), ifp->iaidinfo.iaid);
 
     if (ia == NULL) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "no IA option", FNAME);
+        g_message("%s no IA option", FNAME);
     } else if (ia->status_code != DH6OPT_STCODE_UNDEFINE) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "status code of IA: %s",
-                       FNAME, dhcp6_stcodestr(ia->status_code));
+        g_message("%s status code of IA: %s",
+                  FNAME, dhcp6_stcodestr(ia->status_code));
     }
 
     switch (optinfo->status_code) {
@@ -865,16 +849,14 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
             /* NotOnLink: 1. SOLICIT NoAddrAvail: Information Request */
             switch (ia->status_code) {
                 case DH6OPT_STCODE_NOTONLINK:
-                    dhcpv6_dprintf(LOG_DEBUG, "%s"
-                                   "got a NotOnLink reply for request/rapid commit,"
-                                   " sending solicit.", FNAME);
+                    g_debug("%s got a NotOnLink reply for request/rapid commit,"
+                            " sending solicit.", FNAME);
                     newstate = DHCP6S_SOLICIT;
                     break;
                 case DH6OPT_STCODE_NOADDRAVAIL:
                 case DH6OPT_STCODE_NOPREFIXAVAIL:
-                    dhcpv6_dprintf(LOG_DEBUG, "%s"
-                                   "got a NoAddrAvail reply for request/rapid commit,"
-                                   " sending inforeq.", FNAME);
+                    g_debug("%s got a NoAddrAvail reply for request/rapid "
+                            "commit, sending inforeq.", FNAME);
                     ia = NULL;
                     newstate = DHCP6S_INFOREQ;
                     break;
@@ -884,9 +866,8 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
                     if (!TAILQ_EMPTY(&ia->addr_list)) {
                         err = get_if_rainfo(ifp);
                         if (err) {
-                            dhcpv6_dprintf(LOG_ERR,
-                                           "failed to get interface info via libnl: %d",
-                                           err);
+                            g_error("failed to get interface info via "
+                                    "libnl: %d", err);
                             return -1;
                         }
 
@@ -895,9 +876,8 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
                         if (ifp->dad_timer == NULL &&
                             (ifp->dad_timer = dhcp6_add_timer(_check_dad_timo,
                                                               ifp)) < 0) {
-                            dhcpv6_dprintf(LOG_INFO, "%s"
-                                           "failed to create a timer for DAD",
-                                           FNAME);
+                            g_message("%s failed to create a timer for DAD",
+                                      FNAME);
                         }
 
                         _setup_check_timer(ifp);
@@ -922,9 +902,8 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
             switch (ia->status_code) {
                 case DH6OPT_STCODE_NOBINDING:
                     newstate = DHCP6S_REQUEST;
-                    dhcpv6_dprintf(LOG_DEBUG, "%s"
-                                   "got a NoBinding reply, sending request.",
-                                   FNAME);
+                    g_debug("%s got a NoBinding reply, sending request.",
+                            FNAME);
                     dhcp6_remove_iaidaddr(&client6_iaidaddr);
                     break;
                 case DH6OPT_STCODE_NOADDRAVAIL:
@@ -954,9 +933,8 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
                 case DH6OPT_STCODE_NOTONLINK:
                 case DH6OPT_STCODE_NOBINDING:
                 case DH6OPT_STCODE_NOADDRAVAIL:
-                    dhcpv6_dprintf(LOG_DEBUG, "%s"
-                                   "got a NotOnLink reply for confirm, sending solicit.",
-                                   FNAME);
+                    g_debug("%s got a NotOnLink reply for confirm, "
+                            "sending solicit.", FNAME);
                     /* remove event data list */
                     free_servers(ifp);
                     /* remove the address which is judged NotOnLink */
@@ -966,20 +944,15 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
                 case DH6OPT_STCODE_SUCCESS:
                 case DH6OPT_STCODE_UNDEFINE:
                     /* XXX: set up renew/rebind timer */
-                    dhcpv6_dprintf(LOG_DEBUG,
-                                   "%s" "got an expected reply for confirm",
-                                   FNAME);
+                    g_debug("%s got an expected reply for confirm", FNAME);
                     ftime(&now);
                     client6_iaidaddr.state = ACTIVE;
 
                     if ((client6_iaidaddr.timer =
                          dhcp6_add_timer(dhcp6_iaidaddr_timo,
                                          &client6_iaidaddr)) == NULL) {
-                        dhcpv6_dprintf(LOG_ERR, "%s"
-                                       "failed to add a timer for iaid %u",
-                                       FNAME,
-                                       client6_iaidaddr.client6_info.
-                                       iaidinfo.iaid);
+                        g_error("%s failed to add a timer for iaid %u", FNAME,
+                                client6_iaidaddr.client6_info.  iaidinfo.iaid);
                         return -1;
                     }
 
@@ -1014,9 +987,8 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
                         ifp->dad_timer == NULL &&
                         (ifp->dad_timer =
                          dhcp6_add_timer(_check_dad_timo, ifp)) < 0) {
-                        dhcpv6_dprintf(LOG_INFO,
-                                       "%s" "failed to create a timer for "
-                                       " DAD", FNAME);
+                        g_message("%s failed to create a timer for  DAD",
+                                  FNAME);
                     }
 
                     _setup_check_timer(ifp);
@@ -1029,17 +1001,15 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
             break;
         case DHCP6S_DECLINE:
             /* send REQUEST message to server with none decline address */
-            dhcpv6_dprintf(LOG_DEBUG, "%s"
-                           "got an expected reply for decline, sending request.",
-                           FNAME);
+            g_debug("%s got an expected reply for decline, sending request.",
+                    FNAME);
             _create_request_list(0);
 
             /* remove event data list */
             newstate = DHCP6S_REQUEST;
             break;
         case DHCP6S_RELEASE:
-            dhcpv6_dprintf(LOG_INFO, "%s" "got an expected release, exit.",
-                           FNAME);
+            g_message("%s got an expected release, exit.", FNAME);
             dhcp6_remove_event(ev);
             exit(0);
         case DHCP6S_INFOREQ:
@@ -1055,8 +1025,7 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
     if (newstate) {
         client6_send_newstate(ifp, newstate);
     } else {
-        dhcpv6_dprintf(LOG_DEBUG, "%s" "got an expected reply, sleeping.",
-                       FNAME);
+        g_debug("%s got an expected reply, sleeping.", FNAME);
     }
 
     dhcp6_clear_list(&request_list);
@@ -1073,33 +1042,33 @@ static gint _client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
     /* find the corresponding event based on the received xid */
     ev = _find_event_withid(ifp, ntohl(dh6->dh6_xid) & DH6_XIDMASK);
     if (ev == NULL) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "XID mismatch", FNAME);
+        g_message("%s XID mismatch", FNAME);
         return -1;
     }
 
     /* if server policy doesn't allow rapid commit if (ev->state !=
      * DHCP6S_SOLICIT || (ifp->send_flags & DHCIFF_RAPID_COMMIT)) { */
     if (ev->state != DHCP6S_SOLICIT) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "unexpected advertise", FNAME);
+        g_message("%s unexpected advertise", FNAME);
         return -1;
     }
 
     /* packet validation based on Section 15.3 of dhcpv6-26. */
     if (optinfo0->serverID.duid_len == 0) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "no server ID option", FNAME);
+        g_message("%s no server ID option", FNAME);
         return -1;
     } else {
-        dhcpv6_dprintf(LOG_DEBUG, "%s" "server ID: %s, pref=%2x", FNAME,
-                       duidstr(&optinfo0->serverID), optinfo0->pref);
+        g_debug("%s server ID: %s, pref=%2x", FNAME,
+                duidstr(&optinfo0->serverID), optinfo0->pref);
     }
 
     if (optinfo0->clientID.duid_len == 0) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "no client ID option", FNAME);
+        g_message("%s no client ID option", FNAME);
         return -1;
     }
 
     if (duidcmp(&optinfo0->clientID, &client_duid)) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "client DUID mismatch", FNAME);
+        g_message("%s client DUID mismatch", FNAME);
         return -1;
     }
 
@@ -1107,8 +1076,8 @@ static gint _client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
      * The client MUST ignore any Advertise message that includes a Status
      * Code option containing any error.
      */
-    dhcpv6_dprintf(LOG_INFO, "%s" "status code: %s",
-                   FNAME, dhcp6_stcodestr(optinfo0->status_code));
+    g_message("%s status code: %s", FNAME,
+              dhcp6_stcodestr(optinfo0->status_code));
     if (optinfo0->status_code != DH6OPT_STCODE_SUCCESS &&
         optinfo0->status_code != DH6OPT_STCODE_UNDEFINE) {
         return -1;
@@ -1116,8 +1085,8 @@ static gint _client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
 
     /* ignore the server if it is known */
     if (_find_server(ifp, &optinfo0->serverID)) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "duplicated server (ID: %s)",
-                       FNAME, duidstr(&optinfo0->serverID));
+        g_message("%s duplicated server (ID: %s)",
+                  FNAME, duidstr(&optinfo0->serverID));
         return -1;
     }
 
@@ -1157,9 +1126,8 @@ static gint _client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
             timo.tv_sec = timo.tv_usec = 0;
         }
 
-        dhcpv6_dprintf(LOG_DEBUG, "%s" "reset timer for %s to %d.%06d",
-                       FNAME, ifp->ifname,
-                       (int) timo.tv_sec, (int) timo.tv_usec);
+        g_debug("%s reset timer for %s to %d.%06d", FNAME, ifp->ifname,
+                (gint) timo.tv_sec, (gint) timo.tv_usec);
 
         dhcp6_set_timer(&timo, ev->timer);
     }
@@ -1201,7 +1169,7 @@ static void _client6_recv(void) {
     mhdr.msg_controllen = sizeof(cmsgbuf);
 
     if ((len = recvmsg(iosock, &mhdr, 0)) < 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "recvmsg: %s", FNAME, strerror(errno));
+        g_error("%s recvmsg: %s", FNAME, strerror(errno));
         return;
     }
 
@@ -1216,26 +1184,23 @@ static void _client6_recv(void) {
     }
 
     if (pi == NULL) {
-        dhcpv6_dprintf(LOG_NOTICE, "%s" "failed to get packet info", FNAME);
+        g_message("%s failed to get packet info", FNAME);
         return;
     }
 
     if ((ifp = find_ifconfbyid(pi->ipi6_ifindex)) == NULL) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "unexpected interface (%d)", FNAME,
-                       (unsigned int) pi->ipi6_ifindex);
+        g_message("%s unexpected interface (%d)", FNAME,
+                  (guint) pi->ipi6_ifindex);
         return;
     }
 
-    dhcpv6_dprintf(LOG_DEBUG,
-                   "receive packet info ifname %s, addr is %s scope id is %d",
-                   ifp->ifname, in6addr2str(&pi->ipi6_addr, 0),
-                   pi->ipi6_ifindex);
+    g_debug("receive packet info ifname %s, addr is %s scope id is %d",
+            ifp->ifname, in6addr2str(&pi->ipi6_addr, 0), pi->ipi6_ifindex);
     dh6 = (struct dhcp6 *) rbuf;
-    dhcpv6_dprintf(LOG_DEBUG, "%s" "receive %s from %s scope id %d %s", FNAME,
-                   dhcp6msgstr(dh6->dh6_msgtype),
-                   addr2str((struct sockaddr *) &from, sizeof(from)),
-                   ((struct sockaddr_in6 *) &from)->sin6_scope_id,
-                   ifp->ifname);
+    g_debug("%s receive %s from %s scope id %d %s", FNAME,
+            dhcp6msgstr(dh6->dh6_msgtype),
+            addr2str((struct sockaddr *) &from, sizeof(from)),
+            ((struct sockaddr_in6 *) &from)->sin6_scope_id, ifp->ifname);
 
     /* get options */
     dhcp6_init_options(&optinfo);
@@ -1243,7 +1208,7 @@ static void _client6_recv(void) {
     ep = (struct dhcp6opt *) ((gchar *) dh6 + len);
 
     if (dhcp6_get_options(p, ep, &optinfo) < 0) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "failed to parse options", FNAME);
+        g_message("%s failed to parse options", FNAME);
     }
 
     switch (dh6->dh6_msgtype) {
@@ -1254,10 +1219,9 @@ static void _client6_recv(void) {
             (void) _client6_recvreply(ifp, dh6, len, &optinfo);
             break;
         default:
-            dhcpv6_dprintf(LOG_INFO,
-                           "%s" "received an unexpected message (%s) "
-                           "from %s", FNAME, dhcp6msgstr(dh6->dh6_msgtype),
-                           addr2str((struct sockaddr *) &from, sizeof(from)));
+            g_message("%s received an unexpected message (%s) from %s",
+                      FNAME, dhcp6msgstr(dh6->dh6_msgtype),
+                      addr2str((struct sockaddr *) &from, sizeof(from)));
             break;
     }
 
@@ -1284,8 +1248,7 @@ static void _client6_mainloop(void) {
         switch (ret) {
             case -1:
                 if (errno != EINTR) {
-                    dhcpv6_dprintf(LOG_ERR, "%s" "select: %s",
-                                   FNAME, strerror(errno));
+                    g_error("%s select: %s", FNAME, strerror(errno));
                     return;
                 }
 
@@ -1310,8 +1273,8 @@ static struct dhcp6_serverinfo *_select_server(struct dhcp6_if *ifp) {
      */
     for (s = ifp->servers; s; s = s->next) {
         if (s->active) {
-            dhcpv6_dprintf(LOG_DEBUG, "%s" "picked a server (ID: %s)",
-                           FNAME, duidstr(&s->optinfo.serverID));
+            g_debug("%s picked a server (ID: %s)",
+                    FNAME, duidstr(&s->optinfo.serverID));
             return s;
         }
     }
@@ -1320,7 +1283,7 @@ static struct dhcp6_serverinfo *_select_server(struct dhcp6_if *ifp) {
 }
 
 static void _client6_signal(gint sig) {
-    dhcpv6_dprintf(LOG_INFO, FNAME "received a signal (%d)", sig);
+    g_message("%s received a signal (%d)", FNAME, sig);
 
     switch (sig) {
         case SIGTERM:
@@ -1346,8 +1309,7 @@ static void _setup_interface(gchar *ifname) {
 
     /* open a socket to watch the off-on link for confirm messages */
     if ((nlsock == -1) && ((nlsock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "open a socket: %s", FNAME,
-                       strerror(errno));
+        g_error("%s open a socket: %s", FNAME, strerror(errno));
         return;
     }
 
@@ -1355,20 +1317,19 @@ static void _setup_interface(gchar *ifname) {
     strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
 
     if (ioctl(nlsock, SIOCGIFFLAGS, &ifr) < 0) {
-        dhcpv6_dprintf(LOG_ERR, "ioctl SIOCGIFFLAGS failed");
+        g_error("ioctl SIOCGIFFLAGS failed");
         return;
     }
 
     while ((ifr.ifr_flags & (IFF_UP | IFF_RUNNING)) != (IFF_UP | IFF_RUNNING)) {
         if (retries++ > 1) {
-            dhcpv6_dprintf(LOG_INFO,
-                           "NIC is not connected to the network, please connect it.");
+            g_message("NIC is not connected to the network, please connect it.");
             return;
         }
 
         ifr.ifr_flags |= (IFF_UP | IFF_RUNNING);
         if (ioctl(nlsock, SIOCSIFFLAGS, &ifr) < 0) {
-            dhcpv6_dprintf(LOG_ERR, "ioctl SIOCSIFFLAGS failed");
+            g_error("ioctl SIOCSIFFLAGS failed");
             return;
         }
 
@@ -1382,7 +1343,7 @@ static void _setup_interface(gchar *ifname) {
         strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
 
         if (ioctl(nlsock, SIOCGIFFLAGS, &ifr) < 0) {
-            dhcpv6_dprintf(LOG_ERR, "ioctl SIOCGIFFLAGS failed");
+            g_error("ioctl SIOCGIFFLAGS failed");
             return;
         }
     }
@@ -1411,13 +1372,13 @@ gint client6_init(gchar *device) {
 
     ifidx = if_nametoindex(device);
     if (ifidx == 0) {
-        dhcpv6_dprintf(LOG_ERR, "if_nametoindex(%s)", device);
+        g_error("if_nametoindex(%s)", device);
         return -1;
     }
 
     /* get our DUID */
     if (get_duid(duidfile, device, &client_duid)) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to get a DUID", FNAME);
+        g_error("%s failed to get a DUID", FNAME);
         return -1;
     }
 
@@ -1429,7 +1390,7 @@ gint client6_init(gchar *device) {
         return -1;
     }
 
-    dhcpv6_dprintf(LOG_DEBUG, "link local addr is %s", linklocal);
+    g_debug("link local addr is %s", linklocal);
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = PF_INET6;
@@ -1439,36 +1400,33 @@ gint client6_init(gchar *device) {
     error = getaddrinfo(linklocal, DH6PORT_DOWNSTREAM, &hints, &res);
 
     if (error) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
-                       FNAME, strerror(error));
+        g_error("%s getaddrinfo: %s", FNAME, strerror(error));
         return -1;
     }
 
     iosock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (iosock < 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "socket", FNAME);
+        g_error("%s socket", FNAME);
         return -1;
     }
 #ifdef IPV6_RECVPKTINFO
     if (setsockopt(iosock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on,
                    sizeof(on)) < 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s"
-                       "setsockopt(inbound, IPV6_RECVPKTINFO): %s",
-                       FNAME, strerror(errno));
+        g_error("%s setsockopt(inbound, IPV6_RECVPKTINFO): %s",
+                FNAME, strerror(errno));
         return -1;
     }
 #else
     if (setsockopt(iosock, IPPROTO_IPV6, IPV6_PKTINFO, &on, sizeof(on)) < 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s"
-                       "setsockopt(inbound, IPV6_PKTINFO): %s",
-                       FNAME, strerror(errno));
+        g_error("%s setsockopt(inbound, IPV6_PKTINFO): %s",
+                FNAME, strerror(errno));
         return -1;
     }
 #endif
 
     ((struct sockaddr_in6 *) (res->ai_addr))->sin6_scope_id = ifidx;
-    dhcpv6_dprintf(LOG_DEBUG, "res addr is %s/%d",
-                   addr2str(res->ai_addr, res->ai_addrlen), res->ai_addrlen);
+    g_debug("res addr is %s/%d", addr2str(res->ai_addr, res->ai_addrlen),
+            res->ai_addrlen);
 
     /* 
      * If the interface has JUST been brought up, the kernel may not have
@@ -1495,7 +1453,7 @@ gint client6_init(gchar *device) {
     } while ((retry - now) < 5);
 
     if (bound < 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "bind: %s", FNAME, strerror(-bound));
+        g_error("%s bind: %s", FNAME, strerror(-bound));
         return -1;
     }
 
@@ -1506,16 +1464,14 @@ gint client6_init(gchar *device) {
     error = getaddrinfo(linklocal, DH6PORT_UPSTREAM, &hints, &res);
 
     if (error) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
-                       FNAME, gai_strerror(error));
+        g_error("%s getaddrinfo: %s", FNAME, gai_strerror(error));
         return -1;
     }
 
     if (setsockopt(iosock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
                    &ifidx, sizeof(ifidx)) < 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s"
-                       "setsockopt(iosock, IPV6_MULTICAST_IF): %s",
-                       FNAME, strerror(errno));
+        g_error("%s setsockopt(iosock, IPV6_MULTICAST_IF): %s",
+                FNAME, strerror(errno));
         return -1;
     }
 
@@ -1528,8 +1484,7 @@ gint client6_init(gchar *device) {
     error = getaddrinfo(DH6ADDR_ALLAGENT, DH6PORT_UPSTREAM, &hints, &res);
 
     if (error) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
-                       FNAME, gai_strerror(error));
+        g_error("%s getaddrinfo: %s", FNAME, gai_strerror(error));
         return -1;
     }
 
@@ -1540,28 +1495,24 @@ gint client6_init(gchar *device) {
 
     /* client interface configuration */
     if ((ifp = find_ifconfbyname(device)) == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "interface %s not configured",
-                       FNAME, device);
+        g_error("%s interface %s not configured", FNAME, device);
         return -1;
     }
 
     ifp->outsock = iosock;
 
     if (signal(SIGHUP, _client6_signal) == SIG_ERR) {
-        dhcpv6_dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
-                       FNAME, strerror(errno));
+        g_warning("%s failed to set signal: %s", FNAME, strerror(errno));
         return -1;
     }
 
     if (signal(SIGTERM | SIGKILL, _client6_signal) == SIG_ERR) {
-        dhcpv6_dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
-                       FNAME, strerror(errno));
+        g_warning("%s failed to set signal: %s", FNAME, strerror(errno));
         return -1;
     }
 
     if (signal(SIGINT, _client6_signal) == SIG_ERR) {
-        dhcpv6_dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
-                       FNAME, strerror(errno));
+        g_warning("%s failed to set signal: %s", FNAME, strerror(errno));
         return -1;
     }
 
@@ -1643,8 +1594,8 @@ gint get_if_rainfo(struct dhcp6_if *ifp) {
                 return 6;
             }
 
-            dhcpv6_dprintf(LOG_DEBUG, "get prefix address %s", buf);
-            dhcpv6_dprintf(LOG_DEBUG, "get prefix plen %d", rainfo->plen);
+            g_debug("get prefix address %s", buf);
+            g_debug("get prefix plen %d", rainfo->plen);
 
             if (ifp->ralist == NULL) {
                 ifp->ralist = rainfo;
@@ -1722,7 +1673,7 @@ void client6_send(struct dhcp6_event *ev) {
             break;
         case DHCP6S_REQUEST:
             if (ifp->current_server == NULL) {
-                dhcpv6_dprintf(LOG_ERR, "%s" "assumption failure", FNAME);
+                g_error("%s assumption failure", FNAME);
                 return;
             }
 
@@ -1730,7 +1681,7 @@ void client6_send(struct dhcp6_event *ev) {
             break;
         case DHCP6S_RENEW:
             if (ifp->current_server == NULL) {
-                dhcpv6_dprintf(LOG_ERR, "%s" "assumption failure", FNAME);
+                g_error("%s assumption failure", FNAME);
                 return;
             }
 
@@ -1738,7 +1689,7 @@ void client6_send(struct dhcp6_event *ev) {
             break;
         case DHCP6S_DECLINE:
             if (ifp->current_server == NULL) {
-                dhcpv6_dprintf(LOG_ERR, "%s" "assumption failure", FNAME);
+                g_error("%s assumption failure", FNAME);
                 return;
             }
 
@@ -1757,8 +1708,7 @@ void client6_send(struct dhcp6_event *ev) {
             dh6->dh6_msgtype = DH6_RELEASE;
             break;
         default:
-            dhcpv6_dprintf(LOG_ERR, "%s" "unexpected state %d", FNAME,
-                           ev->state);
+            g_error("%s unexpected state %d", FNAME, ev->state);
             return;
     }
 
@@ -1785,9 +1735,8 @@ void client6_send(struct dhcp6_event *ev) {
          * retransmissions of a message. [dhcpv6-26 15.1]
          */
         ev->xid = random() & DH6_XIDMASK;
-        dhcpv6_dprintf(LOG_DEBUG,
-                       "%s" "ifp %p event %p a new XID (%x) is generated",
-                       FNAME, ifp, ev, ev->xid);
+        g_debug("%s ifp %p event %p a new XID (%x) is generated",
+                FNAME, ifp, ev, ev->xid);
     } else {
         guint etime;
 
@@ -1815,13 +1764,12 @@ void client6_send(struct dhcp6_event *ev) {
                 return;
             }
 
-            dhcpv6_dprintf(LOG_DEBUG, "current server ID %s",
-                           duidstr(&ifp->current_server->optinfo.serverID));
+            g_debug("current server ID %s",
+                    duidstr(&ifp->current_server->optinfo.serverID));
 
             if (duidcpy(&optinfo.serverID,
                         &ifp->current_server->optinfo.serverID)) {
-                dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy server ID",
-                               FNAME);
+                g_error("%s failed to copy server ID", FNAME);
                 goto end;
             }
 
@@ -1829,8 +1777,7 @@ void client6_send(struct dhcp6_event *ev) {
         case DHCP6S_RELEASE:
             if (duidcpy(&optinfo.serverID,
                         &client6_iaidaddr.client6_info.serverid)) {
-                dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy server ID",
-                               FNAME);
+                g_error("%s failed to copy server ID", FNAME);
                 goto end;
             }
 
@@ -1839,20 +1786,19 @@ void client6_send(struct dhcp6_event *ev) {
 
     /* client ID */
     if (duidcpy(&optinfo.clientID, &client_duid)) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy client ID", FNAME);
+        g_error("%s failed to copy client ID", FNAME);
         goto end;
     }
 
     /* save DUID now for persistent DUID (e.g., if client reboots) */
     if (save_duid(duidfile, device, &client_duid)) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to save client ID", FNAME);
+        g_error("%s failed to save client ID", FNAME);
         goto end;
     }
 
     /* option request options */
     if (dhcp6_copy_list(&optinfo.reqopt_list, &ifp->reqopt_list)) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to copy requested options",
-                       FNAME);
+        g_error("%s failed to copy requested options", FNAME);
         goto end;
     }
 
@@ -1861,9 +1807,7 @@ void client6_send(struct dhcp6_event *ev) {
 
         if (dhcp6_add_listval(&optinfo.reqopt_list, &opttype,
                               DHCP6_LISTVAL_NUM) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "%s"
-                           "failed to copy infomation refresh time option",
-                           FNAME);
+            g_error("%s failed to copy infomation refresh time option", FNAME);
             goto end;
         }
     }
@@ -1894,8 +1838,7 @@ void client6_send(struct dhcp6_event *ev) {
             if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
                 memcpy(&ia->iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
                        sizeof(ia->iaidinfo));
-                dhcpv6_dprintf(LOG_DEBUG, "%s IAID is %u", FNAME,
-                               ia->iaidinfo.iaid);
+                g_debug("%s IAID is %u", FNAME, ia->iaidinfo.iaid);
                 ia->type = _iatype_of_if(ifp);
             }
 
@@ -1933,7 +1876,7 @@ void client6_send(struct dhcp6_event *ev) {
                 }
             } else {
                 if (ev->state == DHCP6S_RELEASE) {
-                    dhcpv6_dprintf(LOG_INFO, "release empty address list");
+                    g_message("release empty address list");
                     return;
                 }
                 /* XXX: allow the other emtpy list ?? */
@@ -1941,7 +1884,7 @@ void client6_send(struct dhcp6_event *ev) {
 
             if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
                 if (dhcp6_update_iaidaddr(&optinfo, ia, ADDR_REMOVE)) {
-                    dhcpv6_dprintf(LOG_INFO, "client release failed");
+                    g_message("client release failed");
                     return;
                 }
             }
@@ -1955,7 +1898,7 @@ void client6_send(struct dhcp6_event *ev) {
     if ((optlen = dhcp6_set_options((struct dhcp6opt *) (dh6 + 1),
                                     (struct dhcp6opt *) (buf + sizeof(buf)),
                                     &optinfo)) < 0) {
-        dhcpv6_dprintf(LOG_INFO, "%s" "failed to construct options", FNAME);
+        g_message("%s failed to construct options", FNAME);
         goto end;
     }
 
@@ -1987,8 +1930,7 @@ void client6_send(struct dhcp6_event *ev) {
                                 DH6PORT_UPSTREAM, &hints, &res);
 
                 if (error) {
-                    dhcpv6_dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
-                                   FNAME, gai_strerror(error));
+                    g_error("%s getaddrinfo: %s", FNAME, gai_strerror(error));
                     return;
                 }
 
@@ -2006,20 +1948,18 @@ void client6_send(struct dhcp6_event *ev) {
     }
 
     dst.sin6_scope_id = ifp->linkid;
-    dhcpv6_dprintf(LOG_DEBUG, "send dst if %s addr is %s scope id is %d",
-                   ifp->ifname, addr2str((struct sockaddr *) &dst, salen),
-                   ifp->linkid);
+    g_debug("send dst if %s addr is %s scope id is %d",
+            ifp->ifname, addr2str((struct sockaddr *) &dst, salen),
+            ifp->linkid);
 
-    if (sendto
-        (ifp->outsock, buf, len, MSG_DONTROUTE, (struct sockaddr *) &dst,
-         sizeof(dst)) == -1) {
-        dhcpv6_dprintf(LOG_ERR, FNAME "transmit failed: %s", strerror(errno));
+    if (sendto(ifp->outsock, buf, len, MSG_DONTROUTE,
+               (struct sockaddr *) &dst, sizeof(dst)) == -1) {
+        g_error("%s transmit failed: %s", FNAME, strerror(errno));
         goto end;
     }
 
-    dhcpv6_dprintf(LOG_DEBUG, "%s" "send %s to %s", FNAME,
-                   dhcp6msgstr(dh6->dh6_msgtype),
-                   addr2str((struct sockaddr *) &dst, salen));
+    g_debug("%s send %s to %s", FNAME, dhcp6msgstr(dh6->dh6_msgtype),
+            addr2str((struct sockaddr *) &dst, salen));
 
 end:
     dhcp6_clear_options(&optinfo);
@@ -2032,8 +1972,8 @@ void free_servers(struct dhcp6_if *ifp) {
     /* free all servers we've seen so far */
     for (sp = ifp->servers; sp; sp = sp_next) {
         sp_next = sp->next;
-        dhcpv6_dprintf(LOG_DEBUG, "%s" "removing server (ID: %s)",
-                       FNAME, duidstr(&sp->optinfo.serverID));
+        g_debug("%s removing server (ID: %s)",
+                FNAME, duidstr(&sp->optinfo.serverID));
         dhcp6_clear_options(&sp->optinfo);
         free(sp);
     }
@@ -2047,15 +1987,14 @@ gint client6_send_newstate(struct dhcp6_if *ifp, gint state) {
     struct dhcp6_event *ev;
 
     if ((ev = dhcp6_create_event(ifp, state)) == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to create an event", FNAME);
+        g_error("%s failed to create an event", FNAME);
         return -1;
     }
 
     run_script(ifp, state, ev->state, ev->uuid);
 
     if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to add a timer for %s",
-                       FNAME, ifp->ifname);
+        g_error("%s failed to add a timer for %s", FNAME, ifp->ifname);
         free(ev);
         return -1;
     }
@@ -2088,24 +2027,21 @@ void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
 
     /* dhcpv6_old_state */
     if (!g_setenv(OLD_STATE, dhcp6msgstr(old_state), TRUE)) {
-        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
-                       OLD_STATE);
+        g_error("could not set %s environment variable", OLD_STATE);
     } else {
         envvars = g_slist_append(envvars, OLD_STATE);
     }
 
     /* dhcpv6_new_state */
     if (!g_setenv(NEW_STATE, dhcp6msgstr(new_state), TRUE)) {
-        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
-                       NEW_STATE);
+        g_error("could not set %s environment variable", NEW_STATE);
     } else {
         envvars = g_slist_append(envvars, NEW_STATE);
     }
 
     /* dhcpv6_interface_name */
     if (!g_setenv(IFACE_NAME, ifp->ifname, TRUE)) {
-        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
-                       IFACE_NAME);
+        g_error("could not set %s environment variable", IFACE_NAME);
     } else {
         envvars = g_slist_append(envvars, IFACE_NAME);
     }
@@ -2115,26 +2051,23 @@ void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
     g_string_printf(tmp, "%u", ifp->ifid);
 
     if (!g_setenv(IFACE_INDEX, tmp->str, TRUE)) {
-        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
-                       IFACE_INDEX);
+        g_error("could not set %s environment variable", IFACE_INDEX);
     } else {
         envvars = g_slist_append(envvars, IFACE_INDEX);
     }
 
     if (g_string_free(tmp, TRUE) != NULL) {
-        dhcpv6_dprintf(LOG_ERR, "erroring releasing temporary GString");
+        g_error("erroring releasing temporary GString");
     }
 
     /* dhcpv6_linklocal_address */
     memset(&tmpaddr, '\0', sizeof(tmpaddr));
     inet_ntop(AF_INET6, &ifp->linklocal, tmpaddr, sizeof(ifp->linklocal));
     if (tmpaddr == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "%s line %d: %s", __func__, __LINE__,
-                       strerror(errno));
+        g_error("%s line %d: %s", __func__, __LINE__, strerror(errno));
     } else {
         if (!g_setenv(LINKLOCAL_ADDR, tmpaddr, TRUE)) {
-            dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
-                           LINKLOCAL_ADDR);
+            g_error("could not set %s environment variable", LINKLOCAL_ADDR);
         } else {
             envvars = g_slist_append(envvars, LINKLOCAL_ADDR);
         }
@@ -2144,14 +2077,13 @@ void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
     tmp = dhcp6_options2str(&ifp->reqopt_list);
 
     if (!g_setenv(REQUESTED_OPTIONS, tmp->str, TRUE)) {
-        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
-                       REQUESTED_OPTIONS);
+        g_error("could not set %s environment variable", REQUESTED_OPTIONS);
     } else {
         envvars = g_slist_append(envvars, REQUESTED_OPTIONS);
     }
 
     if (g_string_free(tmp, TRUE) != NULL) {
-        dhcpv6_dprintf(LOG_ERR, "erroring releasing temporary GString");
+        g_error("erroring releasing temporary GString");
     }
 
     /*
@@ -2181,7 +2113,7 @@ void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
     }
 
     if (fail) {
-        dhcpv6_dprintf(LOG_ERR, "error running %s", script);
+        g_error("error running %s", script);
         fail = FALSE;
     }
 
@@ -2205,7 +2137,7 @@ struct dhcp6_timer *client6_timo(void *arg) {
         (ev->max_retrans_dur && (now.tv_sec - ev->start_time.tv_sec)
          >= ev->max_retrans_dur)) {
         /* XXX: check up the duration time for renew & rebind */
-        dhcpv6_dprintf(LOG_INFO, "%s" "no responses were received", FNAME);
+        g_message("%s no responses were received", FNAME);
         dhcp6_remove_event(ev); /* XXX: should free event data? */
         return NULL;
     }
@@ -2260,8 +2192,7 @@ struct dhcp6_timer *client6_timo(void *arg) {
 
                 if (ifp->current_server == NULL) {
                     /* this should not happen! */
-                    dhcpv6_dprintf(LOG_ERR, "%s" "can't find a server",
-                                   FNAME);
+                    g_error("%s can't find a server", FNAME);
                     return NULL;
                 }
 
@@ -2287,9 +2218,8 @@ struct dhcp6_timer *client6_timo(void *arg) {
             if (!TAILQ_EMPTY(&request_list)) {
                 client6_send(ev);
             } else {
-                dhcpv6_dprintf(LOG_INFO, "%s"
-                               "all information to be updated were canceled",
-                               FNAME);
+                g_message("%s all information to be updated were canceled",
+                          FNAME);
                 dhcp6_remove_event(ev);
                 return NULL;
             }
@@ -2309,6 +2239,8 @@ gint main(gint argc, gchar **argv, gchar **envp) {
     gchar *conffile = DHCP6C_CONF;
     FILE *pidfp;
     gchar *addr;
+    gboolean verbose = FALSE;
+    log_properties_t log_props;
 
     pid = getpid();
     srandom(time(NULL) & pid);
@@ -2318,7 +2250,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
         switch (ch) {
             case 'p':
                 if (strlen(optarg) >= MAXPATHLEN) {
-                    dhcpv6_dprintf(LOG_ERR, "pid filename is too long");
+                    g_error("pid filename is too long");
                     exit(1);
                 }
 
@@ -2326,7 +2258,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
                 break;
             case 'c':
                 if (strlen(optarg) >= MAXPATHLEN) {
-                    dhcpv6_dprintf(LOG_ERR, "configuration filename is too long");
+                    g_error("configuration filename is too long");
                     exit(1);
                 }
 
@@ -2341,7 +2273,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
 
                     if ((lv = (struct dhcp6_listval *) malloc(sizeof(*lv)))
                         == NULL) {
-                        dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
+                        g_error("failed to allocate memory");
                         exit(1);
                     }
 
@@ -2349,8 +2281,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
 
                     if (inet_pton(AF_INET6, strtok(addr, "/"),
                                   &lv->val_dhcp6addr.addr) < 1) {
-                        dhcpv6_dprintf(LOG_ERR,
-                                       "invalid ipv6address for release");
+                        g_error("invalid ipv6address for release");
                         _usage(progname);
                         exit(1);
                     }
@@ -2365,7 +2296,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
                         (lv->val_dhcp6addr.plen == LONG_MIN ||
                          lv->val_dhcp6addr.plen == LONG_MAX)) ||
                         (errno != 0 && lv->val_dhcp6addr.plen == 0)) {
-                        dhcpv6_dprintf(LOG_ERR, "invalid ipv6 prefix length");
+                        g_error("invalid ipv6 prefix length");
                         _usage(progname);
                         exit(1);
                     }
@@ -2383,7 +2314,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
 
                     if ((lv = (struct dhcp6_listval *) malloc(sizeof(*lv)))
                         == NULL) {
-                        dhcpv6_dprintf(LOG_ERR, "failed to allocate memory");
+                        g_error("failed to allocate memory");
                         exit(1);
                     }
 
@@ -2391,8 +2322,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
 
                     if (inet_pton(AF_INET6, addr, &lv->val_dhcp6addr.addr) <
                         1) {
-                        dhcpv6_dprintf(LOG_ERR,
-                                       "invalid ipv6address for release");
+                        g_error("invalid ipv6address for release");
                         _usage(progname);
                         exit(1);
                     }
@@ -2414,8 +2344,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
                         if ((lv =
                              (struct dhcp6_listval *) malloc(sizeof(*lv)))
                             == NULL) {
-                            dhcpv6_dprintf(LOG_ERR,
-                                           "failed to allocate memory");
+                            g_error("failed to allocate memory");
                             exit(1);
                         }
 
@@ -2423,8 +2352,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
 
                         if (inet_pton(AF_INET6, addr,
                                       &lv->val_dhcp6addr.addr) < 1) {
-                            dhcpv6_dprintf(LOG_ERR,
-                                           "invalid ipv6address for release");
+                            g_error("invalid ipv6address for release");
                             _usage(progname);
                             exit(1);
                         }
@@ -2440,7 +2368,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
                 break;
             case 'l':
                 if (strlen(optarg) >= MAXPATHLEN) {
-                    dhcpv6_dprintf(LOG_ERR, "lease database filename is too long");
+                    g_error("lease database filename is too long");
                     exit(1);
                 }
 
@@ -2448,7 +2376,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
                 break;
             case 's':
                 if (strlen(optarg) >= MAXPATHLEN) {
-                    dhcpv6_dprintf(LOG_ERR, "script filename is too long");
+                    g_error("script filename is too long");
                     exit(1);
                 }
 
@@ -2456,17 +2384,17 @@ gint main(gint argc, gchar **argv, gchar **envp) {
                 break;
             case 'd':
                 if (strlen(optarg) >= MAXPATHLEN) {
-                    dhcpv6_dprintf(LOG_ERR, "DUID filename is too long");
+                    g_error("DUID filename is too long");
                     exit(1);
                 }
 
                 duidfile = optarg;
                 break;
             case 'v':
-                debug = 2;
+                verbose = TRUE;
                 break;
             case 'f':
-                foreground++;
+                log_props.foreground = TRUE;
                 break;
             case '?':
             default:
@@ -2484,7 +2412,9 @@ gint main(gint argc, gchar **argv, gchar **envp) {
     }
 
     device = argv[0];
-    setloglevel(debug);
+
+    log_props.pid = pid;
+    setup_logging(progname, verbose, &log_props);
 
     /* dump current PID */
     if ((pidfp = fopen(pidfile, "w")) != NULL) {
@@ -2501,8 +2431,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
     _setup_interface(device);
 
     if ((cfparse(conffile)) != 0) {
-        dhcpv6_dprintf(LOG_ERR, "%s" "failed to parse configuration file",
-                       FNAME);
+        g_error("%s failed to parse configuration file", FNAME);
         exit(1);
     }
 

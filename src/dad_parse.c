@@ -95,7 +95,7 @@ gint dad_parse(const gchar *file, struct dhcp6_list *dad_list) {
     struct ifproc_info *ifinfo = NULL;
 
     if (file == NULL) {
-        dhcpv6_dprintf(LOG_ERR, "dad_parse: NULL filename");
+        g_error("dad_parse: NULL filename");
         return -1;
     }
 
@@ -107,8 +107,7 @@ gint dad_parse(const gchar *file, struct dhcp6_list *dad_list) {
             return 0;
         }
 
-        dhcpv6_dprintf(LOG_ERR, "dad_parse: fopen(%s): %s", file,
-                       strerror(errno));
+        g_error("dad_parse: fopen(%s): %s", file, strerror(errno));
         return -1;
     }
 
@@ -133,13 +132,12 @@ gint dad_parse(const gchar *file, struct dhcp6_list *dad_list) {
         }
 
         if (inet_pton(AF_INET6, addrbuf, &addr6) < 1) {
-            dhcpv6_dprintf(LOG_ERR, "failed to parse %s from %s",
-                           addrbuf, file);
+            g_error("failed to parse %s from %s", addrbuf, file);
             abort();
         }
 
         if ((ifinfo = malloc(sizeof(*ifinfo))) == NULL) {
-            dhcpv6_dprintf(LOG_ERR, "memory allocation failure");
+            g_error("memory allocation failure");
             abort();
         }
 
@@ -152,7 +150,7 @@ gint dad_parse(const gchar *file, struct dhcp6_list *dad_list) {
 
         ifinfo->index = strtol(tmp, NULL, 16);
         if ((errno == EINVAL) || (errno == ERANGE)) {
-            dhcpv6_dprintf(LOG_ERR, "error reading index from %s", file);
+            g_error("error reading index from %s", file);
             goto fail;
         }
 
@@ -163,8 +161,7 @@ gint dad_parse(const gchar *file, struct dhcp6_list *dad_list) {
 
         ifinfo->plen = strtol(tmp, NULL, 16);
         if ((errno == EINVAL) || (errno == ERANGE)) {
-            dhcpv6_dprintf(LOG_ERR, "error reading prefix length from %s",
-                           file);
+            g_error("error reading prefix length from %s", file);
             goto fail;
         }
 
@@ -175,7 +172,7 @@ gint dad_parse(const gchar *file, struct dhcp6_list *dad_list) {
 
         ifinfo->scope = strtol(tmp, NULL, 16);
         if ((errno == EINVAL) || (errno == ERANGE)) {
-            dhcpv6_dprintf(LOG_ERR, "error reading scope from %s", file);
+            g_error("error reading scope from %s", file);
             goto fail;
         }
 
@@ -186,13 +183,13 @@ gint dad_parse(const gchar *file, struct dhcp6_list *dad_list) {
 
         ifinfo->flags = strtol(tmp, NULL, 16);
         if ((errno == EINVAL) || (errno == ERANGE)) {
-            dhcpv6_dprintf(LOG_ERR, "error reading flags from %s", file);
+            g_error("error reading flags from %s", file);
             goto fail;
         }
 
         if (ifinfo->flags == DAD_FLAGS) {
-            dhcpv6_dprintf(LOG_INFO, "duplicated IPv6 address %s detected",
-                           in6addr2str(&ifinfo->addr, 0));
+            g_message("duplicated IPv6 address %s detected",
+                      in6addr2str(&ifinfo->addr, 0));
         } else {
             free(ifinfo);
             ifinfo = NULL;
@@ -216,7 +213,7 @@ gint dad_parse(const gchar *file, struct dhcp6_list *dad_list) {
 
             /* check address on client6_iaidaddr list */
             if ((lv = malloc(sizeof(*lv))) == NULL) {
-                dhcpv6_dprintf(LOG_ERR, "memory allocation failure");
+                g_error("memory allocation failure");
                 abort();
             }
 
