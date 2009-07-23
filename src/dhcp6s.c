@@ -772,8 +772,8 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
 
     /* Make sure DUID LLT time field matches the client */
     if (duid_match_llt(&optinfo->clientID, &server_duid)) {
-        dprintf(LOG_INFO,
-                "failed to match DUID LLT time field between server and client");
+        g_message("failed to match DUID LLT time field between server "
+                  "and client");
         return -1;
     }
 
