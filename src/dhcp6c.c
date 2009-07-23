@@ -795,7 +795,7 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
             break;
     }
 
-    /* 
+    /*
      * DUID in the Client ID option (which must be contained for our
      * client implementation) must match ours.
      */
@@ -814,7 +814,7 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
         resolv_parse(&optinfo->dns_list);
     }
 
-    /* 
+    /*
      * The client MAY choose to report any status code or message from the
      * status code option in the Reply message.
      * [dhcpv6-26 Section 18.1.8]
@@ -1390,6 +1390,12 @@ static void _setup_interface(gchar *ifname) {
     return;
 }
 
+void _unset_env_var(gpointer data, gpointer user_data) {
+    const gchar *envvar = (const gchar *) data;
+    g_unsetenv(envvar);
+    return;
+}
+
 /* END STATIC FUNCTIONS */
 
 gint client6_init(gchar *device) {
@@ -1602,7 +1608,7 @@ gint get_if_rainfo(struct dhcp6_if *ifp) {
     do {
         raddr = (struct rtnl_addr *) obj;
 
-        /* 
+        /*
          * Copy IPv6 prefix addresses and associated values in to our
          * ifp->ralist array.
          */
@@ -2065,46 +2071,61 @@ gint client6_send_newstate(struct dhcp6_if *ifp, gint state) {
 
 void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
                 guint32 uuid) {
-    gchar *tmp = NULL;
+    GString *tmp = NULL;
     gchar tmpaddr[INET6_ADDRSTRLEN];
     gboolean fail = FALSE;
+    gchar *argv[] = { script, NULL };
+    GSpawnFlags flags = 0;
+    gint status = 0;
+    GError *error = NULL;
+    GSList *envvars = NULL;
 
     if (script == NULL) {
         return;
     }
 
     /* set environment variables for the program we are calling */
+
+    /* dhcpv6_old_state */
     if (!g_setenv(OLD_STATE, dhcp6msgstr(old_state), TRUE)) {
         dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
                        OLD_STATE);
+    } else {
+        envvars = g_slist_append(envvars, OLD_STATE);
     }
 
+    /* dhcpv6_new_state */
     if (!g_setenv(NEW_STATE, dhcp6msgstr(new_state), TRUE)) {
         dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
                        NEW_STATE);
+    } else {
+        envvars = g_slist_append(envvars, NEW_STATE);
     }
 
+    /* dhcpv6_interface_name */
     if (!g_setenv(IFACE_NAME, ifp->ifname, TRUE)) {
         dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
                        IFACE_NAME);
-    }
-
-    if (g_vasprintf(&tmp, "%u", ifp->ifid) > 0) {
-        if (!g_setenv(IFACE_INDEX, tmp, TRUE)) {
-            fail = TRUE;
-        } else {
-            g_free(tmp);
-        }
     } else {
-        fail = TRUE;
+        envvars = g_slist_append(envvars, IFACE_NAME);
     }
 
-    if (fail) {
+    /* dhcpv6_interface_index */
+    tmp = g_string_new(NULL);
+    g_string_printf(tmp, "%u", ifp->ifid);
+
+    if (!g_setenv(IFACE_INDEX, tmp->str, TRUE)) {
         dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
                        IFACE_INDEX);
-        fail = FALSE;
+    } else {
+        envvars = g_slist_append(envvars, IFACE_INDEX);
     }
 
+    if (g_string_free(tmp, TRUE) != NULL) {
+        dhcpv6_dprintf(LOG_ERR, "erroring releasing temporary GString");
+    }
+
+    /* dhcpv6_linklocal_address */
     memset(&tmpaddr, '\0', sizeof(tmpaddr));
     inet_ntop(AF_INET6, &ifp->linklocal, tmpaddr, sizeof(ifp->linklocal));
     if (tmpaddr == NULL) {
@@ -2114,14 +2135,27 @@ void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
         if (!g_setenv(LINKLOCAL_ADDR, tmpaddr, TRUE)) {
             dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
                            LINKLOCAL_ADDR);
+        } else {
+            envvars = g_slist_append(envvars, LINKLOCAL_ADDR);
         }
     }
 
+    /* dhcpv6_requested_options */
+    tmp = dhcp6_options2str(&ifp->reqopt_list);
 
+    if (!g_setenv(REQUESTED_OPTIONS, tmp->str, TRUE)) {
+        dhcpv6_dprintf(LOG_ERR, "could not set %s environment variable",
+                       REQUESTED_OPTIONS);
+    } else {
+        envvars = g_slist_append(envvars, REQUESTED_OPTIONS);
+    }
+
+    if (g_string_free(tmp, TRUE) != NULL) {
+        dhcpv6_dprintf(LOG_ERR, "erroring releasing temporary GString");
+    }
 
     /*
      * set the following information in env vars:
-     * requested options (struct dhcp6_list reqopt_list)
      *
      * what we got from the server:
      *     address list (struct dhcp6_list addr_list)
@@ -2136,9 +2170,24 @@ void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
      * use old_ and new_ variable naming based on the state we're in
      */
 
-    /*
-     * fork and exec script
-     */
+
+
+    /* run script */
+    flags = G_SPAWN_FILE_AND_ARGV_ZERO;
+    if (!g_spawn_sync(NULL, argv, NULL, flags, NULL, NULL, NULL, NULL,
+                      &status, &error)) {
+        /* error occurred */
+        fail = TRUE;
+    }
+
+    if (fail) {
+        dhcpv6_dprintf(LOG_ERR, "error running %s", script);
+        fail = FALSE;
+    }
+
+    /* unset all environment variables we added */
+    g_slist_foreach(envvars, _unset_env_var, NULL);
+    g_slist_free(envvars);
 
     return;
 }
