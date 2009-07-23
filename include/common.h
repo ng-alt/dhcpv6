@@ -115,6 +115,7 @@ extern gint dhcp6_set_options(struct dhcp6opt *, struct dhcp6opt *,
 extern void dhcp6_set_timeoparam(struct dhcp6_event *);
 extern void dhcp6_reset_timer(struct dhcp6_event *);
 extern gchar *dhcp6optstr(gint);
+extern GString *dhcp6_options2str(struct dhcp6_list *);
 extern gchar *dhcp6msgstr(gint);
 extern gchar *dhcp6_stcodestr(gint);
 extern gchar *duidstr(const struct duid *);
