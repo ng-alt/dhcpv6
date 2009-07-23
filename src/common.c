@@ -2213,6 +2213,64 @@ gchar *dhcp6optstr(gint type) {
     }
 }
 
+GString *dhcp6_options2str(struct dhcp6_list *options) {
+    GString *ret = g_string_new(NULL);
+
+    if (dhcp6_has_option(options, DH6OPT_CLIENTID)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_CLIENTID));
+    } else if (dhcp6_has_option(options, DH6OPT_SERVERID)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_SERVERID));
+    } else if (dhcp6_has_option(options, DH6OPT_IA_NA)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_IA_NA));
+    } else if (dhcp6_has_option(options, DH6OPT_IA_TA)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_IA_TA));
+    } else if (dhcp6_has_option(options, DH6OPT_IADDR)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_IADDR));
+    } else if (dhcp6_has_option(options, DH6OPT_ORO)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_ORO));
+    } else if (dhcp6_has_option(options, DH6OPT_PREFERENCE)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_PREFERENCE));
+    } else if (dhcp6_has_option(options, DH6OPT_ELAPSED_TIME)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_ELAPSED_TIME));
+    } else if (dhcp6_has_option(options, DH6OPT_RELAY_MSG)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_RELAY_MSG));
+    } else if (dhcp6_has_option(options, DH6OPT_AUTH)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_AUTH));
+    } else if (dhcp6_has_option(options, DH6OPT_UNICAST)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_UNICAST));
+    } else if (dhcp6_has_option(options, DH6OPT_STATUS_CODE)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_STATUS_CODE));
+    } else if (dhcp6_has_option(options, DH6OPT_RAPID_COMMIT)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_RAPID_COMMIT));
+    } else if (dhcp6_has_option(options, DH6OPT_USER_CLASS)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_USER_CLASS));
+    } else if (dhcp6_has_option(options, DH6OPT_VENDOR_CLASS)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_VENDOR_CLASS));
+    } else if (dhcp6_has_option(options, DH6OPT_VENDOR_OPTS)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_VENDOR_OPTS));
+    } else if (dhcp6_has_option(options, DH6OPT_INTERFACE_ID)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_INTERFACE_ID));
+    } else if (dhcp6_has_option(options, DH6OPT_RECONF_MSG)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_RECONF_MSG));
+    } else if (dhcp6_has_option(options, DH6OPT_RECONF_ACCEPT)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_RECONF_ACCEPT));
+    } else if (dhcp6_has_option(options, DH6OPT_DNS_SERVERS)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_DNS_SERVERS));
+    } else if (dhcp6_has_option(options, DH6OPT_DOMAIN_LIST)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_DOMAIN_LIST));
+    } else if (dhcp6_has_option(options, DH6OPT_IA_PD)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_IA_PD));
+    } else if (dhcp6_has_option(options, DH6OPT_IAPREFIX)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_IAPREFIX));
+    } else if (dhcp6_has_option(options, DH6OPT_INFO_REFRESH_TIME)) {
+        g_string_append_printf(ret, "%s ",
+                               dhcp6optstr(DH6OPT_INFO_REFRESH_TIME));
+    }
+
+    ret = g_string_truncate(ret, ret->len - 1);
+    return ret;
+}
+
 gchar *dhcp6msgstr(gint type) {
     gchar *msgstr = NULL;
 
