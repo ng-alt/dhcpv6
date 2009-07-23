@@ -113,7 +113,7 @@ static gint _ia_add_address(struct ia_listval *ia, struct dhcp6_addr *addr6) {
 
     if (dhcp6_add_listval(&ia->addr_list, addr6,
                           DHCP6_LISTVAL_DHCP6ADDR) == NULL) {
-        g_error("%s failed to copy an address", FNAME);
+        g_error("%s: failed to copy an address", __func__);
         return -1;
     }
 
@@ -140,7 +140,7 @@ static gint _get_assigned_ipv6addrs(guchar *p, guchar *ep,
         g_debug("  IA address option: %s, len %d", dhcp6optstr(opt), optlen);
 
         if (np > ep) {
-            g_message("%s malformed DHCP options", FNAME);
+            g_message("%s: malformed DHCP options", __func__);
             return -1;
         }
 
@@ -310,14 +310,14 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen,
 
             if (ia->type == IATA) {
                 *optlen = sizeof(iaid);
-                g_debug("%s set IA_TA iaid information: %d", FNAME,
+                g_debug("%s: set IA_TA iaid information: %d", __func__,
                         ia->iaidinfo.iaid);
                 iaid = htonl(ia->iaidinfo.iaid);
             } else {
                 *optlen = sizeof(opt_iana);
-                g_debug("%s set IA_NA iaidinfo: "
+                g_debug("%s: set IA_NA iaidinfo: "
                         "iaid %u renewtime %u rebindtime %u",
-                        FNAME, ia->iaidinfo.iaid,
+                        __func__, ia->iaidinfo.iaid,
                         ia->iaidinfo.renewtime,
                         ia->iaidinfo.rebindtime);
                 opt_iana.iaid = htonl(ia->iaidinfo.iaid);
@@ -329,7 +329,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen,
                 (sizeof(ai) + sizeof(status)) + sizeof(status);
 
             if ((*tmpbuf = malloc(buflen)) == NULL) {
-                g_error("%s memory allocation failed for options", FNAME);
+                g_error("%s: memory allocation failed for options", __func__);
                 return -1;
             }
 
@@ -416,9 +416,9 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen,
             }
 
             *optlen = sizeof(opt_iapd);
-            g_debug("%s set IA_PD iaidinfo: "
+            g_debug("%s: set IA_PD iaidinfo: "
                     "iaid %u renewtime %u rebindtime %u",
-                    FNAME, ia->iaidinfo.iaid, ia->iaidinfo.renewtime,
+                    __func__, ia->iaidinfo.iaid, ia->iaidinfo.renewtime,
                     ia->iaidinfo.rebindtime);
             opt_iapd.iaid = htonl(ia->iaidinfo.iaid);
             opt_iapd.renewtime = htonl(ia->iaidinfo.renewtime);
@@ -427,7 +427,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen,
                 (sizeof(pi) + sizeof(status)) + sizeof(status);
 
             if ((*tmpbuf = malloc(buflen)) == NULL) {
-                g_error("%s memory allocation failed for options", FNAME);
+                g_error("%s: memory allocation failed for options", __func__);
                 return -1;
             }
 
@@ -555,12 +555,12 @@ void ifinit(const gchar *ifname) {
     struct dhcp6_if *ifp;
 
     if ((ifp = find_ifconfbyname(ifname)) != NULL) {
-        g_message("%s duplicated interface: %s", FNAME, ifname);
+        g_message("%s: duplicated interface: %s", __func__, ifname);
         return;
     }
 
     if ((ifp = malloc(sizeof(*ifp))) == NULL) {
-        g_error("%s malloc failed", FNAME);
+        g_error("%s: malloc failed", __func__);
         goto die;
     }
 
@@ -568,18 +568,18 @@ void ifinit(const gchar *ifname) {
     TAILQ_INIT(&ifp->event_list);
 
     if ((ifp->ifname = strdup((gchar *) ifname)) == NULL) {
-        g_error("%s failed to copy ifname", FNAME);
+        g_error("%s: failed to copy ifname", __func__);
         goto die;
     }
 
     if ((ifp->ifid = if_nametoindex(ifname)) == 0) {
-        g_error("%s invalid interface(%s): %s", FNAME,
+        g_error("%s: invalid interface(%s): %s", __func__,
                 ifname, strerror(errno));
         goto die;
     }
 #ifdef HAVE_SCOPELIB
     if (inet_zoneid(AF_INET6, 2, ifname, &ifp->linkid)) {
-        g_error("%s failed to get link ID for %s", FNAME, ifname);
+        g_error("%s: failed to get link ID for %s", __func__, ifname);
         goto die;
     }
 #else
@@ -704,7 +704,7 @@ struct dhcp6_listval *dhcp6_add_listval(struct dhcp6_list *head, void *val,
     struct dhcp6_listval *lv;
 
     if ((lv = malloc(sizeof(*lv))) == NULL) {
-        g_error("%s failed to allocate memory for list entry", FNAME);
+        g_error("%s: failed to allocate memory for list entry", __func__);
         return NULL;
     }
 
@@ -721,7 +721,7 @@ struct dhcp6_listval *dhcp6_add_listval(struct dhcp6_list *head, void *val,
             lv->val_dhcp6addr = *(struct dhcp6_addr *) val;
             break;
         default:
-            g_error("%s unexpected list value type (%d)", FNAME, type);
+            g_error("%s: unexpected list value type (%d)", __func__, type);
             return NULL;
     }
 
@@ -733,7 +733,7 @@ struct ia_listval *ia_create_listval(void) {
     struct ia_listval *ia;
 
     if ((ia = malloc(sizeof(*ia))) == NULL) {
-        g_error("%s failed to allocate memory for ia list", FNAME);
+        g_error("%s: failed to allocate memory for ia list", __func__);
         return NULL;
     }
 
@@ -805,7 +805,7 @@ struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *ifp, int state) {
     static guint32 counter = 0;
 
     if ((ev = malloc(sizeof(*ev))) == NULL) {
-        g_error("%s failed to allocate memory for an event", FNAME);
+        g_error("%s: failed to allocate memory for an event", __func__);
         return NULL;
     }
 
@@ -817,18 +817,19 @@ struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *ifp, int state) {
     ev->state = state;
     ev->uuid = counter++;
     TAILQ_INIT(&ev->data_list);
-    g_debug("%s create an event %p uuid %u for state %d",
-            FNAME, ev, ev->uuid, ev->state);
+    g_debug("%s: create an event %p uuid %u for state %d",
+            __func__, ev, ev->uuid, ev->state);
 
     return ev;
 }
 
 void dhcp6_remove_event(struct dhcp6_event *ev) {
-    g_debug("%s removing an event %p on %s, state=%d, xid=%x", FNAME,
+    g_debug("%s: removing an event %p on %s, state=%d, xid=%x", __func__,
             ev, ev->ifp->ifname, ev->state, ev->xid);
 
     if (!TAILQ_EMPTY(&ev->data_list)) {
-        g_error("%s assumption failure: event data list is not empty", FNAME);
+        g_error("%s: assumption failure: event data list is not empty",
+                __func__);
         exit(1);
     }
 
@@ -1060,7 +1061,7 @@ gchar *addr2str(struct sockaddr *sa, socklen_t salen) {
     memset(cp, '\0', NI_MAXHOST + 1);
 
     if (getnameinfo(sa, salen, cp, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) != 0) {
-        g_error("%s getnameinfo return error", FNAME);
+        g_error("%s: getnameinfo return error", __func__);
     }
 
     return cp;
@@ -1135,7 +1136,7 @@ int configure_duid(const gchar *str, struct duid *duid) {
 
     duidlen += (slen / 3);
     if ((idbuf = (guchar *) malloc(duidlen)) == NULL) {
-        g_error("%s memory allocation failed", FNAME);
+        g_error("%s: memory allocation failed", __func__);
         return -1;
     }
 
@@ -1164,7 +1165,7 @@ bad:
         free(idbuf);
     }
 
-    g_error("%s assumption failure (bad string)", FNAME);
+    g_error("%s: assumption failure (bad string)", __func__);
     return -1;
 }
 
@@ -1191,13 +1192,13 @@ int get_duid(const gchar *idfile, const gchar *ifname, struct duid *duid) {
     guchar tmpbuf[256];  /* DUID should be no more than 256 bytes */
 
     if ((fp = fopen(idfile, "r")) == NULL && errno != ENOENT) {
-        g_message("%s failed to open DUID file: %s", FNAME, idfile);
+        g_message("%s: failed to open DUID file: %s", __func__, idfile);
     }
 
     if (fp) {
         /* decode length */
         if (fread(&len, sizeof(len), 1, fp) != 1) {
-            g_error("%s DUID file corrupted", FNAME);
+            g_error("%s: DUID file corrupted", __func__);
             goto fail;
         }
     } else {
@@ -1212,18 +1213,18 @@ int get_duid(const gchar *idfile, const gchar *ifname, struct duid *duid) {
     duid->duid_len = len;
 
     if ((duid->duid_id = (guchar *) malloc(len)) == NULL) {
-        g_error("%s failed to allocate memory", FNAME);
+        g_error("%s: failed to allocate memory", __func__);
         goto fail;
     }
 
     /* copy (and fill) the ID */
     if (fp) {
         if (fread(duid->duid_id, len, 1, fp) != 1) {
-            g_error("%s DUID file corrupted", FNAME);
+            g_error("%s: DUID file corrupted", __func__);
             goto fail;
         }
 
-        g_debug("%s extracted an existing DUID from %s: %s", FNAME,
+        g_debug("%s: extracted an existing DUID from %s: %s", __func__,
                 idfile, duidstr(duid));
     } else {
         guint64 t64;
@@ -1235,18 +1236,18 @@ int get_duid(const gchar *idfile, const gchar *ifname, struct duid *duid) {
         dp->dh6duid1_time = htonl((u_long) (t64 & 0xffffffff));
 
         if (gethwid(tmpbuf, sizeof(tmpbuf), ifname, &hwtype) < 0) {
-            g_debug("%s failed to get hw ID for %s", FNAME, ifname);
+            g_debug("%s: failed to get hw ID for %s", __func__, ifname);
             goto fail;
         }
 
         memcpy((void *) (dp + 1), tmpbuf, (len - sizeof(*dp)));
 
-        g_debug("%s generated a new DUID: %s", FNAME, duidstr(duid));
+        g_debug("%s: generated a new DUID: %s", __func__, duidstr(duid));
     }
 
     /* save DUID */
     if (save_duid(idfile, ifname, duid)) {
-        g_debug("%s failed to save DUID: %s", FNAME, duidstr(duid));
+        g_debug("%s: failed to save DUID: %s", __func__, duidstr(duid));
         goto fail;
     }
 
@@ -1281,21 +1282,21 @@ int save_duid(const gchar *idfile, const gchar *ifname, struct duid *duid) {
 
     /* save the (new) ID to the file for next time */
     if ((fp = fopen(idfile, "w+")) == NULL) {
-        g_error("%s failed to open DUID file for save", FNAME);
+        g_error("%s: failed to open DUID file for save", __func__);
         goto fail;
     }
 
     if ((fwrite(&len, sizeof(len), 1, fp)) != 1) {
-        g_error("%s failed to save DUID", FNAME);
+        g_error("%s: failed to save DUID", __func__);
         goto fail;
     }
 
     if ((fwrite(duid->duid_id, len, 1, fp)) != 1) {
-        g_error("%s failed to save DUID", FNAME);
+        g_error("%s: failed to save DUID", __func__);
         goto fail;
     }
 
-    g_debug("%s saved generated DUID to %s", FNAME, idfile);
+    g_debug("%s: saved generated DUID to %s", __func__, idfile);
 
     if (fp) {
         fclose(fp);
@@ -1321,7 +1322,7 @@ guint16 calculate_duid_len(const gchar *ifname, guint16 * hwtype) {
     guchar tmpbuf[256];  /* DUID should be no more than 256 bytes */
 
     if ((l = gethwid(tmpbuf, sizeof(tmpbuf), ifname, hwtype)) < 0) {
-        g_message("%s failed to get a hardware address", FNAME);
+        g_message("%s: failed to get a hardware address", __func__);
         return 0;
     }
 
@@ -1368,8 +1369,8 @@ ssize_t gethwid(guchar *buf, gint len, const gchar *ifname,
     }
 
     memcpy(buf, if_hwaddr.ifr_hwaddr.sa_data, l);
-    g_debug("%s found an interface %s harware %.2x:%.2x:%.2x:%.2x:%.2x:%.2x",
-            FNAME, ifname, *buf, *(buf + 1), *(buf + 2), *(buf + 3),
+    g_debug("%s: found an interface %s harware %.2x:%.2x:%.2x:%.2x:%.2x:%.2x",
+            __func__, ifname, *buf, *(buf + 1), *(buf + 2), *(buf + 3),
             *(buf + 4), *(buf + 5));
     return l;
 #else
@@ -1472,12 +1473,12 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
         cp = (guchar *) (p + 1);
         np = (struct dhcp6opt *) (cp + optlen);
 
-        g_debug("%s" "get DHCP option %s, len %d",
-                FNAME, dhcp6optstr(opt), optlen);
+        g_debug("%s: get DHCP option %s, len %d",
+                __func__, dhcp6optstr(opt), optlen);
 
         /* option length field overrun */
         if (np > ep) {
-            g_message("%s malformed DHCP options", FNAME);
+            g_message("%s: malformed DHCP options", __func__);
             return -1;
         }
 
@@ -1492,7 +1493,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                 g_debug("  client DUID: %s", duidstr(&duid0));
 
                 if (duidcpy(&optinfo->clientID, &duid0)) {
-                    g_error("%s failed to copy DUID", FNAME);
+                    g_error("%s: failed to copy DUID", __func__);
                     goto fail;
                 }
 
@@ -1507,7 +1508,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                 g_debug("  server DUID: %s", duidstr(&duid0));
 
                 if (duidcpy(&optinfo->serverID, &duid0)) {
-                    g_error("%s failed to copy DUID", FNAME);
+                    g_error("%s: failed to copy DUID", __func__);
                     goto fail;
                 }
 
@@ -1549,14 +1550,15 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
 
                     if (dhcp6_find_listval(&optinfo->reqopt_list,
                                            &num, DHCP6_LISTVAL_NUM)) {
-                        g_message("%s duplicated option type (%s)", FNAME,
+                        g_message("%s: duplicated option type (%s)", __func__,
                                   dhcp6optstr(opttype));
                         goto nextoption;
                     }
 
                     if (dhcp6_add_listval(&optinfo->reqopt_list,
                                           &num, DHCP6_LISTVAL_NUM) == NULL) {
-                        g_error("%s failed to copy requested option", FNAME);
+                        g_error("%s: failed to copy requested option",
+                                __func__);
                         goto fail;
                     }
                   nextoption:;
@@ -1569,8 +1571,8 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                 }
 
                 optinfo->pref = (guint8) * (guchar *) cp;
-                g_debug("%s get option preference is %2x",
-                        FNAME, optinfo->pref);
+                g_debug("%s: get option preference is %2x",
+                        __func__, optinfo->pref);
                 break;
             case DH6OPT_RAPID_COMMIT:
                 if (optlen != 0) {
@@ -1578,7 +1580,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                 }
 
                 optinfo->flags |= DHCIFF_RAPID_COMMIT;
-                g_debug("%s get option rapid-commit", FNAME);
+                g_debug("%s: get option rapid-commit", __func__);
                 break;
             case DH6OPT_UNICAST:
                 if (optlen != sizeof(struct in6_addr)
@@ -1596,7 +1598,8 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                 iacp = cp;
 
                 if ((ia = ia_create_listval()) == NULL) {
-                    g_error("%s failed to allocate memory for ia list", FNAME);
+                    g_error("%s: failed to allocate memory for ia list",
+                            __func__);
                     goto fail;
                 }
 
@@ -1612,7 +1615,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
 
                         ia->type = IATA;
                         ia->flags |= DHCIFF_TEMP_ADDRS;
-                        g_debug("%s get option iaid is %u", FNAME,
+                        g_debug("%s: get option iaid is %u", __func__,
                                 ia->iaidinfo.iaid);
                         break;
                     case DH6OPT_IA_NA:
@@ -1628,8 +1631,8 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                         ia->iaidinfo.rebindtime = ntohl(*(guint32 *) iacp);
                         iacp += sizeof(guint32);
 
-                        g_debug("%s get option iaid is %u, "
-                                "renewtime %u, rebindtime %u", FNAME,
+                        g_debug("%s: get option iaid is %u, "
+                                "renewtime %u, rebindtime %u", __func__,
                                 ia->iaidinfo.iaid,
                                 ia->iaidinfo.renewtime,
                                 ia->iaidinfo.rebindtime);
@@ -1638,7 +1641,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
 
                 if (ia_find_listval(&optinfo->ia_list, ia->type,
                                     ia->iaidinfo.iaid)) {
-                    g_message("%s duplicated iaid", FNAME);
+                    g_message("%s: duplicated iaid", __func__);
                     free(ia);
                     goto fail;
                 }
@@ -1660,18 +1663,18 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                      val += sizeof(struct in6_addr)) {
                     if (dhcp6_find_listval(&optinfo->dns_list.addrlist,
                                            val, DHCP6_LISTVAL_ADDR6)) {
-                        g_message("%s duplicated DNS address (%s)", FNAME,
+                        g_message("%s: duplicated DNS address (%s)", __func__,
                                   in6addr2str((struct in6_addr *) val, 0));
                         goto nextdns;
                     }
 
                     if (dhcp6_add_listval(&optinfo->dns_list.addrlist,
                                           val, DHCP6_LISTVAL_ADDR6) == NULL) {
-                        g_error("%s failed to copy DNS address", FNAME);
+                        g_error("%s: failed to copy DNS address", __func__);
                         goto fail;
                     }
 
-                    g_message("%s get DNS address (%s)", FNAME,
+                    g_message("%s: get DNS address (%s)", __func__,
                               in6addr2str((struct in6_addr *) val, 0));
 
                   nextdns:;
@@ -1690,7 +1693,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
 
                     dname = malloc(sizeof(*dname));
                     if (dname == NULL) {
-                        g_error("%s failed to allocate memory", FNAME);
+                        g_error("%s: failed to allocate memory", __func__);
                         goto fail;
                     }
                     n = dn_expand(cp, cp + optlen, val, dname->name,
@@ -1731,8 +1734,8 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                 break;
             default:
                 /* no option specific behavior */
-                g_message("%s unknown or unexpected DHCP6 option %s, len %d",
-                          FNAME, dhcp6optstr(opt), optlen);
+                g_message("%s: unknown or unexpected DHCP6 option %s, len %d",
+                          __func__, dhcp6optstr(opt), optlen);
                 break;
         }
     }
@@ -1740,8 +1743,8 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
     return 0;
 
 malformed:
-    g_message("%s malformed DHCP option: type %d, len %d",
-              FNAME, opt, optlen);
+    g_message("%s: malformed DHCP option: type %d, len %d",
+              __func__, opt, optlen);
 fail:
     dhcp6_clear_options(optinfo);
     return -1;
@@ -1826,7 +1829,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
         optlen = dhcp6_count_list(&optinfo->reqopt_list) * sizeof(guint16);
 
         if ((tmpbuf = malloc(optlen)) == NULL) {
-            g_error("%s memory allocation failed for options", FNAME);
+            g_error("%s: memory allocation failed for options", __func__);
             goto fail;
         }
 
@@ -1850,7 +1853,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
             sizeof(struct in6_addr);
 
         if ((tmpbuf = malloc(optlen)) == NULL) {
-            g_error("%s memory allocation failed for DNS options", FNAME);
+            g_error("%s: memory allocation failed for DNS options", __func__);
             goto fail;
         }
 
@@ -1873,7 +1876,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
         tmpbuf = NULL;
 
         if ((tmpbuf = malloc(MAXDNAME * MAXDN)) == NULL) {
-            g_error("%s memory allocation failed for DNS options", FNAME);
+            g_error("%s: memory allocation failed for DNS options", __func__);
             goto fail;
         }
 
@@ -1883,7 +1886,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
             int n = dn_comp(dlist->name, dst, MAXDNAME, NULL, NULL);
 
             if (n < 0) {
-                g_error("%s compress domain name failed", FNAME);
+                g_error("%s: compress domain name failed", __func__);
                 goto fail;
             } else {
                 g_debug("compress domain name %s", dlist->name);
@@ -1957,8 +1960,8 @@ void dhcp6_set_timeoparam(struct dhcp6_event *ev) {
             ev->max_retrans_time = CNF_MAX_RT;
             break;
         default:
-            g_message("%s unexpected event state %d on %s",
-                      FNAME, ev->state, ev->ifp->ifname);
+            g_message("%s: unexpected event state %d on %s",
+                      __func__, ev->state, ev->ifp->ifname);
             exit(1);
     }
 }
@@ -2047,8 +2050,8 @@ void dhcp6_reset_timer(struct dhcp6_event *ev) {
     interval.tv_usec = (ev->retrans * 1000) % 1000000;
     dhcp6_set_timer(&interval, ev->timer);
 
-    g_debug("%s reset a timer on %s, state=%s, timeo=%d, retrans=%ld",
-            FNAME, ev->ifp->ifname, statestr, ev->timeouts,
+    g_debug("%s: reset a timer on %s, state=%s, timeo=%d, retrans=%ld",
+            __func__, ev->ifp->ifname, statestr, ev->timeouts,
             (glong) ev->retrans);
 }
 
@@ -2056,7 +2059,7 @@ int duidcpy(struct duid *dd, const struct duid *ds) {
     dd->duid_len = ds->duid_len;
 
     if ((dd->duid_id = malloc(dd->duid_len)) == NULL) {
-        g_error("%s len %d memory allocation failed", FNAME, dd->duid_len);
+        g_error("%s: len %d memory allocation failed", __func__, dd->duid_len);
         return -1;
     }
 
@@ -2074,11 +2077,11 @@ int duidcmp(const struct duid *d1, const struct duid *d2) {
 }
 
 void duidfree(struct duid *duid) {
-    g_debug("%s DUID is %s, DUID_LEN is %d",
-            FNAME, duidstr(duid), duid->duid_len);
+    g_debug("%s: DUID is %s, DUID_LEN is %d",
+            __func__, duidstr(duid), duid->duid_len);
 
     if (duid->duid_id != NULL && duid->duid_len != 0) {
-        g_debug("%s removing ID (ID: %s)", FNAME, duidstr(duid));
+        g_debug("%s: removing ID (ID: %s)", __func__, duidstr(duid));
         free(duid->duid_id);
         duid->duid_id = NULL;
         duid->duid_len = 0;

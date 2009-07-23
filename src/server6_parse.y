@@ -841,7 +841,7 @@ optionpara
           }
 
           if ($2 < IRT_MINIMUM || DHCP6_DURATITION_INFINITE < $2) {
-              g_error("%s bad information refresh time", FNAME);
+              g_error("%s: bad information refresh time", __func__);
               ABORT;
           }
 
@@ -932,7 +932,8 @@ paradecl
           if (currentscope->scope->prefer_life_time != 0 && 
               currentscope->scope->valid_life_time <
               currentscope->scope->prefer_life_time) {
-              g_error("validlifetime is less than preferlifetime", FNAME);
+              g_error("%s: validlifetime is less than preferlifetime",
+                      __func__);
               ABORT;
           }
       }
@@ -949,7 +950,8 @@ paradecl
           if (currentscope->scope->valid_life_time != 0 &&
               currentscope->scope->valid_life_time <
               currentscope->scope->prefer_life_time) {
-              g_error("validlifetime is less than preferlifetime", FNAME);
+              g_error("%s: validlifetime is less than preferlifetime",
+                      __func__);
               ABORT;
           }
       }
@@ -962,7 +964,7 @@ paradecl
           }
 
           if ($2 < 0 || $2 > 255) {
-              g_error("bad server preference number", FNAME);
+              g_error("%s: bad server preference number", __func__);
           }
 
           currentscope->scope->server_pref = $2;

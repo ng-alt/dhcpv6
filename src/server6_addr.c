@@ -111,7 +111,7 @@ static gint _addr_on_segment(struct v6addrseg *seg, struct dhcp6_addr *addr) {
     gint onseg = 0;
     struct v6addr *prefix;
 
-    g_debug("%s checking address %s on segment", FNAME,
+    g_debug("%s: checking address %s on segment", __func__,
             in6addr2str(&addr->addr, 0));
 
     switch (addr->type) {
@@ -119,7 +119,7 @@ static gint _addr_on_segment(struct v6addrseg *seg, struct dhcp6_addr *addr) {
             prefix = getprefix(&addr->addr, seg->prefix.plen);
 
             if (prefix && !memcmp(&seg->prefix, prefix, sizeof(seg->prefix))) {
-                g_debug("%s address is on link", FNAME);
+                g_debug("%s: address is on link", __func__);
                 onseg = 1;
             } else
                 onseg = 0;
@@ -130,7 +130,7 @@ static gint _addr_on_segment(struct v6addrseg *seg, struct dhcp6_addr *addr) {
         case IANA:
             if (ipv6addrcmp(&addr->addr, &seg->min) >= 0 &&
                 ipv6addrcmp(&seg->max, &addr->addr) >= 0) {
-                g_debug("%s address is on link", FNAME);
+                g_debug("%s: address is on link", __func__);
                 onseg = 1;
             } else {
                 onseg = 0;
@@ -276,7 +276,7 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
     iaidaddr = (struct dhcp6_iaidaddr *) malloc(sizeof(*iaidaddr));
 
     if (iaidaddr == NULL) {
-        g_error("%s failed to allocate memory", FNAME);
+        g_error("%s: failed to allocate memory", __func__);
         return -1;
     }
 
@@ -292,8 +292,8 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
 
         if ((g_hash_table_lookup(lease_hash_table,
                  (gconstpointer) &lv->val_dhcp6addr)) != NULL) {
-            g_message("%s address for %s has been used",
-                      FNAME, in6addr2str(&lv->val_dhcp6addr.addr, 0));
+            g_message("%s: address for %s has been used",
+                      __func__, in6addr2str(&lv->val_dhcp6addr.addr, 0));
             TAILQ_REMOVE(&ia->addr_list, lv, link);
             continue;
         }
@@ -305,22 +305,22 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
 
     /* it's meaningless to have an iaid without any leases */
     if (TAILQ_EMPTY(&iaidaddr->lease_list)) {
-        g_message("%s no leases are added for duid %s iaid %u", FNAME,
+        g_message("%s: no leases are added for duid %s iaid %u", __func__,
                   duidstr(&iaidaddr->client6_info.clientid),
                   iaidaddr->client6_info.iaidinfo.iaid);
         return 0;
     }
 
     g_hash_table_insert(server6_hash_table, &iaidaddr->client6_info, iaidaddr);
-    g_debug("%s g_hash_table_add an iaidaddr %u for client duid %s",
-            FNAME, iaidaddr->client6_info.iaidinfo.iaid,
+    g_debug("%s: g_hash_table_add an iaidaddr %u for client duid %s",
+            __func__, iaidaddr->client6_info.iaidinfo.iaid,
             duidstr(&iaidaddr->client6_info.clientid));
 
     /* set up timer for iaidaddr */
     iaidaddr->timer = dhcp6_add_timer(dhcp6_iaidaddr_timo, iaidaddr);
     if (iaidaddr->timer == NULL) {
-        g_error("%s failed to add a timer for iaid %u",
-                FNAME, iaidaddr->client6_info.iaidinfo.iaid);
+        g_error("%s: failed to add a timer for iaid %u",
+                __func__, iaidaddr->client6_info.iaidinfo.iaid);
         dhcp6_remove_iaidaddr(iaidaddr);
         return -1;
     }
@@ -345,16 +345,16 @@ gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
         if ((lease = g_hash_table_lookup(lease_hash_table,
                          (gconstpointer) &lv->lease_addr)) != NULL) {
             if (dhcp6_remove_lease(lv)) {
-                g_error("%s failed to remove an iaid %u",
-                        FNAME, iaidaddr->client6_info.iaidinfo.iaid);
+                g_error("%s: failed to remove an iaid %u",
+                        __func__, iaidaddr->client6_info.iaidinfo.iaid);
                 return -1;
             }
         }
     }
 
     if (!g_hash_table_remove(server6_hash_table, &iaidaddr->client6_info)) {
-        g_error("%s failed to remove an iaid %u from hash",
-                FNAME, iaidaddr->client6_info.iaidinfo.iaid);
+        g_error("%s: failed to remove an iaid %u from hash",
+                __func__, iaidaddr->client6_info.iaidinfo.iaid);
         return -1;
     }
 
@@ -362,7 +362,7 @@ gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
         dhcp6_remove_timer(iaidaddr->timer);
     }
 
-    g_debug("%s removed iaidaddr %u", FNAME,
+    g_debug("%s: removed iaidaddr %u", __func__,
             iaidaddr->client6_info.iaidinfo.iaid);
     free(iaidaddr);
     return 0;
@@ -380,8 +380,8 @@ struct dhcp6_iaidaddr *dhcp6_find_iaidaddr(struct duid *clientID,
     iaidaddr = g_hash_table_lookup(server6_hash_table,
                                    (gconstpointer) &client6_info);
     if (iaidaddr == NULL) {
-        g_debug("%s iaid %u iaidaddr for client duid %s doesn't exists",
-                FNAME, client6_info.iaidinfo.iaid,
+        g_debug("%s: iaid %u iaidaddr for client duid %s doesn't exists",
+                __func__, client6_info.iaidinfo.iaid,
                 duidstr(&client6_info.clientid));
     }
 
@@ -393,13 +393,13 @@ gint dhcp6_remove_lease(struct dhcp6_lease *lease) {
     lease->state = INVALID;
 
     if (write_lease(lease, server6_lease_file) != 0) {
-        g_error("%s failed to write an invalid lease %s to lease file",
-                FNAME, in6addr2str(&lease->lease_addr.addr, 0));
+        g_error("%s: failed to write an invalid lease %s to lease file",
+                __func__, in6addr2str(&lease->lease_addr.addr, 0));
         return -1;
     }
 
     if (!g_hash_table_remove(lease_hash_table, &lease->lease_addr)) {
-        g_error("%s failed to remove an address %s from hash", FNAME,
+        g_error("%s: failed to remove an address %s from hash", __func__,
                 in6addr2str(&lease->lease_addr.addr, 0));
         return -1;
     }
@@ -409,7 +409,7 @@ gint dhcp6_remove_lease(struct dhcp6_lease *lease) {
     }
 
     TAILQ_REMOVE(&lease->iaidaddr->lease_list, lease, link);
-    g_debug("%s removed lease %s", FNAME,
+    g_debug("%s: removed lease %s", __func__,
             in6addr2str(&lease->lease_addr.addr, 0));
     free(lease);
     return 0;
@@ -434,7 +434,7 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia,
         /* add or update new lease */
         for (lv = TAILQ_FIRST(&ia->addr_list); lv; lv = lv_next) {
             lv_next = TAILQ_NEXT(lv, link);
-            g_debug("%s address is %s ", FNAME,
+            g_debug("%s: address is %s ", __func__,
                     in6addr2str(&lv->val_dhcp6addr.addr, 0));
 
             if ((lease = dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr))
@@ -451,14 +451,14 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia,
             lease_next = TAILQ_NEXT(lease, link);
 
             if (!addr_on_addrlist(&ia->addr_list, &lease->lease_addr)) {
-                g_debug("%s lease %s is not on the link",
-                        FNAME, in6addr2str(&lease->lease_addr.addr,
+                g_debug("%s: lease %s is not on the link",
+                        __func__, in6addr2str(&lease->lease_addr.addr,
                                                   0));
                 dhcp6_remove_lease(lease);
             }
         }
 
-        g_debug("%s update iaidaddr for iaid %u", FNAME,
+        g_debug("%s: update iaidaddr for iaid %u", __func__,
                 iaidaddr->client6_info.iaidinfo.iaid);
     } else {
         /* remove leases */
@@ -475,14 +475,14 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia,
 
                 dhcp6_remove_lease(lease);
             } else {
-                g_message("%s address is not on the iaid", FNAME);
+                g_message("%s: address is not on the iaid", __func__);
             }
         }
     }
 
     /* it's meaningless to have an iaid without any leases */
     if (TAILQ_EMPTY(&iaidaddr->lease_list)) {
-        g_message("%s no leases are added for duid %s iaid %u", FNAME,
+        g_message("%s: no leases are added for duid %s iaid %u", __func__,
                   duidstr(&iaidaddr->client6_info.clientid),
                   iaidaddr->client6_info.iaidinfo.iaid);
         dhcp6_remove_iaidaddr(iaidaddr);
@@ -493,8 +493,8 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia,
     if (iaidaddr->timer == NULL) {
         if ((iaidaddr->timer =
              dhcp6_add_timer(dhcp6_iaidaddr_timo, iaidaddr)) == NULL) {
-            g_error("%s failed to add a timer for iaid %u",
-                    FNAME, iaidaddr->client6_info.iaidinfo.iaid);
+            g_error("%s: failed to add a timer for iaid %u",
+                    __func__, iaidaddr->client6_info.iaidinfo.iaid);
             return -1;
         }
     }
@@ -535,7 +535,7 @@ gint dhcp6_add_lease(struct dhcp6_iaidaddr *iaidaddr, struct dhcp6_addr *addr) {
 
     if (addr->status_code != DH6OPT_STCODE_SUCCESS &&
         addr->status_code != DH6OPT_STCODE_UNDEFINE) {
-        g_error("%s not successful status code for %s is %s", FNAME,
+        g_error("%s: not successful status code for %s is %s", __func__,
                 in6addr2str(&addr->addr, 0),
                 dhcp6_stcodestr(addr->status_code));
         return 0;
@@ -543,20 +543,20 @@ gint dhcp6_add_lease(struct dhcp6_iaidaddr *iaidaddr, struct dhcp6_addr *addr) {
 
     /* ignore meaningless address, this never happens */
     if (addr->validlifetime == 0 || addr->preferlifetime == 0) {
-        g_message("%s zero address life time for %s",
-                  FNAME, in6addr2str(&addr->addr, 0));
+        g_message("%s: zero address life time for %s",
+                  __func__, in6addr2str(&addr->addr, 0));
         return 0;
     }
 
     if (((sp = g_hash_table_lookup(lease_hash_table,
                                    (gconstpointer) addr))) != NULL) {
-        g_message("%s duplicated address: %s",
-                  FNAME, in6addr2str(&addr->addr, 0));
+        g_message("%s: duplicated address: %s",
+                  __func__, in6addr2str(&addr->addr, 0));
         return -1;
     }
 
     if ((sp = (struct dhcp6_lease *) malloc(sizeof(*sp))) == NULL) {
-        g_error("%s failed to allocate memory for an address", FNAME);
+        g_error("%s: failed to allocate memory for an address", __func__);
         return -1;
     }
 
@@ -566,31 +566,31 @@ gint dhcp6_add_lease(struct dhcp6_iaidaddr *iaidaddr, struct dhcp6_addr *addr) {
     /* ToDo: preferlifetime EXPIRED; validlifetime DELETED; */
     /* if a finite lease perferlifetime is specified, set up a timer. */
     time(&sp->start_date);
-    g_debug("%s start date is %ld", FNAME, sp->start_date);
+    g_debug("%s: start date is %ld", __func__, sp->start_date);
     sp->state = ACTIVE;
 
     if (write_lease(sp, server6_lease_file) != 0) {
-        g_error("%s failed to write a new lease address %s to lease file",
-                FNAME, in6addr2str(&sp->lease_addr.addr, 0));
+        g_error("%s: failed to write a new lease address %s to lease file",
+                __func__, in6addr2str(&sp->lease_addr.addr, 0));
         free(sp->timer);
         free(sp);
         return -1;
     }
 
-    g_debug("%s write lease %s/%d to lease file", FNAME,
+    g_debug("%s: write lease %s/%d to lease file", __func__,
             in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen);
     g_hash_table_insert(lease_hash_table, &sp->lease_addr, sp);
     TAILQ_INSERT_TAIL(&iaidaddr->lease_list, sp, link);
 
     if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE ||
         sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
-        g_message("%s infinity address life time for %s",
-                  FNAME, in6addr2str(&addr->addr, 0));
+        g_message("%s: infinity address life time for %s",
+                  __func__, in6addr2str(&addr->addr, 0));
         return 0;
     }
 
     if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
-        g_error("%s failed to create a new event timer", FNAME);
+        g_error("%s: failed to create a new event timer", __func__);
         free(sp);
         return -1;
     }
@@ -599,8 +599,8 @@ gint dhcp6_add_lease(struct dhcp6_iaidaddr *iaidaddr, struct dhcp6_addr *addr) {
     timo.tv_sec = (long) d;
     timo.tv_usec = 0;
     dhcp6_set_timer(&timo, sp->timer);
-    g_debug("%s add lease for %s/%d iaid %u with preferlifetime %u"
-            " with validlifetime %u", FNAME,
+    g_debug("%s: add lease for %s/%d iaid %u with preferlifetime %u"
+            " with validlifetime %u", __func__,
             in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen,
             sp->iaidaddr->client6_info.iaidinfo.iaid,
             sp->lease_addr.preferlifetime, sp->lease_addr.validlifetime);
@@ -614,7 +614,7 @@ gint dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp) {
 
     if (addr->status_code != DH6OPT_STCODE_SUCCESS &&
         addr->status_code != DH6OPT_STCODE_UNDEFINE) {
-        g_error("%s not successful status code for %s is %s", FNAME,
+        g_error("%s: not successful status code for %s is %s", __func__,
                 in6addr2str(&addr->addr, 0),
                 dhcp6_stcodestr(addr->status_code));
         dhcp6_remove_lease(sp);
@@ -623,8 +623,8 @@ gint dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp) {
 
     /* remove lease with perferlifetime or validlifetime 0 */
     if (addr->validlifetime == 0 || addr->preferlifetime == 0) {
-        g_message("%s zero address life time for %s",
-                  FNAME, in6addr2str(&addr->addr, 0));
+        g_message("%s: zero address life time for %s",
+                  __func__, in6addr2str(&addr->addr, 0));
         dhcp6_remove_lease(sp);
         return 0;
     }
@@ -634,21 +634,21 @@ gint dhcp6_update_lease(struct dhcp6_addr *addr, struct dhcp6_lease *sp) {
     sp->state = ACTIVE;
 
     if (write_lease(sp, server6_lease_file) != 0) {
-        g_error("%s failed to write an updated lease %s to lease file", FNAME,
-                in6addr2str(&sp->lease_addr.addr, 0));
+        g_error("%s: failed to write an updated lease %s to lease file",
+                __func__, in6addr2str(&sp->lease_addr.addr, 0));
         return -1;
     }
 
     if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE ||
         sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
-        g_message("%s infinity address life time for %s",
-                  FNAME, in6addr2str(&addr->addr, 0));
+        g_message("%s: infinity address life time for %s",
+                  __func__, in6addr2str(&addr->addr, 0));
         return 0;
     }
 
     if (sp->timer == NULL) {
         if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
-            g_error("%s failed to create a new event timer", FNAME);
+            g_error("%s: failed to create a new event timer", __func__);
             return -1;
         }
     }
@@ -667,9 +667,9 @@ struct dhcp6_lease *dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr,
     for (sp = TAILQ_FIRST(&iaidaddr->lease_list); sp;
          sp = TAILQ_NEXT(sp, link)) {
         /* check for prefix length sp->lease_addr.plen == ifaddr->plen && */
-        g_debug("%s request address is %s/%d ", FNAME,
+        g_debug("%s: request address is %s/%d ", __func__,
                 in6addr2str(&ifaddr->addr, 0), ifaddr->plen);
-        g_debug("%s lease address is %s/%d ", FNAME,
+        g_debug("%s: lease address is %s/%d ", __func__,
                 in6addr2str(&sp->lease_addr.addr, 0), ifaddr->plen);
 
         if (IN6_ARE_ADDR_EQUAL(&sp->lease_addr.addr, &ifaddr->addr)) {
@@ -709,7 +709,7 @@ struct dhcp6_timer *dhcp6_lease_timo(void *arg) {
     struct timeval timeo;
     gdouble d;
 
-    g_debug("%s lease timeout for %s, state=%d", FNAME,
+    g_debug("%s: lease timeout for %s, state=%d", __func__,
             in6addr2str(&sp->lease_addr.addr, 0), sp->state);
 
     switch (sp->state) {
@@ -804,8 +804,8 @@ gint dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
                 is_anycast(&lv->val_dhcp6addr.addr, seg->prefix.plen)) {
                 numaddr += 1;
                 lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
-                g_debug("%s %s address not on link",
-                        FNAME, in6addr2str(&lv->val_dhcp6addr.addr,
+                g_debug("%s: %s address not on link",
+                        __func__, in6addr2str(&lv->val_dhcp6addr.addr,
                                                   0));
                 *ia_status_code = DH6OPT_STCODE_NOTONLINK;
                 continue;
@@ -826,8 +826,8 @@ gint dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
             } else {
                 numaddr += 1;
                 lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
-                g_debug("%s %s address not on link",
-                        FNAME, in6addr2str(&lv->val_dhcp6addr.addr,
+                g_debug("%s: %s address not on link",
+                        __func__, in6addr2str(&lv->val_dhcp6addr.addr,
                                                   0));
                 *ia_status_code = DH6OPT_STCODE_NOTONLINK;
             }
@@ -845,8 +845,8 @@ gint dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
                         v6addr =
                             (struct dhcp6_listval *) malloc(sizeof(*v6addr));
                         if (v6addr == NULL) {
-                            g_error("%s fail to allocate memory %s",
-                                    FNAME, strerror(errno));
+                            g_error("%s: fail to allocate memory %s",
+                                    __func__, strerror(errno));
                             return -1;
                         }
 
@@ -867,8 +867,8 @@ gint dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
         if (numaddr == 0) {
             v6addr = (struct dhcp6_listval *) malloc(sizeof(*v6addr));
             if (v6addr == NULL) {
-                g_error("%s fail to allocate memory %s",
-                        FNAME, strerror(errno));
+                g_error("%s: fail to allocate memory %s",
+                        __func__, strerror(errno));
                 return -1;
             }
 
@@ -907,7 +907,7 @@ gint dhcp6_create_prefixlist(struct ia_listval *ria, struct ia_listval *ia,
         v6addr = (struct dhcp6_listval *) malloc(sizeof(*v6addr));
 
         if (v6addr == NULL) {
-            g_error("%s fail to allocate memory", FNAME);
+            g_error("%s: fail to allocate memory", __func__);
             return -1;
         }
 

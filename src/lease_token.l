@@ -308,14 +308,14 @@ do_iaidaddr_hash(lease_rec, key)
 	if (iaidaddr){
 		if (iaidaddr->client6_info.iaidinfo.iaid != client6_info.iaidinfo.iaid ||
 		    duidcmp(&iaidaddr->client6_info.clientid, &client6_info.clientid)) {
-			g_debug("%s this client iaidinfo is different to others", FNAME);
+			g_debug("%s: this client iaidinfo is different to others", __func__);
 			return (-1);
 		}
 		found_lease = g_hash_table_lookup(lease_hash_table, &lease_rec->lease_addr);
 		/* remove the previous old lease */
 		if(found_lease) {
 			if (found_lease->start_date < lease_rec->start_date) {
-				g_debug("%s remove old lease %s/%d", FNAME,
+				g_debug("%s: remove old lease %s/%d", __func__,
 					in6addr2str(&lease_rec->lease_addr.addr, 0),
 					lease_rec->lease_addr.plen);
 				/* update the client6_info too */
@@ -331,7 +331,7 @@ do_iaidaddr_hash(lease_rec, key)
 	} else {
 		iaidaddr = (struct dhcp6_iaidaddr *)malloc(sizeof(*iaidaddr));
 	  	if (!iaidaddr) {
-			g_error("%s failed to allocate memory", FNAME);
+			g_error("%s: failed to allocate memory", __func__);
 			return (-1);
 	  	}
 		memset(iaidaddr, 0, sizeof(*iaidaddr));
@@ -354,8 +354,8 @@ do_iaidaddr_hash(lease_rec, key)
 	/* update the start date and timer */
 	if (!iaidaddr->timer && (iaidaddr->timer = 
 	     dhcp6_add_timer(dhcp6_iaidaddr_timo, iaidaddr)) == NULL) {
-			g_error("%s failed to add a timer for iaid %u",
-				FNAME, iaidaddr->client6_info.iaidinfo.iaid);
+			g_error("%s: failed to add a timer for iaid %u",
+				__func__, iaidaddr->client6_info.iaidinfo.iaid);
 	 	return (-1);
 	}
 	dhcp6_set_timer(&timo, iaidaddr->timer);
@@ -380,14 +380,14 @@ add_lease(iaidaddr, lease)
 		if ((found_lease = dhcp6_find_lease(iaidaddr, &lease_rec->lease_addr)) 
 					!= NULL) {
 			if (!(found_lease->start_date > lease_rec->start_date)) {
-				g_debug("%s remove old lease %s/%d", FNAME,
+				g_debug("%s: remove old lease %s/%d", __func__,
 					in6addr2str(&lease_rec->lease_addr.addr, 0),
 					lease_rec->lease_addr.plen);
 				if (iaidaddr->client6_info.iaidinfo.iaid != 
 						client6_info.iaidinfo.iaid) {
-					g_debug("%s this lease %s client iaidinfo is different"
+					g_debug("%s: this lease %s client iaidinfo is different"
 					" to the previous lease",
-					FNAME,  in6addr2str(&lease_rec->lease_addr.addr, 0));
+					__func__,  in6addr2str(&lease_rec->lease_addr.addr, 0));
 					return (-1);
 				}
 				iaidaddr->client6_info.iaidinfo.renewtime = 
@@ -405,9 +405,9 @@ add_lease(iaidaddr, lease)
 		if (TAILQ_EMPTY(&iaidaddr->lease_list)) {
 			if (iaidaddr->client6_info.iaidinfo.iaid != 
 					client6_info.iaidinfo.iaid) {
-				g_debug("%s this lease %s client iaidinfo is different"
+				g_debug("%s: this lease %s client iaidinfo is different"
 					" to the previous lease",
-					FNAME,  in6addr2str(&lease_rec->lease_addr.addr, 0));
+					__func__,  in6addr2str(&lease_rec->lease_addr.addr, 0));
 				return (-1);
 			}
 			iaidaddr->client6_info.iaidinfo.renewtime = 
@@ -419,9 +419,9 @@ add_lease(iaidaddr, lease)
 		if (!memcmp(&iaidaddr->client6_info, &client6_info, 
 				sizeof(iaidaddr->client6_info))) { 
 			/* iaidaddr->start_date != lease_rec->start_date) */
-			g_debug("%s this lease %s client iaidinfo is different"
+			g_debug("%s: this lease %s client iaidinfo is different"
 				" to the previous lease",
-				FNAME,  in6addr2str(&lease_rec->lease_addr.addr, 0));
+				__func__,  in6addr2str(&lease_rec->lease_addr.addr, 0));
 			return (-1);
 		}
 	} 
@@ -433,8 +433,8 @@ add_lease(iaidaddr, lease)
 		return (0);
 	}
 	if ((lease_rec->timer = dhcp6_add_timer(dhcp6_lease_timo, lease_rec)) == NULL) {
-		g_error("%s failed to create a timer for lease %s",
-			FNAME, in6addr2str(&lease_rec->lease_addr.addr, 0));
+		g_error("%s: failed to create a timer for lease %s",
+			__func__, in6addr2str(&lease_rec->lease_addr.addr, 0));
 			return (-1);
 	}
 	if (lease_rec->lease_addr.preferlifetime > offset) {
@@ -453,8 +453,8 @@ add_lease(iaidaddr, lease)
 	lease_rec->iaidaddr = iaidaddr;
 	lease_rec->lease_addr.status_code = DH6OPT_STCODE_UNDEFINE;
 	TAILQ_INSERT_TAIL(&iaidaddr->lease_list, lease_rec, link);
-	g_message("%s add lease addr %s/%d type %d to %u",
-		FNAME, in6addr2str(&lease_rec->lease_addr.addr, 0), lease_rec->lease_addr.plen,
+	g_message("%s: add lease addr %s/%d type %d to %u",
+		__func__, in6addr2str(&lease_rec->lease_addr.addr, 0), lease_rec->lease_addr.plen,
 		lease_rec->lease_addr.type, lease_rec->iaidaddr->client6_info.iaidinfo.iaid);
 	return (0);
 }
@@ -465,16 +465,16 @@ remove_lease(lease)
 {
 	if (dhcp6_mode == DHCP6_MODE_SERVER) {
 		if (!g_hash_table_remove(lease_hash_table, &lease->lease_addr)) {
-			g_error("%s failed to remove an address %s from hash",
-				FNAME, in6addr2str(&lease->lease_addr.addr, 0));
+			g_error("%s: failed to remove an address %s from hash",
+				__func__, in6addr2str(&lease->lease_addr.addr, 0));
 			return (-1);
 		}
 	}
 	if (lease->timer)
 		dhcp6_remove_timer(lease->timer);
 	TAILQ_REMOVE(&lease->iaidaddr->lease_list, lease, link);
-	g_message("%s removed lease addr %s/%d from %u",
-		FNAME, in6addr2str(&lease->lease_addr.addr, 0),
+	g_message("%s: removed lease addr %s/%d from %u",
+		__func__, in6addr2str(&lease->lease_addr.addr, 0),
 		lease->lease_addr.plen, lease->iaidaddr->client6_info.iaidinfo.iaid);
 	free(lease);
 	return 0;

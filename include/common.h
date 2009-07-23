@@ -31,13 +31,6 @@
 
 #define IN6_IFF_INVALID -1
 
-/* ANSI __func__ can not be concatantated (C99 std) */
-#if defined (HAVE_GCC_FUNCTION)
-#define FNAME __FUNCTION__ ":"
-#else
-#define FNAME ""
-#endif
-
 #define DPRINT_STATUS_CODE(object, num, optp, optlen) \
 do { \
     g_message("status code of this %s is: %d - %s", \
@@ -52,8 +45,8 @@ do { \
 
 #define COPY_OPTION(t, l, v, p) do { \
     if ((void *)(ep) - (void *)(p) < (l) + sizeof(struct dhcp6opt)) { \
-        g_message("%s option buffer short for %s", \
-                  FNAME, dhcp6optstr((t))); \
+        g_message("%s: option buffer short for %s", \
+                  __func__, dhcp6optstr((t))); \
         goto fail; \
     } \
     opth.dh6opt_type = htons((t)); \
@@ -63,7 +56,7 @@ do { \
         memcpy((p) + 1, (v), (l)); \
     (p) = (struct dhcp6opt *)((gchar *)((p) + 1) + (l)); \
     (len) += sizeof(struct dhcp6opt) + (l); \
-    g_debug("%s set %s", FNAME, dhcp6optstr((t))); \
+    g_debug("%s: set %s", __func__, dhcp6optstr((t))); \
 } while (0)
 
 /* common.c */

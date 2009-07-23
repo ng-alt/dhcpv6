@@ -150,13 +150,13 @@ static void _random_init(void) {
 }
 
 static void _server6_sighandler(gint sig) {
-    g_message("%s received a signal (%d)", FNAME, sig);
+    g_message("%s: received a signal (%d)", __func__, sig);
 
     switch (sig) {
         case SIGTERM:
         case SIGHUP:
         case SIGINT:
-            g_message("%s exiting", FNAME);
+            g_message("%s: exiting", __func__);
             unlink(pidfile);
             exit(0);
             break;
@@ -204,7 +204,7 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
             calloc(1, sizeof(struct relay_listval));
 
         if (relay_val == NULL) {
-            g_error("%s failed to allocate memory", FNAME);
+            g_error("%s: failed to allocate memory", __func__);
             relayfree(&optinfo->relay_list);
             return NULL;
         }
@@ -248,8 +248,8 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
             optlen = ntohs(optlen);
 
             if ((gchar *) (option + 1) + optlen > (gchar *) option_endptr) {
-                g_error("%s invalid option length in %s option",
-                        FNAME, dhcp6optstr(opt));
+                g_error("%s: invalid option length in %s option",
+                        __func__, dhcp6optstr(opt));
                 relayfree(&optinfo->relay_list);
                 return NULL;
             }
@@ -262,7 +262,7 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
                         relay_val->intf_id = (struct intf_id *)
                             malloc(sizeof(struct intf_id));
                         if (relay_val->intf_id == NULL) {
-                            g_error("%s failed to allocate memory", FNAME);
+                            g_error("%s: failed to allocate memory", __func__);
                             relayfree(&optinfo->relay_list);
                             return NULL;
                         } else {
@@ -271,7 +271,8 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
                                 malloc(optlen);
 
                             if (relay_val->intf_id->intf_id == NULL) {
-                                g_error("%s failed to allocate memory", FNAME);
+                                g_error("%s: failed to allocate memory",
+                                        __func__);
                                 relayfree(&optinfo->relay_list);
                                 return NULL;
                             } else {    /* copy the interface identifier so
@@ -281,12 +282,12 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
                             }
                         }
                     } else {
-                        g_error("%s Invalid length for interface "
-                                "identifier option", FNAME);
+                        g_error("%s: Invalid length for interface "
+                                "identifier option", __func__);
                     }
                 } else {
-                    g_message("%s Multiple interface identifier "
-                              "options in RELAY-FORW Message ", FNAME);
+                    g_message("%s: Multiple interface identifier "
+                              "options in RELAY-FORW Message ", __func__);
                     relayfree(&optinfo->relay_list);
                     return NULL;
                 }
@@ -294,15 +295,15 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
                 if (relayed_msg == NULL) {
                     relayed_msg = (struct dhcp6 *) (option + 1);
                 } else {
-                    g_message("%s Duplicated Relay Message option", FNAME);
+                    g_message("%s: Duplicated Relay Message option", __func__);
                     relayfree(&optinfo->relay_list);
                     return NULL;
                 }
             } else {            /* No other options besides interface
                                  * identifier and relay message make sense,
                                  * so ignore them with a warning */
-                g_message("%s Unsupported option %s found in "
-                          "RELAY-FORW message", FNAME, dhcp6optstr(opt));
+                g_message("%s: Unsupported option %s found in "
+                          "RELAY-FORW message", __func__, dhcp6optstr(opt));
             }
 
             /* advance the option pointer */
@@ -324,7 +325,7 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
                 relay_msg = (struct dhcp6_relay *) relayed_msg;
             }
         } else {
-            g_error("%s invalid relayed message", FNAME);
+            g_error("%s: invalid relayed message", __func__);
             relayfree(&optinfo->relay_list);
             return NULL;
         }
@@ -384,7 +385,7 @@ static gint _dhcp6_set_relay(struct dhcp6_relay *msg,
          relay = TAILQ_NEXT(relay, link)) {
         /* bounds check */
         if (((gchar *) msg) + sizeof(struct dhcp6_relay) >= (gchar *) endptr) {
-            g_error("%s insufficient buffer size for RELAY-REPL", FNAME);
+            g_error("%s: insufficient buffer size for RELAY-REPL", __func__);
             return -1;
         }
 
@@ -398,7 +399,8 @@ static gint _dhcp6_set_relay(struct dhcp6_relay *msg,
             /* bounds check */
             if ((((gchar *) option) + sizeof(struct dhcp6opt) +
                  relay->intf_id->intf_len) >= (gchar *) endptr) {
-                g_error("%s insufficient buffer size for RELAY-REPL", FNAME);
+                g_error("%s: insufficient buffer size for RELAY-REPL",
+                        __func__);
                 return -1;
             }
 
@@ -420,7 +422,7 @@ static gint _dhcp6_set_relay(struct dhcp6_relay *msg,
 
         /* bounds check */
         if ((gchar *) (option + 1) >= (gchar *) endptr) {
-            g_error("%s insufficient buffer size for RELAY-REPL", FNAME);
+            g_error("%s: insufficient buffer size for RELAY-REPL", __func__);
             return -1;
         }
 
@@ -455,7 +457,7 @@ static gint _server6_send(gint type, struct dhcp6_if *ifp,
     struct dhcp6 *dh6;
 
     if (sizeof(struct dhcp6) > sizeof(replybuf)) {
-        g_error("%s buffer size assumption failed", FNAME);
+        g_error("%s: buffer size assumption failed", __func__);
         return -1;
     }
 
@@ -464,7 +466,7 @@ static gint _server6_send(gint type, struct dhcp6_if *ifp,
                                      (struct dhcp6_relay *) (replybuf +
                                                              sizeof(replybuf)),
                                      optinfo)) < 0) {
-        g_message("%s failed to construct relay message", FNAME);
+        g_message("%s: failed to construct relay message", __func__);
         return -1;
     }
 
@@ -479,7 +481,7 @@ static gint _server6_send(gint type, struct dhcp6_if *ifp,
                                     (struct dhcp6opt *) (replybuf +
                                                          sizeof(replybuf)),
                                     roptinfo)) < 0) {
-        g_message("%s failed to construct reply options", FNAME);
+        g_message("%s: failed to construct reply options", __func__);
         return -1;
     }
 
@@ -511,13 +513,13 @@ static gint _server6_send(gint type, struct dhcp6_if *ifp,
             dst.sin6_scope_id);
 
     if (transmit_sa(iosock, &dst, replybuf, len) != 0) {
-        g_error("%s transmit %s to %s failed", FNAME,
+        g_error("%s: transmit %s to %s failed", __func__,
                 dhcp6msgstr(type), addr2str((struct sockaddr *) &dst,
                 sizeof(dst)));
         return -1;
     }
 
-    g_debug("%s transmit %s to %s", FNAME, dhcp6msgstr(type),
+    g_debug("%s: transmit %s to %s", __func__, dhcp6msgstr(type),
             addr2str((struct sockaddr *) &dst, sizeof(dst)));
 
     return 0;
@@ -639,7 +641,7 @@ static gint _update_binding_ia(struct dhcp6_optinfo *roptinfo,
                                                 ia->type)) == NULL) {
                 /* Not found binding IA Addr */
                 ++num_nobinding_ia;
-                g_message("%s Nobinding for client %s iaid %u", FNAME,
+                g_message("%s: Nobinding for client %s iaid %u", __func__,
                           duidstr(&roptinfo->clientID),
                           ia->iaidinfo.iaid);
 
@@ -762,10 +764,10 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
 
     /* the message must include a Client Identifier option */
     if (optinfo->clientID.duid_len == 0) {
-        g_message("%s no client ID option", FNAME);
+        g_message("%s: no client ID option", __func__);
         return -1;
     } else {
-        g_debug("%s client ID %s", FNAME, duidstr(&optinfo->clientID));
+        g_debug("%s: client ID %s", __func__, duidstr(&optinfo->clientID));
     }
 
     /* Make sure DUID LLT time field matches the client */
@@ -783,7 +785,7 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
         case DH6_DECLINE:
         case DH6_RELEASE:
             if (optinfo->serverID.duid_len == 0) {
-                g_message("%s no server ID option", FNAME);
+                g_message("%s: no server ID option", __func__);
                 return -1;
             }
 
@@ -801,8 +803,8 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
         case DH6_CONFIRM:
         case DH6_REBIND:
             if (optinfo->serverID.duid_len != 0) {
-                g_message("%s found server ID option in message "
-                          "Solicit/Confirm/Rebind", FNAME);
+                g_message("%s: found server ID option in message "
+                          "Solicit/Confirm/Rebind", __func__);
                 return -1;
             }
 
@@ -817,13 +819,13 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
 
     /* server information option */
     if (duidcpy(&roptinfo.serverID, &server_duid)) {
-        g_error("%s failed to copy server ID", FNAME);
+        g_error("%s: failed to copy server ID", __func__);
         goto fail;
     }
 
     /* copy client information back */
     if (duidcpy(&roptinfo.clientID, &optinfo->clientID)) {
-        g_error("%s failed to copy client ID", FNAME);
+        g_error("%s: failed to copy client ID", __func__);
         goto fail;
     }
 
@@ -879,8 +881,8 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
     if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
         if (!TAILQ_EMPTY(&arg_dnslist.addrlist)) {
             if (!TAILQ_EMPTY(&dnslist.addrlist)) {
-                g_message("%s do not specify DNS servers both by command line "
-                          "and by configuration file.", FNAME);
+                g_message("%s: do not specify DNS servers both by command line "
+                          "and by configuration file.", __func__);
                 exit(1);
             }
 
@@ -898,7 +900,7 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
         /* get_linklocal(device, &roptinfo.server_addr) */
         memcpy(&roptinfo.server_addr, &ifp->linklocal,
                sizeof(roptinfo.server_addr));
-        g_debug("%s server address is %s", FNAME,
+        g_debug("%s: server address is %s", __func__,
                 in6addr2str(&roptinfo.server_addr, 0));
     }
 
@@ -1058,7 +1060,7 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
             if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
                 if (dhcp6_copy_list(&roptinfo.dns_list.addrlist,
                                     &dnslist.addrlist)) {
-                    g_error("%s failed to copy DNS servers", FNAME);
+                    g_error("%s: failed to copy DNS servers", __func__);
                     goto fail;
                 }
             }
@@ -1136,7 +1138,7 @@ static gint _server6_recv(gint s) {
     mhdr.msg_controllen = sizeof(cmsgbuf);
 
     if ((len = recvmsg(iosock, &mhdr, 0)) < 0) {
-        g_error("%s recvmsg: %s", FNAME, strerror(errno));
+        g_error("%s: recvmsg: %s", __func__, strerror(errno));
         return -1;
     }
 
@@ -1152,7 +1154,7 @@ static gint _server6_recv(gint s) {
     }
 
     if (pi == NULL) {
-        g_message("%s failed to get packet info", FNAME);
+        g_message("%s: failed to get packet info", __func__);
         return -1;
     }
 
@@ -1160,18 +1162,18 @@ static gint _server6_recv(gint s) {
             in6addr2str(&pi->ipi6_addr, 0), (guint) pi->ipi6_ifindex);
 
     if ((ifp = find_ifconfbyid((guint) pi->ipi6_ifindex)) == NULL) {
-        g_message("%s unexpected interface (%d)", FNAME,
+        g_message("%s: unexpected interface (%d)", __func__,
                   (guint) pi->ipi6_ifindex);
         return -1;
     }
 
     if (len < sizeof(*dh6)) {
-        g_message("%s short packet", FNAME);
+        g_message("%s: short packet", __func__);
         return -1;
     }
 
     dh6 = (struct dhcp6 *) rdatabuf;
-    g_debug("%s received %s from %s", FNAME, dhcp6msgstr(dh6->dh6_msgtype),
+    g_debug("%s: received %s from %s", __func__, dhcp6msgstr(dh6->dh6_msgtype),
             addr2str((struct sockaddr *) &from, sizeof(from)));
     dhcp6_init_options(&optinfo);
 
@@ -1190,8 +1192,8 @@ static gint _server6_recv(gint s) {
          * client message was found.
          */
         if (dh6 == NULL) {
-            g_message("%s failed to parse relay fields or could not find "
-                      "client message", FNAME);
+            g_message("%s: failed to parse relay fields or could not find "
+                      "client message", __func__);
             return -1;
         }
     }
@@ -1202,7 +1204,7 @@ static gint _server6_recv(gint s) {
     if (dhcp6_get_options((struct dhcp6opt *) (dh6 + 1),
                           (struct dhcp6opt *) (rdatabuf + len),
                           &optinfo) < 0) {
-        g_message("%s failed to parse options", FNAME);
+        g_message("%s: failed to parse options", __func__);
         return -1;
     }
 
@@ -1224,8 +1226,8 @@ static gint _server6_recv(gint s) {
     }
 
     if (!(DH6_VALID_MESSAGE(dh6->dh6_msgtype))) {
-        g_message("%s unknown or unsupported msgtype %s",
-                  FNAME, dhcp6msgstr(dh6->dh6_msgtype));
+        g_message("%s: unknown or unsupported msgtype %s",
+                  __func__, dhcp6msgstr(dh6->dh6_msgtype));
     } else {
         _server6_react_message(ifp, pi, dh6, &optinfo,
                                (struct sockaddr *) &from, fromlen);
@@ -1248,7 +1250,7 @@ static void _server6_mainloop(void) {
         ret = select(iosock + 1, &r, NULL, NULL, w);
         switch (ret) {
             case -1:
-                g_error("%s select: %s", FNAME, strerror(errno));
+                g_error("%s: select: %s", __func__, strerror(errno));
                 exit(1);
                 /* NOTREACHED */
             case 0:            /* timeout */
@@ -1320,33 +1322,33 @@ void server6_init() {
     error = getaddrinfo(NULL, DH6PORT_UPSTREAM, &hints, &res);
 
     if (error) {
-        g_error("%s getaddrinfo: %s", FNAME, gai_strerror(error));
+        g_error("%s: getaddrinfo: %s", __func__, gai_strerror(error));
         exit(1);
     }
 
     iosock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (iosock < 0) {
-        g_error("%s socket: %s", FNAME, strerror(errno));
+        g_error("%s: socket: %s", __func__, strerror(errno));
         exit(1);
     }
 
 #ifdef IPV6_RECVPKTINFO
     if (setsockopt(iosock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on,
                    sizeof(on)) < 0) {
-        g_error("%s setsockopt(inbound, IPV6_RECVPKTINFO): %s",
-                FNAME, strerror(errno));
+        g_error("%s: setsockopt(inbound, IPV6_RECVPKTINFO): %s",
+                __func__, strerror(errno));
         exit(1);
     }
 #else
     if (setsockopt(iosock, IPPROTO_IPV6, IPV6_PKTINFO, &on, sizeof(on)) < 0) {
-        g_error("%s setsockopt(inbound, IPV6_PKTINFO): %s",
-                FNAME, strerror(errno));
+        g_error("%s: setsockopt(inbound, IPV6_PKTINFO): %s",
+                __func__, strerror(errno));
         exit(1);
     }
 #endif
 
     if (bind(iosock, res->ai_addr, res->ai_addrlen) < 0) {
-        g_error("%s bind: %s", FNAME, strerror(errno));
+        g_error("%s: bind: %s", __func__, strerror(errno));
         exit(1);
     }
 
@@ -1358,7 +1360,7 @@ void server6_init() {
 
     error = getaddrinfo(NULL, DH6PORT_DOWNSTREAM, &hints, &res);
     if (error) {
-        g_error("%s getaddrinfo: %s", FNAME, gai_strerror(error));
+        g_error("%s: getaddrinfo: %s", __func__, gai_strerror(error));
         exit(1);
     }
 
@@ -1375,7 +1377,7 @@ void server6_init() {
 
     rmsgctllen = CMSG_SPACE(sizeof(struct in6_pktinfo));
     if ((rmsgctlbuf = (gchar *) malloc(rmsgctllen)) == NULL) {
-        g_error("%s memory allocation failed", FNAME);
+        g_error("%s: memory allocation failed", __func__);
         exit(1);
     }
 
@@ -1384,7 +1386,7 @@ void server6_init() {
             ifidx[i] = if_nametoindex(device[i]);
 
             if (ifidx[i] == 0) {
-                g_error("%s invalid interface %s", FNAME, device[0]);
+                g_error("%s: invalid interface %s", __func__, device[0]);
                 exit(1);
             }
 
@@ -1392,12 +1394,12 @@ void server6_init() {
         }
 
         if (get_duid(DUID_FILE, device[0], &server_duid)) {
-            g_error("%s failed to get a DUID", FNAME);
+            g_error("%s: failed to get a DUID", __func__);
             exit(1);
         }
 
         if (save_duid(DUID_FILE, device[0], &server_duid)) {
-            g_error("%s failed to save server ID", FNAME);
+            g_error("%s: failed to save server ID", __func__);
         }
     } else {
         /* all the interfaces join multicast group */
@@ -1430,12 +1432,12 @@ void server6_init() {
             if (strcmp(ifr->ifr_name, "lo")) {
                 /* get our DUID */
                 if (get_duid(DUID_FILE, ifr->ifr_name, &server_duid)) {
-                    g_error("%s failed to get a DUID", FNAME);
+                    g_error("%s: failed to get a DUID", __func__);
                     exit(1);
                 }
 
                 if (save_duid(DUID_FILE, ifr->ifr_name, &server_duid)) {
-                    g_error("%s failed to save server ID", FNAME);
+                    g_error("%s: failed to save server ID", __func__);
                 }
             }
 
@@ -1449,7 +1451,7 @@ void server6_init() {
         error =
             getaddrinfo(DH6ADDR_ALLAGENT, DH6PORT_UPSTREAM, &hints, &res2);
         if (error) {
-            g_error("%s getaddrinfo: %s", FNAME, gai_strerror(error));
+            g_error("%s: getaddrinfo: %s", __func__, gai_strerror(error));
             exit(1);
         }
 
@@ -1461,8 +1463,8 @@ void server6_init() {
 
         if (setsockopt(iosock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
                        &mreq6, sizeof(mreq6))) {
-            g_error("%s setsockopt(iosock, IPV6_JOIN_GROUP) %s",
-                    FNAME, strerror(errno));
+            g_error("%s: setsockopt(iosock, IPV6_JOIN_GROUP) %s",
+                    __func__, strerror(errno));
             exit(1);
         }
 
@@ -1473,7 +1475,7 @@ void server6_init() {
                             &hints, &res2);
 
         if (error) {
-            g_error("%s getaddrinfo: %s", FNAME, gai_strerror(error));
+            g_error("%s: getaddrinfo: %s", __func__, gai_strerror(error));
             exit(1);
         }
 
@@ -1485,8 +1487,8 @@ void server6_init() {
 
         if (setsockopt(iosock, IPPROTO_IPV6, IPV6_JOIN_GROUP,
                        &mreq6, sizeof(mreq6))) {
-            g_error("%s setsockopt(iosock, IPV6_JOIN_GROUP): %s",
-                    FNAME, strerror(errno));
+            g_error("%s: setsockopt(iosock, IPV6_JOIN_GROUP): %s",
+                    __func__, strerror(errno));
             exit(1);
         }
 
@@ -1495,8 +1497,8 @@ void server6_init() {
         /* set outgoing interface of multicast packets for DHCP reconfig */
         if (setsockopt(iosock, IPPROTO_IPV6, IPV6_MULTICAST_IF,
                        &ifidx[i], sizeof(ifidx[i])) < 0) {
-            g_error("%s setsockopt(iosock, IPV6_MULTICAST_IF): %s",
-                    FNAME, strerror(errno));
+            g_error("%s: setsockopt(iosock, IPV6_MULTICAST_IF): %s",
+                    __func__, strerror(errno));
             exit(1);
         }
     }
@@ -1570,7 +1572,7 @@ gint main(gint argc, gchar **argv) {
     server6_init();
 
     if ((server6_lease_file = init_leases(PATH_SERVER6_LEASE)) == NULL) {
-        g_error("%s failed to parse lease file", FNAME);
+        g_error("%s: failed to parse lease file", __func__);
         exit(1);
     }
 
@@ -1594,7 +1596,7 @@ gint main(gint argc, gchar **argv) {
     TAILQ_INIT(&globalgroup->scope.dnslist.addrlist);
 
     if ((sfparse(conffile)) != 0) {
-        g_error("%s failed to parse addr configuration file", FNAME);
+        g_error("%s: failed to parse addr configuration file", __func__);
         exit(1);
     }
 
@@ -1617,17 +1619,17 @@ gint main(gint argc, gchar **argv) {
     }
 
     if (signal(SIGHUP, _server6_sighandler) == SIG_ERR) {
-        g_warning("%s failed to set signal: %s", FNAME, strerror(errno));
+        g_warning("%s: failed to set signal: %s", __func__, strerror(errno));
         return -1;
     }
 
     if (signal(SIGTERM, _server6_sighandler) == SIG_ERR) {
-        g_warning("%s failed to set signal: %s", FNAME, strerror(errno));
+        g_warning("%s: failed to set signal: %s", __func__, strerror(errno));
         return -1;
     }
 
     if (signal(SIGINT, _server6_sighandler) == SIG_ERR) {
-        g_warning("%s failed to set signal: %s", FNAME, strerror(errno));
+        g_warning("%s: failed to set signal: %s", __func__, strerror(errno));
         return -1;
     }
 

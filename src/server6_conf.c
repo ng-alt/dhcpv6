@@ -135,7 +135,7 @@ struct v6addr *getprefix(struct in6_addr *addr, gint len) {
 
     prefix = (struct v6addr *) malloc(sizeof(*prefix));
     if (prefix == NULL) {
-        g_error("%s fail to malloc memory", FNAME);
+        g_error("%s: fail to malloc memory", __func__);
         return NULL;
     }
 
@@ -171,7 +171,7 @@ struct scopelist *push_double_list(struct scopelist *current,
     item = (struct scopelist *) malloc(sizeof(*item));
 
     if (item == NULL) {
-        g_error("%s fail to allocate memory", FNAME);
+        g_error("%s: fail to allocate memory", __func__);
         return NULL;
     }
 
@@ -286,8 +286,8 @@ void post_config(struct rootgroup *root) {
                         current->valid_life_time != 0 &&
                         current->prefer_life_time >
                         current->valid_life_time) {
-                        g_error("%s preferlife time is greater than "
-                                "validlife time", FNAME);
+                        g_error("%s: preferlife time is greater than "
+                                "validlife time", __func__);
                         exit(1);
                     }
 
@@ -311,8 +311,8 @@ void post_config(struct rootgroup *root) {
                         current->valid_life_time != 0 &&
                         current->prefer_life_time >
                         current->valid_life_time) {
-                        g_error("%s preferlife time is greater than "
-                                "validlife time", FNAME);
+                        g_error("%s: preferlife time is greater than "
+                                "validlife time", __func__);
                         exit(1);
                     }
 
