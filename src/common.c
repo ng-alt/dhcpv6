@@ -2347,7 +2347,8 @@ void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
                  const gchar *message, gpointer user_data) {
     log_properties_t *props = (log_properties_t *) user_data;
     GDate *stamp = NULL;
-    gchar stampbuf[27];
+    GTimeVal timeval;
+    gchar stampbuf[64];
 
     if (!(log_level & props->threshold)) {
         return;
@@ -2355,10 +2356,12 @@ void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 
     if (props->foreground) {
         stamp = g_date_new();
-        g_date_set_time_t(stamp, time(NULL));
+        g_get_current_time(&timeval);
+        g_date_set_time_val(stamp, &timeval);
 
         memset(&stampbuf, '\0', sizeof(stampbuf));
         g_date_strftime(stampbuf, sizeof(stampbuf), "%Y-%m-%dT%T%z", stamp);
+        g_date_free(stamp);
 
         fprintf(stderr, "%s %s[%d]: %s\n", stampbuf, props->progname,
                 props->pid, message);
