@@ -70,6 +70,7 @@
 	 (a & LEASE_RBTIME_FLAG) && (a & LEASE_DUID_FLAG))
 
 #define YY_NO_UNPUT 1
+#define YY_NO_INPUT 1
 #define ECHO if (fwrite(yytext, yyleng, 1, yyout) != 1) { \
                  YY_FATAL_ERROR("error performing ECHO on yytext"); \
              }

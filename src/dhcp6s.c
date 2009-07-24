@@ -90,7 +90,6 @@ struct dhcp6_binding {
 static gchar pidfile[MAXPATHLEN];
 static gchar *device[MAX_DEVICE];
 static gint num_device = 0;
-static gint debug = 0;
 static const struct sockaddr_in6 *sa6_any_downstream;
 static guint16 upstream_port;
 static struct msghdr rmh;
@@ -1519,7 +1518,6 @@ gint main(gint argc, gchar **argv) {
     gchar *conffile = DHCP6S_CONF;
     FILE *pidfp = NULL;
     struct interface *ifnetwork;
-    pid_t pid = getpid();
     gboolean verbose = FALSE;
     log_properties_t log_props;
 

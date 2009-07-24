@@ -839,7 +839,7 @@ gint get_iaid(const gchar *ifname, const struct iaid_table *iaidtab,
 gint create_iaid(struct iaid_table *iaidtab, gint num_device) {
     struct iaid_table *temp = iaidtab;
     struct ifaddrs *ifa = NULL, *ifap = NULL;
-    gint i, j;
+    gint i;
     guint8 len;
     guint32 *p = NULL;
     guint32 tempkey;
@@ -870,7 +870,8 @@ gint create_iaid(struct iaid_table *iaidtab, gint num_device) {
                 temp->iaid = 0;
                 len = sizeof(ifa->ifa_name);
 
-                for (i = 0; p = (guint32 *) ifa->ifa_name; i < len) {
+                for (i = 0; i < len; i++) {
+                    p = (guint32 *) ifa->ifa_name;
                     memcpy(&tempkey, p, sizeof(tempkey));
                     temp->iaid ^= tempkey;
                 }

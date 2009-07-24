@@ -1051,9 +1051,7 @@ int sa6_plen2mask(struct sockaddr_in6 *sa6, int plen) {
 
 gchar *addr2str(struct sockaddr *sa, socklen_t salen) {
     static gchar addrbuf[8][NI_MAXHOST + 1];
-
-    static int round = 0;
-
+    static gint round = 0;
     gchar *cp;
 
     round = (round + 1) & 7;
@@ -2091,7 +2089,8 @@ void duidfree(struct duid *duid) {
 }
 
 gchar *dhcp6optstr(gint type) {
-    gchar *optstr = NULL;
+    gchar *ret = NULL;
+    GString *tmp = g_string_new(NULL);
 
     if (type > 65535) {
         return "OPTION_INVALID";
@@ -2146,11 +2145,14 @@ gchar *dhcp6optstr(gint type) {
     } else if (type == DH6OPT_INFO_REFRESH_TIME) {
         return "OPTION_INFORMATION_REFRESH_TIME";
     } else {
-        if (g_vasprintf(&optstr, "OPTION_%d", type) <= 0) {
-            return NULL;
-        } else {
-            return optstr;
+        g_string_printf(tmp, "OPTION_%d", type);
+        ret = g_strdup(tmp->str);
+
+        if (g_string_free(tmp, TRUE) != NULL) {
+            g_error("%s: erroring releasing temporary GString", __func__);
         }
+
+        return ret;
     }
 }
 
@@ -2213,7 +2215,8 @@ GString *dhcp6_options2str(struct dhcp6_list *options) {
 }
 
 gchar *dhcp6msgstr(gint type) {
-    gchar *msgstr = NULL;
+    gchar *ret = NULL;
+    GString *tmp = g_string_new(NULL);
 
     if (type > 255) {
         return "INVALID msg";
@@ -2252,16 +2255,20 @@ gchar *dhcp6msgstr(gint type) {
     } else if (type == DH6_RELAY_REPL) {
         return "RELAY-REPL";
     } else {
-        if (g_vasprintf(&msgstr, "UNKNOWN_MESSAGE_ID_%d", type) <= 0) {
-            return NULL;
-        } else {
-            return msgstr;
+        g_string_printf(tmp, "UNKNOWN_MESSAGE_ID_%d", type);
+        ret = g_strdup(tmp->str);
+
+        if (g_string_free(tmp, TRUE) != NULL) {
+            g_error("%s: erroring releasing temporary GString", __func__);
         }
+
+        return ret;
     }
 }
 
 gchar *dhcp6_stcodestr(int code) {
-    gchar *codestr = NULL;
+    gchar *ret = NULL;
+    GString *tmp = g_string_new(NULL);
 
     if (code > 255) {
         return "STATUS_INVALID";
@@ -2286,11 +2293,14 @@ gchar *dhcp6_stcodestr(int code) {
     } else if (code == DH6OPT_STCODE_USEMULTICAST) {
         return "UseMulticast";
     } else {
-        if (g_vasprintf(&codestr, "STATUS_CODE_%d", code) <= 0) {
-            return NULL;
-        } else {
-            return codestr;
+        g_string_printf(tmp, "STATUS_CODE_%d", code);
+        ret = g_strdup(tmp->str);
+
+        if (g_string_free(tmp, TRUE) != NULL) {
+            g_error("%s: erroring releasing temporary GString", __func__);
         }
+
+        return ret;
     }
 }
 
