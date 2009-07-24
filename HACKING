@@ -156,16 +156,16 @@ use the git version control system.  You can clone the upstream repository
 and commit your changes locally and then generate a set of diffs against
 the latest upstream code.
 
-    $ git-clone git://git.fedorahosted.org/dhcpv6.git/
+    $ git clone git://git.fedorahosted.org/dhcpv6.git/
     $ cd dhcpv6
     $ # make your changes to files here
-    $ git-add FILE           # repeat this add/commit process for
-    $ git-commit             # each logical change to the code
-    $ git-fetch
-    $ git-rebase origin
-    $ git-format-patch origin
+    $ git add FILE           # repeat this add/commit process for
+    $ git commit             # each logical change to the code
+    $ git fetch
+    $ git rebase origin
+    $ git format-patch origin
 
-The output of git-format-patch will be a set of files containing a patch
+The output of git format-patch will be a set of files containing a patch
 for each add/commit you made locally.  The patches will be made against
 the latest upstream.  Submit your patch files upstream.
 
