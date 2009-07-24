@@ -184,7 +184,12 @@ comment		\#.*
 	lease_flags |= LEASE_ADDR_FLAG;}
 <S_LEASE>{slash} {BEGIN S_PLEN;}
 <S_LEASE>. {ABORT;}
-<S_PLEN>{number} {lease_rec->lease_addr.plen = (u_int8_t)atoi(yytext);} 
+<S_PLEN>{number} {
+	lease_rec->lease_addr.plen = (guint8) strtol(yytext, NULL, 10);
+	if ((errno == EINVAL) || (errno == ERANGE)) {
+		g_error("invalid prefix length");
+		ABORT;
+	};}
 <S_PLEN>{lbrace} {;}
 <S_PLEN>. {ABORT;}
 <S_HNAME>{string} {strncpy(lease_rec->hostname, yytext, sizeof(lease_rec->hostname)-1); 
