@@ -2325,15 +2325,17 @@ gchar *duidstr(const struct duid *duid) {
     return duidstr;
 }
 
-void setup_logging(gchar *ident, gboolean verbose, log_properties_t *props) {
+void setup_logging(gchar *ident, log_properties_t *props) {
     openlog(ident, LOG_CONS | LOG_NDELAY | LOG_PID, LOG_DAEMON);
 
+    props->threshold = G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL |
+                       G_LOG_LEVEL_WARNING;
     props->progname = ident;
 
-    if (verbose) {
-        props->threshold = LOG_DEBUG;
-    } else {
-        props->threshold = LOG_ERR;
+    if (props->debug) {
+        props->threshold |= G_LOG_LEVEL_MASK;
+    } else if (props->verbose) {
+        props->threshold |= G_LOG_LEVEL_MESSAGE | G_LOG_LEVEL_INFO;
     }
 
     g_log_set_handler(NULL, G_LOG_LEVEL_MASK, log_handler, (gpointer) props);
@@ -2347,7 +2349,7 @@ void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
     GDate *stamp = NULL;
     gchar stampbuf[27];
 
-    if (log_level > props->threshold) {
+    if (!(log_level & props->threshold)) {
         return;
     }
 

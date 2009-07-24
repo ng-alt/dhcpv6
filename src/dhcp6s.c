@@ -167,13 +167,14 @@ static void _server6_sighandler(gint sig) {
 }
 
 static void _usage(gchar *name) {
-    fprintf(stderr, "Usage: %s [options] [interface]\n", basename(name));
+    fprintf(stderr, "Usage: %s [options] [interface]\n", name);
     fprintf(stderr, "Options:\n");
     fprintf(stderr,
             "    -c PATH        Configuration file (e.g., /etc/dhcp6s.conf\n");
     fprintf(stderr, "    -p PATH        PID file name (default: %s)\n",
             DHCP6S_PIDFILE);
-    fprintf(stderr, "    -v             Verbose debugging output\n");
+    fprintf(stderr, "    -v             Verbose log output\n");
+    fprintf(stderr, "    -d             Debugging log output (implies -v)\n");
     fprintf(stderr,
             "    -f             Run server as a foreground process\n");
     fflush(stderr);
@@ -1518,7 +1519,6 @@ gint main(gint argc, gchar **argv) {
     gchar *conffile = DHCP6S_CONF;
     FILE *pidfp = NULL;
     struct interface *ifnetwork;
-    gboolean verbose = FALSE;
     log_properties_t log_props;
 
     memset(&pidfile, '\0', sizeof(pidfile));
@@ -1527,7 +1527,7 @@ gint main(gint argc, gchar **argv) {
     TAILQ_INIT(&arg_dnslist.addrlist);
 
     _random_init();
-    while ((ch = getopt(argc, argv, "c:vfn:p:")) != -1) {
+    while ((ch = getopt(argc, argv, "c:vfdn:p:")) != -1) {
         switch (ch) {
             case 'p':
                 if (strlen(optarg) >= MAXPATHLEN) {
@@ -1542,13 +1542,15 @@ gint main(gint argc, gchar **argv) {
                 conffile = optarg;
                 break;
             case 'v':
-                verbose = TRUE;
+                log_props.verbose = TRUE;
                 break;
             case 'f':
                 log_props.foreground = TRUE;
                 break;
+            case 'd':
+                log_props.debug = TRUE;
             default:
-                _usage(argv[0]);
+                _usage(progname);
                 exit(0);
         }
     }
@@ -1565,7 +1567,7 @@ gint main(gint argc, gchar **argv) {
     }
 
     log_props.pid = getpid();
-    setup_logging(progname, verbose, &log_props);
+    setup_logging(progname, &log_props);
 
     server6_init();
 

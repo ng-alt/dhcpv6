@@ -160,14 +160,15 @@ static void _usage(gchar *name) {
             "                       (default: %s)\n",
             path_client6_lease);
     fprintf(stdout,
-            "    -d PATH        Path to client DUID file\n"
+            "    -i PATH        Path to client DUID file\n"
             "                       (default: %s)\n",
             duidfile);
     fprintf(stdout,
             "    -I             Request only information from the server\n");
     fprintf(stdout,
             "    -f             Run client as a foreground process\n");
-    fprintf(stdout, "    -v             Verbose log output (include debug messages)\n");
+    fprintf(stdout, "    -v             Verbose log output\n");
+    fprintf(stdout, "    -d             Debugging log output (implies -v)\n");
     fprintf(stdout, "    -?             Display this screen\n");
     fprintf(stdout, "IANA is identiy association named address.\n");
     fprintf(stdout, "IAPD is identiy association prefix delegation.\n");
@@ -2242,14 +2243,13 @@ gint main(gint argc, gchar **argv, gchar **envp) {
     gchar *conffile = DHCP6C_CONF;
     FILE *pidfp;
     gchar *addr;
-    gboolean verbose = FALSE;
     log_properties_t log_props;
 
     pid = getpid();
     srandom(time(NULL) & pid);
 
     TAILQ_INIT(&request_list);
-    while ((ch = getopt(argc, argv, "c:r:R:P:vfIp:l:s:d:?")) != -1) {
+    while ((ch = getopt(argc, argv, "c:r:R:P:vfdIp:l:s:i:?")) != -1) {
         switch (ch) {
             case 'p':
                 if (strlen(optarg) >= MAXPATHLEN) {
@@ -2385,7 +2385,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
 
                 script = optarg;
                 break;
-            case 'd':
+            case 'i':
                 if (strlen(optarg) >= MAXPATHLEN) {
                     g_error("DUID filename is too long");
                     exit(1);
@@ -2394,10 +2394,13 @@ gint main(gint argc, gchar **argv, gchar **envp) {
                 duidfile = optarg;
                 break;
             case 'v':
-                verbose = TRUE;
+                log_props.verbose = TRUE;
                 break;
             case 'f':
                 log_props.foreground = TRUE;
+                break;
+            case 'd':
+                log_props.debug = TRUE;
                 break;
             case '?':
             default:
@@ -2417,7 +2420,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
     device = argv[0];
 
     log_props.pid = pid;
-    setup_logging(progname, verbose, &log_props);
+    setup_logging(progname, &log_props);
 
     /* dump current PID */
     if ((pidfp = fopen(pidfile, "w")) != NULL) {
