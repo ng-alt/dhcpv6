@@ -49,14 +49,11 @@
 #define IPV6_2292PKTINFO IPV6_PKTINFO
 #endif
 
-extern FILE *dump;
-
 void init_socket(void) {
     relaysock = (struct relay_socket *) malloc(sizeof(struct relay_socket));
 
     if (relaysock == NULL) {
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "init_socket--> error no more memory available\n");
+        g_error("%s: memory allocation error", __func__);
         exit(1);
     }
 
@@ -64,13 +61,12 @@ void init_socket(void) {
     relaysock->databuf = (gchar *) malloc(MAX_DHCP_MSG_LENGTH * sizeof(gchar));
 
     if (relaysock->databuf == NULL) {
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "init_socket--> error no more memory available\n");
+        g_error("%s: memory allocation error", __func__);
         exit(1);
     }
 
     if ((relaysock->sock_desc = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
-        TRACE(dump, "failed to get new socket with socket()\n");
+        g_error("%s: failed to get new socket", __func__);
         exit(0);
     }
 }
@@ -96,15 +92,13 @@ gint get_recv_data(void) {
                                                                  * in */
 
             if (IN6_IS_ADDR_LOOPBACK(&relaysock->from.sin6_addr)) {
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "get_recv_data()--> source address is loopback!\n");
+                g_error("%s: source address is loopback", __func__);
                 return 0;
             }
 
             if (inet_ntop(AF_INET6, &relaysock->from.sin6_addr,
                           relaysock->src_addr, INET6_ADDRSTRLEN) <= 0) {
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "inet_ntop failed in get_recv_data()\n");
+                g_error("%s: inet_ntop failure", __func__);
                 return 0;
             }
 
@@ -114,9 +108,8 @@ gint get_recv_data(void) {
                 relaysock->dst_addr_type = 2;
 
                 if (multicast_off == 1) {
-                    TRACE(dump, "%s - %s", dhcp6r_clock(),
-                          "received multicast packet is dropped, only unicast "
-                          "is allowed!\n");
+                    g_error("%s: received multicast packet is dropped, "
+                            "only unicast is allowed", __func__);
                     return 0;
                 }
             } else if (IN6_IS_ADDR_LINKLOCAL(&dst.sin6_addr)) {
@@ -146,7 +139,7 @@ gint check_select(void) {
     FD_SET(fdmax, &readfd);
 
     if ((i = select(fdmax + 1, &readfd, NULL, NULL, &tv)) == -1) {
-        TRACE(dump, "%s - %s", dhcp6r_clock(), "failure in select()\n");
+        g_error("%s: select() failure", __func__);
         return 0;
     }
 
@@ -173,16 +166,13 @@ gint set_sock_opt(void) {
     hop_limit = 32;
     if (setsockopt(relaysock->sock_desc, IPPROTO_IPV6,
                    IPV6_MULTICAST_HOPS, &hop_limit, sizeof(hop_limit)) < 0) {
-        TRACE(dump, "%s - %s, %s\n", dhcp6r_clock(),
-              "failed to set socket for IPV6_MULTICAST_HOPS",
-              strerror(errno));
+        g_error("%s: failed to set socket for IPV6_MULTICAST_HOPS", __func__);
         return 0;
     }
 
     if (setsockopt(relaysock->sock_desc, IPPROTO_IPV6, IPV6_2292PKTINFO,
                    &on, sizeof(on)) < 0) {
-        TRACE(dump, "%s - %s, %s\n", dhcp6r_clock(),
-              "failed to set socket for IPV6_2292PKTINFO", strerror(errno));
+        g_error("%s: failed to set socket for IPV6_2292PKTINFO", __func__);
         return 0;
     }
 
@@ -207,21 +197,19 @@ gint set_sock_opt(void) {
 
         if (inet_pton(AF_INET6, ALL_DHCP_RELAY_AND_SERVERS,
                       &sock_opt.ipv6mr_multiaddr) <= 0) {
-            TRACE(dump, "%s - %s", dhcp6r_clock(),
-                  "failed to set struct for multicast receive\n");
+            g_error("%s: failed to set struct for multicast receive", __func__);
             return 0;
         }
 
         if (setsockopt(relaysock->sock_desc, IPPROTO_IPV6, IPV6_JOIN_GROUP,
                        (gchar *) &sock_opt, sizeof(sock_opt)) < 0) {
-            TRACE(dump, "%s - %s", dhcp6r_clock(),
-                  "failed to set socket option for IPV6_JOIN_GROUP \n");
+            g_error("%s: failed to set socket option for IPV6_JOIN_GROUP",
+                    __func__);
             return 0;
         }
     }
 
-    TRACE(dump, "%s - %s", dhcp6r_clock(), "socket options are set\n");
-    fflush(dump);
+    g_debug("%s: socket options are set", __func__);
     return 1;
 }
 
@@ -260,8 +248,7 @@ gint recv_data(void) {
     memset(relaysock->databuf, 0, (MAX_DHCP_MSG_LENGTH * sizeof(gchar)));
 
     if ((count = recvmsg(relaysock->sock_desc, &relaysock->msg, 0)) < 0) {
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "failed to receive data with recvmsg()-->receive::recv_data()\n");
+        g_error("%s: failed to receive data with recvmsg()", __func__);
         return -1;
     }
 
@@ -283,8 +270,7 @@ gint get_interface_info(void) {
     struct IPv6_address *ipv6addr;
 
     if ((f = fopen(INTERFACEINFO, "r")) == NULL) {
-        TRACE(dump, "fatal error--> could not open file: %s\n",
-              INTERFACEINFO);
+        g_error("%s: could not open file", __func__);
         return 0;
     }
 
@@ -326,9 +312,7 @@ gint get_interface_info(void) {
             device = (struct interface *) malloc(sizeof(struct interface));
 
             if (device == NULL) {
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "get_interface_info()--> "
-                      "error no more memory available\n");
+                g_error("%s: memory allocation error", __func__);
                 exit(1);
             }
 
@@ -345,17 +329,14 @@ gint get_interface_info(void) {
 
         if (IN6_IS_ADDR_LINKLOCAL(&sap.sin6_addr)) {
             device->link_local = strdup(src_addr);
-            TRACE(dump, "%s %s %s %d %s %s\n",
-                  "relay interface info--> devname:", devname, "index:",
-                  if_idx, "link_local_addr:", src_addr);
+            g_debug("%s: devname: %s, index: %d, link local addr: %s",
+                    __func__, devname, if_idx, src_addr);
         } else {
             ipv6addr = (struct IPv6_address *)
                 malloc(sizeof(struct IPv6_address));
 
             if (ipv6addr == NULL) {
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "get_interface_info()--> "
-                      "error no more memory available\n");
+                g_error("%s: memory allocation error", __func__);
                 exit(1);
             }
 
@@ -374,10 +355,9 @@ gint get_interface_info(void) {
         next_device = device->next;
 
         if (device->ipv6addr == NULL) {
-            TRACE(dump, "%s - remove interface %s as it does not "
-                  "have any global address\n",
-                  dhcp6r_clock(), device->ifname);
-            --nr_of_devices;
+            g_debug("%s: remove interface %s as it does not have any "
+                    "global address", __func__, device->ifname);
+            nr_of_devices--;
             device->prev->next = device->next;
             device->next->prev = device->prev;
             free(device->ifname);
@@ -392,7 +372,6 @@ gint get_interface_info(void) {
         device = next_device;
     }
 
-    fflush(dump);
     fclose(f);
     return 1;
 }
@@ -435,7 +414,7 @@ gint send_message(void) {
         recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
 
         if (recvp == NULL) {
-            TRACE(dump, "error--> recvp no more memory available \n");
+            g_error("%s: memory allocation error", __func__);
             exit(1);
         }
 
@@ -450,8 +429,7 @@ gint send_message(void) {
 
         /* destination address */
         if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
-            TRACE(dump, "%s - %s", dhcp6r_clock(),
-                  "send_message()--> inet_pton() failed \n");
+            g_error("%s: inet_pton() failure", __func__);
             exit(1);
         }
 
@@ -476,13 +454,11 @@ gint send_message(void) {
 
             if (inet_pton(AF_INET6, src_addr, &in6_pkt->ipi6_addr) <= 0) {
                 /* source address */
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "inet_pton failed in send_message()\n");
+                g_error("%s: inet_pton() failure", __func__);
                 exit(1);
             }
 
-            TRACE(dump, "%s - source address: %s\n", dhcp6r_clock(),
-                  src_addr);
+            g_debug("%s: source address: %s", __func__, src_addr);
         } else {
             /* the kernel will choose the source address */
             memset(&in6_pkt->ipi6_addr, 0, sizeof(in6_pkt->ipi6_addr));
@@ -490,9 +466,9 @@ gint send_message(void) {
 
         /* OUTGOING DEVICE FOR RELAY_REPLY MSG */
         in6_pkt->ipi6_ifindex = mesg->if_index;
-        TRACE(dump, "%s - outgoing device index: %d\n", dhcp6r_clock(),
-              in6_pkt->ipi6_ifindex);
-        TRACE(dump, "%s - destination port: %d\n", dhcp6r_clock(),
+        g_debug("%s: outgoing device index: %d", __func__,
+                in6_pkt->ipi6_ifindex);
+        g_debug("%s: destination port: %d", __func__,
               ntohs(sin6.sin6_port));
 
         iov[0].iov_base = mesg->buffer;
@@ -511,8 +487,8 @@ gint send_message(void) {
             perror("bytes in sendmsg");
         }
 
-        TRACE(dump, "%s - *> relay_repl, sent to: %s sent_bytes: %d\n",
-              dhcp6r_clock(), dest_addr, count);
+        g_debug("%s: *> relay_repl, sent to: %s sent_bytes: %d",
+                __func__, dest_addr, count);
 
         free(recvp);
 
@@ -531,8 +507,7 @@ gint send_message(void) {
 
             /* destination address */
             if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "inet_pton failed in send_message()\n");
+                g_error("%s: inet_pton() failure", __func__);
                 return 0;
             }
 
@@ -540,8 +515,7 @@ gint send_message(void) {
             recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
 
             if (recvp == NULL) {
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "error--> recvp no more memory available\n");
+                g_error("%s: memory allocation error", __func__);
                 exit(1);
             }
 
@@ -557,8 +531,7 @@ gint send_message(void) {
 
             /* destination address */
             if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "inet_pton failed in send_message()\n");
+                g_error("%s: inet_pton() failure", __func__);
                 return 0;
             }
 
@@ -586,9 +559,8 @@ gint send_message(void) {
                 perror("bytes sendmsg");
             }
 
-            TRACE(dump,
-                  "%s - => relay_forw, sent to: %s sent_bytes: %d\n",
-                  dhcp6r_clock(), dest_addr, count);
+            g_debug("%s: => relay_forw, sent to: %s sent_bytes: %d",
+                    __func__, dest_addr, count);
             free(recvp);
             hit = 1;
         }                       /* for */
@@ -606,8 +578,7 @@ gint send_message(void) {
 
                 /* destination address */
                 if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
-                    TRACE(dump, "%s - %s", dhcp6r_clock(),
-                          "inet_pton failed in send_message()\n");
+                    g_error("%s: inet_pton() failure", __func__);
                     exit(1);
                 }
 
@@ -615,8 +586,7 @@ gint send_message(void) {
                 recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
 
                 if (recvp == NULL) {
-                    TRACE(dump, "%s - %s", dhcp6r_clock(),
-                          "error--> recvp no more memory available\n");
+                    g_error("%s: memory allocation error", __func__);
                     exit(1);
                 }
 
@@ -632,26 +602,24 @@ gint send_message(void) {
 
                 /* destination address */
                 if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
-                    TRACE(dump, "%s - %s", dhcp6r_clock(),
-                          "inet_pton failed in send_message()\n");
+                    g_error("%s: inet_pton() failure", __func__);
                     return 0;
                 }
 
                 in6_pkt->ipi6_ifindex = iface->devindex;
                 sin6.sin6_scope_id = in6_pkt->ipi6_ifindex;
 
-                TRACE(dump, "%s - outgoing device index: %d\n",
-                      dhcp6r_clock(), in6_pkt->ipi6_ifindex);
+                g_debug("%s: outgoing device index: %d", __func__,
+                        in6_pkt->ipi6_ifindex);
                 if (inet_pton(AF_INET6, iface->ipv6addr->gaddr,
                               &in6_pkt->ipi6_addr) <= 0) {
                     /* source address */
-                    TRACE(dump, "%s - %s", dhcp6r_clock(),
-                          "inet_pton failed in send_message()\n");
+                    g_error("%s: inet_pton() failure", __func__);
                     exit(1);
                 }
 
-                TRACE(dump, "%s - source address: %s\n", dhcp6r_clock(),
-                      iface->ipv6addr->gaddr);
+                g_debug("%s: source address: %s", __func__,
+                        iface->ipv6addr->gaddr);
 
                 sin6.sin6_port = htons(SERVER_PORT);
 
@@ -671,8 +639,8 @@ gint send_message(void) {
                     perror("bytes sendmsg");
                 }
 
-                TRACE(dump, "%s - => relay_forw, sent to: %s sent_bytes: %d\n",
-                      dhcp6r_clock(), dest_addr, count);
+                g_debug("%s: => relay_forw, sent to: %s sent_bytes: %d",
+                        __func__, dest_addr, count);
                 free(recvp);
                 uservers = uservers->next;
                 hit = 1;
@@ -689,8 +657,7 @@ gint send_message(void) {
 
             /* destination address */
             if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "inet_pton failed in send_message()\n");
+                g_error("%s: inet_pton() failure", __func__);
                 return 0;
             }
 
@@ -698,8 +665,7 @@ gint send_message(void) {
             recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
 
             if (recvp == NULL) {
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "error--> recvp no more memory available\n");
+                g_error("%s: memory allocation error", __func__);
                 exit(1);
             }
 
@@ -715,34 +681,30 @@ gint send_message(void) {
 
             /* destination address */
             if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "inet_pton failed in send_message()\n");
+                g_error("%s: inet_pton() failure", __func__);
                 return 0;
             }
 
             in6_pkt->ipi6_ifindex = if_nametoindex(si->siface);
             sin6.sin6_scope_id = in6_pkt->ipi6_ifindex;
 
-            TRACE(dump, "%s - outgoing device index: %d\n", dhcp6r_clock(),
-                  in6_pkt->ipi6_ifindex);
+            g_debug("%s: outgoing device index: %d", __func__,
+                    in6_pkt->ipi6_ifindex);
             iface = get_interface(in6_pkt->ipi6_ifindex);
 
             if (iface == NULL) {
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "error--> send_message(), no interface info found\n");
+                g_error("%s: no interface found", __func__);
                 exit(0);
             }
 
             if (inet_pton(AF_INET6, iface->ipv6addr->gaddr,
                           &in6_pkt->ipi6_addr) <= 0) {
                 /* source address */
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "inet_pton failed in send_message()\n");
+                g_error("%s: inet_pton() failure", __func__);
                 exit(1);
             }
 
-            TRACE(dump, "%s - source address: %s\n", dhcp6r_clock(),
-                  iface->ipv6addr->gaddr);
+            g_debug("%s: source address: %s", __func__, iface->ipv6addr->gaddr);
 
             sin6.sin6_port = htons(SERVER_PORT);
 
@@ -762,8 +724,8 @@ gint send_message(void) {
                 perror("bytes sendmsg");
             }
 
-            TRACE(dump, "%s - => relay_forw, sent to: %s snet_bytes: %d\n",
-                  dhcp6r_clock(), dest_addr, count);
+            g_debug("%s: => relay_forw, sent to: %s snet_bytes: %d",
+                    __func__, dest_addr, count);
 
             free(recvp);
             hit = 1;
@@ -785,8 +747,7 @@ gint send_message(void) {
 
                 /* destination address */
                 if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
-                    TRACE(dump, "%s - %s", dhcp6r_clock(),
-                          "inet_pton failed in send_message()\n");
+                    g_error("%s: inet_pton() failure", __func__);
                     return 0;
                 }
 
@@ -794,8 +755,7 @@ gint send_message(void) {
                 recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
 
                 if (recvp == NULL) {
-                    TRACE(dump, "%s - %s", dhcp6r_clock(),
-                          "error--> recvp no more memory available\n");
+                    g_error("%s: memory allocation error", __func__);
                     exit(1);
                 }
 
@@ -811,8 +771,7 @@ gint send_message(void) {
 
                 /* destination address */
                 if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
-                    TRACE(dump, "%s - %s", dhcp6r_clock(),
-                          "inet_pton failed in send_message()\n");
+                    g_error("%s: inet_pton() failure", __func__);
                     return 0;
                 }
 
@@ -821,19 +780,18 @@ gint send_message(void) {
                 in6_pkt->ipi6_ifindex = iface->devindex;
                 sin6.sin6_scope_id = in6_pkt->ipi6_ifindex;
 
-                TRACE(dump, "%s - outgoing device index: %d\n",
-                      dhcp6r_clock(), in6_pkt->ipi6_ifindex);
+                g_debug("%s: outgoing device index: %d", __func__,
+                        in6_pkt->ipi6_ifindex);
 
                 if (inet_pton(AF_INET6, iface->ipv6addr->gaddr,
                               &in6_pkt->ipi6_addr) <= 0) {
                     /* source address */
-                    TRACE(dump, "%s - %s", dhcp6r_clock(),
-                          "inet_pton failed in send_message()\n");
+                    g_error("%s: inet_pton() failure", __func__);
                     exit(1);
                 }
 
-                TRACE(dump, "%s - source address: %s\n", dhcp6r_clock(),
-                      iface->ipv6addr->gaddr);
+                g_debug("%s: source address: %s", __func__,
+                        iface->ipv6addr->gaddr);
 
                 iov[0].iov_base = mesg->buffer;
                 iov[0].iov_len = mesg->datalength;
@@ -851,18 +809,16 @@ gint send_message(void) {
                     perror("sendmsg");
                 }
 
-                TRACE(dump, "%s - => relay_forw, sent to: %s sent_bytes: %d\n",
-                      dhcp6r_clock(), dest_addr, count);
+                g_debug("%s: => relay_forw, sent to: %s sent_bytes: %d",
+                        __func__, dest_addr, count);
                 free(recvp);
             }                   /* for */
         }
     }
 
-    fflush(dump);
     mesg->sent = 1;
     return 1;
 
-    TRACE(dump, "%s - %s", dhcp6r_clock(),
-          "fatal error--> no message type to be sent!\n");
+    g_error("%s: no message type to send", __func__);
     exit(1);
 }

@@ -44,20 +44,18 @@
 #include "relay6_database.h"
 #include "relay6_socket.h"
 
-extern FILE *dump;
-
 struct msg_parser *create_parser_obj(void) {
     struct msg_parser *msg;
 
     msg = (struct msg_parser *) malloc(sizeof(struct msg_parser));
     if (msg == NULL) {
-        TRACE(dump, "create_parser_obj()--> NO MORE MEMORY AVAILABLE\n");
+        g_error("%s: memory allocation error", __func__);
         exit(1);
     }
 
     msg->buffer = (uint8_t *) malloc(MAX_DHCP_MSG_LENGTH * sizeof(uint8_t));
     if (msg->buffer == NULL) {
-        TRACE(dump, "create_parser_obj()--> NO MORE MEMORY AVAILABLE\n");
+        g_error("%s: memory allocation error", __func__);
         exit(1);
     }
 
@@ -77,8 +75,8 @@ struct msg_parser *create_parser_obj(void) {
     msg->prev->next = msg;
     msg->next->prev = msg;
 
-    TRACE(dump, "\n%s - RECEIVED NEW MESSAGE ON INTERFACE: %d,  SOURCE: %s\n",
-          dhcp6r_clock(), msg->interface_in, msg->src_addr);
+    g_debug("%s: received new message on interface: %d, source: %s",
+            __func__, msg->interface_in, msg->src_addr);
 
     return msg;
 }
@@ -103,8 +101,8 @@ gint put_msg_in_store(struct msg_parser *mesg) {
     mesg->pstart = mesg->buffer;
 
     if (check_buffer(MESSAGE_HEADER_LENGTH, mesg) == 0) {
-        TRACE(dump, "put_msg_in_store()--> opt_length has 0 value for "
-              "MESSAGE_HEADER_LENGTH, DROPING... \n");
+        g_debug("%s: opt_length has 0 value for message header length, "
+                "dropping", __func__);
         return 0;
     }
 
@@ -116,8 +114,7 @@ gint put_msg_in_store(struct msg_parser *mesg) {
             return 0;
         }
 
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "GOT MESSAGE 'SOLICIT' FROM CLIENT---> IS TO BE RELAYED\n");
+        g_debug("%s: relaying SOLICIT from client", __func__);
         mesg->isRF = 0;
 
         if (process_RELAY_FORW(mesg) == 0) {
@@ -130,8 +127,7 @@ gint put_msg_in_store(struct msg_parser *mesg) {
             return 0;
         }
 
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "GOT MESSAGE 'REBIND' FROM CLIENT---> IS TO BE RELAYED\n");
+        g_debug("%s: relaying REBIND from client", __func__);
         mesg->isRF = 0;
 
         if (process_RELAY_FORW(mesg) == 0) {
@@ -144,9 +140,7 @@ gint put_msg_in_store(struct msg_parser *mesg) {
             return 0;
         }
 
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "GOT MESSAGE 'INFORMATION_REQUEST' FROM CLIENT---> "
-              "IS TO BE RELAYED\n");
+        g_debug("%s: relaying INFORMATION_REQUEST from client", __func__);
         mesg->isRF = 0;
 
         if (process_RELAY_FORW(mesg) == 0) {
@@ -159,8 +153,7 @@ gint put_msg_in_store(struct msg_parser *mesg) {
             return 0;
         }
 
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "GOT MESSAGE 'REQUEST' FROM CLIENT---> IS TO BE RELAYED\n");
+        g_debug("%s: relaying REQUEST from client", __func__);
         mesg->isRF = 0;
 
         if (process_RELAY_FORW(mesg) == 0) {
@@ -173,8 +166,7 @@ gint put_msg_in_store(struct msg_parser *mesg) {
             return 0;
         }
 
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "GOT MESSAGE 'REPLY' FROM CLIENT---> IS TO BE RELAYED\n");
+        g_debug("%s: relaying REPLY from client", __func__);
         mesg->isRF = 0;
 
         if (process_RELAY_FORW(mesg) == 0) {
@@ -187,8 +179,7 @@ gint put_msg_in_store(struct msg_parser *mesg) {
             return 0;
         }
 
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "GOT MESSAGE 'RENEW' FROM CLIENT---> IS TO BE RELAYED\n");
+        g_debug("%s: relaying RENEW from client", __func__);
         mesg->isRF = 0;
 
         if (process_RELAY_FORW(mesg) == 0) {
@@ -201,8 +192,7 @@ gint put_msg_in_store(struct msg_parser *mesg) {
             return 0;
         }
 
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "GOT MESSAGE 'RECONFIGURE' FROM CLIENT---> IS TO BE RELAYED\n");
+        g_debug("%s: relaying RECONFIGURE from client", __func__);
         mesg->isRF = 0;
 
         if (process_RELAY_FORW(mesg) == 0) {
@@ -215,8 +205,7 @@ gint put_msg_in_store(struct msg_parser *mesg) {
             return 0;
         }
 
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "GOT MESSAGE 'CONFIRM' FROM CLIENT---> IS TO BE RELAYED\n");
+        g_debug("%s: relaying CONFIRM from client", __func__);
         mesg->isRF = 0;
 
         if (process_RELAY_FORW(mesg) == 0) {
@@ -229,8 +218,7 @@ gint put_msg_in_store(struct msg_parser *mesg) {
             return 0;
         }
 
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "GOT MESSAGE 'ADVERTISE' FROM CLIENT---> IS TO BE RELAYED\n");
+        g_debug("%s: relaying ADVERTISE from client", __func__);
         mesg->isRF = 0;
 
         if (process_RELAY_FORW(mesg) == 0) {
@@ -243,8 +231,7 @@ gint put_msg_in_store(struct msg_parser *mesg) {
             return 0;
         }
 
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "GOT MESSAGE 'DECLINE' FROM CLIENT---> IS TO BE RELAYED\n");
+        g_debug("%s: relaying DECLINE from client", __func__);
         mesg->isRF = 0;
 
         if (process_RELAY_FORW(mesg) == 0) {
@@ -257,8 +244,7 @@ gint put_msg_in_store(struct msg_parser *mesg) {
             return 0;
         }
 
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "GOT MESSAGE 'RELEASE' FROM CLIENT---> IS TO BE RELAYED\n");
+        g_debug("%s: relaying RELEASE from client", __func__);
         mesg->isRF = 0;
 
         if (process_RELAY_FORW(mesg) == 0) {
@@ -275,14 +261,11 @@ gint put_msg_in_store(struct msg_parser *mesg) {
             return 0;
         }
 
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "GOT MESSAGE 'RELAY_FORW' FROM RELAY AGENT---> "
-              "IS TO BE FURTHER RELAYED\n");
+        g_debug("%s: relaying RELAY_FORW from relay agent", __func__);
         hop = (mesg->pstart + 1);
 
         if (*hop >= HOP_COUNT_LIMIT) {
-            TRACE(dump, "%s - %s", dhcp6r_clock(),
-                  "HOP COUNT EXCEEDED, PACKET WILL BE DROPED...\n");
+            g_debug("%s: hop count exceeded, packet will be dropped", __func__);
             return 0;
         }
 
@@ -297,9 +280,8 @@ gint put_msg_in_store(struct msg_parser *mesg) {
     }
 
     if (msg == DH6_RELAY_REPL) {
-        TRACE(dump, "%s - %s", dhcp6r_clock(),
-              "GOT MESSAGE 'RELAY_REPL' FROM RELAY AGENT OR SERVER---> "
-              "IS TO BE FURTHER RELAYED\n");
+        g_debug("%s: relaying RELAY_REPL from relay agent or server",
+                __func__);
 
         if (process_RELAY_REPL(mesg) == 0) {
             return 0;
@@ -308,8 +290,7 @@ gint put_msg_in_store(struct msg_parser *mesg) {
         return 1;
     }
 
-    TRACE(dump, "%s - %s", dhcp6r_clock(),
-          "put_msg_in_store()--> ERROR GOT UNKNOWN MESSAGE DROPING IT......\n");
+    g_error("%s: received unknown message, dropping", __func__);
 
     return 0;
 }

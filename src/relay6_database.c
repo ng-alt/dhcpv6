@@ -42,8 +42,6 @@
 #include "relay6_parser.h"
 #include "relay6_database.h"
 
-extern FILE *dump;
-
 void init_relay(void) {
     nr_of_uni_addr = 0;
     multicast_off = 0;
@@ -68,7 +66,7 @@ gint check_interface_semafor(gint index) {
 
     device = get_interface(index);
     if (device == NULL) {
-        TRACE(dump, "FATAL ERROR IN CheckInterfaceSemafor()\n");
+        g_error("%s: fatal error", __func__);
         exit(1);
     }
 
@@ -153,7 +151,7 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
     gint len, hop;
 
     if ((head == NULL) || (newbuff == NULL)) {
-        TRACE(dump, "ProcessRELAYFORW--> ERROR, NO MORE MEMRY AVAILABLE  \n");
+        g_error("%s: memory allocation error", __func__);
         exit(1);
     }
 
@@ -171,7 +169,7 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
         if (max_count == 1) {
             (*pointer) = MAXHOPCOUNT;
             hop = (int) (*pointer);
-            TRACE(dump, "%s - %s%d\n", dhcp6r_clock(), "HOPCOUNT: ", hop);
+            g_debug("%s: hopcount: %d", __func__, hop);
         }
 
         pointer += 1;
@@ -185,7 +183,7 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
         if (max_count == 1) {
             (*pointer) = MAXHOPCOUNT;
             hop = (int) (*pointer);
-            TRACE(dump, "%s - %s%d\n", dhcp6r_clock(), "HOPCOUNT: ", hop);
+            g_debug("%s: hopcount: %d", __func__, hop);
         }
 
         pointer += 1;
@@ -195,14 +193,14 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
     device = get_interface(msg->interface_in);
 
     if (device == NULL) {
-        TRACE(dump, "ProcessRELAYFORW--->ERROR NO INTERFACE FOUND!\n");
+        g_error("%s: no interface found", __func__);
         exit(1);
     }
 
     /* fill in link-address */
 
     if (inet_pton(AF_INET6, msg->src_addr, &sap.sin6_addr) <= 0) {
-        TRACE(dump, "ProcessRELAYFORW1--->ERROR IN  inet_pton !\n");
+        g_error("%s: inet_pton() failure", __func__);
         exit(1);
     }
 
@@ -215,7 +213,7 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
         memset(&sap.sin6_addr, 0, sizeof(sap.sin6_addr));
 
         if (inet_pton(AF_INET6, device->ipv6addr->gaddr, &sap.sin6_addr) <= 0) {
-            TRACE(dump, "ProcessRELAYFORW1--->ERROR IN  inet_pton !\n");
+            g_error("%s: inet_pton() failure", __func__);
             exit(1);
         }
 
@@ -227,7 +225,7 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
     memset(&sap.sin6_addr, 0, sizeof(sap.sin6_addr));
 
     if (inet_pton(AF_INET6, msg->src_addr, &sap.sin6_addr) <= 0) {
-        TRACE(dump, "ProcessRELAYFORW--->ERROR2 IN  inet_pton !\n");
+        g_error("%s: inet_pton() failure", __func__);
         exit(1);
     }
 
@@ -253,14 +251,12 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
     *optl = htons(msg->datalength);
 
     len = (pointer - head);
-    TRACE(dump, "%s - %s%d\n", dhcp6r_clock(), "RELAY_FORW HEADERLENGTH: ",
-          len);
-    TRACE(dump, "%s - %s%d\n", dhcp6r_clock(), "ORIGINAL MESSAGE LENGTH: ",
-          msg->datalength);
+    g_debug("%s: RELAY_FORW header length: %d", __func__, len);
+    g_debug("%s: original message length: %d", __func__, msg->datalength);
 
     if ((len + msg->datalength) > MAX_DHCP_MSG_LENGTH) {
-        TRACE(dump, " ERROR FRAGMENTATION WILL OCCUR IF SENT, DROP THE PACKET"
-              "......\n");
+        g_error("%s: fragmentation will occur if sent, dropping packet",
+                __func__);
         return 0;
     }
 
@@ -290,7 +286,7 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
     gchar *s;
 
     if (newbuff == NULL) {
-        TRACE(dump, "ProcessRELAYREPL--> ERROR, NO MORE MEMRY AVAILABLE  \n");
+        g_error("%s: memory allocation error", __func__);
         exit(1);
     }
 
@@ -298,8 +294,8 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
     pstart = pointer;
 
     if (msg->datalength < MESSAGE_HEADER_LENGTH) {
-        TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
-              "MESSAGE_HEADER_LENGTH, DROPING... \n");
+        g_debug("%s: opt_length has 0 value for message header length, "
+                "dropping", __func__);
         return 0;
     }
 
@@ -313,8 +309,8 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
     msg->msg_type = DH6_RELAY_REPL;
 
     if (msg->datalength - (pointer - pstart) < (2 * INET6_LEN)) {
-        TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
-              "INET6_LEN, DROPING... \n");
+        g_debug("%s: opt_length has 0 value for INET6_LEN, dropping",
+                __func__);
         return 0;
     }
 
@@ -326,7 +322,7 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
 
     if (inet_ntop(AF_INET6, &sap.sin6_addr, msg->link_addr,
                   INET6_ADDRSTRLEN) <= 0) {
-        TRACE(dump, "ProcessRELAYREPL1--->ERROR IN inet_ntop  !\n");
+        g_error("%s: inet_ntop() failure", __func__);
         exit(1);
     }
 
@@ -338,13 +334,13 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
 
     if (inet_ntop(AF_INET6, &sap.sin6_addr, msg->peer_addr,
                   INET6_ADDRSTRLEN) <= 0) {
-        TRACE(dump, "ProcessRELAYREPL1--->ERROR IN inet_ntop  !\n");
+        g_error("%s: inet_ntop() failure", __func__);
         exit(1);
     }
 
     if (msg->datalength - (pointer - pstart) < MESSAGE_HEADER_LENGTH) {
-        TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
-              "MESSAGE_HEADER_LENGTH, DROPING... \n");
+        g_debug("%s: opt_length has 0 value for message header length, "
+                "dropping", __func__);
         return 0;
     }
 
@@ -358,8 +354,8 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
         pointer += 2;
 
         if (msg->datalength - (pointer - pstart) < opaqlen) {
-            TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
-                  "opaqlen, DROPING... \n");
+            g_debug("%s: opt_length has 0 value for opaqlen, dropping",
+                    __func__);
             return 0;
         }
 
@@ -368,8 +364,8 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
         pointer += opaqlen;
 
         if (msg->datalength - (pointer - pstart) < MESSAGE_HEADER_LENGTH) {
-            TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
-                  "MESSAGE_HEADER_LENGTH, DROPING... \n");
+            g_debug("%s: opt_length has 0 value for message header length, "
+                    "dropping", __func__);
             return 0;
         }
 
@@ -382,9 +378,8 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
             msglen = ntohs(*p16);
             pointer += 2;
             if (msg->datalength - (pointer - pstart) < msglen) {
-                TRACE(dump,
-                      "ProcessRELAYREPL()--> opt_length has 0 value for "
-                      "msglen, DROPING... \n");
+                g_debug("%s: opt_length has 0 value for msglen, dropping",
+                        __func__);
                 return 0;
             }
 
@@ -435,8 +430,7 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
                 }
 
                 if (check == 0) {
-                    TRACE(dump,
-                          "ProcessRELAYREPL--->ERROR NO INTERFACE FOUND!\n");
+                    g_error("%s: no interface found", __func__);
                     return 0;
                 }
 
@@ -451,8 +445,8 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
             }
         } else {
             /* OPTION_RELAY_MSG */
-            TRACE(dump, "ProcessRELAYREPL--->ERROR MESSAGE IS MALFORMED NO "
-                  "OPTION_RELAY_MSG FOUND, DROPING...!\n");
+            g_debug("%s: message is malformed, no option relay message found, "
+                    "dropping", __func__);
             return 0;
         }
     }
@@ -465,8 +459,8 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
         pointer += 2;
 
         if (msg->datalength - (pointer - pstart) < msglen) {
-            TRACE(dump, "ProcessRELAYREPL()--> opt_length has 0 value for "
-                  "msglen, DROPING... \n");
+            g_debug("%s: opt_length has 0 value for msglen, dropping",
+                    __func__);
             return 0;
         }
 
@@ -485,9 +479,8 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
                 psp += 2;
 
                 if (msg->datalength - (psp - pstart) < opaqlen) {
-                    TRACE(dump,
-                          "ProcessRELAYREPL()--> opt_length has 0 value "
-                          "for opaqlen, DROPING... \n");
+                    g_debug("%s: opt_length has 0 value for opaqlen, dropping",
+                            __func__);
                     return 0;
                 }
 
@@ -542,8 +535,7 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
             }
 
             if (check == 0) {
-                TRACE(dump,
-                      "ProcessRELAYREPL--->ERROR NO INTERFACE FOUND!\n");
+                g_error("%s: no interface found", __func__);
                 return 0;
             }
 
@@ -556,8 +548,8 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
         }
     } else {
         /* OPTION_RELAY_MSG */
-        TRACE(dump, "ProcessRELAYREPL--->ERROR MESSAGE IS MALFORMED NO "
-              "OPTION_RELAY_MSG FOUND, DROPING...!\n");
+        g_debug("%s: message is malformed, no option relay message found, "
+                "dropping", __func__);
         return 0;
     }
 

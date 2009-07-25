@@ -44,7 +44,6 @@
 #define MAXHOPCOUNT                32
 #define SERVER_PORT                547
 #define CLIENT_PORT                546
-#define TRACE                      fprintf
 
 #define OPTION_RELAY_MSG    9
 #define OPTION_INTERFACE_ID 18

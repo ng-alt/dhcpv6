@@ -56,7 +56,6 @@
 
 #define DHCP6R_PIDFILE PID_FILE_PATH"/dhcp6r.pid"
 
-FILE *dump;
 static gchar pidfile[MAXPATHLEN];
 
 gint main(gint argc, gchar **argv) {
@@ -76,7 +75,6 @@ gint main(gint argc, gchar **argv) {
     memset(&pidfile, '\0', sizeof(pidfile));
     strcpy(pidfile, DHCP6R_PIDFILE);
 
-    dump = stderr;
     signal(SIGINT, handler);
     signal(SIGTERM, handler);
     signal(SIGHUP, handler);
@@ -91,18 +89,6 @@ gint main(gint argc, gchar **argv) {
         }
     }
 
-    if (du == 0) {
-        FILE *tmp_dump;
-
-        tmp_dump = fopen(RELAY_DUMP_FILE, "w+");
-        if (tmp_dump == NULL) {
-            TRACE(dump, "could not write dump file: %s\n", RELAY_DUMP_FILE);
-            exit(1);
-        }
-
-        dump = tmp_dump;
-    }
-
     if (get_interface_info() == 0) {
         goto ERROR;
     }
@@ -115,7 +101,7 @@ gint main(gint argc, gchar **argv) {
 
             if (i < argc) {
                 if (strlen(argv[i]) >= MAXPATHLEN) {
-                    TRACE(dump, "pid file name is too long\n");
+                    g_error("%s: pid filename is too long", __func__);
                     exit(1);
                 }
 
@@ -136,8 +122,7 @@ gint main(gint argc, gchar **argv) {
             ci = (struct cifaces *) malloc(sizeof(struct cifaces));
 
             if (ci == NULL) {
-                TRACE(dump, "%s - %s ", dhcp6r_clock(),
-                      "main--> error no more memory available\n");
+                g_error("%s: memory allocation error", __func__);
                 exit(1);
             }
 
@@ -145,8 +130,7 @@ gint main(gint argc, gchar **argv) {
             ci->next = cifaces_list.next;
             cifaces_list.next = ci;
 
-            TRACE(dump, "%s - %s'%s'\n", dhcp6r_clock(),
-                  "setting up client interface: ", argv[i]);
+            g_debug("%s: setting up client interface: %s", __func__, argv[i]);
             continue;
         } else if (strcmp(argv[i], "-cu") == 0) {
             multicast_off = 1;
@@ -161,8 +145,7 @@ gint main(gint argc, gchar **argv) {
             si = (struct sifaces *) malloc(sizeof(struct sifaces));
 
             if (si == NULL) {
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "main--> error no more memory available\n");
+                g_error("%s: memory allocation error", __func__);
                 exit(1);
             }
 
@@ -170,9 +153,7 @@ gint main(gint argc, gchar **argv) {
             si->next = sifaces_list.next;
             sifaces_list.next = si;
 
-            TRACE(dump, "%s - %s'%s'\n", dhcp6r_clock(),
-                  "setting up server interface: ", argv[i]);
-
+            g_debug("%s: setting up server interface: %s", __func__, argv[i]);
             continue;
         } else if (strcmp(argv[i], "-su") == 0) {
             i++;
@@ -192,8 +173,7 @@ gint main(gint argc, gchar **argv) {
                 malloc(sizeof(struct IPv6_uniaddr));
 
             if (unia == NULL) {
-                TRACE(dump, "%s - %s", dhcp6r_clock(),
-                      "main--> error no more memory available\n");
+                g_error("%s: memory allocation error", __func__);
                 exit(1);
             }
 
@@ -201,8 +181,7 @@ gint main(gint argc, gchar **argv) {
             unia->next = IPv6_uniaddr_list.next;
             IPv6_uniaddr_list.next = unia;
 
-            TRACE(dump, "%s - %s'%s'\n", dhcp6r_clock(),
-                  "setting up server address: ", argv[i]);
+            g_debug("%s: setting up server address: %s", __func__, argv[i]);
             nr_of_uni_addr += 1;
 
             continue;
@@ -238,8 +217,7 @@ gint main(gint argc, gchar **argv) {
                 sa = (struct server *) malloc(sizeof(struct server));
 
                 if (sa == NULL) {
-                    TRACE(dump, "%s - %s", dhcp6r_clock(),
-                          "main--> no more memory available\n");
+                    g_error("%s: memory allocation error", __func__);
                     exit(1);
                 }
 
@@ -251,9 +229,8 @@ gint main(gint argc, gchar **argv) {
                 }
 
                 iface->sname = sa;
-                TRACE(dump, "%s - %s%s for interface: %s\n",
-                      dhcp6r_clock(),
-                      "setting up server address: ", addr, eth);
+                g_debug("%s: setting up server address: %s for interface: %s",
+                        __func__, addr, eth);
                 free(sf);
             } else {
                 err = 5;
@@ -325,17 +302,17 @@ gint main(gint argc, gchar **argv) {
 ERROR:
 
     if (err == 3) {
-        TRACE(dump, "dhcp6r: malformed address '%s'\n", argv[i]);
+        g_error("%s: malformed address: %s", __func__, argv[i]);
         exit(1);
     }
 
     if (err == 4) {
-        TRACE(dump, "dhcp6r: option '%s' not recognized\n", argv[i]);
+        g_error("%s: option %s not recognized", __func__, argv[i]);
         exit(1);
     }
 
     if (err == 5) {
-        TRACE(dump, "dhcp6r: interface '%s' does not exist \n", argv[i]);
+        g_error("%s: interface %s not found", __func__, argv[i]);
         exit(1);
     }
 
@@ -380,9 +357,7 @@ gchar *dhcp6r_clock(void) {
 
 void handler(gint signo) {
     close(relaysock->sock_desc);
-    TRACE(dump, "%s - %s", dhcp6r_clock(),
-          "RELAY AGENT IS STOPPING............\n");
-    fflush(dump);
+    g_debug("%s: relay agent stopping", __func__);
     unlink(pidfile);
 
     exit(0);
