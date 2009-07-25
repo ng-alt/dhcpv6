@@ -1,6 +1,31 @@
+man pages:
+dhcp6c.8
+    %DHCP6C_DUID_PATH%
+    %DHCP6C_CONF_PATH%
+    %DHCP6C_LEASE_PATH%
+    %DHCP6C_PID_PATH%
+
+dhcp6s.8
+    %DHCP6S_CONF_PATH%
+    %DHCP6S_DUID_PATH%
+    %DHCP6S_LEASE_PATH%
+
+
+paths to make command line options:
+    server
+        conf file
+        lease database
+        duid
+        pid
+
+    relay
+        pid
+
+- Replace bcmp() usage with something not deprecated.
+
 - Add long options to dhcp6c, dhcp6s, and dhcp6r
 
-- Make sure code compiles with -Werror
+- Run autoscan and update configure.ac if needed
 
 - Use glib types for common things, and glib functions where appropriate
 
@@ -14,11 +39,9 @@
 
 - Replace strcpy() with strncpy() if necessary.
 
-- Replace sprintf() with asprintf().
+- Replace sprintf() with asprintf().  (better, use GString)
 
 - Simplify free() calls.  Make sure pointers that are freed are set to NULL.
-
-- Rename static functions to have an underscore as the first character.
 
 - Clean up function prototypes (put them in header files).
 
@@ -29,16 +52,12 @@
 
 - Get rid of direct 'XXXXXX' temp file creation
 
-- Replace all instances of atoi() with strtol() and error checking
-
 - Support a script-based configuration mode, similar to what dhclient does
 
 - dhcp6c can pull an IA_NA and an IA_TA, but doesn't configure the interface
   with that information
 
 - dhcp6c does not honor server preference on responses from servers
-
-- Can hash.c be replaced with a standard system offering?  yes, glib
 
 - Replace all .l files with a single lexer with multiple state paths depending
   on what we're reading.
@@ -57,8 +76,6 @@
   config file path, lease database path, and so on (like ISC software)
 
 - Output timestamps using this format: http://www.w3.org/TR/NOTE-datetime
-
-- Remove MacOS X specifics
 
 - Support information refresh time option in client and server
 
