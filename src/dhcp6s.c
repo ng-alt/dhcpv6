@@ -97,7 +97,7 @@ static gchar rdatabuf[BUFSIZ];
 static gint rmsgctllen;
 static gchar *rmsgctlbuf;
 static struct duid server_duid;
-static struct dns_list arg_dnslist;
+static dns_info_t arg_dnsinfo;
 static struct dhcp6_timer *sync_lease_timer;
 
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_SERVER;
@@ -851,7 +851,7 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
 
         if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS) ||
             dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
-            dnslist = subnet->linkscope.dnslist;
+            dnsinfo = subnet->linkscope.dnsinfo;
         }
 
         if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_INFO_REFRESH_TIME)) {
@@ -869,7 +869,7 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
 
         if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS) ||
             dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
-            dnslist = host->hostscope.dnslist;
+            dnsinfo = host->hostscope.dnsinfo;
         }
 
         if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_INFO_REFRESH_TIME)) {
@@ -879,15 +879,15 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
 
     /* prohibit a mixture of old and new style of DNS server config */
     if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
-        if (!TAILQ_EMPTY(&arg_dnslist.addrlist)) {
-            if (!TAILQ_EMPTY(&dnslist.addrlist)) {
+        if (g_slist_length(arg_dnsinfo.servers)) {
+            if (g_slist_length(dnsinfo.servers)) {
                 g_message("%s: do not specify DNS servers both by command line "
                           "and by configuration file.", __func__);
                 exit(1);
             }
 
-            dnslist = arg_dnslist;
-            TAILQ_INIT(&arg_dnslist.addrlist);
+            dnsinfo = arg_dnsinfo;
+            dnsinfo.servers = NULL;
         }
     }
 
@@ -1058,8 +1058,8 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
         case DH6_INFORM_REQ:
             /* DNS Recursive Name Server option */
             if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
-                if (dhcp6_copy_list(&roptinfo.dns_list.addrlist,
-                                    &dnslist.addrlist)) {
+                roptinfo.dnsinfo.servers = g_slist_copy(dnsinfo.servers);
+                if (roptinfo.dnsinfo.servers == NULL) {
                     g_error("%s: failed to copy DNS servers", __func__);
                     goto fail;
                 }
@@ -1067,7 +1067,7 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
 
             /* Domain Search List option */
             if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
-                roptinfo.dns_list.domainlist = dnslist.domainlist;
+                roptinfo.dnsinfo.domains = dnsinfo.domains;
             }
 
             break;
@@ -1524,7 +1524,8 @@ gint main(gint argc, gchar **argv) {
     memset(&pidfile, '\0', sizeof(pidfile));
     strcpy(pidfile, DHCP6S_PIDFILE);
 
-    TAILQ_INIT(&arg_dnslist.addrlist);
+    arg_dnsinfo.servers = NULL;
+    arg_dnsinfo.domains = NULL;
 
     _random_init();
     while ((ch = getopt(argc, argv, "c:vfdn:p:")) != -1) {
@@ -1593,7 +1594,7 @@ gint main(gint argc, gchar **argv) {
     }
 
     memset(globalgroup, 0, sizeof(*globalgroup));
-    TAILQ_INIT(&globalgroup->scope.dnslist.addrlist);
+    globalgroup->scope.dnsinfo.servers = NULL;
 
     if ((sfparse(conffile)) != 0) {
         g_error("%s: failed to parse addr configuration file", __func__);
@@ -1614,7 +1615,7 @@ gint main(gint argc, gchar **argv) {
             }
 
             memset(ifnetwork->linklist, 0, sizeof(*ifnetwork->linklist));
-            TAILQ_INIT(&ifnetwork->linklist->linkscope.dnslist.addrlist);
+            ifnetwork->linklist->linkscope.dnsinfo.servers = NULL;
         }
     }
 

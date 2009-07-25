@@ -86,7 +86,7 @@ struct dhcp6_if {
     gchar *ifname;
     guint ifid;
     struct ra_info *ralist;
-    struct dns_list dnslist;
+    dns_info_t dnsinfo;
     guint32 linkid;           /* to send link-local packets */
     struct dhcp6_iaid_info iaidinfo;
 
@@ -338,7 +338,7 @@ extern const gchar *configfilename;
 extern struct dhcp6_if *dhcp6_if;
 extern struct dhcp6_ifconf *dhcp6_iflist;
 extern struct prefix_ifconf *prefix_ifconflist;
-extern struct dns_list dnslist;
+extern dns_info_t dnsinfo;
 
 extern gint configure_interface(const struct cf_namelist *);
 extern gint configure_prefix_interface(struct cf_namelist *);
@@ -347,6 +347,6 @@ extern gint configure_global_option(void);
 extern void configure_cleanup(void);
 extern void configure_commit(void);
 extern gint cfparse(const gchar *);
-extern gint resolv_parse(struct dns_list *);
+extern gint resolv_parse(dns_info_t *);
 
 extern void *get_if_option(struct dhcp6_option_list *, gint);

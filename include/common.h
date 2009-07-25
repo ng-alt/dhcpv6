@@ -60,6 +60,10 @@ do { \
 } while (0)
 
 /* common.c */
+extern gint _find_in6_addr(gconstpointer, gconstpointer);
+extern gint _find_string(gconstpointer, gconstpointer);
+extern void _print_string(gpointer, gpointer);
+extern void _print_in6_addr(gpointer, gpointer);
 extern gint dhcp6_copy_list(struct dhcp6_list *, const struct dhcp6_list *);
 extern void dhcp6_clear_list(struct dhcp6_list *);
 extern gint dhcp6_count_list(struct dhcp6_list *);

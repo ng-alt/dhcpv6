@@ -52,96 +52,157 @@
 
 #define YY_NO_UNPUT 1
 #define YY_NO_INPUT 1
-#define ECHO if (fwrite(yytext, yyleng, 1, yyout) != 1) { \
-                 YY_FATAL_ERROR("error performing ECHO on yytext"); \
-             }
+#define ECHO \
+    if (fwrite(yytext, yyleng, 1, yyout) != 1) { \
+        YY_FATAL_ERROR("error performing ECHO on yytext"); \
+    }
 
 #define YYABORT(msg) g_error("%s %s lineno %d", msg, yytext, num_lines)
 
-#define ABORT   do {    \
-	YYABORT("resolv parse error");   \
-	remove(RESOLV_CONF_DHCPV6_FILE); \
-	exit(1);        \
-} while (0)
-
+#define ABORT \
+    do { \
+        YYABORT("resolv parse error"); \
+        remove(RESOLV_CONF_DHCPV6_FILE); \
+        exit(1); \
+    } while (0)
 
 extern struct dhcp6_if *dhcp6_if;
 static gint num_lines = 0;
-static struct dns_list *new_dns_list;
+static dns_info_t *new_dnsinfo;
 static FILE *dhcp6_resolv_file;
 static gint oldfd, newfd;
 
+static void _check_existing_dns_servers(gpointer, gpointer);
+static void _check_existing_dns_domains(gpointer, gpointer);
+static void _print_to_search_line(gpointer, gpointer);
 static gint yywrap();
-gint resolv_parse(struct dns_list *);
-static gint update_resolver(struct dns_list *);
+gint resolv_parse(dns_info_t *);
+static gint update_resolver(dns_info_t *);
 
 %}
 
-digit           [0-9]
-number          ({digit})+
-hexdigit        ([a-f]|[A-F]|[0-9])
-ipv4addr        ({digit}{1,3}"."{digit}{1,3}"."{digit}{1,3}"."{digit}{1,3})
-addr_head       ("::"|{hexdigit}{1,4}(":"|"::"))
-addr_tail       ({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})?
-addr_body       ({hexdigit}{1,4}(":"|"::"))*
-ipv6addr        {addr_head}{addr_body}{addr_tail}
-whitespace      ([ \t])+
-domainname	[a-zA-Z0-9:\._-]+
-nl              \n
-
+digit      [0-9]
+number     ({digit})+
+hexdigit   ([a-f]|[A-F]|[0-9])
+ipv4addr   ({digit}{1,3}"."{digit}{1,3}"."{digit}{1,3}"."{digit}{1,3})
+addr_head  ("::"|{hexdigit}{1,4}(":"|"::"))
+addr_tail  ({hexdigit}{1,4}|({hexdigit}{1,4}"::")|{ipv4addr})?
+addr_body  ({hexdigit}{1,4}(":"|"::"))*
+ipv6addr   {addr_head}{addr_body}{addr_tail}
+whitespace ([ \t])+
+domainname [a-zA-Z0-9:\._-]+
+nl         \n
 
 %s S_ADDR S_DOMAIN
 
 %%
 
-{nl}            {fprintf(dhcp6_resolv_file, yytext);
-		num_lines++;}
-{whitespace}    {fprintf(dhcp6_resolv_file, yytext);}
+{nl} {
+    fprintf(dhcp6_resolv_file, yytext);
+    num_lines++;
+}
 
-"nameserver"	{fprintf(dhcp6_resolv_file, yytext); 
-		BEGIN S_ADDR;}
-"search"	{fprintf(dhcp6_resolv_file, yytext); 
-		BEGIN S_DOMAIN;}
+{whitespace} {
+    fprintf(dhcp6_resolv_file, yytext);
+}
 
-<S_DOMAIN>{domainname} { struct domain_list *domainname, *temp;
-		domainname = (struct domain_list *)malloc(sizeof(*domainname));
-		if (domainname == NULL)
-			ABORT;
-		if (strlen(yytext) > MAXDNAME)
-			ABORT;
-		fprintf(dhcp6_resolv_file, yytext);
-		strcpy(domainname->name, yytext);
-		g_debug("parse domain name %s", domainname->name);
-		domainname->next = NULL;
-		if (dhcp6_if->dnslist.domainlist == NULL)
-			dhcp6_if->dnslist.domainlist = domainname;
-		else {
-			for (temp = dhcp6_if->dnslist.domainlist; temp; temp = temp->next) {
-				if (temp->next == NULL) {
-					temp->next = domainname;
-					break;
-				}
-			}
-		}
-		BEGIN S_DOMAIN;}
+"nameserver" {
+    fprintf(dhcp6_resolv_file, yytext);
+    BEGIN S_ADDR;
+}
 
-<S_DOMAIN>. {fprintf(dhcp6_resolv_file, yytext); BEGIN INITIAL;}
+"search" {
+    fprintf(dhcp6_resolv_file, yytext);
+    BEGIN S_DOMAIN;
+}
 
-<S_ADDR>{ipv6addr} {struct in6_addr addr;
-		fprintf(dhcp6_resolv_file, yytext);
-		if (inet_pton(AF_INET6, yytext, &addr) < 1) 
-			ABORT;
-		g_debug("parse name server %s", in6addr2str(&addr, 0));
-		if (dhcp6_add_listval(&dhcp6_if->dnslist.addrlist,
-		    &addr, DHCP6_LISTVAL_ADDR6) == NULL) {
-			g_error("%s: failed to add a DNS server", __func__);
-			ABORT;
-		}
-		BEGIN S_ADDR;}
-<S_ADDR>. {fprintf(dhcp6_resolv_file, yytext); BEGIN INITIAL;}
-.	{fprintf(dhcp6_resolv_file, yytext);}
+<S_DOMAIN>{domainname} {
+    gchar *name = NULL;
+
+    if (strlen(yytext) > MAXDNAME) {
+        ABORT;
+    }
+
+    fprintf(dhcp6_resolv_file, yytext);
+    name = g_strdup(yytext);
+    g_debug("parse domain name %s", name);
+    dhcp6_if->dnsinfo.domains = g_slist_append(dhcp6_if->dnsinfo.domains, name);
+
+    BEGIN S_DOMAIN;
+}
+
+<S_DOMAIN>. {
+    fprintf(dhcp6_resolv_file, yytext);
+    BEGIN INITIAL;
+}
+
+<S_ADDR>{ipv6addr} {
+    struct in6_addr *addr = g_malloc0(sizeof(struct in6_addr));
+
+    if (addr == NULL) {
+        ABORT;
+    }
+
+    fprintf(dhcp6_resolv_file, yytext);
+
+    if (inet_pton(AF_INET6, yytext, addr) < 1) {
+        ABORT;
+    }
+
+    g_debug("parse name server %s", in6addr2str(addr, 0));
+    dhcp6_if->dnsinfo.servers = g_slist_append(dhcp6_if->dnsinfo.servers, addr);
+
+    BEGIN S_ADDR;
+}
+
+<S_ADDR>. {
+    fprintf(dhcp6_resolv_file, yytext);
+    BEGIN INITIAL;
+}
+
+. {
+    fprintf(dhcp6_resolv_file, yytext);
+}
 
 %%
+
+static void _check_existing_dns_servers(gpointer data, gpointer user_data) {
+    struct in6_addr *ns = (struct in6_addr *) data;
+    GSList *existing_servers = (GSList *) user_data;
+    GSList *dupe = NULL;
+
+    dupe = g_slist_find_custom(existing_servers, ns, _find_in6_addr);
+    if (dupe != NULL) {
+        g_debug("nameserver %s found in resolv.conf", in6addr2str(ns, 0));
+        existing_servers = g_slist_remove(existing_servers, dupe);
+    }
+
+    return;
+}
+
+static void _check_existing_dns_domains(gpointer data, gpointer user_data) {
+    gchar *domain = (gchar *) data;
+    GSList *existing_domains = (GSList *) user_data;
+    GSList *dupe = NULL;
+
+    dupe = g_slist_find_custom(existing_domains, domain, _find_string);
+    if (dupe != NULL) {
+        g_debug("domain name %s found in resolv.conf", domain);
+        existing_domains = g_slist_remove(existing_domains, dupe);
+    }
+
+    return;
+}
+
+static void _print_to_search_line(gpointer data, gpointer user_data) {
+    gchar *domain = (gchar *) data;
+    FILE *resolv = (FILE *) user_data;
+
+    g_debug("domain name %s added to resolv.conf", domain);
+    fprintf(resolv, " %s", domain);
+    return;
+}
+
 #ifdef NETWORK_FUNCTIONS_SCRIPT
 gint change_resolv_conf(gchar *new_rscf) {
     gchar *argv[] = { "/bin/bash", "-c", 0L, 0L };
@@ -149,110 +210,115 @@ gint change_resolv_conf(gchar *new_rscf) {
     gint l, pid, status;
     extern gchar **environ;
 
-    if( new_rscf == 0L )
+    if (new_rscf == NULL) {
         return -1;
+    }
 
-    if( getuid() != 0 )
+    if (getuid() != 0) {
         return 1;
+    }
 
     l = strlen(NETWORK_FUNCTIONS_SCRIPT) + strlen(new_rscf) + 27;
-    cmd = (gchar*)malloc(l);
+    cmd = (gchar *) malloc(l);
     snprintf(cmd, l, ". %s ; change_resolv_conf %s",
-            NETWORK_FUNCTIONS_SCRIPT, new_rscf);
+             NETWORK_FUNCTIONS_SCRIPT, new_rscf);
     argv[2] = cmd;
 
-    if( (pid = fork()) < 0 )
+    if ((pid = fork()) < 0) {
         return -1;
-    else
-    if( pid > 0 )
-    {
-	status = 0;
-	if(waitpid(pid, &status, 0L) == pid)
-	    return(   ((status & 0x7f)==0) 
-		    ? ((status >> 8) & 0xff)
-		    : -(status & 0x7f)
-		  );
-    }else
-	execve( argv[0], argv, environ );
+    } else if (pid > 0) {
+        status = 0;
+
+        if (waitpid(pid, &status, 0) == pid) {
+            if ((status & 0x7f) == 0) {
+                return ((status >> 8) & 0xff);
+            } else {
+                return -(status & 0x7f);
+            }
+        }
+    } else {
+        execve(argv[0], argv, environ);
+    }
 
     return -1;
 }
 #endif
 
-int
-backup_resolv_conf()
-{
-	struct stat buf;
-	mode_t st_mode;
-	gchar str[BUFSIZ];
-	size_t rlen, wlen;
+gint backup_resolv_conf(void) {
+    struct stat buf;
+    mode_t st_mode;
+    gchar str[BUFSIZ];
+    size_t rlen, wlen;
 
-	/* Do not overwrite if a backup file already exists */
-	if (!lstat(RESOLV_CONF_BAK_FILE, &buf)) {
-		g_debug("%s: backup file for resolv.conf exists", __func__);
-		return 0;
-	}
+    /* Do not overwrite if a backup file already exists */
+    if (!lstat(RESOLV_CONF_BAK_FILE, &buf)) {
+        g_debug("%s: backup file for resolv.conf exists", __func__);
+        return 0;
+    }
 
-	if (lstat(_PATH_RESCONF, &buf) < 0) {
-		g_error("%s: Failed to stat %s : %s",
-			    __func__, _PATH_RESCONF, strerror(errno));
-	}
-	st_mode = buf.st_mode;
+    if (lstat(_PATH_RESCONF, &buf) < 0) {
+        g_error("%s: Failed to stat %s : %s",
+                __func__, _PATH_RESCONF, strerror(errno));
+    }
 
-	if ((oldfd = open(_PATH_RESCONF, O_RDONLY)) < 0) {
-		g_error("%s: Failed to open %s : %s",
-			    __func__, _PATH_RESCONF, strerror(errno));
-		return -1;
-	}
+    st_mode = buf.st_mode;
 
-	if ((newfd = open(resolv_dhcpv6_file,
-			  O_WRONLY | O_CREAT | O_EXCL, st_mode)) < 0) {
-		g_error("%s: Failed to open %s : %s",
-			    __func__, resolv_dhcpv6_file, strerror(errno));
-		close(oldfd);
-		return -1;
-	}
+    if ((oldfd = open(_PATH_RESCONF, O_RDONLY)) < 0) {
+        g_error("%s: Failed to open %s : %s",
+                __func__, _PATH_RESCONF, strerror(errno));
+        return -1;
+    }
 
-	while(1) {
-		rlen = read(oldfd, str, sizeof(str));
-		if (rlen < 0) {
-			g_error("%s: Failed to read %s :%s ",
-				    __func__, _PATH_RESCONF, strerror(errno));
-			close(oldfd);
-			close(newfd);
-			return -1;
-		} else if (rlen == 0) {
-			break;
-		}
+    newfd = open(resolv_dhcpv6_file, O_WRONLY | O_CREAT | O_EXCL, st_mode);
+    if (newfd < 0) {
+        g_error("%s: Failed to open %s : %s",
+                __func__, resolv_dhcpv6_file, strerror(errno));
+        close(oldfd);
+        return -1;
+    }
 
-		wlen = write(newfd, str, rlen);
-		if (wlen < rlen) {
-			g_error("%s: Failed to write %s :%s ",
-				    __func__, resolv_dhcpv6_file, strerror(errno));
-			close(oldfd);
-			close(newfd);
-			return -1;
-		}
-	}
+    while(1) {
+        rlen = read(oldfd, str, sizeof(str));
 
-	close(oldfd);
-	close(newfd);
+        if (rlen < 0) {
+            g_error("%s: Failed to read %s :%s ",
+                    __func__, _PATH_RESCONF, strerror(errno));
+            close(oldfd);
+            close(newfd);
+            return -1;
+        } else if (rlen == 0) {
+            break;
+        }
 
-	if (rename(_PATH_RESCONF, RESOLV_CONF_BAK_FILE)) {
-		g_error("%s: Failed to rename %s : %s",
-			    __func__, _PATH_RESCONF, strerror(errno));
-		return -1;
-	}
+        wlen = write(newfd, str, rlen);
 
-	if (rename(resolv_dhcpv6_file, _PATH_RESCONF)) {
-		g_error("%s: Failed to rename %s : %s",
-			    __func__, resolv_dhcpv6_file, strerror(errno));
-		/* Try to take back original resolv.conf */
-		rename(RESOLV_CONF_BAK_FILE, _PATH_RESCONF);
-		return -1;
-	}
+        if (wlen < rlen) {
+            g_error("%s: Failed to write %s :%s ",
+                    __func__, resolv_dhcpv6_file, strerror(errno));
+            close(oldfd);
+            close(newfd);
+            return -1;
+        }
+    }
 
-	return 0;
+    close(oldfd);
+    close(newfd);
+
+    if (rename(_PATH_RESCONF, RESOLV_CONF_BAK_FILE)) {
+        g_error("%s: Failed to rename %s : %s",
+                __func__, _PATH_RESCONF, strerror(errno));
+        return -1;
+    }
+
+    if (rename(resolv_dhcpv6_file, _PATH_RESCONF)) {
+        g_error("%s: Failed to rename %s : %s",
+                __func__, resolv_dhcpv6_file, strerror(errno));
+        /* Try to take back original resolv.conf */
+        rename(RESOLV_CONF_BAK_FILE, _PATH_RESCONF);
+        return -1;
+    }
+
+    return 0;
 }
 
 /* parse resolv.conf
@@ -260,195 +326,154 @@ backup_resolv_conf()
  * mv /etc/resolv.conf to /etc/resolv.conf.V6BAK
  * link resolv.conf to resolv.conf.dhcpv6
  */
-int
-resolv_parse(struct dns_list *dnslist)
-{
-	struct stat buf;
-	gchar pidstr[128];
-	sprintf(pidstr, "%d", getpid());
-	strcpy(resolv_dhcpv6_file, RESOLV_CONF_DHCPV6_FILE);
-	strcat(resolv_dhcpv6_file, pidstr);
-	TAILQ_INIT(&dhcp6_if->dnslist.addrlist);
-	dhcp6_if->dnslist.domainlist = NULL;
-	new_dns_list = dnslist;
+gint resolv_parse(dns_info_t *dnsinfo) {
+    struct stat buf;
+    gchar pidstr[128];
+    sprintf(pidstr, "%d", getpid());
+    strcpy(resolv_dhcpv6_file, RESOLV_CONF_DHCPV6_FILE);
+    strcat(resolv_dhcpv6_file, pidstr);
+    dhcp6_if->dnsinfo.servers = NULL;
+    dhcp6_if->dnsinfo.domains = NULL;
+    new_dnsinfo = dnsinfo;
 
-	/* Back up resolv.conf */
-	if (!lstat(_PATH_RESCONF, &buf)) {
-		if (backup_resolv_conf() < 0) {
-			g_error("%s: backup failed for resolv.conf file", __func__);
-			return -1;
-		}
-	}
+    /* Back up resolv.conf */
+    if (!lstat(_PATH_RESCONF, &buf)) {
+        if (backup_resolv_conf() < 0) {
+            g_error("%s: backup failed for resolv.conf file", __func__);
+            return -1;
+        }
+    }
 
-	while ((oldfd = open(RESOLV_CONF_BAK_FILE, O_EXCL)) < 0) {
-		switch (errno) {
-		case ENOENT:
-			/* exclusive open of new resolv.conf.dhcpv6 file */
-			if ((newfd = open(resolv_dhcpv6_file, 
-			    O_CREAT|O_EXCL|O_WRONLY|O_TRUNC, 0644))
-			    < 0) {
-				g_error("%s: failed to open %s file",
-					__func__, resolv_dhcpv6_file);
-				return (-1);
-			}
-			if ((dhcp6_resolv_file = fdopen(newfd, "w")) == NULL) {
-				g_error("%s: failed to fdopen %s file",
-					__func__, resolv_dhcpv6_file);
-				return (-1);
-			}
-			return(update_resolver(dnslist));
-		case EACCES: 
-			sleep(1);
-			continue;
-		default:
-			g_error("resolv_parse: fopen(%s): %s",
-				RESOLV_CONF_BAK_FILE, strerror(errno));
-			return (-1);
-		}
-	}
-	if (lstat(RESOLV_CONF_BAK_FILE, &buf)) {
-		g_error("lstat %s file failed", RESOLV_CONF_BAK_FILE);
-		return (-1);
-	}
-	if ((yyin = fdopen(oldfd, "r")) == NULL) {
-		g_error("resolv_parse: fdopen(%s): %s",
-			RESOLV_CONF_BAK_FILE, strerror(errno));
-		return (-1);
-	}
-	/* exclusive open of new resolv.conf.dhcpv6 file */
-	if ((newfd = open(resolv_dhcpv6_file, 
-	    O_CREAT|O_EXCL|O_WRONLY|O_TRUNC, buf.st_mode)) < 0) {
-		g_error("%s: failed to open resolv.conf.dhcpv6 file", __func__);
-		return (-1);
-	}
-	if ((dhcp6_resolv_file = fdopen(newfd, "w")) == NULL) {
-		g_error("%s: failed to fdopen resolv.conf.dhcpv6 file", __func__);
-		return (-1);
-	}
-	return yylex();
+    while ((oldfd = open(RESOLV_CONF_BAK_FILE, O_EXCL)) < 0) {
+        switch (errno) {
+            case ENOENT:
+                /* exclusive open of new resolv.conf.dhcpv6 file */
+                newfd = open(resolv_dhcpv6_file,
+                             O_CREAT|O_EXCL|O_WRONLY|O_TRUNC, 0644);
+                if (newfd < 0) {
+                    g_error("%s: failed to open %s file",
+                            __func__, resolv_dhcpv6_file);
+                    return -1;
+                }
+
+                if ((dhcp6_resolv_file = fdopen(newfd, "w")) == NULL) {
+                    g_error("%s: failed to fdopen %s file",
+                            __func__, resolv_dhcpv6_file);
+                    return -1;
+                }
+
+                return(update_resolver(dnsinfo));
+            case EACCES:
+                sleep(1);
+                continue;
+            default:
+                g_error("resolv_parse: fopen(%s): %s",
+                        RESOLV_CONF_BAK_FILE, strerror(errno));
+                return -1;
+        }
+    }
+
+    if (lstat(RESOLV_CONF_BAK_FILE, &buf)) {
+        g_error("lstat %s file failed", RESOLV_CONF_BAK_FILE);
+        return -1;
+    }
+
+    if ((yyin = fdopen(oldfd, "r")) == NULL) {
+        g_error("resolv_parse: fdopen(%s): %s",
+                RESOLV_CONF_BAK_FILE, strerror(errno));
+        return -1;
+    }
+
+    /* exclusive open of new resolv.conf.dhcpv6 file */
+    newfd = open(resolv_dhcpv6_file, O_CREAT|O_EXCL|O_WRONLY|O_TRUNC,
+                 buf.st_mode);
+    if (newfd < 0) {
+        g_error("%s: failed to open resolv.conf.dhcpv6 file", __func__);
+        return -1;
+    }
+
+    if ((dhcp6_resolv_file = fdopen(newfd, "w")) == NULL) {
+        g_error("%s: failed to fdopen resolv.conf.dhcpv6 file", __func__);
+        return -1;
+    }
+
+    return yylex();
 }
 
-static int
-update_resolver(struct dns_list *dns_list)
-{
-	struct domain_list *oldlist, *dprev, *dlist, *dlist_next;
-	struct dhcp6_listval *d, *d_next;
-	struct stat buf;
-	gint i = 0;
-	gint ret = 0;
+static gint update_resolver(dns_info_t *dnsinfo) {
+    struct stat buf;
+    gint ret = 0;
 
-	fseek(dhcp6_resolv_file, 0, SEEK_CUR);
-	if (!TAILQ_EMPTY(&dns_list->addrlist)) {
-		for (d = TAILQ_FIRST(&dns_list->addrlist); d; d = d_next, i++) {
-			struct dhcp6_listval *lv;
-			g_debug("%s: received nameserver[%d] %s",
-				__func__, i, in6addr2str(&d->val_addr6, 0));
-			d_next = TAILQ_NEXT(d, link);
-			for (lv = TAILQ_FIRST(&dhcp6_if->dnslist.addrlist); lv;
-			     lv = TAILQ_NEXT(lv, link)) {
-				if (IN6_ARE_ADDR_EQUAL(&lv->val_addr6, &d->val_addr6)) { 
-					g_debug("%s: nameserver %s found in resolv.conf",
-						__func__, in6addr2str(&d->val_addr6, 0));
-					TAILQ_REMOVE(&dns_list->addrlist, d, link);
-					continue;
-				}
-			}
-		}
-		if (!TAILQ_EMPTY(&dns_list->addrlist)) {
-			for (d = TAILQ_FIRST(&dns_list->addrlist); d;
-				d = d_next, i++) {
-				d_next = TAILQ_NEXT(d, link);
-				fprintf(dhcp6_resolv_file, "nameserver %s\n", 
-					in6addr2str(&d->val_addr6, 0));
-			}
-		}
-	}
-			
-	if (dns_list->domainlist != NULL) {
-		i = 0;
-		for (dlist = dns_list->domainlist, dprev = dns_list->domainlist;
-		     dlist; i++, dlist = dlist_next) {
-			gint found = 0;
-			g_debug("%s: received domainname[%d] %s", __func__, i, dlist->name);
-			if (dhcp6_if->dnslist.domainlist == NULL) 
-				break;
-			for (oldlist = dhcp6_if->dnslist.domainlist; oldlist; 
-			     oldlist = oldlist->next) {
-				if (strcasecmp(oldlist->name, dlist->name) == 0) {
-					found = 1;
-					g_debug("%s: domain name %s found in resolv.conf",
-						__func__, dlist->name);
-					if (dprev == dlist) {
-						dprev = dlist->next;
-						dns_list->domainlist = dlist->next;
-					} else
-						dprev->next = dlist->next;
-					break;
-				}
-			}
-			dlist_next = dlist->next;
-			if (found == 0) 
-				dprev = dlist;
-			else {
-				free(dlist);
-			}
-		}
-		if (dns_list->domainlist != NULL) {
-			fprintf(dhcp6_resolv_file, "search ");
-			for (dlist = dns_list->domainlist; dlist; dlist = dlist->next) {
-				g_debug("%s: domain name %s added in resolv.conf",
-					__func__, dlist->name);
-				fprintf(dhcp6_resolv_file, "%s", dlist->name);
-				if (dlist->next != NULL)
-					fprintf(dhcp6_resolv_file, " ");
-				else
-					fprintf(dhcp6_resolv_file, "\n");
-			}
-		}
-	}
-	if (fflush(dhcp6_resolv_file) == EOF) {
-		g_error("%s: write resolv.conf.dhcpv6 file fflush failed %s",
-			__func__, strerror(errno));
-		ret = -1;
-		goto out;
-	}
-	if (fsync(newfd) < 0) {
-		g_error("%s: write resolv.conf.dhcpv6 file failed %s",
-			__func__, strerror(errno));
-		ret = -1;
-		goto out;
-	}
-	fclose(dhcp6_resolv_file);
-	close(newfd);
+    fseek(dhcp6_resolv_file, 0, SEEK_CUR);
 
-#ifdef NETWORK_FUNCTIONS_SCRIPT
-	if (!lstat(NETWORK_FUNCTIONS_SCRIPT, &buf)) {
-		if (change_resolv_conf(resolv_dhcpv6_file)!=0) {
-//			g_error("%s: rename failed for resolv.conf file", __func__);
-//			needs initscripts patch!		return(-1);
-		}
-	} else {
-#endif
-		if (rename(resolv_dhcpv6_file, _PATH_RESCONF)) {
-			g_error("%s: rename failed for resolv.conf file", __func__);
-			ret = -1;
-			goto out;
-		}
-#ifdef NETWORK_FUNCTIONS_SCRIPT
+    if (g_slist_length(dnsinfo->servers)) {
+        g_slist_foreach(dnsinfo->servers, _print_in6_addr,
+                        "received nameserver");
+        g_slist_foreach(dhcp6_if->dnsinfo.servers, _check_existing_dns_servers,
+                        dnsinfo->servers);
+
+        if (g_slist_length(dnsinfo->servers)) {
+            g_slist_foreach(dnsinfo->servers, _print_in6_addr, "nameserver");
         }
+    }
+
+    if (g_slist_length(dnsinfo->domains)) {
+        g_slist_foreach(dnsinfo->domains, _print_string,
+                        "received domain name");
+        g_slist_foreach(dhcp6_if->dnsinfo.domains, _check_existing_dns_domains,
+                        dnsinfo->domains);
+
+        if (g_slist_length(dnsinfo->domains)) {
+            fprintf(dhcp6_resolv_file, "search");
+            g_slist_foreach(dnsinfo->domains, _print_to_search_line,
+                            dhcp6_resolv_file);
+            fprintf(dhcp6_resolv_file, "\n");
+        }
+    }
+
+    if (fflush(dhcp6_resolv_file) == EOF) {
+        g_error("%s: write resolv.conf.dhcpv6 file fflush failed %s",
+                __func__, strerror(errno));
+        ret = -1;
+        goto out;
+    }
+
+    if (fsync(newfd) < 0) {
+        g_error("%s: write resolv.conf.dhcpv6 file failed %s",
+                __func__, strerror(errno));
+        ret = -1;
+        goto out;
+    }
+
+    fclose(dhcp6_resolv_file);
+    close(newfd);
+
+#ifdef NETWORK_FUNCTIONS_SCRIPT
+    if (!lstat(NETWORK_FUNCTIONS_SCRIPT, &buf)) {
+        if (change_resolv_conf(resolv_dhcpv6_file) != 0) {
+            /* g_error("%s: rename failed for resolv.conf file", __func__); */
+            /* needs initscripts patch!  return(-1); */
+        }
+    } else {
+#endif
+        if (rename(resolv_dhcpv6_file, _PATH_RESCONF)) {
+            g_error("%s: rename failed for resolv.conf file", __func__);
+            ret = -1;
+            goto out;
+        }
+#ifdef NETWORK_FUNCTIONS_SCRIPT
+    }
 #endif
 
 out:
-	if (!lstat(resolv_dhcpv6_file, &buf))
-		unlink(resolv_dhcpv6_file);
-	return ret;
+    if (!lstat(resolv_dhcpv6_file, &buf))
+        unlink(resolv_dhcpv6_file);
+    return ret;
 }
 
-static gint 
-yywrap()
-{
-        update_resolver(new_dns_list);
-	fclose(yyin);
-	close(oldfd);
-	return 1;
+static gint yywrap() {
+    update_resolver(new_dnsinfo);
+    fclose(yyin);
+    close(oldfd);
+    return 1;
 }

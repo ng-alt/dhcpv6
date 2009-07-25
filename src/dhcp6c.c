@@ -204,21 +204,21 @@ static void _setup_check_timer(struct dhcp6_if *ifp) {
     struct timeval timo;
 
     d = DHCP6_CHECKLINK_TIME_UPCASE;
-    timo.tv_sec = (long) d;
+    timo.tv_sec = (glong) d;
     timo.tv_usec = 0;
     g_debug("set timer for checking link ...");
     dhcp6_set_timer(&timo, ifp->link_timer);
 
     if (ifp->dad_timer != NULL) {
         d = DHCP6_CHECKDAD_TIME;
-        timo.tv_sec = (long) d;
+        timo.tv_sec = (glong) d;
         timo.tv_usec = 0;
         g_debug("set timer for checking DAD ...");
         dhcp6_set_timer(&timo, ifp->dad_timer);
     }
 
     d = DHCP6_SYNCFILE_TIME;
-    timo.tv_sec = (long) d;
+    timo.tv_sec = (glong) d;
     timo.tv_usec = 0;
     g_debug("set timer for syncing file ...");
     dhcp6_set_timer(&timo, ifp->sync_timer);
@@ -267,8 +267,8 @@ static gint _set_info_refresh_timer(struct dhcp6_if *ifp, guint32 offered_irt) {
      * [RFC4242 3.2.]
      */
     rval = (gdouble) random() / RAND_MAX * INF_MAX_DELAY * 1000;
-    timo.tv_sec = irt + (long) (rval / 1000000);
-    timo.tv_usec = (long) rval % 1000000;
+    timo.tv_sec = irt + (glong) (rval / 1000000);
+    timo.tv_usec = (glong) rval % 1000000;
     dhcp6_set_timer(&timo, ifp->info_refresh_timer);
     g_debug("%s: information will be refreshed in %ld.%06ld [sec]",
             __func__, timo.tv_sec, timo.tv_usec);
@@ -405,7 +405,7 @@ static struct dhcp6_timer *_check_lease_file_timo(void *arg) {
     }
 
     d = DHCP6_SYNCFILE_TIME;
-    timo.tv_sec = (long) d;
+    timo.tv_sec = (glong) d;
     timo.tv_usec = 0;
     dhcp6_set_timer(&timo, ifp->sync_timer);
     return ifp->sync_timer;
@@ -621,9 +621,10 @@ static void _free_resources(struct dhcp6_if *ifp) {
 
     for (sp = TAILQ_FIRST(&client6_iaidaddr.lease_list); sp; sp = sp_next) {
         sp_next = TAILQ_NEXT(sp, link);
-        if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0)
+        if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
             g_message("%s: deconfiging address %s failed",
                       __func__, in6addr2str(&sp->lease_addr.addr, 0));
+        }
     }
 
     g_debug("%s: remove all events on interface", __func__);
@@ -794,9 +795,9 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
         return -1;
     }
 
-    if (!TAILQ_EMPTY(&optinfo->dns_list.addrlist) ||
-        optinfo->dns_list.domainlist != NULL) {
-        resolv_parse(&optinfo->dns_list);
+    if (g_slist_length(optinfo->dnsinfo.servers) ||
+        g_slist_length(optinfo->dnsinfo.domains)) {
+        resolv_parse(&optinfo->dnsinfo);
     }
 
     /*

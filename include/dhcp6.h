@@ -228,15 +228,24 @@ struct ia_listval {
 
 TAILQ_HEAD(ia_list, ia_listval);
 
-struct domain_list {
-    struct domain_list *next;
-    gchar name[MAXDNAME];
-};
+/*
+ * DNS information structure.  This structure contains two linked lists,
+ * one holding server addresses and one holding domain names to add to the
+ * resolver search path.
+ */
+typedef struct _dns_info_t {
+    /*
+     * singly linked list of DNS server addresses
+     * each element is a (struct in6_addr *)
+     */
+    GSList *servers;
 
-struct dns_list {
-    struct dhcp6_list addrlist;
-    struct domain_list *domainlist;
-};
+    /*
+     * singly linked list of DNS domain names for the resolver
+     * each element is a gchar[MAXDNAME]
+     */
+    GSList *domains;
+} dns_info_t;
 
 /* DHCP6 relay agent base packet format */
 struct dhcp6_relay {
@@ -269,7 +278,7 @@ struct dhcp6_optinfo {
     guint32 irt;                   /* information refresh time */
     struct in6_addr server_addr;
     struct dhcp6_list reqopt_list; /* options in option request */
-    struct dns_list dns_list;      /* DNS server list */
+    dns_info_t dnsinfo;            /* DNS server list */
     struct relay_list relay_list;  /* list of the relays the message
                                       passed through on to the server */
     guint16 status_code;           /* status code */

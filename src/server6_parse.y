@@ -38,6 +38,7 @@
 #include <syslog.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#include <arpa/inet.h>
 
 #include <glib.h>
 
@@ -192,7 +193,7 @@ ifhead
           }
 
           memset(ifnetwork, 0, sizeof(*ifnetwork));
-          TAILQ_INIT(&ifnetwork->ifscope.dnslist.addrlist);
+          ifnetwork->ifscope.dnsinfo.servers = NULL;
           strncpy(ifnetwork->name, $2, strlen($2));
 
           if (get_linklocal(ifnetwork->name, &ifnetwork->linklocal) < 0) {
@@ -257,7 +258,7 @@ linkhead
           }
 
           memset(link, 0, sizeof(*link));
-          TAILQ_INIT(&link->linkscope.dnslist.addrlist);
+          link->linkscope.dnsinfo.servers = NULL;
 
           while (temp_sub) {
               if (!strcmp(temp_sub->name, $2)) {
@@ -356,7 +357,7 @@ poolhead
           }
 
           memset(pool, 0, sizeof(*pool));
-          TAILQ_INIT(&pool->poolscope.dnslist.addrlist);
+          pool->poolscope.dnsinfo.servers = NULL;
 
           if (link)
               pool->link = link;
@@ -583,7 +584,7 @@ grouphead
           }
 
           memset(groupscope, 0, sizeof(*groupscope));
-          TAILQ_INIT(&groupscope->dnslist.addrlist);
+          groupscope->dnsinfo.servers = NULL;
           /* set up current group */
           currentgroup = push_double_list(currentgroup, groupscope);
           if (currentgroup == NULL)
@@ -645,7 +646,7 @@ hosthead
           memset(host, 0, sizeof(*host));
           TAILQ_INIT(&host->addrlist);
           TAILQ_INIT(&host->prefixlist);
-          TAILQ_INIT(&host->hostscope.dnslist.addrlist);
+          host->hostscope.dnsinfo.servers = NULL;
           host->network = ifnetwork;
           strncpy(host->name, $2, strlen($2));
           /* enter host scope */
@@ -858,38 +859,22 @@ dns_paras
 
 dns_para
     : IPV6ADDR {
-          dhcp6_add_listval(&currentscope->scope->dnslist.addrlist, &$1,
-                            DHCP6_LISTVAL_ADDR6);
+          GSList *servers = currentscope->scope->dnsinfo.servers;
+          servers = g_slist_append(servers, &$1);
       }
     | STRING {
-          struct domain_list *domainname, *temp;
-          gint len = 0;
+          GSList *domains = currentscope->scope->dnsinfo.domains;
+          GString *tmp = g_string_new(NULL);
+          gint len = strlen($1);
 
-          domainname = (struct domain_list *) malloc(sizeof(*domainname));
-          if (domainname == NULL)
+          if (len > MAXDNAME) {
               ABORT;
-
-          len = strlen($1);
-          if (len > MAXDNAME) 
-              ABORT;
-
-          strncpy(domainname->name, $1, len);
-          domainname->name[len] = '\0';
-          domainname->next = NULL;
-
-          if (currentscope->scope->dnslist.domainlist == NULL) {
-              currentscope->scope->dnslist.domainlist = domainname;
-              g_debug("add domain name %s", domainname->name);
-          } else {
-              for (temp = currentscope->scope->dnslist.domainlist; temp;
-                   temp = temp->next) {
-                  if (temp->next == NULL) {
-                      g_debug("add domain name %s", domainname->name);
-                      temp->next = domainname;
-                      break;
-                  }
-              }
           }
+
+          g_string_printf(tmp, "%s", $1);
+          g_debug("add domain name %s", tmp->str);
+          domains = g_slist_append(domains, tmp->str);
+          g_string_free(tmp, FALSE);
       }
     ;
 

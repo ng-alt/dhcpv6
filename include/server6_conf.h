@@ -47,7 +47,7 @@ struct scope {
     gint8 server_pref;
     guint8 send_flags;
     guint8 allow_flags;
-    struct dns_list dnslist;
+    dns_info_t dnsinfo;
 };
 
 struct scopelist {

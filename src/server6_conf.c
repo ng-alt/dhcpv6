@@ -88,12 +88,12 @@ static void _download_scope(struct scope *up, struct scope *current) {
     current->allow_flags |= up->allow_flags;
     current->send_flags |= up->send_flags;
 
-    if (TAILQ_EMPTY(&current->dnslist.addrlist)) {
-        dhcp6_copy_list(&current->dnslist.addrlist, &up->dnslist.addrlist);
+    if (!g_slist_length(current->dnsinfo.servers)) {
+        current->dnsinfo.servers = g_slist_copy(up->dnsinfo.servers);
     }
 
-    if (current->dnslist.domainlist == NULL) {
-        current->dnslist.domainlist = up->dnslist.domainlist;
+    if (!g_slist_length(current->dnsinfo.domains)) {
+        current->dnsinfo.domains = up->dnsinfo.domains;
     }
 
     return;

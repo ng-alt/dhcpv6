@@ -69,11 +69,39 @@ extern gchar *script;
 
 gint debug_thresh;
 struct dhcp6_if *dhcp6_if;
-struct dns_list dnslist;
+dns_info_t dnsinfo;
 
 static struct host_conf *_host_conflist;
 
 /* BEGIN STATIC FUNCTIONS */
+
+void _build_domain_name_buf(gpointer data, gpointer user_data) {
+    gchar *name = (gchar *) data;
+    guchar *buf = (guchar *) user_data;
+    gint n;
+
+    n = dn_comp(name, buf, MAXDNAME, NULL, NULL);
+
+    if (n < 0) {
+        g_error("%s: compress domain name %s failed", __func__, name);
+    } else {
+        g_debug("%s: compress domain name %s", __func__, name);
+    }
+
+    buf += n;
+
+    return;
+}
+
+static void _build_in6_addr_buf(gpointer data, gpointer user_data) {
+    struct in6_addr *addr = (struct in6_addr *) data;
+    struct in6_addr *buf = (struct in6_addr *) user_data;
+
+    memcpy(buf, addr, sizeof(struct in6_addr));
+    buf++;
+
+    return;
+}
 
 static gint _in6_matchflags(struct sockaddr *addr, size_t addrlen,
                             gchar *ifnam, gint flags) {
@@ -512,6 +540,40 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen,
 }
 
 /* END STATIC FUNCTIONS */
+
+/* glib helper functions (GFunc, GCompareFunc, and so on) */
+
+gint _find_in6_addr(gconstpointer a, gconstpointer b) {
+    struct in6_addr *addr1 = (struct in6_addr *) a;
+    struct in6_addr *addr2 = (struct in6_addr *) b;
+
+    return ((*addr1).s6_addr - (*addr2).s6_addr);
+}
+
+gint _find_string(gconstpointer a, gconstpointer b) {
+    gchar *name1 = (gchar *) a;
+    gchar *name2 = (gchar *) b;
+
+    return g_strcmp0(name1, name2);
+}
+
+void _print_in6_addr(gpointer data, gpointer user_data) {
+    struct in6_addr *ns = (struct in6_addr *) data;
+    gchar *msg = (gchar *) user_data;
+
+    g_debug("%s %s", msg, in6addr2str(ns, 0));
+    return;
+}
+
+void _print_string(gpointer data, gpointer user_data) {
+    gchar *str = (gchar *) data;
+    gchar *msg = (gchar *) user_data;
+
+    g_debug("%s %s", msg, str);
+    return;
+}
+
+/* end glib helper functions */
 
 struct dhcp6_if *find_ifconfbyname(const gchar *ifname) {
     struct dhcp6_if *ifp;
@@ -1384,33 +1446,31 @@ void dhcp6_init_options(struct dhcp6_optinfo *optinfo) {
     optinfo->pref = DH6OPT_PREF_UNDEF;
     TAILQ_INIT(&optinfo->ia_list);
     TAILQ_INIT(&optinfo->reqopt_list);
-    TAILQ_INIT(&optinfo->dns_list.addrlist);
+    optinfo->dnsinfo.servers = NULL;
     TAILQ_INIT(&optinfo->relay_list);
-    optinfo->dns_list.domainlist = NULL;
+    optinfo->dnsinfo.domains = NULL;
     optinfo->status_code = DH6OPT_STCODE_UNDEFINE;
     optinfo->status_msg = NULL;
     return;
 }
 
 void dhcp6_clear_options(struct dhcp6_optinfo *optinfo) {
-    struct domain_list *dlist, *dlist_next;
-
     duidfree(&optinfo->clientID);
     duidfree(&optinfo->serverID);
 
     ia_clear_list(&optinfo->ia_list);
     dhcp6_clear_list(&optinfo->reqopt_list);
-    dhcp6_clear_list(&optinfo->dns_list.addrlist);
+
+    g_slist_free(optinfo->dnsinfo.servers);
+    optinfo->dnsinfo.servers = NULL;
+
     relayfree(&optinfo->relay_list);
 
     if (dhcp6_mode == DHCP6_MODE_CLIENT) {
-        for (dlist = optinfo->dns_list.domainlist; dlist; dlist = dlist_next) {
-            dlist_next = dlist->next;
-            free(dlist);
-        }
+        g_slist_free(optinfo->dnsinfo.domains);
     }
 
-    optinfo->dns_list.domainlist = NULL;
+    optinfo->dnsinfo.domains = NULL;
     dhcp6_init_options(optinfo);
 }
 
@@ -1433,7 +1493,8 @@ int dhcp6_copy_options(struct dhcp6_optinfo *dst, struct dhcp6_optinfo *src) {
         goto fail;
     }
 
-    if (dhcp6_copy_list(&dst->dns_list.addrlist, &src->dns_list.addrlist)) {
+    dst->dnsinfo.servers = g_slist_copy(src->dnsinfo.servers);
+    if (dst == NULL) {
         goto fail;
     }
 
@@ -1659,23 +1720,19 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
 
                 for (val = cp; val < cp + optlen;
                      val += sizeof(struct in6_addr)) {
-                    if (dhcp6_find_listval(&optinfo->dns_list.addrlist,
-                                           val, DHCP6_LISTVAL_ADDR6)) {
+                    if (g_slist_find_custom(optinfo->dnsinfo.servers,
+                                            (gconstpointer) val,
+                                            _find_in6_addr) != NULL) {
                         g_message("%s: duplicated DNS address (%s)", __func__,
                                   in6addr2str((struct in6_addr *) val, 0));
-                        goto nextdns;
+                        break;
                     }
 
-                    if (dhcp6_add_listval(&optinfo->dns_list.addrlist,
-                                          val, DHCP6_LISTVAL_ADDR6) == NULL) {
-                        g_error("%s: failed to copy DNS address", __func__);
-                        goto fail;
-                    }
+                    optinfo->dnsinfo.servers =
+                       g_slist_append(optinfo->dnsinfo.servers, val);
 
                     g_message("%s: get DNS address (%s)", __func__,
                               in6addr2str((struct in6_addr *) val, 0));
-
-                  nextdns:;
                 }
 
                 break;
@@ -1687,36 +1744,28 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                 /* dependency on lib resolv */
                 for (val = cp; val < cp + optlen;) {
                     int n;
-                    struct domain_list *dname, *dlist;
+                    gchar *dname = NULL;
 
-                    dname = malloc(sizeof(*dname));
-                    if (dname == NULL) {
+                    if ((dname = g_malloc0(MAXDNAME)) == NULL) {
                         g_error("%s: failed to allocate memory", __func__);
                         goto fail;
                     }
-                    n = dn_expand(cp, cp + optlen, val, dname->name,
-                                  MAXDNAME);
+
+                    n = dn_expand(cp, cp + optlen, val, dname, MAXDNAME);
 
                     if (n < 0) {
                         goto malformed;
                     } else {
                         val += n;
-                        g_debug("expand domain name %s, size %d",
-                                dname->name, (gint) strlen(dname->name));
+                        g_debug("expand domain name %s, size %d", dname,
+                                (gint) strlen(dname));
                     }
 
-                    dname->next = NULL;
-
-                    if (optinfo->dns_list.domainlist == NULL) {
-                        optinfo->dns_list.domainlist = dname;
-                    } else {
-                        for (dlist = optinfo->dns_list.domainlist; dlist;
-                             dlist = dlist->next) {
-                            if (dlist->next == NULL) {
-                                dlist->next = dname;
-                                break;
-                            }
-                        }
+                    if (g_slist_find_custom(optinfo->dnsinfo.domains,
+                                            (gconstpointer) dname,
+                                            _find_string) == NULL) {
+                        optinfo->dnsinfo.domains =
+                            g_slist_append(optinfo->dnsinfo.domains, dname);
                     }
                 }
 
@@ -1842,60 +1891,77 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
         free(tmpbuf);
     }
 
-    if (!TAILQ_EMPTY(&optinfo->dns_list.addrlist)) {
+    if (g_slist_length(optinfo->dnsinfo.servers)) {
         struct in6_addr *in6;
-        struct dhcp6_listval *d;
 
         tmpbuf = NULL;
-        optlen = dhcp6_count_list(&optinfo->dns_list.addrlist) *
-            sizeof(struct in6_addr);
+        optlen = g_slist_length(optinfo->dnsinfo.servers) *
+                 sizeof(struct in6_addr);
 
-        if ((tmpbuf = malloc(optlen)) == NULL) {
+        if ((tmpbuf = g_malloc0(optlen)) == NULL) {
             g_error("%s: memory allocation failed for DNS options", __func__);
             goto fail;
         }
 
         in6 = (struct in6_addr *) tmpbuf;
+        g_slist_foreach(optinfo->dnsinfo.servers, _build_in6_addr_buf, in6);
 
-        for (d = TAILQ_FIRST(&optinfo->dns_list.addrlist); d;
-             d = TAILQ_NEXT(d, link), in6++) {
-            memcpy(in6, &d->val_addr6, sizeof(*in6));
+        if (((void *) ep - (void *) p) < optlen + sizeof(struct dhcp6opt)) {
+            g_message("%s: option buffer short for %s",
+                      __func__, dhcp6optstr(DH6OPT_DNS_SERVERS));
+            goto fail;
         }
 
-        COPY_OPTION(DH6OPT_DNS_SERVERS, optlen, tmpbuf, p);
-        free(tmpbuf);
+        opth.dh6opt_type = htons(DH6OPT_DNS_SERVERS);
+        opth.dh6opt_len = htons(optlen);
+        memcpy(p, &opth, sizeof(opth));
+
+        if (optlen) {
+            memcpy(p + 1, tmpbuf, optlen);
+        }
+
+        p = (struct dhcp6opt *) ((gchar *) (p + 1) + optlen);
+        len += sizeof(struct dhcp6opt) + optlen;
+        g_debug("%s: set %s", __func__, dhcp6optstr(DH6OPT_DNS_SERVERS));
+
+        g_free(tmpbuf);
     }
 
-    if (optinfo->dns_list.domainlist != NULL) {
-        struct domain_list *dlist;
+    if (g_slist_length(optinfo->dnsinfo.domains)) {
         guchar *dst;
 
-        optlen = 0;
+        optlen = g_slist_length(optinfo->dnsinfo.domains);
         tmpbuf = NULL;
 
-        if ((tmpbuf = malloc(MAXDNAME * MAXDN)) == NULL) {
+        if ((tmpbuf = g_malloc0(MAXDNAME * MAXDN)) == NULL) {
             g_error("%s: memory allocation failed for DNS options", __func__);
             goto fail;
         }
 
+        memset(&tmpbuf, '\0', sizeof(tmpbuf));
         dst = tmpbuf;
+        g_slist_foreach(optinfo->dnsinfo.domains, _build_domain_name_buf, dst);
+        optlen = sizeof(tmpbuf) - (sizeof(tmpbuf) - sizeof(dst));
 
-        for (dlist = optinfo->dns_list.domainlist; dlist; dlist = dlist->next) {
-            int n = dn_comp(dlist->name, dst, MAXDNAME, NULL, NULL);
-
-            if (n < 0) {
-                g_error("%s: compress domain name failed", __func__);
-                goto fail;
-            } else {
-                g_debug("compress domain name %s", dlist->name);
-            }
-
-            optlen += n;
-            dst += n;
+        if (((void *) ep - (void *) p) < optlen + sizeof(struct dhcp6opt)) {
+            g_message("%s: option buffer short for %s",
+                      __func__, dhcp6optstr(DH6OPT_DOMAIN_LIST));
+            goto fail;
         }
 
-        COPY_OPTION(DH6OPT_DOMAIN_LIST, optlen, tmpbuf, p);
-        free(tmpbuf);
+        opth.dh6opt_type = htons(DH6OPT_DOMAIN_LIST);
+        opth.dh6opt_len = htons(optlen);
+        memcpy(p, &opth, sizeof(opth));
+
+        if (optlen) {
+            memcpy(p + 1, tmpbuf, optlen);
+        }
+
+        p = (struct dhcp6opt *) ((gchar *) (p + 1) + optlen);
+        len += sizeof(struct dhcp6opt) + optlen;
+        g_debug("%s: set %s", __func__, dhcp6optstr(DH6OPT_DOMAIN_LIST));
+
+        g_free(tmpbuf);
     }
 
     if (dhcp6_mode == DHCP6_MODE_SERVER && optinfo->irt) {
