@@ -33,8 +33,13 @@ dhcp6c \- DHCPv6 client daemon
 .SH SYNOPSIS
 .B dhcp6c
 [
-.B -vfI
+.B -c
+.I <pathspec>
 ] [
+.B -p
+.I <pathspec>
+] [
+[
 .B -r
 .I all
 |
@@ -46,8 +51,16 @@ dhcp6c \- DHCPv6 client daemon
 .B -P
 .I <address...>
 ] [
-.B -c
-.I pathspec
+.B -s
+.I <pathspec>
+] [
+.B -l
+.I <pathspec>
+] [
+.B -d
+.I <pathspec>
+] [
+.B -Ifv
 ]
 .I <interface>
 
@@ -63,41 +76,29 @@ also be used as a requesting router to request and configure Prefix Delegation
 for a subnet.
 
 The assigned IPv6 addresses and prefixes are saved as
-/var/lib/dhcpv6/client6.leasesXXXXXX; this file is used to request the same
+%DHCP6C_LEASE_PATH%; this file is used to request the same
 addresses and prefixes from the DHCPv6 server.  Each
 .B dhcp6c
 client has a client DHCP Unique Identifier (DUID); the DUID file is saved as
-/var/lib/dhcpv6/dhcp6c_duid.
+%DHCP6C_DUID_PATH%.
 The
 .B dhcp6c
-client configuration is defined in /etc/dhcp6c.conf.
+client configuration is defined in %DHCP6C_CONF_PATH%.
 
 Interface names are specified according to your operating system's
 conventions.  On Linux, this is typically eth0, eth1, and so on.
 
 .SH OPTIONS
 .TP
-.BI \-c\ pathspec
-Specifies the configuration file for
-.B dhcp6c
+.BI \-c\ <pathspec>
+Specifies the location of the configuration file for
+.B dhcp6c.
+The default is %DHCP6C_CONF_PATH%.
 
 .TP
-.BI \-v
-Enables
-.B dhcp6c
-to print debugging messages.
-
-.TP
-.BI \-f
-Enables
-.B dhcp6c
-to work as a foreground application.  This option is helpful for debugging.
-
-.TP
-.BI \-I
-Allows
-.B dhcp6c
-to request network information only.  Do not configure the interface.
+.BI \-p\ <pathspec>
+Specifies the location of the dhcp6c PID file.  The default is
+%DHCP6C_PID_PATH%.
 
 .TP
 .BI \-r\ all\ |\ <addresses...>
@@ -118,18 +119,57 @@ Allows
 .B dhcp6c
 to request the specified prefix delegation addresses.
 
+.TP
+.BI \-I
+Allows
+.B dhcp6c
+to request network information only.  Do not configure the interface.
+
+.TP
+.BI \-s\ <pathspec>
+Specifies an executable script or program to execute on dhcp6c state changes.
+If provided, this file must handle all DHCPv6 client states, handle interface
+configuration, and handle DHCPv6 options.  The default is for dhcp6c to
+handle all state changes and interface configuration internally.
+
+.TP
+.BI \-l\ <pathspec>
+Specifies the location of the dhcp6c lease database.  The default is
+%DHCP6C_LEASE_PATH%.
+
+.TP
+.BI \-d\ <pathspec>
+Specifies the location of the dhcp6c DUID file.  The default is
+%DHCP6C_DUID_PATH%.
+
+.TP
+.BI \-v
+Enables
+.B dhcp6c
+to print debugging messages.
+
+.TP
+.BI \-f
+Enables
+.B dhcp6c
+to work as a foreground application.  This option is helpful for debugging.
+
 .SH FILES
 .TP
-.BI /etc/dhcp6c.conf
+.BI %DHCP6C_CONF_PATH%
 Contains DHCPv6 client configuration information.
 
 .TP
-.BI /var/lib/dhcpv6/dhcp6c_duid
-Contains DHCPv6 client DUID.
+.BI %DHCP6C_PID_PATH%
+Contains the dhcp6c process ID.
 
 .TP
-.BI /var/lib/dhcpv6/client6_leasesXXXXXX
+.BI %DHCP6C_LEASE_PATH%
 Contains DHCPv6 client assigned IPv6 addresses and prefixes.
+
+.TP
+.BI %DHCP6C_DUID_PATH%
+Contains DHCPv6 client DUID.
 
 .SH ERRORS
 Check /var/log/messages if there are errors.

@@ -58,13 +58,13 @@ conventions.  On Linux, this is typically eth0, eth1, and so on.
 
 .SH OPTIONS
 .TP
-.BI \-c\ pathspec
+.BI \-c\ <pathspec>
 Specifies the
 .B dhcp6s
 configuration file.
 
 .TP
-.BI \-p\ pathspec
+.BI \-p\ <pathspec>
 Specifies the
 .B dhcp6s
 PID file.
@@ -83,16 +83,16 @@ to work as a foreground application.  This option is helpful for debugging.
 
 .SH FILES
 .TP
-.BI /etc/dhcp6s.conf
+.BI %DHCP6S_CONF_PATH%
 Contains dhcp6s configurations, such as allow unicast, allow rapid-commit,
 specify valid-life-time, or specify preferred-life-time.
 
 .TP
-.BI /var/lib/dhcpv6/dhcp6s_duid
+.BI %DHCP6S_DUID_PATH%
 Contains the dhcp6s server's DUID.
 
 .TP
-.BI /var/lib/dhcpv6/server6.leases
+.BI %DHCP6S_LEASE_PATH%
 Contains all dhcp6c clients' IPv6 address and prefix leasing information and
 states.
 
