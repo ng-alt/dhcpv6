@@ -30,16 +30,6 @@
 #ifndef __RELAY6_DATABASE_H_DEFINED
 #define __RELAY6_DATABASE_H_DEFINED
 
-struct cifaces {
-    struct cifaces *next;
-    gchar *ciface;
-};
-
-struct sifaces {
-    struct sifaces *next;
-    gchar *siface;
-};
-
 struct server {
     struct server *next;
     gchar *serv;
@@ -69,8 +59,9 @@ struct interface {
     gint opaq;
 };
 
-struct cifaces cifaces_list;
-struct sifaces sifaces_list;
+GSList *cifaces_list;
+GSList *sifaces_list;
+
 struct server server_list;
 struct IPv6_address IPv6_address_list;
 struct IPv6_uniaddr IPv6_uniaddr_list;

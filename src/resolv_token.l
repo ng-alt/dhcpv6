@@ -44,9 +44,13 @@
 
 #include <glib.h>
 
+#include "queue.h"
+#include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
+#include "str.h"
+#include "gfunc.h"
 
 #undef yywrap
 

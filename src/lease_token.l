@@ -44,11 +44,14 @@
 
 #include <glib.h>
 
+#include "queue.h"
+#include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
 #include "lease.h"
 #include "timer.h"
+#include "str.h"
 
 #define LEASE_ADDR_FLAG 0x01
 #define LEASE_DUID_FLAG 0x02

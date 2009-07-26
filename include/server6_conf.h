@@ -171,4 +171,4 @@ struct scopelist *push_double_list(struct scopelist *, struct scope *);
 struct scopelist *pop_double_list(struct scopelist *);
 gint get_primary_ipv6addr(const gchar *);
 
-#endif
+#endif /* __SERVER6_CONF_H_DEFINED */

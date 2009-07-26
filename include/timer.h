@@ -29,6 +29,9 @@
  * SUCH DAMAGE.
  */
 
+#ifndef __TIMER_H_DEFINED
+#define __TIMER_H_DEFINED
+
 /* a < b */
 #define TIMEVAL_LT(a, b)           \
     (((a).tv_sec < (b).tv_sec) ||  \
@@ -66,3 +69,5 @@ void dhcp6_remove_timer(struct dhcp6_timer *);
 struct timeval *dhcp6_check_timer(void);
 struct timeval *dhcp6_timer_rest(struct dhcp6_timer *);
 void timeval_sub(struct timeval *, struct timeval *, struct timeval *);
+
+#endif /* __TIMER_H_DEFINED */

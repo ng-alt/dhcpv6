@@ -84,11 +84,15 @@
 
 #include <glib.h>
 
+#include "queue.h"
+#include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
 #include "timer.h"
 #include "lease.h"
+#include "str.h"
+#include "log.h"
 
 /* External globals */
 extern gchar *raproc_file;

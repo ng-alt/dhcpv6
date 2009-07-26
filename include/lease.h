@@ -29,9 +29,6 @@
 
 /* Author: Shirley Ma, xma@us.ibm.com */
 
-#include "config.h"
-#include <stdio.h>
-
 #ifndef __LEASE_H_DEFINED
 #define __LEASE_H_DEFINED
 
@@ -124,4 +121,5 @@ extern gint dhcp6_create_addrlist(struct ia_listval *, struct ia_listval *,
                                   const struct dhcp6_iaidaddr *,
                                   const struct link_decl *, guint16 *);
 extern gint dad_parse(const gchar *, struct dhcp6_list *);
-#endif
+
+#endif /* __LEASE_H_DEFINED */

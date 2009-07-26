@@ -31,6 +31,7 @@
 
 #include "config.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -70,11 +71,16 @@
 
 #include <glib.h>
 
+#include "queue.h"
+#include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
 #include "timer.h"
 #include "lease.h"
+#include "str.h"
+
+extern void run_script(struct dhcp6_if *, gint, gint, guint32);
 
 gint dhcp6_add_lease(struct dhcp6_addr *);
 

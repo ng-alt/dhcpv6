@@ -1,7 +1,31 @@
 /*
- * Copyright (C) NEC Europe Ltd., 2003
+ * log.h
+ * Logging functions for dhcpv6.
+ *
+ * Copyright (C) 2009  Red Hat, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation; either version 2.1 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author(s): David Cantrell <dcantrell@redhat.com>
+ */
+
+/* ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp */
+
+/*
+ * Copyright (C) 1998 and 1999 WIDE Project.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -13,7 +37,7 @@
  * 3. Neither the name of the project nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -27,34 +51,19 @@
  * SUCH DAMAGE.
  */
 
-#ifndef __RELAY6_PARSER_H_DEFINED
-#define __RELAY6_PARSER_H_DEFINED
+#ifndef __LOG_H_DEFINED
+#define __LOG_H_DEFINED
 
-struct msg_parser {
-    struct msg_parser *next;
-    struct msg_parser *prev;
+typedef struct _log_properties {
+    gboolean foreground;
+    gboolean verbose;
+    gboolean debug;
+    GLogLevelFlags threshold;
+    gchar *progname;
+    pid_t pid;
+} log_properties_t;
 
-    gint if_index;
-    guint8 msg_type;
-    guint8 hop;
-    guint8 *buffer;
-    guint8 *ptomsg;
-    guint8 *pstart, *pointer_start, *hc_pointer;
-    guint32 datalength;        /* the length of the DHCPv6 message */
-    gint dst_addr_type;
-    gchar src_addr[INET6_ADDRSTRLEN];    /* source address from the UDP packet 
-                                          */
-    gchar peer_addr[INET6_ADDRSTRLEN];
-    gchar link_addr[INET6_ADDRSTRLEN];
-    gint interface_in, hop_count;
-    gint sent;
-    gint isRF;
-};
+void setup_logging(gchar *, log_properties_t *);
+void log_handler(const gchar *, GLogLevelFlags, const gchar *, gpointer);
 
-struct msg_parser msg_parser_list;
-
-struct msg_parser *create_parser_obj(void);
-gint put_msg_in_store(struct msg_parser * mesg);
-gint check_buffer(gint ref, struct msg_parser * mesg);
-
-#endif /* __RELAY6_PARSER_H_DEFINED */
+#endif /* __LOG_H_DEFINED */

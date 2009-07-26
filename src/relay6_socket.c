@@ -29,6 +29,7 @@
 
 #include "config.h"
 
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -39,15 +40,124 @@
 
 #include <glib.h>
 
+#include "queue.h"
+#include "duid.h"
 #include "dhcp6.h"
 #include "dhcp6r.h"
 #include "relay6_socket.h"
 #include "relay6_parser.h"
 #include "relay6_database.h"
+#include "gfunc.h"
 
 #ifndef IPV6_2292PKTINFO
 #define IPV6_2292PKTINFO IPV6_PKTINFO
 #endif
+
+typedef struct _relay_forw_data_t {
+    struct msg_parser *mesg;
+    gboolean hit;
+} relay_forw_data_t;
+
+/* BEGIN STATIC FUNCTIONS */
+
+static void _send_relay_forw(gpointer data, gpointer user_data) {
+    gchar *si = (gchar *) data;
+    relay_forw_data_t *relay_forw = (relay_forw_data_t *) user_data;
+    struct sockaddr_in6 sin6;
+    guint32 count = 0;
+    gchar dest_addr[INET6_ADDRSTRLEN];
+    gint recvmsglen;
+    gchar *recvp = NULL;
+    struct cmsghdr *cmsgp = NULL;
+    struct in6_pktinfo *in6_pkt = NULL;
+    struct msghdr msg;
+    struct interface *iface = NULL;
+    struct iovec iov[1];
+
+    *(relay_forw->mesg->hc_pointer) = MAXHOPCOUNT;
+    memset(&sin6, '\0', sizeof(struct sockaddr_in6));
+    sin6.sin6_family = AF_INET6;
+
+    memset(dest_addr, 0, INET6_ADDRSTRLEN);
+    g_stpcpy(dest_addr, ALL_DHCP_SERVERS);
+
+    /* destination address */
+    if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
+        g_error("%s: inet_pton() failure", __func__);
+        return;
+    }
+
+    recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
+    recvp = (gchar *) g_malloc0(recvmsglen * sizeof(gchar));
+
+    if (recvp == NULL) {
+        g_error("%s: memory allocation error", __func__);
+        abort();
+    }
+
+    cmsgp = (struct cmsghdr *) recvp;
+    cmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
+    cmsgp->cmsg_level = IPPROTO_IPV6;
+    cmsgp->cmsg_type = IPV6_2292PKTINFO;
+    in6_pkt = (struct in6_pktinfo *) CMSG_DATA(cmsgp);
+    msg.msg_control = (void *) recvp;
+    msg.msg_controllen = recvmsglen;
+
+    /* destination address */
+    if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
+        g_error("%s: inet_pton() failure", __func__);
+        return;
+    }
+
+    in6_pkt->ipi6_ifindex = if_nametoindex(si);
+    sin6.sin6_scope_id = in6_pkt->ipi6_ifindex;
+
+    g_debug("%s: outgoing device index: %d", __func__,
+    in6_pkt->ipi6_ifindex);
+    iface = get_interface(in6_pkt->ipi6_ifindex);
+
+    if (iface == NULL) {
+        g_error("%s: no interface found", __func__);
+        exit(0);
+    }
+
+    if (inet_pton(AF_INET6, iface->ipv6addr->gaddr,
+                  &in6_pkt->ipi6_addr) <= 0) {
+        /* source address */
+        g_error("%s: inet_pton() failure", __func__);
+        abort();
+    }
+
+    g_debug("%s: source address: %s", __func__, iface->ipv6addr->gaddr);
+
+    sin6.sin6_port = htons(SERVER_PORT);
+
+    iov[0].iov_base = relay_forw->mesg->buffer;
+    iov[0].iov_len = relay_forw->mesg->datalength;
+    msg.msg_name = (void *) &sin6;
+    msg.msg_namelen = sizeof(sin6);
+    msg.msg_iov = &iov[0];
+    msg.msg_iovlen = 1;
+
+    if ((count = sendmsg(relaysock->sock_desc, &msg, 0)) < 0) {
+        g_error("%s: sendmsg failure: %s", __func__, strerror(errno));
+        return;
+    }
+
+    if (count > MAX_DHCP_MSG_LENGTH) {
+        g_error("%s: sendmsg sent %d bytes while MAX_DHCP_MSG_LENGTH is %d",
+                __func__, count, MAX_DHCP_MSG_LENGTH);
+    }
+
+    g_debug("%s: => relay_forw, sent to: %s snet_bytes: %d",
+            __func__, dest_addr, count);
+
+    free(recvp);
+    relay_forw->hit = TRUE;
+    return;
+}
+
+/* END STATIC FUNCTIONS */
 
 void init_socket(void) {
     relaysock = (struct relay_socket *) malloc(sizeof(struct relay_socket));
@@ -157,7 +267,6 @@ gint set_sock_opt(void) {
     gint hop_limit;
     struct interface *device;
     gint flag;
-    struct cifaces *iface;
     struct ipv6_mreq sock_opt;
 
     /* If the relay agent relays messages to the All_DHCP_Servers multicast
@@ -178,19 +287,15 @@ gint set_sock_opt(void) {
 
     for (device = interface_list.next; device != &interface_list;
          device = device->next) {
-        if (cifaces_list.next != &cifaces_list) {
-            flag = 0;
-            for (iface = cifaces_list.next; iface != &cifaces_list;
-                 iface = iface->next) {
-                if (strcmp(device->ifname, iface->ciface) == 0) {
-                    flag = 1;
-                    break;
-                }
-            }
+        flag = 0;
+        if (g_slist_find_custom(cifaces_list, device->ifname,
+                                _find_string) != NULL) {
+            flag = 1;
+            break;
+        }
 
-            if (flag == 0) {
-                continue;
-            }
+        if (flag == 0) {
+            continue;
         }
 
         sock_opt.ipv6mr_interface = device->devindex;
@@ -379,25 +484,25 @@ gint get_interface_info(void) {
 gint send_message(void) {
     struct sockaddr_in6 sin6;   /* my address information */
     struct msghdr msg;
-    uint32_t count = 0;
-    struct msg_parser *mesg;
+    guint32 count = 0;
     struct in6_pktinfo *in6_pkt;
     struct cmsghdr *cmsgp;
     gchar dest_addr[INET6_ADDRSTRLEN];
     struct IPv6_uniaddr *ipv6uni;
     struct interface *iface;
-    gint hit = 0;
     struct iovec iov[1];
     gint recvmsglen;
     gchar *recvp;
     struct server *uservers;
-    struct sifaces *si;
+    relay_forw_data_t relay_forw;
 
-    if ((mesg = get_send_messages_out()) == NULL) {
+    relay_forw.hit = FALSE;
+
+    if ((relay_forw.mesg = get_send_messages_out()) == NULL) {
         return 0;
     }
 
-    if (mesg->sent == 1) {
+    if (relay_forw.mesg->sent == 1) {
         return 0;
     }
 
@@ -406,9 +511,9 @@ gint send_message(void) {
     sin6.sin6_flowinfo = 0;
     sin6.sin6_scope_id = 0;
 
-    if (mesg->msg_type == DH6_RELAY_REPL) {
+    if (relay_forw.mesg->msg_type == DH6_RELAY_REPL) {
         memset(dest_addr, 0, INET6_ADDRSTRLEN);
-        memcpy(dest_addr, mesg->peer_addr, INET6_ADDRSTRLEN);
+        memcpy(dest_addr, relay_forw.mesg->peer_addr, INET6_ADDRSTRLEN);
 
         recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
         recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
@@ -433,15 +538,15 @@ gint send_message(void) {
             exit(1);
         }
 
-        sin6.sin6_scope_id = mesg->if_index;
+        sin6.sin6_scope_id = relay_forw.mesg->if_index;
 
-        if (mesg->hop > 0) {
+        if (relay_forw.mesg->hop > 0) {
             sin6.sin6_port = htons(SERVER_PORT);
         } else {
             sin6.sin6_port = htons(CLIENT_PORT);
         }
 
-        iface = get_interface(mesg->if_index);
+        iface = get_interface(relay_forw.mesg->if_index);
 
         if (iface != NULL) {
             gchar *src_addr;
@@ -465,14 +570,14 @@ gint send_message(void) {
         }
 
         /* OUTGOING DEVICE FOR RELAY_REPLY MSG */
-        in6_pkt->ipi6_ifindex = mesg->if_index;
+        in6_pkt->ipi6_ifindex = relay_forw.mesg->if_index;
         g_debug("%s: outgoing device index: %d", __func__,
                 in6_pkt->ipi6_ifindex);
         g_debug("%s: destination port: %d", __func__,
               ntohs(sin6.sin6_port));
 
-        iov[0].iov_base = mesg->buffer;
-        iov[0].iov_len = mesg->datalength;
+        iov[0].iov_base = relay_forw.mesg->buffer;
+        iov[0].iov_len = relay_forw.mesg->datalength;
         msg.msg_name = (void *) &sin6;
         msg.msg_namelen = sizeof(sin6);
         msg.msg_iov = &iov[0];
@@ -492,11 +597,11 @@ gint send_message(void) {
 
         free(recvp);
 
-        mesg->sent = 1;
+        relay_forw.mesg->sent = 1;
         return 1;
     }
 
-    if (mesg->msg_type == DH6_RELAY_FORW) {
+    if (relay_forw.mesg->msg_type == DH6_RELAY_FORW) {
         for (ipv6uni = IPv6_uniaddr_list.next; ipv6uni != &IPv6_uniaddr_list;
              ipv6uni = ipv6uni->next) {
             memset(&sin6, '\0', sizeof(struct sockaddr_in6));
@@ -543,8 +648,8 @@ gint send_message(void) {
             /* OUTGOING DEVICE FOR RELAY_REPLY MSG */
             in6_pkt->ipi6_ifindex = 0;
 
-            iov[0].iov_base = mesg->buffer;
-            iov[0].iov_len = mesg->datalength;
+            iov[0].iov_base = relay_forw.mesg->buffer;
+            iov[0].iov_len = relay_forw.mesg->datalength;
             msg.msg_name = (void *) &sin6;
             msg.msg_namelen = sizeof(sin6);
             msg.msg_iov = &iov[0];
@@ -562,7 +667,7 @@ gint send_message(void) {
             g_debug("%s: => relay_forw, sent to: %s sent_bytes: %d",
                     __func__, dest_addr, count);
             free(recvp);
-            hit = 1;
+            relay_forw.hit = TRUE;
         }                       /* for */
 
         for (iface = interface_list.next; iface != &interface_list;
@@ -623,8 +728,8 @@ gint send_message(void) {
 
                 sin6.sin6_port = htons(SERVER_PORT);
 
-                iov[0].iov_base = mesg->buffer;
-                iov[0].iov_len = mesg->datalength;
+                iov[0].iov_base = relay_forw.mesg->buffer;
+                iov[0].iov_len = relay_forw.mesg->datalength;
                 msg.msg_name = (void *) &sin6;
                 msg.msg_namelen = sizeof(sin6);
                 msg.msg_iov = &iov[0];
@@ -643,102 +748,20 @@ gint send_message(void) {
                         __func__, dest_addr, count);
                 free(recvp);
                 uservers = uservers->next;
-                hit = 1;
+                relay_forw.hit = TRUE;
             }                   /* while */
         }                       /* Interfaces */
 
-        for (si = sifaces_list.next; si != &sifaces_list; si = si->next) {
-            *(mesg->hc_pointer) = MAXHOPCOUNT;
-            memset(&sin6, '\0', sizeof(struct sockaddr_in6));
-            sin6.sin6_family = AF_INET6;
+        g_slist_foreach(sifaces_list, _send_relay_forw, (gpointer) &relay_forw);
 
-            memset(dest_addr, 0, INET6_ADDRSTRLEN);
-            strcpy(dest_addr, ALL_DHCP_SERVERS);
-
-            /* destination address */
-            if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
-                g_error("%s: inet_pton() failure", __func__);
-                return 0;
-            }
-
-            recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-            recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
-
-            if (recvp == NULL) {
-                g_error("%s: memory allocation error", __func__);
-                exit(1);
-            }
-
-            memset(recvp, 0, recvmsglen);
-
-            cmsgp = (struct cmsghdr *) recvp;
-            cmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
-            cmsgp->cmsg_level = IPPROTO_IPV6;
-            cmsgp->cmsg_type = IPV6_2292PKTINFO;
-            in6_pkt = (struct in6_pktinfo *) CMSG_DATA(cmsgp);
-            msg.msg_control = (void *) recvp;
-            msg.msg_controllen = recvmsglen;
-
-            /* destination address */
-            if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
-                g_error("%s: inet_pton() failure", __func__);
-                return 0;
-            }
-
-            in6_pkt->ipi6_ifindex = if_nametoindex(si->siface);
-            sin6.sin6_scope_id = in6_pkt->ipi6_ifindex;
-
-            g_debug("%s: outgoing device index: %d", __func__,
-                    in6_pkt->ipi6_ifindex);
-            iface = get_interface(in6_pkt->ipi6_ifindex);
-
-            if (iface == NULL) {
-                g_error("%s: no interface found", __func__);
-                exit(0);
-            }
-
-            if (inet_pton(AF_INET6, iface->ipv6addr->gaddr,
-                          &in6_pkt->ipi6_addr) <= 0) {
-                /* source address */
-                g_error("%s: inet_pton() failure", __func__);
-                exit(1);
-            }
-
-            g_debug("%s: source address: %s", __func__, iface->ipv6addr->gaddr);
-
-            sin6.sin6_port = htons(SERVER_PORT);
-
-            iov[0].iov_base = mesg->buffer;
-            iov[0].iov_len = mesg->datalength;
-            msg.msg_name = (void *) &sin6;
-            msg.msg_namelen = sizeof(sin6);
-            msg.msg_iov = &iov[0];
-            msg.msg_iovlen = 1;
-
-            if ((count = sendmsg(relaysock->sock_desc, &msg, 0)) < 0) {
-                perror("sendmsg");
-                return 0;
-            }
-
-            if (count > MAX_DHCP_MSG_LENGTH) {
-                perror("bytes sendmsg");
-            }
-
-            g_debug("%s: => relay_forw, sent to: %s snet_bytes: %d",
-                    __func__, dest_addr, count);
-
-            free(recvp);
-            hit = 1;
-        }                       /* for */
-
-        if (hit == 0) {
+        if (relay_forw.hit) {
             for (iface = interface_list.next; iface != &interface_list;
                  iface = iface->next) {
-                if (mesg->interface_in == iface->devindex) {
+                if (relay_forw.mesg->interface_in == iface->devindex) {
                     continue;
                 }
 
-                *(mesg->hc_pointer) = MAXHOPCOUNT;
+                *(relay_forw.mesg->hc_pointer) = MAXHOPCOUNT;
                 memset(&sin6, '\0', sizeof(struct sockaddr_in6));
                 sin6.sin6_family = AF_INET6;
 
@@ -793,8 +816,8 @@ gint send_message(void) {
                 g_debug("%s: source address: %s", __func__,
                         iface->ipv6addr->gaddr);
 
-                iov[0].iov_base = mesg->buffer;
-                iov[0].iov_len = mesg->datalength;
+                iov[0].iov_base = relay_forw.mesg->buffer;
+                iov[0].iov_len = relay_forw.mesg->datalength;
                 msg.msg_name = (void *) &sin6;
                 msg.msg_namelen = sizeof(sin6);
                 msg.msg_iov = &iov[0];
@@ -816,7 +839,7 @@ gint send_message(void) {
         }
     }
 
-    mesg->sent = 1;
+    relay_forw.mesg->sent = 1;
     return 1;
 
     g_error("%s: no message type to send", __func__);

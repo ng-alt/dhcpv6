@@ -29,6 +29,10 @@
  * SUCH DAMAGE.
  */
 
+#ifndef COMMON_H_DEFINED
+
+#define COMMON_H_DEFINED 1
+
 #define IN6_IFF_INVALID -1
 
 #define DPRINT_STATUS_CODE(object, num, optp, optlen) \
@@ -60,10 +64,6 @@ do { \
 } while (0)
 
 /* common.c */
-extern gint _find_in6_addr(gconstpointer, gconstpointer);
-extern gint _find_string(gconstpointer, gconstpointer);
-extern void _print_string(gpointer, gpointer);
-extern void _print_in6_addr(gpointer, gpointer);
 extern gint dhcp6_copy_list(struct dhcp6_list *, const struct dhcp6_list *);
 extern void dhcp6_clear_list(struct dhcp6_list *);
 extern gint dhcp6_count_list(struct dhcp6_list *);
@@ -76,25 +76,17 @@ extern void ia_clear_list(struct ia_list *);
 extern gint ia_copy_list(struct ia_list *, struct ia_list *);
 extern struct ia_listval *ia_find_listval(struct ia_list *,
                                           iatype_t, guint32);
-extern void run_script (struct dhcp6_if *, gint, gint, guint32);
 extern struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *, gint);
 extern void dhcp6_remove_event(struct dhcp6_event *);
-extern gint dhcp6_has_option(struct dhcp6_list * optlist, gint option);
 extern gint getifaddr(struct in6_addr *, gchar *, struct in6_addr *,
                       gint, gint, gint);
 extern gint transmit_sa(gint, struct sockaddr_in6 *, gchar *, size_t);
 extern glong random_between(glong, glong);
 extern gint prefix6_mask(struct in6_addr *, gint);
 extern gint sa6_plen2mask(struct sockaddr_in6 *, gint);
-extern gchar *addr2str(struct sockaddr *, socklen_t);
-extern gchar *in6addr2str(struct in6_addr *, gint);
 extern const gchar *getdev(struct sockaddr_in6 *);
 extern gint in6_addrscopebyif(struct in6_addr *, gchar *);
 extern gint in6_scope(struct in6_addr *);
-extern gint duid_match_llt(struct duid *, struct duid *);
-extern gint get_duid(const gchar *, const gchar *, struct duid *);
-extern gint save_duid(const gchar *, const gchar *, struct duid *);
-extern guint16 calculate_duid_len(const gchar *, guint16 *);
 extern void dhcp6_init_options(struct dhcp6_optinfo *);
 extern void dhcp6_clear_options(struct dhcp6_optinfo *);
 extern gint dhcp6_copy_options(struct dhcp6_optinfo *, struct dhcp6_optinfo *);
@@ -104,32 +96,11 @@ extern gint dhcp6_set_options(struct dhcp6opt *, struct dhcp6opt *,
                               struct dhcp6_optinfo *);
 extern void dhcp6_set_timeoparam(struct dhcp6_event *);
 extern void dhcp6_reset_timer(struct dhcp6_event *);
-extern gchar *dhcp6optstr(gint);
-extern GString *dhcp6_options2str(struct dhcp6_list *);
-extern gchar *dhcp6msgstr(gint);
-extern gchar *dhcp6_stcodestr(gint);
-extern gchar *duidstr(const struct duid *);
-extern gint duidcpy(struct duid *, const struct duid *);
-extern gint duidcmp(const struct duid *, const struct duid *);
-extern void duidfree(struct duid *);
 extern void relayfree(struct relay_list *);
 extern void ifinit(const gchar *);
-extern gint configure_duid(const gchar *, struct duid *);
 extern struct dhcp6_if *find_ifconfbyname(const gchar *);
 extern struct dhcp6_if *find_ifconfbyid(guint);
 extern struct prefix_ifconf *find_prefixifconf(const gchar *);
 extern struct host_conf *find_hostconf(const struct duid *);
-extern ssize_t gethwid(guchar *, gint, const gchar *, guint16 *);
 
-/* Logging types and functions */
-typedef struct _log_properties {
-    gboolean foreground;
-    gboolean verbose;
-    gboolean debug;
-    GLogLevelFlags threshold;
-    gchar *progname;
-    pid_t pid;
-} log_properties_t;
-
-extern void setup_logging(gchar *, log_properties_t *);
-extern void log_handler(const gchar *, GLogLevelFlags, const gchar *, gpointer);
+#endif

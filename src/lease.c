@@ -31,6 +31,7 @@
 
 #include "config.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
@@ -53,10 +54,13 @@
 
 #include <glib.h>
 
+#include "queue.h"
+#include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
 #include "lease.h"
+#include "str.h"
 
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern FILE *server6_lease_file;

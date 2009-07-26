@@ -33,9 +33,6 @@
  * draft-ietf-dhc-dhcpv6-26
  */
 
-#include "queue.h"
-#include <sys/param.h>
-
 #ifndef __DHCP6_H_DEFINED
 #define __DHCP6_H_DEFINED
 
@@ -130,7 +127,7 @@
 #define RESOLV_CONF_DHCPV6_FILE DB_FILE_PATH"/resolv.conf.dhcpv6"
 #define RESOLV_CONF_BAK_FILE RESOLV_CONF_DHCPV6_FILE".bak"
 
-char resolv_dhcpv6_file[MAXPATHLEN];
+char resolv_dhcpv6_file[PATH_MAX];
 
 typedef enum {
     IANA = 1,
@@ -147,11 +144,6 @@ typedef enum {
 } state_t;
 
 /* Internal data structure */
-
-struct duid {
-    guint8 duid_len;            /* length */
-    guchar *duid_id;            /* variable length ID value (must be opaque) */
-};
 
 struct intf_id {
     guint16 intf_len;           /* length */
@@ -362,14 +354,6 @@ struct dhcp6opt {
     /* type-dependent data follows */
 };
 
-/* DUID type 1 */
-struct dhcp6_duid_type1 {
-    guint16 dh6duid1_type;
-    guint16 dh6duid1_hwtype;
-    guint32 dh6duid1_time;
-    /* link-layer address follows */
-};
-
 /* Prefix Information */
 struct dhcp6_prefix_info {
     guint16 dh6_pi_type;
@@ -400,4 +384,4 @@ struct dhcp6_addr_info {
  */
 };
 
-#endif /*__DHCP6_H_DEFINED*/
+#endif /* __DHCP6_H_DEFINED */

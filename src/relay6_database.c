@@ -37,10 +37,15 @@
 
 #include <glib.h>
 
+#include "queue.h"
+#include "duid.h"
 #include "dhcp6.h"
+#include "confdata.h"
+#include "common.h"
 #include "dhcp6r.h"
 #include "relay6_parser.h"
 #include "relay6_database.h"
+#include "gfunc.h"
 
 void init_relay(void) {
     nr_of_uni_addr = 0;
@@ -48,8 +53,6 @@ void init_relay(void) {
     nr_of_devices = 0;
     max_count = 0;
 
-    cifaces_list.next = &cifaces_list;
-    sifaces_list.next = &sifaces_list;
     server_list.next = &server_list;
     IPv6_address_list.next = &IPv6_address_list;
     IPv6_uniaddr_list.next = &IPv6_uniaddr_list;
@@ -62,7 +65,6 @@ void init_relay(void) {
 
 gint check_interface_semafor(gint index) {
     struct interface *device = NULL;
-    struct cifaces *iface;
 
     device = get_interface(index);
     if (device == NULL) {
@@ -70,15 +72,9 @@ gint check_interface_semafor(gint index) {
         exit(1);
     }
 
-    if (cifaces_list.next == &cifaces_list) {
+    if (g_slist_find_custom(cifaces_list, device->ifname,
+                            _find_string) != NULL) {
         return 1;
-    }
-
-    for (iface = cifaces_list.next; iface != &cifaces_list;
-         iface = iface->next) {
-        if (strcmp(device->ifname, iface->ciface) == 0) {
-            return 1;
-        }
     }
 
     return 0;

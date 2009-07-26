@@ -3,6 +3,6 @@
 
 noinst_HEADERS = confdata.h common.h dhcp6.h dhcp6r.h lease.h queue.h \
                  relay6_database.h relay6_parser.h relay6_socket.h \
-                 server6_conf.h timer.h
+                 server6_conf.h timer.h gfunc.h log.h str.h duid.h
 
 MAINTAINERCLEANFILES = Makefile.in

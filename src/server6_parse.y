@@ -32,6 +32,7 @@
 %{
 #include "config.h"
 
+#include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 #include <stdlib.h>
@@ -42,11 +43,14 @@
 
 #include <glib.h>
 
+#include "queue.h"
+#include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
 #include "server6_conf.h"
 #include "common.h"
 #include "lease.h"
+#include "str.h"
 
 extern gint server6lex (void);
 extern void server6error(gchar *, ...) __attribute__((__format__(__printf__, 1, 2)));

@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/types.h>
-#include "queue.h"
+#ifndef __CONFDATA_H_DEFINED
+#define __CONFDATA_H_DEFINED
 
 #define MAX_DEVICE 100
 
@@ -350,3 +350,5 @@ extern gint cfparse(const gchar *);
 extern gint resolv_parse(dns_info_t *);
 
 extern void *get_if_option(struct dhcp6_option_list *, gint);
+
+#endif /* __CONFDATA_H_DEFINED */

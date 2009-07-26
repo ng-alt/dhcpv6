@@ -65,8 +65,6 @@ gint main(gint argc, gchar **argv) {
     struct interface *iface;
     struct sockaddr_in6 sin6;
     gchar *sf, *eth, *addr;
-    struct cifaces *ci;
-    struct sifaces *si;
     struct IPv6_uniaddr *unia;
     struct server *sa;
     struct msg_parser *mesg;
@@ -119,17 +117,7 @@ gint main(gint argc, gchar **argv) {
             }
 
             sw = 1;
-            ci = (struct cifaces *) malloc(sizeof(struct cifaces));
-
-            if (ci == NULL) {
-                g_error("%s: memory allocation error", __func__);
-                exit(1);
-            }
-
-            ci->ciface = strdup(argv[i]);
-            ci->next = cifaces_list.next;
-            cifaces_list.next = ci;
-
+            cifaces_list = g_slist_append(cifaces_list, g_strdup(argv[i]));
             g_debug("%s: setting up client interface: %s", __func__, argv[i]);
             continue;
         } else if (strcmp(argv[i], "-cu") == 0) {
@@ -142,17 +130,7 @@ gint main(gint argc, gchar **argv) {
                 goto ERROR;
             }
 
-            si = (struct sifaces *) malloc(sizeof(struct sifaces));
-
-            if (si == NULL) {
-                g_error("%s: memory allocation error", __func__);
-                exit(1);
-            }
-
-            si->siface = strdup(argv[i]);
-            si->next = sifaces_list.next;
-            sifaces_list.next = si;
-
+            sifaces_list = g_slist_append(sifaces_list, g_strdup(argv[i]));
             g_debug("%s: setting up server interface: %s", __func__, argv[i]);
             continue;
         } else if (strcmp(argv[i], "-su") == 0) {

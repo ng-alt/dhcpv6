@@ -52,6 +52,7 @@
 
 #include "config.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <syslog.h>
 #include <netinet/in.h>
@@ -64,10 +65,13 @@
 
 #include <glib.h>
 
+#include "queue.h"
+#include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
 #include "lease.h"
+#include "str.h"
 
 extern struct dhcp6_if *dhcp6_if;
 

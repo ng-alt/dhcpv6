@@ -64,12 +64,17 @@
 
 #include <glib.h>
 
+#include "queue.h"
+#include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
 #include "lease.h"
 #include "server6_conf.h"
 #include "timer.h"
+#include "log.h"
+#include "str.h"
+#include "gfunc.h"
 
 typedef enum {
     DHCP6_CONFINFO_PREFIX,

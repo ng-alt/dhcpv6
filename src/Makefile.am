@@ -3,7 +3,11 @@
 
 INCLUDES = -I$(top_srcdir)/include
 
-COMMONSRCS = common.c timer.c lease.c lease_token.l
+# Source files that provide various utility functions
+UTILSRCS   = gfunc.c str.c log.c duid.c
+
+# Source files used by dhcp6c and dhcp6s (but not dhcp6r)
+SHAREDSRCS = common.c timer.c lease.c lease_token.l
 
 AM_YFLAGS = -d -p `echo $* | cut -d '_' -f 1`
 AM_LFLAGS = -P`echo $* | cut -d '_' -f 1` -o lex.yy.c
@@ -21,16 +25,18 @@ sbin_PROGRAMS = dhcp6s dhcp6r dhcp6c
 dhcp6s_CFLAGS  = -fPIE -D_GNU_SOURCE $(GLIB_CFLAGS)
 dhcp6s_LDFLAGS = $(LDFLAGS) $(GLIB_LIBS)
 dhcp6s_SOURCES = dhcp6s.c server6_conf.c server6_addr.c server6_parse.y \
-                 server6_token.l $(COMMONSRCS)
+                 server6_token.l $(UTILSRCS) $(SHAREDSRCS)
 
 dhcp6r_CFLAGS  = -fPIE -D_GNU_SOURCE $(GLIB_CFLAGS)
 dhcp6r_LDFLAGS = $(LDFLAGS) $(GLIB_LIBS)
-dhcp6r_SOURCES = dhcp6r.c relay6_database.c relay6_parser.c relay6_socket.c
+dhcp6r_SOURCES = dhcp6r.c relay6_database.c relay6_parser.c relay6_socket.c \
+                 $(UTILSRCS)
 
 dhcp6c_CFLAGS  = -fPIE -D_GNU_SOURCE $(LIBNL_CFLAGS) $(GLIB_CFLAGS)
 dhcp6c_LDFLAGS = $(LDFLAGS) $(LIBNL_LIBS) $(GLIB_LIBS)
 dhcp6c_SOURCES = dhcp6c.c confdata.c client6_addr.c client6_parse.y \
-                 client6_token.l dad_parse.c resolv_token.l $(COMMONSRCS)
+                 client6_token.l dad_parse.c resolv_token.l $(UTILSRCS) \
+                 $(SHAREDSRCS)
 
 CLEANFILES = $(BUILT_SOURCES)
 

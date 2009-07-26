@@ -31,6 +31,7 @@
 
 #include "config.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
@@ -47,12 +48,15 @@
 
 #include <glib.h>
 
+#include "queue.h"
+#include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
 #include "lease.h"
 #include "server6_conf.h"
 #include "common.h"
 #include "timer.h"
+#include "str.h"
 
 extern FILE *server6_lease_file;
 extern GHashTable *host_addr_hash_table;
