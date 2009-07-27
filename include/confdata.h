@@ -53,14 +53,11 @@ struct ra_info {
     gint flags;
 };
 
-struct dhcp6_option {
-    TAILQ_ENTRY(dhcp6_option) link;
+typedef struct _dhcp6_option_t {
     gint type;
     gint len;
     void *val;
-};
-
-TAILQ_HEAD(dhcp6_option_list, dhcp6_option);
+} dhcp6_option_t;
 
 /* per-interface information */
 struct dhcp6_if {
@@ -110,7 +107,7 @@ struct dhcp6_if {
     /* request specific addresses list from client */
     struct dhcp6_list addr_list;
     struct dhcp6_list prefix_list;
-    struct dhcp6_option_list option_list;
+    GSList *option_list;
     struct dhcp6_serverinfo *current_server;
     struct dhcp6_serverinfo *servers;
 };
@@ -195,7 +192,7 @@ struct dhcp6_ifconf {
     struct dhcp6_list addr_list;
     struct dhcp6_list reqopt_list;
 
-    struct dhcp6_option_list option_list;
+    GSList *option_list;
 };
 
 struct prefix_ifconf {
@@ -340,15 +337,13 @@ extern struct dhcp6_ifconf *dhcp6_iflist;
 extern struct prefix_ifconf *prefix_ifconflist;
 extern dns_info_t dnsinfo;
 
-extern gint configure_interface(const struct cf_namelist *);
-extern gint configure_prefix_interface(struct cf_namelist *);
-extern gint configure_host(const struct cf_namelist *);
-extern gint configure_global_option(void);
-extern void configure_cleanup(void);
-extern void configure_commit(void);
-extern gint cfparse(const gchar *);
-extern gint resolv_parse(dns_info_t *);
-
-extern void *get_if_option(struct dhcp6_option_list *, gint);
+gint configure_interface(const struct cf_namelist *);
+gint configure_prefix_interface(struct cf_namelist *);
+gint configure_host(const struct cf_namelist *);
+gint configure_global_option(void);
+void configure_cleanup(void);
+void configure_commit(void);
+gint cfparse(const gchar *);
+gint resolv_parse(dns_info_t *);
 
 #endif /* __CONFDATA_H_DEFINED */

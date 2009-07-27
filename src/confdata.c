@@ -58,8 +58,6 @@ enum {
     DHCPOPTCODE_ALLOW
 };
 
-gint clear_option_list(struct dhcp6_option_list *);
-
 /* BEGIN STATIC FUNCTIONS */
 
 static void _clear_ifconf(struct dhcp6_ifconf *iflist) {
@@ -260,7 +258,7 @@ gint configure_interface(const struct cf_namelist *iflist) {
         ifc->maximum_irt = DHCP6_DURATITION_INFINITE;
         TAILQ_INIT(&ifc->reqopt_list);
         TAILQ_INIT(&ifc->addr_list);
-        TAILQ_INIT(&ifc->option_list);
+        ifc->option_list = NULL;
 
         for (cfl = ifp->params; cfl; cfl = cfl->next) {
             switch (cfl->type) {
@@ -613,9 +611,8 @@ void configure_commit(void) {
             ifp->prefix_list = ifc->prefix_list;
             TAILQ_INIT(&ifc->prefix_list);
 
-            clear_option_list(&ifp->option_list);
-            ifp->option_list = ifc->option_list;
-            TAILQ_INIT(&ifc->option_list);
+            g_slist_free(ifp->option_list);
+            ifp->option_list = NULL;
 
             ifp->server_pref = ifc->server_pref;
 
@@ -637,27 +634,4 @@ void configure_commit(void) {
     host_conflist = host_conflist0;
     host_conflist0 = NULL;
     return;
-}
-
-gint clear_option_list(struct dhcp6_option_list *opts) {
-    struct dhcp6_option *opt;
-
-    while ((opt = TAILQ_FIRST(opts)) != NULL) {
-        TAILQ_REMOVE(opts, opt, link);
-        free(opt);
-    }
-
-    return 0;
-}
-
-void *get_if_option(struct dhcp6_option_list *opts, gint type) {
-    struct dhcp6_option *opt;
-
-    TAILQ_FOREACH(opt, opts, link) {
-        if (opt->type == type) {
-            return opt->val;
-        }
-    }
-
-    return NULL;
 }
