@@ -112,7 +112,7 @@ struct dhcp6_if {
     struct dhcp6_serverinfo *servers;
 };
 
-struct dhcp6_event {
+typedef struct _dhcp6_event_t {
     struct dhcp6_if *ifp;
     struct dhcp6_timer *timer;
 
@@ -132,18 +132,18 @@ struct dhcp6_event {
     gint state;
 
     GSList *data_list;
-};
+} dhcp6_event_t;
 
 typedef enum {
     DHCP6_DATA_PREFIX,
     DHCP6_DATA_ADDR
-} dhcp6_eventdata_t;
+} dhcp6_eventdata_type;
 
-struct dhcp6_eventdata {
+typedef struct _dhcp6_eventdata_t {
     struct dhcp6_event *event;
-    dhcp6_eventdata_t type;
+    dhcp6_eventdata_type type;
     void *data;
-};
+} dhcp6_eventdata_t;
 
 struct dhcp6_serverinfo {
     struct dhcp6_serverinfo *next;

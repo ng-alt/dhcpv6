@@ -31,6 +31,7 @@
 #include "gfunc.h"
 #include "str.h"
 
+/* FIXME: convert to IN6_ARE_ADDR_EQUAL */
 gint _find_in6_addr(gconstpointer a, gconstpointer b) {
     struct in6_addr *addr1 = (struct in6_addr *) a;
     struct in6_addr *addr2 = (struct in6_addr *) b;
@@ -46,17 +47,39 @@ gint _find_string(gconstpointer a, gconstpointer b) {
 }
 
 gint _find_event_by_xid(gconstpointer a, gconstpointer b) {
-    struct dhcp6_event *event = (struct dhcp6_event *) a;
+    dhcp6_event_t *event = (dhcp6_event_t *) a;
     guint32 *xid = (guint32 *) b;
 
     return ((event->xid) - (*xid));
 }
 
 gint _find_event_by_state(gconstpointer a, gconstpointer b) {
-    struct dhcp6_event *event = (struct dhcp6_event *) a;
+    dhcp6_event_t *event = (dhcp6_event_t *) a;
     gint *state = (gint *) b;
 
     return ((event->state) - (*state));
+}
+
+/* FIXME: convert to IN6_ARE_ADDR_EQUAL and better return values */
+gint _find_lease_by_addr(gconstpointer a, gconstpointer b) {
+    dhcp6_lease_t *lease = (dhcp6_lease_t *) a;
+    struct dhcp6_addr *ifaddr = (struct dhcp6_addr *) b;
+
+    /* check for prefix length sp->lease_addr.plen == ifaddr->plen && */
+    g_debug("%s: request address is %s/%d ", __func__,
+            in6addr2str(&ifaddr->addr, 0), ifaddr->plen);
+    g_debug("%s: lease address is %s/%d ", __func__,
+            in6addr2str(&lease->lease_addr.addr, 0), ifaddr->plen);
+
+    if (IN6_ARE_ADDR_EQUAL(&lease->lease_addr.addr, &ifaddr->addr)) {
+        if (ifaddr->type == IAPD && lease->lease_addr.plen == ifaddr->plen) {
+            return 0;
+        } else if (ifaddr->type == IANA || ifaddr->type == IATA) {
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 void _print_in6_addr(gpointer data, gpointer user_data) {

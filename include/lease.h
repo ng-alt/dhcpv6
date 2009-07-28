@@ -72,54 +72,51 @@ struct dhcp6_iaidaddr {
     struct dhcp6_if *ifp;
     struct dhcp6_timer *timer;
     /* list of client leases */
-    TAILQ_HEAD(, dhcp6_lease) lease_list;
+    GSList *lease_list;
 };
 
-extern guint32 do_hash(const void *, guint8);
+guint32 do_hash(const void *, guint8);
 gint get_linklocal(const gchar *, struct in6_addr *);
-extern void dhcp6_init_iaidaddr(void);
-extern gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *);
-extern gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *, struct ia_listval *);
-extern gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *, struct ia_listval *,
-                                  gint);
-extern struct dhcp6_timer *dhcp6_iaidaddr_timo(void *);
-extern struct dhcp6_timer *dhcp6_lease_timo(void *);
-extern guint32 get_min_preferlifetime(struct dhcp6_iaidaddr *);
-extern guint32 get_max_validlifetime(struct dhcp6_iaidaddr *);
-extern struct dhcp6_iaidaddr *dhcp6_find_iaidaddr(struct duid *, guint32,
-                                                  iatype_t);
-extern struct dhcp6_lease *dhcp6_find_lease(struct dhcp6_iaidaddr *,
-                                            struct dhcp6_addr *);
-extern gint dhcp6_remove_lease(struct dhcp6_lease *);
-extern gint dhcp6_validate_bindings(struct dhcp6_list *,
-                                    struct dhcp6_iaidaddr *, gint);
-extern gint get_iaid(const gchar *, const struct iaid_table *, gint);
-extern gint create_iaid(struct iaid_table *, gint);
-extern FILE *init_leases(const gchar *);
-extern void lease_parse(FILE *);
-extern gint do_iaidaddr_hash(struct dhcp6_lease *, struct client6_if *);
-extern gint write_lease(const struct dhcp6_lease *, FILE *);
-extern FILE *sync_leases(FILE *, const gchar *, gchar *);
-extern struct dhcp6_timer *syncfile_timo(void *);
-extern guint addr_hash(const void *);
-extern guint iaid_hash(const void *);
-extern void *iaid_findkey(const void *);
-extern gint iaid_key_compare(const void *, const void *);
-extern void *lease_findkey(const void *);
-extern gint lease_key_compare(const void *, const void *);
-extern void *v6addr_findkey(const void *);
-extern gint v6addr_key_compare(const void *, const void *);
-extern gint client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
-extern gint dhcp6_get_prefixlen(struct in6_addr *, struct dhcp6_if *);
-extern gint prefixcmp(struct in6_addr *, struct in6_addr *, gint);
-extern gint addr_on_addrlist(struct dhcp6_list *, struct dhcp6_addr *);
-struct link_decl;
-extern gint dhcp6_create_prefixlist(struct ia_listval *, struct ia_listval *,
-                                    const struct dhcp6_iaidaddr *,
-                                    const struct link_decl *, guint16 *);
-extern gint dhcp6_create_addrlist(struct ia_listval *, struct ia_listval *,
-                                  const struct dhcp6_iaidaddr *,
-                                  const struct link_decl *, guint16 *);
-extern gint dad_parse(const gchar *, struct dhcp6_list *);
+void dhcp6_init_iaidaddr(void);
+gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *);
+gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *, struct ia_listval *);
+gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *, struct ia_listval *,
+                           gint);
+struct dhcp6_timer *dhcp6_iaidaddr_timo(void *);
+struct dhcp6_timer *dhcp6_lease_timo(void *);
+guint32 get_min_preferlifetime(struct dhcp6_iaidaddr *);
+guint32 get_max_validlifetime(struct dhcp6_iaidaddr *);
+struct dhcp6_iaidaddr *dhcp6_find_iaidaddr(struct duid *, guint32,
+                                           iatype_t);
+dhcp6_lease_t *dhcp6_find_lease(struct dhcp6_iaidaddr *, struct dhcp6_addr *);
+gint dhcp6_validate_bindings(struct dhcp6_list *,
+                             struct dhcp6_iaidaddr *, gint);
+gint get_iaid(const gchar *, const struct iaid_table *, gint);
+gint create_iaid(struct iaid_table *, gint);
+FILE *init_leases(const gchar *);
+void lease_parse(FILE *);
+gint do_iaidaddr_hash(dhcp6_lease_t *, struct client6_if *);
+gint write_lease(const dhcp6_lease_t *, FILE *);
+FILE *sync_leases(FILE *, const gchar *, gchar *);
+struct dhcp6_timer *syncfile_timo(void *);
+guint addr_hash(const void *);
+guint iaid_hash(const void *);
+void *iaid_findkey(const void *);
+gint iaid_key_compare(const void *, const void *);
+void *lease_findkey(const void *);
+gint lease_key_compare(const void *, const void *);
+void *v6addr_findkey(const void *);
+gint v6addr_key_compare(const void *, const void *);
+gint client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
+gint dhcp6_get_prefixlen(struct in6_addr *, struct dhcp6_if *);
+gint prefixcmp(struct in6_addr *, struct in6_addr *, gint);
+gint addr_on_addrlist(struct dhcp6_list *, struct dhcp6_addr *);
+gint dhcp6_create_prefixlist(struct ia_listval *, struct ia_listval *,
+                             const struct dhcp6_iaidaddr *,
+                             const struct link_decl *, guint16 *);
+gint dhcp6_create_addrlist(struct ia_listval *, struct ia_listval *,
+                           const struct dhcp6_iaidaddr *,
+                           const struct link_decl *, guint16 *);
+gint dad_parse(const gchar *, struct dhcp6_list *);
 
 #endif /* __LEASE_H_DEFINED */

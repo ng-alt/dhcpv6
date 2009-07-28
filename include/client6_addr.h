@@ -1,6 +1,5 @@
 /*
- * gfunc.h
- * glib helper functions (GFunc, GCompareFunc, etc) used in dhcpv6.
+ * client6_addr.h
  *
  * Copyright (C) 2009  Red Hat, Inc.
  *
@@ -20,16 +19,9 @@
  * Author(s): David Cantrell <dcantrell@redhat.com>
  */
 
-#ifndef __GFUNC_H_DEFINED
-#define __GFUNC_H_DEFINED
+#ifndef __CLIENT6_ADDR_H_DEFINED
+#define __CLIENT6_ADDR_H_DEFINED
 
-gint _find_in6_addr(gconstpointer, gconstpointer);
-gint _find_string(gconstpointer, gconstpointer);
-gint _find_event_by_xid(gconstpointer, gconstpointer);
-gint _find_event_by_state(gconstpointer, gconstpointer);
-gint _find_lease_by_addr(gconstpointer, gconstpointer);
-void _print_in6_addr(gpointer, gpointer);
-void _print_string(gpointer, gpointer);
-gint dhcp6_has_option(struct dhcp6_list *, gint);
+gint dhcp6c_remove_lease(dhcp6_lease_t *);
 
-#endif /* __GFUNC_H_DEFINED */
+#endif /* __CLIENT6_ADDR_H_DEFINED */

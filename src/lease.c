@@ -97,7 +97,7 @@ static gint _init_lease_hashes(void) {
 }
 
 static void _sync_lease(gpointer key, gpointer value, gpointer user_data) {
-    struct dhcp6_lease *lease = (struct dhcp6_lease *) value;
+    dhcp6_lease_t *lease = (dhcp6_lease_t *) value;
     FILE *sync_file = (FILE *) user_data;
 
     if (write_lease(lease, sync_file) < 0) {
@@ -109,7 +109,7 @@ static void _sync_lease(gpointer key, gpointer value, gpointer user_data) {
 
 /* END STATIC FUNCTIONS */
 
-gint write_lease(const struct dhcp6_lease *lease_ptr, FILE *file) {
+gint write_lease(const dhcp6_lease_t *lease_ptr, FILE *file) {
     struct tm brokendown_time;
     gchar addr_str[64];
 
@@ -193,7 +193,7 @@ FILE *sync_leases(FILE * file, const gchar *original, gchar *template) {
     if (dhcp6_mode == DHCP6_MODE_SERVER) {
         g_hash_table_foreach(lease_hash_table, _sync_lease, sync_file);
     } else if (dhcp6_mode == DHCP6_MODE_CLIENT) {
-        struct dhcp6_lease *lv, *lv_next;
+        dhcp6_lease_t *lv, *lv_next;
 
         for (lv = TAILQ_FIRST(&client6_iaidaddr.lease_list); lv; lv = lv_next) {
             lv_next = TAILQ_NEXT(lv, link);
@@ -353,7 +353,7 @@ gint addr_on_addrlist(struct dhcp6_list *addrlist, struct dhcp6_addr *addr6) {
 }
 
 guint32 get_min_preferlifetime(struct dhcp6_iaidaddr * sp) {
-    struct dhcp6_lease *lv, *first;
+    dhcp6_lease_t *lv, *first;
     guint32 min;
 
     if (TAILQ_EMPTY(&sp->lease_list)) {
@@ -371,7 +371,7 @@ guint32 get_min_preferlifetime(struct dhcp6_iaidaddr * sp) {
 }
 
 guint32 get_max_validlifetime(struct dhcp6_iaidaddr * sp) {
-    struct dhcp6_lease *lv, *first;
+    dhcp6_lease_t *lv, *first;
     guint32 max;
 
     if (TAILQ_EMPTY(&sp->lease_list)) {

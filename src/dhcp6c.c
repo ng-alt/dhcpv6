@@ -282,7 +282,7 @@ static gint _set_info_refresh_timer(struct dhcp6_if *ifp, guint32 offered_irt) {
 }
 
 static gint _create_request_list(gint reboot) {
-    struct dhcp6_lease *cl;
+    dhcp6_lease_t *cl;
     struct dhcp6_listval *lv;
 
     /* create an address list for release all/confirm */
@@ -420,7 +420,7 @@ static struct dhcp6_timer *_check_dad_timo(void *arg) {
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
     gint newstate;
     struct dhcp6_list dad_list;
-    struct dhcp6_lease *cl;
+    dhcp6_lease_t *cl;
     struct dhcp6_listval *lv;
 
     if (client6_iaidaddr.client6_info.type == IAPD) {
@@ -620,7 +620,7 @@ static iatype_t _iatype_of_if(struct dhcp6_if *ifp) {
 }
 
 static void _free_resources(struct dhcp6_if *ifp) {
-    struct dhcp6_lease *sp, *sp_next;
+    dhcp6_lease_t *sp, *sp_next;
     struct stat buf;
 
     for (sp = TAILQ_FIRST(&client6_iaidaddr.lease_list); sp; sp = sp_next) {

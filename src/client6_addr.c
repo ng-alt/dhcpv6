@@ -80,6 +80,7 @@
 #include "lease.h"
 #include "str.h"
 #include "gfunc.h"
+#include "client6_addr.h"
 
 extern void run_script(struct dhcp6_if *, gint, gint, guint32);
 
@@ -97,8 +98,7 @@ extern struct dhcp6_list request_list;
 
 /* BEGIN STATIC FUNCTIONS */
 
-static gint _dhcp6_update_lease(struct dhcp6_addr *addr,
-                               struct dhcp6_lease *sp) {
+static gint _dhcp6_update_lease(struct dhcp6_addr *addr, dhcp6_lease_t *sp) {
     struct timeval timo;
     gdouble d;
 
@@ -107,7 +107,7 @@ static gint _dhcp6_update_lease(struct dhcp6_addr *addr,
         g_error("%s: not successful status code for %s is %s", __func__,
                 in6addr2str(&addr->addr, 0),
                 dhcp6_stcodestr(addr->status_code));
-        dhcp6_remove_lease(sp);
+        dhcp6c_remove_lease(sp);
         return 0;
     }
 
@@ -116,7 +116,7 @@ static gint _dhcp6_update_lease(struct dhcp6_addr *addr,
         addr->preferlifetime > addr->validlifetime) {
         g_error("%s: invalid address life time for %s",
                 __func__, in6addr2str(&addr->addr, 0));
-        dhcp6_remove_lease(sp);
+        dhcp6c_remove_lease(sp);
         return 0;
     }
 
@@ -178,7 +178,7 @@ void dhcp6_init_iaidaddr(void) {
 gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
     struct dhcp6_listval *lv, *lv_next = NULL;
     struct timeval timo;
-    struct dhcp6_lease *cl_lease;
+    dhcp6_lease_t *cl_lease;
     gdouble d;
 
     /* ignore IA with T1 > T2 */
@@ -288,7 +288,7 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
 }
 
 gint dhcp6_add_lease(struct dhcp6_addr *addr) {
-    struct dhcp6_lease *sp;
+    dhcp6_lease_t *sp;
     struct timeval timo;
     gdouble d;
 
@@ -317,7 +317,7 @@ gint dhcp6_add_lease(struct dhcp6_addr *addr) {
         return -1;
     }
 
-    if ((sp = (struct dhcp6_lease *) malloc(sizeof(*sp))) == NULL) {
+    if ((sp = (dhcp6_lease_t *) malloc(sizeof(*sp))) == NULL) {
         g_error("%s: failed to allocate memory for a addr", __func__);
         return -1;
     }
@@ -381,11 +381,11 @@ gint dhcp6_add_lease(struct dhcp6_addr *addr) {
 }
 
 gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
-    struct dhcp6_lease *lv, *lv_next;
+    dhcp6_lease_t *lv, *lv_next;
 
     for (lv = TAILQ_FIRST(&iaidaddr->lease_list); lv; lv = lv_next) {
         lv_next = TAILQ_NEXT(lv, link);
-        (void) dhcp6_remove_lease(lv);
+        (void) dhcp6c_remove_lease(lv);
     }
 
     /*
@@ -400,7 +400,7 @@ gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
     return 0;
 }
 
-gint dhcp6_remove_lease(struct dhcp6_lease *sp) {
+gint dhcp6c_remove_lease(dhcp6_lease_t *sp) {
     g_debug("%s: removing address %s", __func__,
             in6addr2str(&sp->lease_addr.addr, 0));
     sp->state = INVALID;
@@ -440,7 +440,7 @@ gint dhcp6_remove_lease(struct dhcp6_lease *sp) {
 gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
                            struct ia_listval *ia, gint flag) {
     struct dhcp6_listval *lv, *lv_next = NULL;
-    struct dhcp6_lease *cl;
+    dhcp6_lease_t *cl;
     struct timeval timo;
     gdouble d;
 
@@ -457,7 +457,7 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
 
             if (cl) {
                 /* remove leases */
-                dhcp6_remove_lease(cl);
+                dhcp6c_remove_lease(cl);
             }
         }
 
@@ -570,9 +570,9 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
     return 0;
 }
 
-struct dhcp6_lease *dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr,
-                                     struct dhcp6_addr *ifaddr) {
-    struct dhcp6_lease *sp;
+dhcp6_lease_t *dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr,
+                                struct dhcp6_addr *ifaddr) {
+    dhcp6_lease_t *sp;
 
     for (sp = TAILQ_FIRST(&iaidaddr->lease_list); sp;
          sp = TAILQ_NEXT(sp, link)) {
@@ -694,7 +694,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
     sp->ifp->event_list = g_slist_append(sp->ifp->event_list, ev);
 
     if (sp->state != INVALID) {
-        struct dhcp6_lease *cl;
+        dhcp6_lease_t *cl;
 
         /* create an address list for renew and rebind */
         for (cl = TAILQ_FIRST(&client6_iaidaddr.lease_list); cl;
@@ -737,7 +737,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
 }
 
 struct dhcp6_timer *dhcp6_lease_timo(void *arg) {
-    struct dhcp6_lease *sp = (struct dhcp6_lease *) arg;
+    dhcp6_lease_t *sp = (dhcp6_lease_t *) arg;
     struct timeval timeo;
     gdouble d;
 
@@ -748,7 +748,7 @@ struct dhcp6_timer *dhcp6_lease_timo(void *arg) {
     if (sp->state == INVALID) {
         g_message("%s: failed to remove an addr %s",
                   __func__, in6addr2str(&sp->lease_addr.addr, 0));
-        dhcp6_remove_lease(sp);
+        dhcp6c_remove_lease(sp);
         return NULL;
     }
 
@@ -762,7 +762,7 @@ struct dhcp6_timer *dhcp6_lease_timo(void *arg) {
             break;
         case EXPIRED:
             sp->state = INVALID;
-            dhcp6_remove_lease(sp);
+            dhcp6c_remove_lease(sp);
         default:
             return NULL;
     }

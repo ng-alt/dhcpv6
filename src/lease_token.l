@@ -92,13 +92,13 @@ extern GHashTable *lease_hash_table;
 extern GHashTable *server6_hash_table;
 
 static gint num_lines = 1;
-static struct dhcp6_lease *lease_rec;
+static dhcp6_lease_t *lease_rec;
 static struct client6_if client6_info;
 
 static u_int16_t lease_flags = 0;
 
-static gint add_lease(struct dhcp6_iaidaddr *, struct dhcp6_lease *);
-static gint remove_lease(struct dhcp6_lease *);
+static gint add_lease(struct dhcp6_iaidaddr *, dhcp6_lease_t *);
+static gint remove_lease(dhcp6_lease_t *);
 
 %}
 
@@ -147,7 +147,7 @@ comment		\#.*
 {semi}		{;}
 	/* lease parser */
 "lease" {
-	lease_rec = (struct dhcp6_lease *)malloc(sizeof(*lease_rec));
+	lease_rec = (dhcp6_lease_t *)malloc(sizeof(*lease_rec));
 	if (lease_rec == NULL) {
 		YYABORT("failed to allocate memory for a lease");
 		ABORT;
@@ -259,11 +259,11 @@ lease_parse(file)
 
 gint 
 do_iaidaddr_hash(lease_rec, key) 
-	struct dhcp6_lease *lease_rec;
+	dhcp6_lease_t *lease_rec;
 	struct client6_if *key;
 {
 	struct dhcp6_iaidaddr *iaidaddr;
-	struct dhcp6_lease *found_lease;
+	dhcp6_lease_t *found_lease;
 	struct timeb now;
 	time_t offset;
 	struct timeval timo;
@@ -374,12 +374,12 @@ do_iaidaddr_hash(lease_rec, key)
 static gint 
 add_lease(iaidaddr, lease)
 	struct dhcp6_iaidaddr *iaidaddr;
-	struct dhcp6_lease *lease;
+	dhcp6_lease_t *lease;
 {
 	struct timeval timo;
 	struct timeb now;
 	time_t offset;
-	struct dhcp6_lease *found_lease;
+	dhcp6_lease_t *found_lease;
 	gdouble d;
 	/* set up timer out for lease, iaidaddr timer out will be set up in
 	 * post_conf_lease */
@@ -470,7 +470,7 @@ add_lease(iaidaddr, lease)
 
 static int
 remove_lease(lease)
-	struct dhcp6_lease *lease;
+	dhcp6_lease_t *lease;
 {
 	if (dhcp6_mode == DHCP6_MODE_SERVER) {
 		if (!g_hash_table_remove(lease_hash_table, &lease->lease_addr)) {

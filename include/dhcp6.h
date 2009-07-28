@@ -168,8 +168,7 @@ struct dhcp6_addr {
     gchar *status_msg;
 };
 
-struct dhcp6_lease {
-    TAILQ_ENTRY(dhcp6_lease) link;
+typedef struct _dhcp6_lease_t {
     gchar hostname[1024];
     struct in6_addr linklocal;
     struct dhcp6_addr lease_addr;
@@ -179,7 +178,7 @@ struct dhcp6_lease {
     time_t start_date;
     /* address assigned on the interface */
     struct dhcp6_timer *timer;
-};
+} dhcp6_lease_t;
 
 struct dhcp6_listval {
     TAILQ_ENTRY(dhcp6_listval) link;
@@ -188,7 +187,7 @@ struct dhcp6_listval {
         gint uv_num;
         struct in6_addr uv_addr6;
         struct dhcp6_addr uv_dhcp6_addr;
-        struct dhcp6_lease uv_dhcp6_lease;
+        dhcp6_lease_t uv_dhcp6_lease;
     } uv;
 };
 
@@ -378,10 +377,6 @@ struct dhcp6_addr_info {
     struct in6_addr addr;
     guint32 preferlifetime;
     guint32 validlifetime;
-
-/* guint8 plen;
- * struct dhcp6_status_info status;
- */
 };
 
 #endif /* __DHCP6_H_DEFINED */
