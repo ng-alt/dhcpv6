@@ -77,7 +77,7 @@ struct dhcp6_if {
     /* timer to refresh information */
     struct dhcp6_timer *info_refresh_timer;
     /* event queue */
-    TAILQ_HEAD(, dhcp6_event) event_list;
+    GSList *event_list;
 
     /* static parameters of the interface */
     gchar *ifname;
@@ -113,8 +113,6 @@ struct dhcp6_if {
 };
 
 struct dhcp6_event {
-    TAILQ_ENTRY(dhcp6_event) link;
-
     struct dhcp6_if *ifp;
     struct dhcp6_timer *timer;
 
@@ -133,7 +131,7 @@ struct dhcp6_event {
     guint32 uuid;             /* unique ID of this event */
     gint state;
 
-    TAILQ_HEAD(, dhcp6_eventdata) data_list;
+    GSList *data_list;
 };
 
 typedef enum {
@@ -142,8 +140,6 @@ typedef enum {
 } dhcp6_eventdata_t;
 
 struct dhcp6_eventdata {
-    TAILQ_ENTRY(dhcp6_eventdata) link;
-
     struct dhcp6_event *event;
     dhcp6_eventdata_t type;
     void *data;

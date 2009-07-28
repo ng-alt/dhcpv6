@@ -597,7 +597,7 @@ void ifinit(const gchar *ifname) {
     }
 
     memset(ifp, 0, sizeof(*ifp));
-    TAILQ_INIT(&ifp->event_list);
+    ifp->event_list = NULL;
 
     if ((ifp->ifname = strdup((gchar *) ifname)) == NULL) {
         g_error("%s: failed to copy ifname", __func__);
@@ -848,18 +848,20 @@ struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *ifp, int state) {
     ev->ifp = ifp;
     ev->state = state;
     ev->uuid = counter++;
-    TAILQ_INIT(&ev->data_list);
+    ev->data_list = NULL;
     g_debug("%s: create an event %p uuid %u for state %d",
             __func__, ev, ev->uuid, ev->state);
 
     return ev;
 }
 
-void dhcp6_remove_event(struct dhcp6_event *ev) {
+void dhcp6_remove_event(gpointer data, gpointer user_data) {
+    struct dhcp6_event *ev = (struct dhcp6_event *) data;
+
     g_debug("%s: removing an event %p on %s, state=%d, xid=%x", __func__,
             ev, ev->ifp->ifname, ev->state, ev->xid);
 
-    if (!TAILQ_EMPTY(&ev->data_list)) {
+    if (g_slist_length(ev->data_list)) {
         g_error("%s: assumption failure: event data list is not empty",
                 __func__);
         exit(1);
@@ -873,10 +875,10 @@ void dhcp6_remove_event(struct dhcp6_event *ev) {
         dhcp6_remove_timer(ev->timer);
     }
 
-    TAILQ_REMOVE(&ev->ifp->event_list, ev, link);
-    free(ev);
-    /* XXX: for safety */
+    ev->ifp->event_list = g_slist_remove_all(ev->ifp->event_list, ev);
+    g_free(ev);
     ev = NULL;
+    return;
 }
 
 int getifaddr(struct in6_addr *addr, gchar *ifnam, struct in6_addr *prefix,

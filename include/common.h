@@ -64,43 +64,41 @@ do { \
 } while (0)
 
 /* common.c */
-extern gint dhcp6_copy_list(struct dhcp6_list *, const struct dhcp6_list *);
-extern void dhcp6_clear_list(struct dhcp6_list *);
-extern gint dhcp6_count_list(struct dhcp6_list *);
-extern struct dhcp6_listval *dhcp6_find_listval(struct dhcp6_list *, void *,
-                                                dhcp6_listval_type_t);
-extern struct dhcp6_listval *dhcp6_add_listval(struct dhcp6_list *, void *,
-                                               dhcp6_listval_type_t);
-extern struct ia_listval *ia_create_listval();
-extern void ia_clear_list(struct ia_list *);
-extern gint ia_copy_list(struct ia_list *, struct ia_list *);
-extern struct ia_listval *ia_find_listval(struct ia_list *,
-                                          iatype_t, guint32);
-extern struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *, gint);
-extern void dhcp6_remove_event(struct dhcp6_event *);
-extern gint getifaddr(struct in6_addr *, gchar *, struct in6_addr *,
-                      gint, gint, gint);
-extern gint transmit_sa(gint, struct sockaddr_in6 *, gchar *, size_t);
-extern glong random_between(glong, glong);
-extern gint prefix6_mask(struct in6_addr *, gint);
-extern gint sa6_plen2mask(struct sockaddr_in6 *, gint);
-extern const gchar *getdev(struct sockaddr_in6 *);
-extern gint in6_addrscopebyif(struct in6_addr *, gchar *);
-extern gint in6_scope(struct in6_addr *);
-extern void dhcp6_init_options(struct dhcp6_optinfo *);
-extern void dhcp6_clear_options(struct dhcp6_optinfo *);
-extern gint dhcp6_copy_options(struct dhcp6_optinfo *, struct dhcp6_optinfo *);
-extern gint dhcp6_get_options(struct dhcp6opt *, struct dhcp6opt *,
-                              struct dhcp6_optinfo *);
-extern gint dhcp6_set_options(struct dhcp6opt *, struct dhcp6opt *,
-                              struct dhcp6_optinfo *);
-extern void dhcp6_set_timeoparam(struct dhcp6_event *);
-extern void dhcp6_reset_timer(struct dhcp6_event *);
-extern void relayfree(struct relay_list *);
-extern void ifinit(const gchar *);
-extern struct dhcp6_if *find_ifconfbyname(const gchar *);
-extern struct dhcp6_if *find_ifconfbyid(guint);
-extern struct prefix_ifconf *find_prefixifconf(const gchar *);
-extern struct host_conf *find_hostconf(const struct duid *);
+gint dhcp6_copy_list(struct dhcp6_list *, const struct dhcp6_list *);
+void dhcp6_clear_list(struct dhcp6_list *);
+gint dhcp6_count_list(struct dhcp6_list *);
+struct dhcp6_listval *dhcp6_find_listval(struct dhcp6_list *, void *,
+                                         dhcp6_listval_type_t);
+struct dhcp6_listval *dhcp6_add_listval(struct dhcp6_list *, void *,
+                                        dhcp6_listval_type_t);
+struct ia_listval *ia_create_listval();
+void ia_clear_list(struct ia_list *);
+gint ia_copy_list(struct ia_list *, struct ia_list *);
+struct ia_listval *ia_find_listval(struct ia_list *, iatype_t, guint32);
+struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *, gint);
+void dhcp6_remove_event(gpointer, gpointer);
+gint getifaddr(struct in6_addr *, gchar *, struct in6_addr *, gint, gint, gint);
+gint transmit_sa(gint, struct sockaddr_in6 *, gchar *, size_t);
+glong random_between(glong, glong);
+gint prefix6_mask(struct in6_addr *, gint);
+gint sa6_plen2mask(struct sockaddr_in6 *, gint);
+const gchar *getdev(struct sockaddr_in6 *);
+gint in6_addrscopebyif(struct in6_addr *, gchar *);
+gint in6_scope(struct in6_addr *);
+void dhcp6_init_options(struct dhcp6_optinfo *);
+void dhcp6_clear_options(struct dhcp6_optinfo *);
+gint dhcp6_copy_options(struct dhcp6_optinfo *, struct dhcp6_optinfo *);
+gint dhcp6_get_options(struct dhcp6opt *, struct dhcp6opt *,
+                       struct dhcp6_optinfo *);
+gint dhcp6_set_options(struct dhcp6opt *, struct dhcp6opt *,
+                       struct dhcp6_optinfo *);
+void dhcp6_set_timeoparam(struct dhcp6_event *);
+void dhcp6_reset_timer(struct dhcp6_event *);
+void relayfree(struct relay_list *);
+void ifinit(const gchar *);
+struct dhcp6_if *find_ifconfbyname(const gchar *);
+struct dhcp6_if *find_ifconfbyid(guint);
+struct prefix_ifconf *find_prefixifconf(const gchar *);
+struct host_conf *find_hostconf(const struct duid *);
 
 #endif

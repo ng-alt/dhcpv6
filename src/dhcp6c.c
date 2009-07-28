@@ -93,6 +93,7 @@
 #include "lease.h"
 #include "str.h"
 #include "log.h"
+#include "gfunc.h"
 
 /* External globals */
 extern gchar *raproc_file;
@@ -597,7 +598,7 @@ static gint _client6_ifinit(gchar *device) {
 
     ifp->servers = NULL;
     ev->ifp->current_server = NULL;
-    TAILQ_INSERT_TAIL(&ifp->event_list, ev, link);
+    ifp->event_list = g_slist_append(ifp->event_list, ev);
 
     if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
         g_error("%s: failed to add a timer for %s", __func__, ifp->ifname);
@@ -619,7 +620,6 @@ static iatype_t _iatype_of_if(struct dhcp6_if *ifp) {
 }
 
 static void _free_resources(struct dhcp6_if *ifp) {
-    struct dhcp6_event *ev, *ev_next;
     struct dhcp6_lease *sp, *sp_next;
     struct stat buf;
 
@@ -634,10 +634,7 @@ static void _free_resources(struct dhcp6_if *ifp) {
     g_debug("%s: remove all events on interface", __func__);
 
     /* cancel all outstanding events for each interface */
-    for (ev = TAILQ_FIRST(&ifp->event_list); ev; ev = ev_next) {
-        ev_next = TAILQ_NEXT(ev, link);
-        dhcp6_remove_event(ev);
-    }
+    g_slist_foreach(ifp->event_list, dhcp6_remove_event, NULL);
 
     /* restore /etc/resolv.conf.dhcpv6.bak back to /etc/resolv.conf */
     if (!lstat(RESOLV_CONF_BAK_FILE, &buf)) {
@@ -674,16 +671,12 @@ static void _process_signals(void) {
 }
 
 static struct dhcp6_event *_find_event_withid(struct dhcp6_if *ifp,
-                                             guint32 xid) {
+                                              guint32 xid) {
     struct dhcp6_event *ev;
 
-    for (ev = TAILQ_FIRST(&ifp->event_list); ev; ev = TAILQ_NEXT(ev, link)) {
-        g_debug("%s: ifp %p event %p id is %x", __func__, ifp, ev, ev->xid);
-        if (ev->xid == xid)
-            return ev;
-    }
-
-    return NULL;
+    ev = (struct dhcp6_event *) g_slist_find_custom(ifp->event_list, &xid,
+                                                    _find_event_by_xid);
+    return ev;
 }
 
 static struct dhcp6_serverinfo *_allocate_newserver(struct dhcp6_if *ifp,
@@ -1017,7 +1010,7 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
             break;
         case DHCP6S_RELEASE:
             g_message("%s: got an expected release, exit.", __func__);
-            dhcp6_remove_event(ev);
+            dhcp6_remove_event(ev, NULL);
             exit(0);
         case DHCP6S_INFOREQ:
             _set_info_refresh_timer(ifp, optinfo->irt);
@@ -1027,7 +1020,7 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
     }
 
     prevstate = ev->state;
-    dhcp6_remove_event(ev);
+    dhcp6_remove_event(ev, NULL);
 
     if (newstate) {
         client6_send_newstate(ifp, newstate);
@@ -2008,7 +2001,7 @@ gint client6_send_newstate(struct dhcp6_if *ifp, gint state) {
         return -1;
     }
 
-    TAILQ_INSERT_TAIL(&ifp->event_list, ev, link);
+    ifp->event_list = g_slist_append(ifp->event_list, ev);
     ev->timeouts = 0;
     dhcp6_set_timeoparam(ev);
     dhcp6_reset_timer(ev);
@@ -2147,7 +2140,7 @@ struct dhcp6_timer *client6_timo(void *arg) {
          >= ev->max_retrans_dur)) {
         /* XXX: check up the duration time for renew & rebind */
         g_message("%s: no responses were received", __func__);
-        dhcp6_remove_event(ev); /* XXX: should free event data? */
+        dhcp6_remove_event(ev, NULL); /* XXX: should free event data? */
         return NULL;
     }
 
@@ -2207,7 +2200,7 @@ struct dhcp6_timer *client6_timo(void *arg) {
 
                 /* if get the address assginment break */
                 if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
-                    dhcp6_remove_event(ev);
+                    dhcp6_remove_event(ev, NULL);
                     return NULL;
                 }
 
@@ -2229,7 +2222,7 @@ struct dhcp6_timer *client6_timo(void *arg) {
             } else {
                 g_message("%s: all information to be updated were canceled",
                           __func__);
-                dhcp6_remove_event(ev);
+                dhcp6_remove_event(ev, NULL);
                 return NULL;
             }
 

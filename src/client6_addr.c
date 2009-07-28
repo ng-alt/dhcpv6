@@ -79,6 +79,7 @@
 #include "timer.h"
 #include "lease.h"
 #include "str.h"
+#include "gfunc.h"
 
 extern void run_script(struct dhcp6_if *, gint, gint, guint32);
 
@@ -161,12 +162,10 @@ static struct dhcp6_event *_dhcp6_iaidaddr_find_event(struct dhcp6_iaidaddr
                                                       *sp, gint state) {
     struct dhcp6_event *ev;
 
-    TAILQ_FOREACH(ev, &sp->ifp->event_list, link) {
-        if (ev->state == state)
-            return ev;
-    }
-
-    return NULL;
+    ev = (struct dhcp6_event *) g_slist_find_custom(sp->ifp->event_list,
+                                                    &state,
+                                                    _find_event_by_state);
+    return ev;
 }
 
 /* END STATIC FUNCTIONS */
@@ -654,7 +653,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
     if (prev_ev) {
         g_debug("%s: remove previous event for state=%d",
                 __func__, prev_ev->state);
-        dhcp6_remove_event(prev_ev);
+        dhcp6_remove_event(prev_ev, NULL);
     }
 
     /* Create a new event for the new state */
@@ -692,7 +691,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
         return NULL;            /* XXX */
     }
 
-    TAILQ_INSERT_TAIL(&sp->ifp->event_list, ev, link);
+    sp->ifp->event_list = g_slist_append(sp->ifp->event_list, ev);
 
     if (sp->state != INVALID) {
         struct dhcp6_lease *cl;
