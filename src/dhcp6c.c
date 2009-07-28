@@ -2092,9 +2092,9 @@ void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
      * set the following information in env vars:
      *
      * what we got from the server:
-     *     address list (struct dhcp6_list addr_list)
-     *     prefix list (struct dhcp6_list prefix_list)
-     *     option list (struct dhcp6_option_list option_list)
+     *     address list
+     *     prefix list
+     *     option list
      *
      * error code (where the hell is this?)
      */
