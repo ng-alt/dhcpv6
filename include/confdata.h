@@ -66,16 +66,16 @@ struct dhcp6_if {
     gint outsock;
 
     /* timer for the interface to sync file every 5 mins */
-    struct dhcp6_timer *sync_timer;
+    dhcp6_timer_t *sync_timer;
 #define DHCP6_SYNCFILE_TIME 60
     /* timer to check interface off->on link to send confirm message */
-    struct dhcp6_timer *link_timer;
+    dhcp6_timer_t *link_timer;
 #define DHCP6_CHECKLINK_TIME_UPCASE 5
 #define DHCP6_CHECKLINK_TIME_DOWNCASE 1
-    struct dhcp6_timer *dad_timer;
+    dhcp6_timer_t *dad_timer;
 #define DHCP6_CHECKDAD_TIME 5
     /* timer to refresh information */
-    struct dhcp6_timer *info_refresh_timer;
+    dhcp6_timer_t *info_refresh_timer;
     /* event queue */
     GSList *event_list;
 
@@ -114,7 +114,7 @@ struct dhcp6_if {
 
 typedef struct _dhcp6_event_t {
     struct dhcp6_if *ifp;
-    struct dhcp6_timer *timer;
+    dhcp6_timer_t *timer;
 
     struct duid serverid;
 

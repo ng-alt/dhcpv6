@@ -71,7 +71,6 @@
 
 #include <glib.h>
 
-#include "queue.h"
 #include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
@@ -88,7 +87,7 @@ extern void run_script(struct dhcp6_if *, gint, gint, guint32);
 gint dhcp6_add_lease(struct dhcp6_addr *);
 
 extern dhcp6_iaidaddr_t client6_iaidaddr;
-extern struct dhcp6_timer *client6_timo(void *);
+extern dhcp6_timer_t *client6_timo(void *);
 extern void client6_send(dhcp6_event_t *);
 extern void free_servers(struct dhcp6_if *);
 
@@ -601,7 +600,7 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
     return 0;
 }
 
-struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
+dhcp6_timer_t *dhcp6_iaidaddr_timo(void *arg) {
     dhcp6_iaidaddr_t *sp = (dhcp6_iaidaddr_t *) arg;
     dhcp6_event_t *ev, *prev_ev = NULL;
     struct timeval timeo;
@@ -740,7 +739,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
     return sp->timer;
 }
 
-struct dhcp6_timer *dhcp6_lease_timo(void *arg) {
+dhcp6_timer_t *dhcp6_lease_timo(void *arg) {
     dhcp6_lease_t *sp = (dhcp6_lease_t *) arg;
     struct timeval timeo;
     gdouble d;

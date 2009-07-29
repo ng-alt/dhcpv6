@@ -64,7 +64,6 @@
 
 #include <glib.h>
 
-#include "queue.h"
 #include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
@@ -87,7 +86,7 @@ typedef struct _dhcp6_binding_t {
     void *val;
 
     guint32 duration;
-    struct dhcp6_timer *timer;
+    dhcp6_timer_t *timer;
 } dhcp6_binding_t;
 
 static gchar pidfile[MAXPATHLEN];
@@ -101,7 +100,7 @@ static gint rmsgctllen;
 static gchar *rmsgctlbuf;
 static struct duid server_duid;
 static dns_info_t arg_dnsinfo;
-static struct dhcp6_timer *sync_lease_timer;
+static dhcp6_timer_t *sync_lease_timer;
 
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_SERVER;
 gint iosock = -1;                /* inbound/outbound udp port */
@@ -1301,7 +1300,7 @@ static void _server6_mainloop(void) {
     return;
 }
 
-static struct dhcp6_timer *_check_lease_file_timo(void *arg) {
+static dhcp6_timer_t *_check_lease_file_timo(void *arg) {
     gdouble d;
     struct timeval timo;
     struct stat buf;

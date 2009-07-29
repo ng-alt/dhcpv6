@@ -55,7 +55,6 @@
 
 #include <glib.h>
 
-#include "queue.h"
 #include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
@@ -222,7 +221,7 @@ FILE *sync_leases(FILE * file, const gchar *original, gchar *template) {
     return file;
 }
 
-struct dhcp6_timer *syncfile_timo(void *arg) {
+dhcp6_timer_t *syncfile_timo(void *arg) {
     /* XXX: ToDo */
     return NULL;
 }

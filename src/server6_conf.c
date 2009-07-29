@@ -41,7 +41,6 @@
 
 #include <glib.h>
 
-#include "queue.h"
 #include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"

@@ -45,7 +45,6 @@
 
 #include <glib.h>
 
-#include "queue.h"
 #include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
@@ -87,7 +86,7 @@
 	exit(1);	\
 } while (0)
 
-extern struct dhcp6_timer *dhcp6_lease_timo(void *);
+extern dhcp6_timer_t *dhcp6_lease_timo(void *);
 
 extern dhcp6_iaidaddr_t client6_iaidaddr;
 extern GHashTable *lease_hash_table;

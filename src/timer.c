@@ -45,7 +45,6 @@
 
 #include <glib.h>
 
-#include "queue.h"
 #include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
@@ -54,7 +53,7 @@
 
 #define MILLION 1000000
 
-LIST_HEAD(, dhcp6_timer) timer_head;
+GSList *timer_list = NULL;
 static struct timeval tm_sentinel;
 static struct timeval tm_max = { 0x7fffffff, 0x7fffffff };
 
@@ -93,13 +92,13 @@ void timeval_sub(struct timeval *a, struct timeval *b, struct timeval *result) {
 }
 
 void dhcp6_timer_init(void) {
-    LIST_INIT(&timer_head);
+    timer_list = NULL;
     tm_sentinel = tm_max;
 }
 
-struct dhcp6_timer *dhcp6_add_timer(struct dhcp6_timer *(*timeout) (void *),
-                                    void *timeodata) {
-    struct dhcp6_timer *newtimer;
+dhcp6_timer_t *dhcp6_add_timer(dhcp6_timer_t *(*timeout) (void *),
+                               void *timeodata) {
+    dhcp6_timer_t *newtimer;
 
     if ((newtimer = malloc(sizeof(*newtimer))) == NULL) {
         g_error("%s: can't allocate memory", __func__);
@@ -117,16 +116,16 @@ struct dhcp6_timer *dhcp6_add_timer(struct dhcp6_timer *(*timeout) (void *),
     newtimer->expire_data = timeodata;
     newtimer->tm = tm_max;
 
-    LIST_INSERT_HEAD(&timer_head, newtimer, link);
+    timer_list = g_slist_prepend(timer_list, newtimer);
 
     return newtimer;
 }
 
-void dhcp6_remove_timer(struct dhcp6_timer *timer) {
+void dhcp6_remove_timer(dhcp6_timer_t *timer) {
     timer->flag |= MARK_REMOVE;
 }
 
-void dhcp6_set_timer(struct timeval *tm, struct dhcp6_timer *timer) {
+void dhcp6_set_timer(struct timeval *tm, dhcp6_timer_t *timer) {
     struct timeval now;
 
     timer->flag |= MARK_CLEAR;
@@ -151,30 +150,34 @@ void dhcp6_set_timer(struct timeval *tm, struct dhcp6_timer *timer) {
 struct timeval *dhcp6_check_timer(void) {
     static struct timeval returnval;
     struct timeval now;
-    struct dhcp6_timer *tm, *tm_next;
+    dhcp6_timer_t *tm = NULL;
+    GSList *iterator = timer_list;
 
     tm_sentinel = tm_max;
 
-    for (tm = LIST_FIRST(&timer_head); tm; tm = tm_next) {
-        gettimeofday(&now, NULL);
-        tm_next = LIST_NEXT(tm, link);
+    if (g_slist_length(iterator)) {
+        do {
+            tm = (dhcp6_timer_t *) iterator->data;
 
-        if (tm->flag & MARK_REMOVE) {
-            LIST_REMOVE(tm, link);
-            free(tm);
-            tm = NULL;
-            continue;
-        }
+            gettimeofday(&now, NULL);
 
-        if (TIMEVAL_LEQ(tm->tm, now)) {
-            if ((*tm->expire) (tm->expire_data) == NULL) {
-                continue;       /* timer has been freed */
+            if (tm->flag & MARK_REMOVE) {
+                timer_list = g_slist_remove_all(timer_list, tm);
+                g_free(tm);
+                tm = NULL;
+                continue;
             }
-        }
 
-        if (TIMEVAL_LT(tm->tm, tm_sentinel)) {
-            tm_sentinel = tm->tm;
-        }
+            if (TIMEVAL_LEQ(tm->tm, now)) {
+                if ((*tm->expire) (tm->expire_data) == NULL) {
+                    continue;       /* timer has been freed */
+                }
+            }
+
+            if (TIMEVAL_LT(tm->tm, tm_sentinel)) {
+                tm_sentinel = tm->tm;
+            }
+        } while ((iterator = g_slist_next(iterator)) != NULL);
     }
 
     if (TIMEVAL_EQUAL(tm_max, tm_sentinel)) {
@@ -190,7 +193,7 @@ struct timeval *dhcp6_check_timer(void) {
     return &returnval;
 }
 
-struct timeval *dhcp6_timer_rest(struct dhcp6_timer *timer) {
+struct timeval *dhcp6_timer_rest(dhcp6_timer_t *timer) {
     struct timeval now;
     static struct timeval returnval;    /* XXX */
 

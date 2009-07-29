@@ -52,22 +52,12 @@
 #define MARK_CLEAR 0x00
 #define MARK_REMOVE 0x01
 
-struct dhcp6_timer {
-    LIST_ENTRY(dhcp6_timer) link;
-
-    struct timeval tm;
-    gint flag;
-
-    struct dhcp6_timer *(*expire)(void *);
-    void *expire_data;
-};
-
 void dhcp6_timer_init(void);
-struct dhcp6_timer *dhcp6_add_timer(struct dhcp6_timer * (*)(void *), void *);
-void dhcp6_set_timer(struct timeval *, struct dhcp6_timer *);
-void dhcp6_remove_timer(struct dhcp6_timer *);
+dhcp6_timer_t *dhcp6_add_timer(dhcp6_timer_t * (*)(void *), void *);
+void dhcp6_set_timer(struct timeval *, dhcp6_timer_t *);
+void dhcp6_remove_timer(dhcp6_timer_t *);
 struct timeval *dhcp6_check_timer(void);
-struct timeval *dhcp6_timer_rest(struct dhcp6_timer *);
+struct timeval *dhcp6_timer_rest(dhcp6_timer_t *);
 void timeval_sub(struct timeval *, struct timeval *, struct timeval *);
 
 #endif /* __TIMER_H_DEFINED */

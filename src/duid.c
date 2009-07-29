@@ -62,7 +62,6 @@
 #include <net/if_arp.h>
 #include <glib.h>
 
-#include "queue.h"
 #include "duid.h"
 #include "dhcp6.h"
 #include "str.h"

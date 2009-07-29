@@ -143,7 +143,15 @@ typedef enum {
     INVALID
 } state_t;
 
-/* Internal data structure */
+/* Internal data structures */
+
+typedef struct _dhcp6_timer_t {
+    struct timeval tm;
+    gint flag;
+
+    struct _dhcp6_timer_t *(*expire)(void *);
+    void *expire_data;
+} dhcp6_timer_t;
 
 struct intf_id {
     guint16 intf_len;           /* length */
@@ -180,7 +188,7 @@ typedef struct _dhcp6_iaidaddr_t {
     time_t start_date;
     state_t state;
     struct dhcp6_if *ifp;
-    struct dhcp6_timer *timer;
+    dhcp6_timer_t *timer;
     /* list of client leases */
     GSList *lease_list;
 } dhcp6_iaidaddr_t;
@@ -194,7 +202,7 @@ typedef struct _dhcp6_lease_t {
     dhcp6_iaidaddr_t *iaidaddr;
     time_t start_date;
     /* address assigned on the interface */
-    struct dhcp6_timer *timer;
+    dhcp6_timer_t *timer;
 } dhcp6_lease_t;
 
 typedef struct _dhcp6_value_t {

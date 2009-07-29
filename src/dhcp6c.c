@@ -84,7 +84,6 @@
 
 #include <glib.h>
 
-#include "queue.h"
 #include "duid.h"
 #include "dhcp6.h"
 #include "confdata.h"
@@ -105,7 +104,7 @@ extern dhcp6_iaidaddr_t client6_iaidaddr;
 
 /* External prototypes */
 extern gint client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
-extern struct dhcp6_timer *syncfile_timo(void *);
+extern dhcp6_timer_t *syncfile_timo(void *);
 extern gint dad_parse(const gchar *, GSList *);
 
 /* Globals */
@@ -133,7 +132,7 @@ static gchar *pidfile = DHCP6C_PIDFILE;
 static gchar *duidfile = DHCP6C_DUID_FILE;
 
 /* Prototypes */
-struct dhcp6_timer *client6_timo(void *);
+dhcp6_timer_t *client6_timo(void *);
 void run_script(struct dhcp6_if *, gint, gint, guint32);
 gint client6_send_newstate(struct dhcp6_if *, gint);
 void free_servers(struct dhcp6_if *);
@@ -232,7 +231,7 @@ static void _setup_check_timer(struct dhcp6_if *ifp) {
     return;
 }
 
-static struct dhcp6_timer *_info_refresh_timo(void *arg) {
+static dhcp6_timer_t *_info_refresh_timo(void *arg) {
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
 
     g_debug("%s: information is refreshing...", __func__);
@@ -322,7 +321,7 @@ static gint _create_request_list(gint reboot) {
     return 0;
 }
 
-static struct dhcp6_timer *_check_link_timo(void *arg) {
+static dhcp6_timer_t *_check_link_timo(void *arg) {
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
     struct ifreq ifr;
     struct timeval timo;
@@ -406,7 +405,7 @@ settimer:
     return ifp->link_timer;
 }
 
-static struct dhcp6_timer *_check_lease_file_timo(void *arg) {
+static dhcp6_timer_t *_check_lease_file_timo(void *arg) {
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
     gdouble d;
     struct timeval timo;
@@ -431,7 +430,7 @@ static struct dhcp6_timer *_check_lease_file_timo(void *arg) {
     return ifp->sync_timer;
 }
 
-static struct dhcp6_timer *_check_dad_timo(void *arg) {
+static dhcp6_timer_t *_check_dad_timo(void *arg) {
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
     gint newstate;
     GSList *dad_list = NULL;
@@ -2168,7 +2167,7 @@ void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
     return;
 }
 
-struct dhcp6_timer *client6_timo(void *arg) {
+dhcp6_timer_t *client6_timo(void *arg) {
     dhcp6_event_t *ev = (dhcp6_event_t *) arg;
     struct dhcp6_if *ifp;
     struct timeval now;
