@@ -634,26 +634,6 @@ void dhcp6_clear_list(struct dhcp6_list *head) {
     return;
 }
 
-void relayfree(struct relay_list *head) {
-    struct relay_listval *v;
-
-    while ((v = TAILQ_FIRST(head)) != NULL) {
-        TAILQ_REMOVE(head, v, link);
-
-        if (v->intf_id != NULL) {
-            if (v->intf_id->intf_id != NULL) {
-                free(v->intf_id->intf_id);
-            }
-
-            free(v->intf_id);
-        }
-
-        free(v);
-    }
-
-    return;
-}
-
 gint dhcp6_count_list(struct dhcp6_list *head) {
     struct dhcp6_listval *v;
     gint i;
@@ -1101,7 +1081,7 @@ void dhcp6_init_options(struct dhcp6_optinfo *optinfo) {
     optinfo->ia_list = NULL;
     TAILQ_INIT(&optinfo->reqopt_list);
     optinfo->dnsinfo.servers = NULL;
-    TAILQ_INIT(&optinfo->relay_list);
+    optinfo->relay_list = NULL;
     optinfo->dnsinfo.domains = NULL;
     optinfo->status_code = DH6OPT_STCODE_UNDEFINE;
     optinfo->status_msg = NULL;
@@ -1118,7 +1098,8 @@ void dhcp6_clear_options(struct dhcp6_optinfo *optinfo) {
     g_slist_free(optinfo->dnsinfo.servers);
     optinfo->dnsinfo.servers = NULL;
 
-    relayfree(&optinfo->relay_list);
+    g_slist_free(optinfo->relay_list);
+    optinfo->relay_list = NULL;
 
     if (dhcp6_mode == DHCP6_MODE_CLIENT) {
         g_slist_free(optinfo->dnsinfo.domains);

@@ -94,7 +94,6 @@ gint dhcp6_set_options(struct dhcp6opt *, struct dhcp6opt *,
                        struct dhcp6_optinfo *);
 void dhcp6_set_timeoparam(dhcp6_event_t *);
 void dhcp6_reset_timer(dhcp6_event_t *);
-void relayfree(struct relay_list *);
 void ifinit(const gchar *);
 struct dhcp6_if *find_ifconfbyname(const gchar *);
 struct dhcp6_if *find_ifconfbyid(guint);

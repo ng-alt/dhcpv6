@@ -243,17 +243,13 @@ struct dhcp6_relay {
     /* options follow */
 };
 
-struct relay_listval {
-    TAILQ_ENTRY(relay_listval) link;
-
+typedef struct _relay_t {
     struct dhcp6_relay relay;
     struct intf_id *intf_id;
 
     /* pointer to the Relay Message option in the RELAY-REPL */
     struct dhcp6opt *option;
-};
-
-TAILQ_HEAD(relay_list, relay_listval);
+} relay_t;
 
 struct dhcp6_optinfo {
     struct duid clientID;          /* DUID */
@@ -266,7 +262,7 @@ struct dhcp6_optinfo {
     struct in6_addr server_addr;
     struct dhcp6_list reqopt_list; /* options in option request */
     dns_info_t dnsinfo;            /* DNS server list */
-    struct relay_list relay_list;  /* list of the relays the message
+    GSList *relay_list;            /* list of the relays the message
                                       passed through on to the server */
     guint16 status_code;           /* status code */
     gchar *status_msg;             /* status message */
