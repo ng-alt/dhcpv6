@@ -71,10 +71,10 @@ struct dhcp6_listval *dhcp6_find_listval(struct dhcp6_list *, void *,
                                          dhcp6_listval_type_t);
 struct dhcp6_listval *dhcp6_add_listval(struct dhcp6_list *, void *,
                                         dhcp6_listval_type_t);
-struct ia_listval *ia_create_listval();
-void ia_clear_list(struct ia_list *);
-gint ia_copy_list(struct ia_list *, struct ia_list *);
-struct ia_listval *ia_find_listval(struct ia_list *, iatype_t, guint32);
+ia_t *ia_create_listval();
+void ia_clear_list(GSList *);
+gint ia_copy_list(GSList *, GSList *);
+ia_t *ia_find_listval(GSList *, iatype_t, guint32);
 dhcp6_event_t *dhcp6_create_event(struct dhcp6_if *, gint);
 void dhcp6_remove_event(gpointer, gpointer);
 gint getifaddr(struct in6_addr *, gchar *, struct in6_addr *, gint, gint, gint);

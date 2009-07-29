@@ -127,7 +127,7 @@ extern struct link_decl *dhcp6_allocate_link(struct dhcp6_if *,
 extern struct host_decl *dhcp6_allocate_host(struct dhcp6_if *,
                                              struct rootgroup *,
                                              struct dhcp6_optinfo *);
-extern gint dhcp6_get_hostconf(struct ia_listval *, struct ia_listval *,
+extern gint dhcp6_get_hostconf(ia_t *, ia_t *,
                                struct dhcp6_iaidaddr *, struct host_decl *);
 
 /* BEGIN STATIC FUNCTIONS */
@@ -531,15 +531,21 @@ static gint _server6_send(gint type, struct dhcp6_if *ifp,
 }
 
 static gint _handle_addr_request(struct dhcp6_optinfo *roptinfo,
-                                 struct ia_list *ria_list,
-                                 struct ia_list *ia_list, gint resptype,
-                                 gint *status_code) {
-    struct ia_listval *ria, *ia;
+                                 GSList *ria_list, GSList *ia_list,
+                                 gint resptype, gint *status_code) {
+    ia_t *ria = NULL, *ia = NULL;
     struct dhcp6_iaidaddr *iaidaddr;
     gint addr_flag = 0;
     gint found_binding = 0;
+    GSList *iterator = ia_list;
 
-    for (ia = TAILQ_FIRST(ia_list); ia; ia = TAILQ_NEXT(ia, link)) {
+    if (!g_slist_length(iterator)) {
+        goto fail;
+    }
+
+    do {
+        ia = (ia_t *) iterator->data;
+
         /* find bindings */
         if ((iaidaddr = dhcp6_find_iaidaddr(&roptinfo->clientID,
                                             ia->iaidinfo.iaid,
@@ -602,11 +608,14 @@ static gint _handle_addr_request(struct dhcp6_optinfo *roptinfo,
                 }
             }
         }
-        TAILQ_INSERT_TAIL(ria_list, ria, link);
+
+        ria_list = g_slist_append(ria_list, ria);
+    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+    if (resptype == DH6_ADVERTISE && !g_slist_length(ria_list)) {
+        *status_code = DH6OPT_STCODE_NOADDRAVAIL;
     }
 
-    if (resptype == DH6_ADVERTISE && TAILQ_EMPTY(ria_list))
-        *status_code = DH6OPT_STCODE_NOADDRAVAIL;
     return 0;
 
 fail:
@@ -616,19 +625,24 @@ fail:
 }
 
 static gint _update_binding_ia(struct dhcp6_optinfo *roptinfo,
-                               struct ia_list *ria_list,
-                               struct ia_list *ia_list,
+                               GSList *ria_list, GSList *ia_list,
                                guint8 msgtype, gint addr_flag,
                                gint *status_code) {
-    struct ia_listval *ria, *ia;
+    ia_t *ria, *ia;
     struct dhcp6_iaidaddr *iaidaddr;
     size_t num_ia = 0;
     size_t num_noaddr_ia = 0;
     size_t num_nobinding_ia = 0;
     size_t num_invalid_ia = 0;
+    GSList *iterator = ia_list;
 
-    for (ia = TAILQ_FIRST(ia_list); ia; ia = TAILQ_NEXT(ia, link)) {
-        ++num_ia;
+    if (!g_slist_length(ia_list)) {
+        goto fail;
+    }
+
+    do {
+        ia = (ia_t *) iterator->data;
+        num_ia++;
         ria = NULL;
 
         if (!TAILQ_EMPTY(&ia->addr_list)) {
@@ -645,7 +659,7 @@ static gint _update_binding_ia(struct dhcp6_optinfo *roptinfo,
                                                 ia->iaidinfo.iaid,
                                                 ia->type)) == NULL) {
                 /* Not found binding IA Addr */
-                ++num_nobinding_ia;
+                num_nobinding_ia++;
                 g_message("%s: Nobinding for client %s iaid %u", __func__,
                           duidstr(&roptinfo->clientID),
                           ia->iaidinfo.iaid);
@@ -714,13 +728,13 @@ static gint _update_binding_ia(struct dhcp6_optinfo *roptinfo,
             }
 
             if (ria != NULL) {
-                TAILQ_INSERT_TAIL(ria_list, ria, link);
+                ria_list = g_slist_append(ria_list, ria);
             }
         } else {
             /* IA doesn't include any IA Addr */
-            ++num_noaddr_ia;
+            num_noaddr_ia++;
         }
-    }
+    } while ((iterator = g_slist_next(iterator)) != NULL);
 
 out:
     switch (msgtype) {
@@ -980,12 +994,12 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
              * If Solicit has IA option, responds to Solicit with a Advertise
              * message.
              */
-            if (!TAILQ_EMPTY(&optinfo->ia_list) &&
+            if (g_slist_length(optinfo->ia_list) &&
                 !(roptinfo.flags & DHCIFF_INFO_ONLY)) {
                 resptype = (roptinfo.flags & DHCIFF_RAPID_COMMIT)
                     ? DH6_REPLY : DH6_ADVERTISE;
-                if (_handle_addr_request(&roptinfo, &roptinfo.ia_list,
-                                         &optinfo->ia_list, resptype, &num)) {
+                if (_handle_addr_request(&roptinfo, roptinfo.ia_list,
+                                         optinfo->ia_list, resptype, &num)) {
                     goto fail;
                 }
             }
@@ -994,17 +1008,18 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
         case DH6_INFORM_REQ:
             /* don't response to info-req if there is any IA or server ID
              * option */
-            if (!TAILQ_EMPTY(&optinfo->ia_list) || optinfo->serverID.duid_len) {
+            if (g_slist_length(optinfo->ia_list) ||
+                optinfo->serverID.duid_len) {
                 goto fail;
             }
 
             break;
         case DH6_REQUEST:
             /* get iaid for that request client for that interface */
-            if (!TAILQ_EMPTY(&optinfo->ia_list) &&
+            if (g_slist_length(optinfo->ia_list) &&
                 !(roptinfo.flags & DHCIFF_INFO_ONLY)) {
-                if (_handle_addr_request(&roptinfo, &roptinfo.ia_list,
-                                         &optinfo->ia_list, resptype, &num)) {
+                if (_handle_addr_request(&roptinfo, roptinfo.ia_list,
+                                         optinfo->ia_list, resptype, &num)) {
                     goto fail;
                 }
             }
@@ -1039,9 +1054,9 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
                     break;
             }
 
-            if (!TAILQ_EMPTY(&optinfo->ia_list)) {
-                if (_update_binding_ia(&roptinfo, &roptinfo.ia_list,
-                                       &optinfo->ia_list, dh6->dh6_msgtype,
+            if (g_slist_length(optinfo->ia_list)) {
+                if (_update_binding_ia(&roptinfo, roptinfo.ia_list,
+                                       optinfo->ia_list, dh6->dh6_msgtype,
                                        addr_flag, &num)) {
                     goto fail;
                 }

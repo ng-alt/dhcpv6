@@ -206,18 +206,14 @@ typedef enum {
 } dhcp6_listval_type_t;
 
 /* Store the parameters in an IA option */
-struct ia_listval {
-    TAILQ_ENTRY(ia_listval) link;
-
+typedef struct _ia_t {
     iatype_t type;                      /* type of IA (e.g. IANA) */
     guint8 flags;                       /* flags for temp address */
     struct dhcp6_iaid_info iaidinfo;    /* IAID, renewtime and rebindtime */
     struct dhcp6_list addr_list;        /* assigned ipv6 address list */
     guint16 status_code;                /* status code */
     gchar *status_msg;                  /* status message */
-};
-
-TAILQ_HEAD(ia_list, ia_listval);
+} ia_t;
 
 /*
  * DNS information structure.  This structure contains two linked lists,
@@ -263,7 +259,7 @@ struct dhcp6_optinfo {
     struct duid clientID;          /* DUID */
     struct duid serverID;          /* DUID */
     guint16 elapsed_time;
-    struct ia_list ia_list;        /* list of the IAs in a message */
+    GSList *ia_list;               /* list of the IAs in a message */
     guint8 flags;                  /* flags for rapid commit, info only */
     guint8 pref;                   /* server preference */
     guint32 irt;                   /* information refresh time */

@@ -186,7 +186,7 @@ void dhcp6_init_iaidaddr(void) {
     client6_iaidaddr.lease_list = NULL;
 }
 
-gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
+gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia) {
     struct dhcp6_listval *lv, *lv_next = NULL;
     struct timeval timo;
     dhcp6_lease_t *cl_lease;
@@ -454,8 +454,7 @@ gint dhcp6c_remove_lease(dhcp6_lease_t *sp) {
     return 0;
 }
 
-gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
-                           struct ia_listval *ia, gint flag) {
+gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
     struct dhcp6_listval *lv, *lv_next = NULL;
     dhcp6_lease_t *cl;
     struct timeval timo;

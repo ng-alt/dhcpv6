@@ -69,8 +69,8 @@ struct link_decl *dhcp6_allocate_link(struct dhcp6_if *, struct rootgroup *,
                                       struct in6_addr *);
 struct host_decl *dhcp6_allocate_host(struct dhcp6_if *, struct rootgroup *,
                                       struct dhcp6_optinfo *);
-gint dhcp6_get_hostconf(struct ia_listval *, struct ia_listval *,
-                        struct dhcp6_iaidaddr *, struct host_decl *);
+gint dhcp6_get_hostconf(ia_t *, ia_t *, struct dhcp6_iaidaddr *,
+                        struct host_decl *);
 gint dhcp6_add_lease(struct dhcp6_iaidaddr *, struct dhcp6_addr *);
 gint dhcp6_update_lease(struct dhcp6_addr *, dhcp6_lease_t *);
 
@@ -299,7 +299,7 @@ struct host_decl *find_hostdecl(struct duid *duid, guint32 iaid,
 }
 
 /* for request/solicit rapid commit */
-gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
+gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia) {
     struct dhcp6_iaidaddr *iaidaddr;
     struct dhcp6_listval *lv, *lv_next = NULL;
     struct timeval timo;
@@ -436,8 +436,7 @@ gint dhcp6s_remove_lease(dhcp6_lease_t *lease) {
 }
 
 /* for renew/rebind/release/decline */
-gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia,
-                           gint flag) {
+gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
     struct dhcp6_iaidaddr *iaidaddr;
     dhcp6_lease_t *lease;
     struct dhcp6_listval *lv, *lv_next = NULL;
@@ -716,7 +715,7 @@ struct dhcp6_timer *dhcp6_lease_timo(void *arg) {
     return sp->timer;
 }
 
-gint dhcp6_get_hostconf(struct ia_listval *ria, struct ia_listval *ia,
+gint dhcp6_get_hostconf(ia_t *ria, ia_t *ia,
                         struct dhcp6_iaidaddr *iaidaddr,
                         struct host_decl *host) {
     struct dhcp6_list *reply_list = &ia->addr_list;
@@ -741,7 +740,7 @@ gint dhcp6_get_hostconf(struct ia_listval *ria, struct ia_listval *ia,
     return 0;
 }
 
-gint dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
+gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
                            const struct dhcp6_iaidaddr *iaidaddr,
                            const struct link_decl *subnet,
                            guint16 *ia_status_code) {
@@ -872,7 +871,7 @@ gint dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
     return 0;
 }
 
-gint dhcp6_create_prefixlist(struct ia_listval *ria, struct ia_listval *ia,
+gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
                              const struct dhcp6_iaidaddr *iaidaddr,
                              const struct link_decl *subnet,
                              guint16 *ia_status_code) {
@@ -936,24 +935,28 @@ struct host_decl *dhcp6_allocate_host(struct dhcp6_if *ifp,
     struct host_decl *host = NULL;
     struct interface *ifnetwork;
     struct duid *duid = &optinfo->clientID;
-    struct ia_listval *lv;
+    ia_t *ia = NULL;
+    GSList *iterator = optinfo->ia_list;
 
     for (ifnetwork = rootgroup->iflist; ifnetwork;
          ifnetwork = ifnetwork->next) {
         if (strcmp(ifnetwork->name, ifp->ifname) != 0) {
             continue;
         } else {
-            if (TAILQ_EMPTY(&optinfo->ia_list)) {
+            if (!g_slist_length(optinfo->ia_list)) {
                 host = find_hostdecl(duid, 0, ifnetwork->hostlist);
                 return host;
             } else {
-                for (lv = TAILQ_FIRST(&optinfo->ia_list);
-                     lv; lv = TAILQ_NEXT(lv, link)) {
-                    host = find_hostdecl(duid, lv->iaidinfo.iaid,
-                                         ifnetwork->hostlist);
-                    if (host != NULL) {
-                        return host;
-                    }
+                if (g_slist_length(iterator)) {
+                    do {
+                        ia = (ia_t *) iterator->data;
+
+                        host = find_hostdecl(duid, ia->iaidinfo.iaid,
+                                             ifnetwork->hostlist);
+                        if (host != NULL) {
+                            return host;
+                        }
+                    } while ((iterator = g_slist_next(iterator)) != NULL);
                 }
             }
         }

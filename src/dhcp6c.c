@@ -758,7 +758,7 @@ static struct dhcp6_serverinfo *_allocate_newserver(struct dhcp6_if *ifp,
 
 static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
                                ssize_t len, struct dhcp6_optinfo *optinfo) {
-    struct ia_listval *ia;
+    ia_t *ia;
     dhcp6_event_t *ev;
     struct dhcp6_serverinfo *newserver;
     gint newstate = 0;
@@ -839,8 +839,8 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
                   __func__, dhcp6_stcodestr(optinfo->status_code));
     }
 
-    ia = ia_find_listval(&optinfo->ia_list,
-                         _iatype_of_if(ifp), ifp->iaidinfo.iaid);
+    ia = ia_find_listval(optinfo->ia_list, _iatype_of_if(ifp),
+                         ifp->iaidinfo.iaid);
 
     if (ia == NULL) {
         g_message("%s: no IA option", __func__);
@@ -1067,7 +1067,7 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
 
 static gint _client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
                                 ssize_t len, struct dhcp6_optinfo *optinfo0) {
-    struct ia_listval *ia;
+    ia_t *ia;
     struct dhcp6_serverinfo *newserver;
     dhcp6_event_t *ev;
 
@@ -1166,8 +1166,7 @@ static gint _client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
 
     /* if the client send preferred addresses reqeust in SOLICIT */
     /* XXX: client might have some local policy to select the addresses */
-    if ((ia = ia_find_listval(&optinfo0->ia_list,
-                              _iatype_of_if(ifp),
+    if ((ia = ia_find_listval(optinfo0->ia_list, _iatype_of_if(ifp),
                               ifp->iaidinfo.iaid)) != NULL) {
         dhcp6_copy_list(&request_list, &ia->addr_list);
     }
@@ -1690,7 +1689,7 @@ void client6_send(dhcp6_event_t *ev) {
     struct sockaddr_in6 dst;
     struct dhcp6 *dh6;
     struct dhcp6_optinfo optinfo;
-    struct ia_listval *ia;
+    ia_t *ia;
     ssize_t optlen, len;
     struct timeval duration, now;
     socklen_t salen;
@@ -1753,7 +1752,7 @@ void client6_send(dhcp6_event_t *ev) {
         goto end;
     }
 
-    TAILQ_INSERT_TAIL(&optinfo.ia_list, ia, link);
+    optinfo.ia_list = g_slist_append(optinfo.ia_list, ia);
 
     if (ev->timeouts == 0) {
         gettimeofday(&ev->start_time, NULL);
