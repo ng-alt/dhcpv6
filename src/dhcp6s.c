@@ -81,16 +81,14 @@ typedef enum {
     DHCP6_CONFINFO_ADDRS
 } dhcp6_conftype_t;
 
-struct dhcp6_binding {
-    TAILQ_ENTRY(dhcp6_binding) link;
-
+typedef struct _dhcp6_binding_t {
     dhcp6_conftype_t type;
     struct duid clientid;
     void *val;
 
     guint32 duration;
     struct dhcp6_timer *timer;
-};
+} dhcp6_binding_t;
 
 static gchar pidfile[MAXPATHLEN];
 static gchar *device[MAX_DEVICE];
