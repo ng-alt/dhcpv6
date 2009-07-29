@@ -77,6 +77,7 @@
 #include "confdata.h"
 #include "common.h"
 #include "timer.h"
+#include "server6_conf.h"
 #include "lease.h"
 #include "str.h"
 #include "gfunc.h"
@@ -88,7 +89,7 @@ gint dhcp6_add_lease(struct dhcp6_addr *);
 
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern struct dhcp6_timer *client6_timo(void *);
-extern void client6_send(struct dhcp6_event *);
+extern void client6_send(dhcp6_event_t *);
 extern void free_servers(struct dhcp6_if *);
 
 extern gint nlsock;
@@ -158,13 +159,12 @@ static gint _dhcp6_update_lease(struct dhcp6_addr *addr, dhcp6_lease_t *sp) {
     return 0;
 }
 
-static struct dhcp6_event *_dhcp6_iaidaddr_find_event(struct dhcp6_iaidaddr
-                                                      *sp, gint state) {
-    struct dhcp6_event *ev;
+static dhcp6_event_t *_dhcp6_iaidaddr_find_event(struct dhcp6_iaidaddr *sp,
+                                                 gint state) {
+    dhcp6_event_t *ev;
 
-    ev = (struct dhcp6_event *) g_slist_find_custom(sp->ifp->event_list,
-                                                    &state,
-                                                    _find_event_by_state);
+    ev = (dhcp6_event_t *) g_slist_find_custom(sp->ifp->event_list, &state,
+                                               _find_event_by_state);
     return ev;
 }
 
@@ -172,7 +172,7 @@ static struct dhcp6_event *_dhcp6_iaidaddr_find_event(struct dhcp6_iaidaddr
 
 void dhcp6_init_iaidaddr(void) {
     memset(&client6_iaidaddr, 0, sizeof(client6_iaidaddr));
-    TAILQ_INIT(&client6_iaidaddr.lease_list);
+    client6_iaidaddr.lease_list = NULL;
 }
 
 gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
@@ -226,7 +226,7 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, struct ia_listval *ia) {
         }
     }
 
-    if (TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
+    if (!g_slist_length(client6_iaidaddr.lease_list)) {
         return 0;
     }
 
@@ -355,7 +355,8 @@ gint dhcp6_add_lease(struct dhcp6_addr *addr) {
         return -1;
     }
 
-    TAILQ_INSERT_TAIL(&client6_iaidaddr.lease_list, sp, link);
+    client6_iaidaddr.lease_list = g_slist_append(client6_iaidaddr.lease_list,
+                                                 sp);
 
     /* for infinite lifetime don't do any timer */
     if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE ||
@@ -381,11 +382,14 @@ gint dhcp6_add_lease(struct dhcp6_addr *addr) {
 }
 
 gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
-    dhcp6_lease_t *lv, *lv_next;
+    dhcp6_lease_t *lv = NULL;
+    GSList *iterator = iaidaddr->lease_list;
 
-    for (lv = TAILQ_FIRST(&iaidaddr->lease_list); lv; lv = lv_next) {
-        lv_next = TAILQ_NEXT(lv, link);
-        (void) dhcp6c_remove_lease(lv);
+    if (g_slist_length(iterator)) {
+        do {
+            lv = (dhcp6_lease_t *) iterator->data;
+            dhcp6c_remove_lease(lv);
+        } while ((iterator = g_slist_next(iterator)) != NULL);
     }
 
     /*
@@ -396,7 +400,8 @@ gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
         dhcp6_remove_timer(iaidaddr->timer);
     }
 
-    TAILQ_INIT(&iaidaddr->lease_list);
+    g_slist_free(iaidaddr->lease_list);
+    iaidaddr->lease_list = NULL;
     return 0;
 }
 
@@ -426,8 +431,9 @@ gint dhcp6c_remove_lease(dhcp6_lease_t *sp) {
         dhcp6_remove_timer(sp->timer);
     }
 
-    TAILQ_REMOVE(&client6_iaidaddr.lease_list, sp, link);
-    free(sp);
+    client6_iaidaddr.lease_list = g_slist_remove(client6_iaidaddr.lease_list,
+                                                 sp);
+    g_free(sp);
 
     /* can't remove expired iaidaddr even there is no lease in this iaidaddr
      * since the rebind->solicit timer uses this iaidaddr
@@ -505,7 +511,7 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
         }
     }
 
-    if (TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
+    if (!g_slist_length(client6_iaidaddr.lease_list)) {
         return 0;
     }
 
@@ -570,39 +576,14 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo,
     return 0;
 }
 
-dhcp6_lease_t *dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr,
-                                struct dhcp6_addr *ifaddr) {
-    dhcp6_lease_t *sp;
-
-    for (sp = TAILQ_FIRST(&iaidaddr->lease_list); sp;
-         sp = TAILQ_NEXT(sp, link)) {
-        /* sp->lease_addr.plen == ifaddr->plen */
-        g_debug("%s: get address is %s/%d ", __func__,
-                in6addr2str(&ifaddr->addr, 0), ifaddr->plen);
-        g_debug("%s: lease address is %s/%d ", __func__,
-                in6addr2str(&sp->lease_addr.addr, 0), ifaddr->plen);
-
-        if (IN6_ARE_ADDR_EQUAL(&sp->lease_addr.addr, &ifaddr->addr)) {
-            if (sp->lease_addr.type == IAPD) {
-                if (sp->lease_addr.plen == ifaddr->plen) {
-                    return sp;
-                }
-            } else if (sp->lease_addr.type == IANA ||
-                       sp->lease_addr.type == IATA) {
-                return sp;
-            }
-        }
-    }
-
-    return NULL;
-}
-
 struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
     struct dhcp6_iaidaddr *sp = (struct dhcp6_iaidaddr *) arg;
-    struct dhcp6_event *ev, *prev_ev = NULL;
+    dhcp6_event_t *ev, *prev_ev = NULL;
     struct timeval timeo;
     gint dhcpstate, prev_state;
     gdouble d = 0;
+    dhcp6_lease_t *cl = NULL;
+    GSList *iterator = client6_iaidaddr.lease_list;
 
     g_debug("client6_iaidaddr timeout for %d, state=%d",
             client6_iaidaddr.client6_info.iaidinfo.iaid, sp->state);
@@ -693,16 +674,14 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
 
     sp->ifp->event_list = g_slist_append(sp->ifp->event_list, ev);
 
-    if (sp->state != INVALID) {
-        dhcp6_lease_t *cl;
-
+    if (sp->state != INVALID && g_slist_length(iterator)) {
         /* create an address list for renew and rebind */
-        for (cl = TAILQ_FIRST(&client6_iaidaddr.lease_list); cl;
-             cl = TAILQ_NEXT(cl, link)) {
+        do {
             struct dhcp6_listval *lv;
+            cl = (dhcp6_lease_t *) iterator->data;
 
             /* IA_NA address */
-            if ((lv = malloc(sizeof(*lv))) == NULL) {
+            if ((lv = g_malloc0(sizeof(*lv))) == NULL) {
                 g_error("%s: failed to allocate memory for an ipv6 addr",
                         __func__);
 
@@ -710,8 +689,8 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
                     duidfree(&ev->serverid);
                 }
 
-                free(ev->timer);
-                free(ev);
+                g_free(ev->timer);
+                g_free(ev);
                 return NULL;
             }
 
@@ -719,7 +698,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
                    sizeof(lv->val_dhcp6addr));
             lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
             TAILQ_INSERT_TAIL(&request_list, lv, link);
-        }
+        } while ((iterator = g_slist_next(iterator)) != NULL);
 
         dhcp6_set_timer(&timeo, sp->timer);
     } else {

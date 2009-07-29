@@ -75,7 +75,7 @@ struct ia_listval *ia_create_listval();
 void ia_clear_list(struct ia_list *);
 gint ia_copy_list(struct ia_list *, struct ia_list *);
 struct ia_listval *ia_find_listval(struct ia_list *, iatype_t, guint32);
-struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *, gint);
+dhcp6_event_t *dhcp6_create_event(struct dhcp6_if *, gint);
 void dhcp6_remove_event(gpointer, gpointer);
 gint getifaddr(struct in6_addr *, gchar *, struct in6_addr *, gint, gint, gint);
 gint transmit_sa(gint, struct sockaddr_in6 *, gchar *, size_t);
@@ -92,8 +92,8 @@ gint dhcp6_get_options(struct dhcp6opt *, struct dhcp6opt *,
                        struct dhcp6_optinfo *);
 gint dhcp6_set_options(struct dhcp6opt *, struct dhcp6opt *,
                        struct dhcp6_optinfo *);
-void dhcp6_set_timeoparam(struct dhcp6_event *);
-void dhcp6_reset_timer(struct dhcp6_event *);
+void dhcp6_set_timeoparam(dhcp6_event_t *);
+void dhcp6_reset_timer(dhcp6_event_t *);
 void relayfree(struct relay_list *);
 void ifinit(const gchar *);
 struct dhcp6_if *find_ifconfbyname(const gchar *);

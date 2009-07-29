@@ -65,6 +65,7 @@
 #include "confdata.h"
 #include "common.h"
 #include "timer.h"
+#include "server6_conf.h"
 #include "lease.h"
 #include "gfunc.h"
 #include "str.h"
@@ -831,20 +832,18 @@ struct ia_listval *ia_find_listval(struct ia_list *head,
     return NULL;
 }
 
-struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *ifp, int state) {
-    struct dhcp6_event *ev;
+dhcp6_event_t *dhcp6_create_event(struct dhcp6_if *ifp, int state) {
+    dhcp6_event_t *ev;
 
     static guint32 counter = 0;
 
-    if ((ev = malloc(sizeof(*ev))) == NULL) {
+    if ((ev = g_malloc0(sizeof(*ev))) == NULL) {
         g_error("%s: failed to allocate memory for an event", __func__);
         return NULL;
     }
 
     /* for safety */
-    memset(ev, 0, sizeof(*ev));
     ev->serverid.duid_id = NULL;
-
     ev->ifp = ifp;
     ev->state = state;
     ev->uuid = counter++;
@@ -856,7 +855,7 @@ struct dhcp6_event *dhcp6_create_event(struct dhcp6_if *ifp, int state) {
 }
 
 void dhcp6_remove_event(gpointer data, gpointer user_data) {
-    struct dhcp6_event *ev = (struct dhcp6_event *) data;
+    dhcp6_event_t *ev = (dhcp6_event_t *) data;
 
     g_debug("%s: removing an event %p on %s, state=%d, xid=%x", __func__,
             ev, ev->ifp->ifname, ev->state, ev->xid);
@@ -1648,7 +1647,7 @@ fail:
     return -1;
 }
 
-void dhcp6_set_timeoparam(struct dhcp6_event *ev) {
+void dhcp6_set_timeoparam(dhcp6_event_t *ev) {
     ev->retrans = 0;
     ev->init_retrans = 0;
     ev->max_retrans_cnt = 0;
@@ -1697,7 +1696,7 @@ void dhcp6_set_timeoparam(struct dhcp6_event *ev) {
     }
 }
 
-void dhcp6_reset_timer(struct dhcp6_event *ev) {
+void dhcp6_reset_timer(dhcp6_event_t *ev) {
     gdouble n, r;
     gchar *statestr;
     struct timeval interval;

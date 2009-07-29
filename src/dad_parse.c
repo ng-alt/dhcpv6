@@ -70,6 +70,7 @@
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
+#include "server6_conf.h"
 #include "lease.h"
 #include "str.h"
 

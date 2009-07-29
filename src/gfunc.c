@@ -60,28 +60,6 @@ gint _find_event_by_state(gconstpointer a, gconstpointer b) {
     return ((event->state) - (*state));
 }
 
-/* FIXME: convert to IN6_ARE_ADDR_EQUAL and better return values */
-gint _find_lease_by_addr(gconstpointer a, gconstpointer b) {
-    dhcp6_lease_t *lease = (dhcp6_lease_t *) a;
-    struct dhcp6_addr *ifaddr = (struct dhcp6_addr *) b;
-
-    /* check for prefix length sp->lease_addr.plen == ifaddr->plen && */
-    g_debug("%s: request address is %s/%d ", __func__,
-            in6addr2str(&ifaddr->addr, 0), ifaddr->plen);
-    g_debug("%s: lease address is %s/%d ", __func__,
-            in6addr2str(&lease->lease_addr.addr, 0), ifaddr->plen);
-
-    if (IN6_ARE_ADDR_EQUAL(&lease->lease_addr.addr, &ifaddr->addr)) {
-        if (ifaddr->type == IAPD && lease->lease_addr.plen == ifaddr->plen) {
-            return 0;
-        } else if (ifaddr->type == IANA || ifaddr->type == IATA) {
-            return 0;
-        }
-    }
-
-    return 1;
-}
-
 void _print_in6_addr(gpointer data, gpointer user_data) {
     struct in6_addr *ns = (struct in6_addr *) data;
     gchar *msg = (gchar *) user_data;

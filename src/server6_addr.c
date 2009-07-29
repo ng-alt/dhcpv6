@@ -65,8 +65,6 @@ extern GHashTable *host_addr_hash_table;
 extern GHashTable *lease_hash_table;
 extern GHashTable *server6_hash_table;
 
-dhcp6_lease_t *dhcp6_find_lease(struct dhcp6_iaidaddr *,
-                                struct dhcp6_addr *);
 struct link_decl *dhcp6_allocate_link(struct dhcp6_if *, struct rootgroup *,
                                       struct in6_addr *);
 struct host_decl *dhcp6_allocate_host(struct dhcp6_if *, struct rootgroup *,
@@ -672,15 +670,6 @@ gint dhcp6_update_lease(struct dhcp6_addr *addr, dhcp6_lease_t *sp) {
     return 0;
 }
 
-dhcp6_lease_t *dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr,
-                                struct dhcp6_addr *ifaddr) {
-    dhcp6_lease_t *sp;
-
-    sp = (dhcp6_lease_t *) g_slist_find_custom(iaidaddr->lease_list, ifaddr,
-                                               _find_lease_by_addr);
-    return sp;
-}
-
 struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
     struct dhcp6_iaidaddr *sp = (struct dhcp6_iaidaddr *) arg;
 
@@ -830,8 +819,10 @@ gint dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
             }
         }
 
-        if (iaidaddr != NULL) {
-            while ((iterator = iaidaddr->lease_list) != NULL) {
+        if (iaidaddr != NULL && g_slist_length(iaidaddr->lease_list)) {
+            iterator = iaidaddr->lease_list;
+
+            do {
                 cl = (dhcp6_lease_t *) iterator->data;
 
                 if (_addr_on_segment(seg, &cl->lease_addr)) {
@@ -854,7 +845,7 @@ gint dhcp6_create_addrlist(struct ia_listval *ria, struct ia_listval *ia,
                         continue;
                     }
                 }
-            }
+            } while ((iterator = g_slist_next(iaidaddr->lease_list)) != NULL);
         }
 
         if (numaddr == 0) {

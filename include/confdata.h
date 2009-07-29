@@ -140,7 +140,7 @@ typedef enum {
 } dhcp6_eventdata_type;
 
 typedef struct _dhcp6_eventdata_t {
-    struct dhcp6_event *event;
+    dhcp6_event_t *event;
     dhcp6_eventdata_type type;
     void *data;
 } dhcp6_eventdata_t;

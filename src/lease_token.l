@@ -41,6 +41,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <net/if.h>
 
 #include <glib.h>
 
@@ -49,6 +50,7 @@
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
+#include "server6_conf.h"
 #include "lease.h"
 #include "timer.h"
 #include "str.h"
@@ -344,7 +346,7 @@ do_iaidaddr_hash(lease_rec, key)
 			return (-1);
 	  	}
 		memset(iaidaddr, 0, sizeof(*iaidaddr));
-		TAILQ_INIT(&iaidaddr->lease_list);
+		iaidaddr->lease_list = NULL;
 		/* get the client info */
 		memcpy(&iaidaddr->client6_info, &client6_info, sizeof(iaidaddr->client6_info));
 		g_hash_table_insert(server6_hash_table, &iaidaddr->client6_info, iaidaddr);
@@ -411,7 +413,7 @@ add_lease(iaidaddr, lease)
 			}
 		}	 
 		/* if this is the first lease */
-		if (TAILQ_EMPTY(&iaidaddr->lease_list)) {
+		if (!g_slist_length(iaidaddr->lease_list)) {
 			if (iaidaddr->client6_info.iaidinfo.iaid != 
 					client6_info.iaidinfo.iaid) {
 				g_debug("%s: this lease %s client iaidinfo is different"
@@ -461,7 +463,7 @@ add_lease(iaidaddr, lease)
 	}
 	lease_rec->iaidaddr = iaidaddr;
 	lease_rec->lease_addr.status_code = DH6OPT_STCODE_UNDEFINE;
-	TAILQ_INSERT_TAIL(&iaidaddr->lease_list, lease_rec, link);
+	iaidaddr->lease_list = g_slist_append(iaidaddr->lease_list, lease_rec);
 	g_message("%s: add lease addr %s/%d type %d to %u",
 		__func__, in6addr2str(&lease_rec->lease_addr.addr, 0), lease_rec->lease_addr.plen,
 		lease_rec->lease_addr.type, lease_rec->iaidaddr->client6_info.iaidinfo.iaid);
@@ -481,10 +483,10 @@ remove_lease(lease)
 	}
 	if (lease->timer)
 		dhcp6_remove_timer(lease->timer);
-	TAILQ_REMOVE(&lease->iaidaddr->lease_list, lease, link);
+	lease->iaidaddr->lease_list = g_slist_remove(lease->iaidaddr->lease_list, lease);
 	g_message("%s: removed lease addr %s/%d from %u",
 		__func__, in6addr2str(&lease->lease_addr.addr, 0),
 		lease->lease_addr.plen, lease->iaidaddr->client6_info.iaidinfo.iaid);
-	free(lease);
+	g_free(lease);
 	return 0;
 }

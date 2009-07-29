@@ -43,6 +43,7 @@
 #include <sys/stat.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <net/if.h>
 #include <unistd.h>
 
 #ifdef TIME_WITH_SYS_TIME
@@ -59,6 +60,7 @@
 #include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
+#include "server6_conf.h"
 #include "lease.h"
 #include "str.h"
 
@@ -182,6 +184,8 @@ gint write_lease(const dhcp6_lease_t *lease_ptr, FILE *file) {
 
 FILE *sync_leases(FILE * file, const gchar *original, gchar *template) {
     gint fd;
+    dhcp6_lease_t *lease = NULL;
+    GSList *iterator = client6_iaidaddr.lease_list;
 
     fd = mkstemp(template);
 
@@ -193,15 +197,13 @@ FILE *sync_leases(FILE * file, const gchar *original, gchar *template) {
     if (dhcp6_mode == DHCP6_MODE_SERVER) {
         g_hash_table_foreach(lease_hash_table, _sync_lease, sync_file);
     } else if (dhcp6_mode == DHCP6_MODE_CLIENT) {
-        dhcp6_lease_t *lv, *lv_next;
+        do {
+            lease = (dhcp6_lease_t *) iterator->data;
 
-        for (lv = TAILQ_FIRST(&client6_iaidaddr.lease_list); lv; lv = lv_next) {
-            lv_next = TAILQ_NEXT(lv, link);
-
-            if (write_lease(lv, sync_file) < 0) {
+            if (write_lease(lease, sync_file) < 0) {
                 g_error("%s: write lease failed", __func__);
             }
-        }
+        } while ((iterator = g_slist_next(iterator)) != NULL);
     }
 
     fclose(sync_file);
@@ -353,37 +355,71 @@ gint addr_on_addrlist(struct dhcp6_list *addrlist, struct dhcp6_addr *addr6) {
 }
 
 guint32 get_min_preferlifetime(struct dhcp6_iaidaddr * sp) {
-    dhcp6_lease_t *lv, *first;
+    dhcp6_lease_t *lease = NULL;
     guint32 min;
+    GSList *iterator = sp->lease_list;
 
-    if (TAILQ_EMPTY(&sp->lease_list)) {
+    if (!g_slist_length(sp->lease_list)) {
         return 0;
     }
 
-    first = TAILQ_FIRST(&sp->lease_list);
-    min = first->lease_addr.preferlifetime;
+    lease = (dhcp6_lease_t *) iterator->data;
+    min = lease->lease_addr.preferlifetime;
 
-    for (lv = TAILQ_FIRST(&sp->lease_list); lv; lv = TAILQ_NEXT(lv, link)) {
-        min = MIN(min, lv->lease_addr.preferlifetime);
+    while ((iterator = g_slist_next(iterator)) != NULL) {
+        lease = (dhcp6_lease_t *) iterator->data;
+        min = MIN(min, lease->lease_addr.preferlifetime);
     }
 
     return min;
 }
 
 guint32 get_max_validlifetime(struct dhcp6_iaidaddr * sp) {
-    dhcp6_lease_t *lv, *first;
+    dhcp6_lease_t *lease = NULL;
     guint32 max;
+    GSList *iterator = sp->lease_list;
 
-    if (TAILQ_EMPTY(&sp->lease_list)) {
+    if (!g_slist_length(sp->lease_list)) {
         return 0;
     }
 
-    first = TAILQ_FIRST(&sp->lease_list);
-    max = first->lease_addr.validlifetime;
+    lease = (dhcp6_lease_t *) iterator->data;
+    max = lease->lease_addr.preferlifetime;
 
-    for (lv = TAILQ_FIRST(&sp->lease_list); lv; lv = TAILQ_NEXT(lv, link)) {
-        max = MAX(max, lv->lease_addr.validlifetime);
+    while ((iterator = g_slist_next(iterator)) != NULL) {
+        lease = (dhcp6_lease_t *) iterator->data;
+        max = MAX(max, lease->lease_addr.preferlifetime);
     }
 
     return max;
+}
+
+dhcp6_lease_t *dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr,
+                                struct dhcp6_addr *ifaddr) {
+    dhcp6_lease_t *lease;
+    GSList *iterator = iaidaddr->lease_list;
+
+    if (!g_slist_length(iterator)) {
+        return NULL;
+    }
+
+    do {
+        lease = (dhcp6_lease_t *) iterator->data;
+
+        g_debug("%s: request address is %s/%d ", __func__,
+                in6addr2str(&ifaddr->addr, 0), ifaddr->plen);
+        g_debug("%s: lease address is %s/%d ", __func__,
+                in6addr2str(&lease->lease_addr.addr, 0), ifaddr->plen);
+
+        if (IN6_ARE_ADDR_EQUAL(&lease->lease_addr.addr, &ifaddr->addr)) {
+            if (ifaddr->type == IAPD &&
+                lease->lease_addr.plen == ifaddr->plen) {
+                return lease;
+            } else if (ifaddr->type == IANA || ifaddr->type == IATA) {
+                return lease;
+            }
+        }
+    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+    return NULL;
 }

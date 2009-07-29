@@ -90,10 +90,12 @@
 #include "confdata.h"
 #include "common.h"
 #include "timer.h"
+#include "server6_conf.h"
 #include "lease.h"
 #include "str.h"
 #include "log.h"
 #include "gfunc.h"
+#include "client6_addr.h"
 
 /* External globals */
 extern gchar *raproc_file;
@@ -135,7 +137,7 @@ struct dhcp6_timer *client6_timo(void *);
 void run_script(struct dhcp6_if *, gint, gint, guint32);
 gint client6_send_newstate(struct dhcp6_if *, gint);
 void free_servers(struct dhcp6_if *);
-void client6_send(struct dhcp6_event *);
+void client6_send(dhcp6_event_t *);
 gint get_if_rainfo(struct dhcp6_if *);
 gint client6_init(gchar *);
 
@@ -181,7 +183,7 @@ static void _usage(gchar *name) {
     return;
 }
 
-static void _ev_set_state(struct dhcp6_event *ev, gint new_state) {
+static void _ev_set_state(dhcp6_event_t *ev, gint new_state) {
     gint old_state = ev->state;
 
     g_debug("%s: event %p xid %d state change %d -> %d",
@@ -284,10 +286,17 @@ static gint _set_info_refresh_timer(struct dhcp6_if *ifp, guint32 offered_irt) {
 static gint _create_request_list(gint reboot) {
     dhcp6_lease_t *cl;
     struct dhcp6_listval *lv;
+    GSList *iterator = client6_iaidaddr.lease_list;
+
+    if (!g_slist_length(iterator)) {
+        g_error("%s: no client6_iaidaddr.lease_list members", __func__);
+        return -1;
+    }
 
     /* create an address list for release all/confirm */
-    for (cl = TAILQ_FIRST(&client6_iaidaddr.lease_list); cl;
-         cl = TAILQ_NEXT(cl, link)) {
+    do {
+        cl = (dhcp6_lease_t *) iterator->data;
+
         /* IANA, IAPD */
         if ((lv = malloc(sizeof(*lv))) == NULL) {
             g_error("%s: failed to allocate memory for an ipv6 addr", __func__);
@@ -308,7 +317,7 @@ static gint _create_request_list(gint reboot) {
                 return -1;
             }
         }
-    }
+    } while ((iterator = g_slist_next(iterator)) != NULL);
 
     return 0;
 }
@@ -422,6 +431,7 @@ static struct dhcp6_timer *_check_dad_timo(void *arg) {
     struct dhcp6_list dad_list;
     dhcp6_lease_t *cl;
     struct dhcp6_listval *lv;
+    GSList *cl_iterator = NULL;
 
     if (client6_iaidaddr.client6_info.type == IAPD) {
         goto end;
@@ -436,14 +446,21 @@ static struct dhcp6_timer *_check_dad_timo(void *arg) {
     }
 
     for (lv = TAILQ_FIRST(&dad_list); lv; lv = TAILQ_NEXT(lv, link)) {
-        for (cl = TAILQ_FIRST(&client6_iaidaddr.lease_list);
-             cl; cl = TAILQ_NEXT(cl, link)) {
+        cl_iterator = client6_iaidaddr.lease_list;
+
+        if (!g_slist_length(cl_iterator)) {
+            continue;
+        }
+
+        do {
+            cl = (dhcp6_lease_t *) cl_iterator->data;
+
             if (cl->lease_addr.type != IAPD &&
                 IN6_ARE_ADDR_EQUAL(&cl->lease_addr.addr,
                                    &lv->val_dhcp6addr.addr)) {
                 /* deconfigure the interface's the address assgined by dhcpv6 
                  */
-                if (dhcp6_remove_lease(cl) != 0) {
+                if (dhcp6c_remove_lease(cl) != 0) {
                     g_error("remove duplicated address failed: %s",
                             in6addr2str(&cl->lease_addr.addr, 0));
                 } else {
@@ -453,7 +470,7 @@ static struct dhcp6_timer *_check_dad_timo(void *arg) {
 
                 break;
             }
-        }
+        } while ((cl_iterator = g_slist_next(cl_iterator)) != NULL);
     }
 
     dhcp6_clear_list(&dad_list);
@@ -480,7 +497,7 @@ end:
 static gint _client6_ifinit(gchar *device) {
     gint err = 0;
     struct dhcp6_if *ifp = dhcp6_if;
-    struct dhcp6_event *ev;
+    dhcp6_event_t *ev;
     gchar iaidstr[20];
 
     dhcp6_init_iaidaddr();
@@ -535,7 +552,7 @@ static gint _client6_ifinit(gchar *device) {
             return -1;
         }
 
-        if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
+        if (g_slist_length(client6_iaidaddr.lease_list)) {
             struct dhcp6_listval *lv;
 
             if (!(client6_request_flag & CLIENT6_REQUEST_ADDR) &&
@@ -620,15 +637,19 @@ static iatype_t _iatype_of_if(struct dhcp6_if *ifp) {
 }
 
 static void _free_resources(struct dhcp6_if *ifp) {
-    dhcp6_lease_t *sp, *sp_next;
     struct stat buf;
+    dhcp6_lease_t *sp = NULL;
+    GSList *iterator = client6_iaidaddr.lease_list;
 
-    for (sp = TAILQ_FIRST(&client6_iaidaddr.lease_list); sp; sp = sp_next) {
-        sp_next = TAILQ_NEXT(sp, link);
-        if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
-            g_message("%s: deconfiging address %s failed",
-                      __func__, in6addr2str(&sp->lease_addr.addr, 0));
-        }
+    if (g_slist_length(iterator)) {
+        do {
+            sp = (dhcp6_lease_t *) iterator->data;
+
+            if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
+                g_message("%s: deconfiging address %s failed",
+                          __func__, in6addr2str(&sp->lease_addr.addr, 0));
+            }
+        } while ((iterator = g_slist_next(iterator)) != NULL);
     }
 
     g_debug("%s: remove all events on interface", __func__);
@@ -644,6 +665,7 @@ static void _free_resources(struct dhcp6_if *ifp) {
     }
 
     free_servers(ifp);
+    return;
 }
 
 static void _process_signals(void) {
@@ -670,12 +692,11 @@ static void _process_signals(void) {
     return;
 }
 
-static struct dhcp6_event *_find_event_withid(struct dhcp6_if *ifp,
-                                              guint32 xid) {
-    struct dhcp6_event *ev;
+static dhcp6_event_t *_find_event_withid(struct dhcp6_if *ifp, guint32 xid) {
+    dhcp6_event_t *ev;
 
-    ev = (struct dhcp6_event *) g_slist_find_custom(ifp->event_list, &xid,
-                                                    _find_event_by_xid);
+    ev = (dhcp6_event_t *) g_slist_find_custom(ifp->event_list, &xid,
+                                               _find_event_by_xid);
     return ev;
 }
 
@@ -727,7 +748,7 @@ static struct dhcp6_serverinfo *_allocate_newserver(struct dhcp6_if *ifp,
 static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
                                ssize_t len, struct dhcp6_optinfo *optinfo) {
     struct ia_listval *ia;
-    struct dhcp6_event *ev;
+    dhcp6_event_t *ev;
     struct dhcp6_serverinfo *newserver;
     gint newstate = 0;
     gint err = 0;
@@ -1037,7 +1058,7 @@ static gint _client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
                                 ssize_t len, struct dhcp6_optinfo *optinfo0) {
     struct ia_listval *ia;
     struct dhcp6_serverinfo *newserver;
-    struct dhcp6_event *ev;
+    dhcp6_event_t *ev;
 
     /* find the corresponding event based on the received xid */
     ev = _find_event_withid(ifp, ntohl(dh6->dh6_xid) & DH6_XIDMASK);
@@ -1652,7 +1673,7 @@ gint get_if_rainfo(struct dhcp6_if *ifp) {
     return 0;
 }
 
-void client6_send(struct dhcp6_event *ev) {
+void client6_send(dhcp6_event_t *ev) {
     struct dhcp6_if *ifp;
     gchar buf[BUFSIZ];
     struct sockaddr_in6 dst;
@@ -1986,7 +2007,7 @@ void free_servers(struct dhcp6_if *ifp) {
 }
 
 gint client6_send_newstate(struct dhcp6_if *ifp, gint state) {
-    struct dhcp6_event *ev;
+    dhcp6_event_t *ev;
 
     if ((ev = dhcp6_create_event(ifp, state)) == NULL) {
         g_error("%s: failed to create an event", __func__);
@@ -2127,7 +2148,7 @@ void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
 }
 
 struct dhcp6_timer *client6_timo(void *arg) {
-    struct dhcp6_event *ev = (struct dhcp6_event *) arg;
+    dhcp6_event_t *ev = (dhcp6_event_t *) arg;
     struct dhcp6_if *ifp;
     struct timeval now;
 
@@ -2199,7 +2220,7 @@ struct dhcp6_timer *client6_timo(void *arg) {
                 }
 
                 /* if get the address assginment break */
-                if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
+                if (g_slist_length(client6_iaidaddr.lease_list)) {
                     dhcp6_remove_event(ev, NULL);
                     return NULL;
                 }

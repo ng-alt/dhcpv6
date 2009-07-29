@@ -27,7 +27,6 @@ gint _find_in6_addr(gconstpointer, gconstpointer);
 gint _find_string(gconstpointer, gconstpointer);
 gint _find_event_by_xid(gconstpointer, gconstpointer);
 gint _find_event_by_state(gconstpointer, gconstpointer);
-gint _find_lease_by_addr(gconstpointer, gconstpointer);
 void _print_in6_addr(gpointer, gpointer);
 void _print_string(gpointer, gpointer);
 gint dhcp6_has_option(struct dhcp6_list *, gint);
