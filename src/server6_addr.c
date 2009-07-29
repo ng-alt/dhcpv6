@@ -154,7 +154,7 @@ static gint _addr_on_segment(struct v6addrseg *seg, struct dhcp6_addr *addr) {
             } else
                 onseg = 0;
 
-            free(prefix);
+            g_free(prefix);
             prefix = NULL;
             break;
         case IANA:
@@ -387,7 +387,9 @@ gint dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *iaidaddr) {
 
     g_debug("%s: removed iaidaddr %u", __func__,
             iaidaddr->client6_info.iaidinfo.iaid);
-    free(iaidaddr);
+    g_free(iaidaddr);
+    iaidaddr = NULL;
+
     return 0;
 }
 
@@ -604,8 +606,13 @@ gint dhcp6_add_lease(dhcp6_iaidaddr_t *iaidaddr, struct dhcp6_addr *addr) {
     if (write_lease(sp, server6_lease_file) != 0) {
         g_error("%s: failed to write a new lease address %s to lease file",
                 __func__, in6addr2str(&sp->lease_addr.addr, 0));
-        free(sp->timer);
-        free(sp);
+
+        g_free(sp->timer);
+        sp->timer = NULL;
+
+        g_free(sp);
+        sp = NULL;
+
         return -1;
     }
 
@@ -623,7 +630,10 @@ gint dhcp6_add_lease(dhcp6_iaidaddr_t *iaidaddr, struct dhcp6_addr *addr) {
 
     if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
         g_error("%s: failed to create a new event timer", __func__);
-        free(sp);
+
+        g_free(sp);
+        sp = NULL;
+
         return -1;
     }
 
@@ -895,7 +905,8 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
             _server6_get_newaddr(ia->type, &v6addr->val_dhcp6addr, seg);
 
             if (IN6_IS_ADDR_UNSPECIFIED(&v6addr->val_dhcp6addr.addr)) {
-                free(v6addr);
+                g_free(v6addr);
+                v6addr = NULL;
                 continue;
             }
 

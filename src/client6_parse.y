@@ -78,10 +78,11 @@ extern void client6error(gchar *, ...) __attribute__((__format__(__printf__, 1, 
         (l) = (struct cf_list *) g_malloc0(sizeof(*(l))); \
         if ((l) == NULL) { \
             cpyywarn("can't allocate memory"); \
-            if (pp) \
-                free(pp); \
-            if (pl) \
-                cleanup_cflist(pl); \
+            if ((pp)) { \
+                g_free((pp)); \
+            } \
+            if ((pl)) \
+                cleanup_cflist((pl)); \
             return (-1); \
         } \
         l->line = lineno; \
@@ -377,23 +378,37 @@ static void cleanup_namelist(struct cf_namelist *head) {
     for (ifp = head; ifp; ifp = ifp_next) {
         ifp_next = ifp->next;
         cleanup_cflist(ifp->params);
-        free(ifp->name);
-        free(ifp);
+
+        g_free(ifp->name);
+        ifp->name = NULL;
+
+        g_free(ifp);
+        ifp = NULL;
     }
+
+    return;
 }
 
 static void cleanup_cflist(struct cf_list *p) {
     struct cf_list *n;
 
-    if (p == NULL)
+    if (p == NULL) {
         return;
+    }
 
     n = p->next;
-    if (p->ptr)
-        free(p->ptr);
-    if (p->list)
+
+    if (p->ptr) {
+        g_free(p->ptr);
+        p->ptr = NULL;
+    }
+
+    if (p->list) {
         cleanup_cflist(p->list);
-    free(p);
+    }
+
+    g_free(p);
+    p = NULL;
 
     cleanup_cflist(n);
 }

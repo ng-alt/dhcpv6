@@ -179,7 +179,8 @@ comment		\#.*
 	struct in6_addr addr;
 	if(inet_pton(AF_INET6, yytext, &addr) < 1) {
 		YYABORT("invalid address");
-		free(lease_rec);
+		g_free(lease_rec);
+		lease_rec = NULL;
 		ABORT;
 	}
 	memcpy(&lease_rec->lease_addr.addr, &addr, 
@@ -202,7 +203,8 @@ comment		\#.*
 	struct in6_addr addr;
 	if(inet_pton(AF_INET6, yytext, &addr) < 1) {
 		YYABORT("invalid address"); 
-		free(lease_rec);
+		g_free(lease_rec);
+		lease_rec = NULL;
 		ABORT;
 	}	
 	memcpy(&lease_rec->linklocal, &addr, 
@@ -283,7 +285,8 @@ do_iaidaddr_hash(lease_rec, key)
 		g_message("This lease addr %s/%d has been expired.",
 			in6addr2str(&lease_rec->lease_addr.addr, 0),
 			lease_rec->lease_addr.plen);
-		free(lease_rec);
+		g_free(lease_rec);
+		lease_rec = NULL;
 		return (0);
 	}
 
@@ -297,7 +300,8 @@ do_iaidaddr_hash(lease_rec, key)
 		if(found_lease) {
 			remove_lease(found_lease);
 		}
-		free(lease_rec);
+		g_free(lease_rec);
+		lease_rec = NULL;
 		return (0);
 	}
 	if (dhcp6_mode == DHCP6_MODE_CLIENT) {
@@ -333,7 +337,8 @@ do_iaidaddr_hash(lease_rec, key)
 				iaidaddr->start_date = lease_rec->start_date;	
 				remove_lease(found_lease);
 			} else {
-				free(lease_rec);
+				g_free(lease_rec);
+				lease_rec = NULL;
 				return (0);
 			}
 		}
@@ -402,7 +407,8 @@ add_lease(dhcp6_iaidaddr_t *iaidaddr, dhcp6_lease_t *lease) {
 				iaidaddr->start_date = lease_rec->start_date;
 				remove_lease(found_lease);
 			} else {
-				free(lease_rec);
+				g_free(lease_rec);
+				lease_rec = NULL;
 				return (0);
 			}
 		}	 
@@ -434,7 +440,8 @@ add_lease(dhcp6_iaidaddr_t *iaidaddr, dhcp6_lease_t *lease) {
 		g_debug("parse an invalid state lease %s/%d in line %d",
 			in6addr2str(&lease_rec->lease_addr.addr, 0),
 			lease_rec->lease_addr.plen, num_lines);
-		free(lease_rec);
+		g_free(lease_rec);
+		lease_rec = NULL;
 		return (0);
 	}
 	if ((lease_rec->timer = dhcp6_add_timer(dhcp6_lease_timo, lease_rec)) == NULL) {

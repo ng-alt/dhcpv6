@@ -736,7 +736,8 @@ static struct dhcp6_serverinfo *_allocate_newserver(struct dhcp6_if *ifp,
 
     if (dhcp6_copy_options(&newserver->optinfo, optinfo)) {
         g_error("%s: failed to copy options", __func__);
-        free(newserver);
+        g_free(newserver);
+        newserver = NULL;
         return NULL;
     }
 
@@ -2016,7 +2017,8 @@ void free_servers(struct dhcp6_if *ifp) {
         g_debug("%s: removing server (ID: %s)",
                 __func__, duidstr(&sp->optinfo.serverID));
         dhcp6_clear_options(&sp->optinfo);
-        free(sp);
+        g_free(sp);
+        sp = NULL;
     }
 
     ifp->servers = NULL;
@@ -2036,7 +2038,8 @@ gint client6_send_newstate(struct dhcp6_if *ifp, gint state) {
 
     if ((ev->timer = dhcp6_add_timer(client6_timo, ev)) == NULL) {
         g_error("%s: failed to add a timer for %s", __func__, ifp->ifname);
-        free(ev);
+        g_free(ev);
+        ev = NULL;
         return -1;
     }
 

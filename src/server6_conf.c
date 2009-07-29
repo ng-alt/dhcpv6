@@ -212,7 +212,8 @@ struct scopelist *pop_double_list(struct scopelist *current) {
     temp->prev = NULL;
     temp->next = NULL;
     temp->scope = NULL;
-    free(temp);
+    g_free(temp);
+    temp = NULL;
 
     return current;
 }

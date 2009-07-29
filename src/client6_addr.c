@@ -348,7 +348,8 @@ gint dhcp6_add_lease(struct dhcp6_addr *addr) {
             dhcp6_remove_timer(sp->timer);
         }
 
-        free(sp);
+        g_free(sp);
+        sp = NULL;
         return -1;
     }
 
@@ -363,7 +364,8 @@ gint dhcp6_add_lease(struct dhcp6_addr *addr) {
             dhcp6_remove_timer(sp->timer);
         }
 
-        free(sp);
+        g_free(sp);
+        sp = NULL;
         return -1;
     }
 
@@ -382,7 +384,8 @@ gint dhcp6_add_lease(struct dhcp6_addr *addr) {
     if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
         g_error("%s: failed to add a timer for lease %s",
                 __func__, in6addr2str(&addr->addr, 0));
-        free(sp);
+        g_free(sp);
+        sp = NULL;
         return -1;
     }
 
@@ -673,7 +676,8 @@ dhcp6_timer_t *dhcp6_iaidaddr_timo(void *arg) {
         case RENEW:
             if (duidcpy(&ev->serverid, &sp->client6_info.serverid)) {
                 g_error("%s: failed to copy server ID", __func__);
-                free(ev);
+                g_free(ev);
+                ev = NULL;
                 return NULL;
             }
         case REBIND:
@@ -691,7 +695,8 @@ dhcp6_timer_t *dhcp6_iaidaddr_timo(void *arg) {
             duidfree(&ev->serverid);
         }
 
-        free(ev);
+        g_free(ev);
+        ev = NULL;
         return NULL;            /* XXX */
     }
 

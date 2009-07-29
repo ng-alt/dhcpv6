@@ -195,7 +195,7 @@ gint dad_parse(const gchar *file, GSList *dad_list) {
             g_message("duplicated IPv6 address %s detected",
                       in6addr2str(&ifinfo->addr, 0));
         } else {
-            free(ifinfo);
+            g_free(ifinfo);
             ifinfo = NULL;
             continue;
         }
@@ -206,7 +206,7 @@ gint dad_parse(const gchar *file, GSList *dad_list) {
         }
 
         if (strcmp(tmp, dhcp6_if->ifname)) {
-            free(ifinfo);
+            g_free(ifinfo);
             ifinfo = NULL;
             continue;
         } else {

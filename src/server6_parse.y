@@ -429,7 +429,8 @@ prefixdef
           memcpy(&v6prefix->prefix, prefix, sizeof(v6prefix->prefix));
           v6prefix->next = link->prefixlist;
           link->prefixlist = v6prefix;
-          free(prefix);
+          g_free(prefix);
+          prefix = NULL;
       }
     ;
 
@@ -540,8 +541,10 @@ rangedef
               }
           }
 
-          free(prefix1);
-          free(prefix2);
+          g_free(prefix1);
+          prefix1 = NULL;
+          g_free(prefix2);
+          prefix2 = NULL;
       }
     ;
 

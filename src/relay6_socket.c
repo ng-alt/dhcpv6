@@ -151,7 +151,8 @@ static void _send_relay_forw(gpointer data, gpointer user_data) {
     g_debug("%s: => relay_forw, sent to: %s snet_bytes: %d",
             __func__, dest_addr, count);
 
-    free(recvp);
+    g_free(recvp);
+    recvp = NULL;
     relay_forw->hit = TRUE;
     return;
 }
@@ -463,13 +464,16 @@ gint get_interface_info(void) {
             nr_of_devices--;
             device->prev->next = device->next;
             device->next->prev = device->prev;
-            free(device->ifname);
+            g_free(device->ifname);
+            device->ifname = NULL;
 
             if (device->link_local != NULL) {
-                free(device->link_local);
+                g_free(device->link_local);
+                device->link_local = NULL;
             }
 
-            free(device);
+            g_free(device);
+            device = NULL;
         }
 
         device = next_device;
@@ -592,7 +596,8 @@ gint send_message(void) {
         g_debug("%s: *> relay_repl, sent to: %s sent_bytes: %d",
                 __func__, dest_addr, count);
 
-        free(recvp);
+        g_free(recvp);
+        recvp = NULL;
 
         relay_forw.mesg->sent = 1;
         return 1;
@@ -661,7 +666,8 @@ gint send_message(void) {
 
             g_debug("%s: => relay_forw, sent to: %s sent_bytes: %d",
                     __func__, dest_addr, count);
-            free(recvp);
+            g_free(recvp);
+            recvp = NULL;
             relay_forw.hit = TRUE;
         }                       /* for */
 
@@ -739,7 +745,8 @@ gint send_message(void) {
 
                 g_debug("%s: => relay_forw, sent to: %s sent_bytes: %d",
                         __func__, dest_addr, count);
-                free(recvp);
+                g_free(recvp);
+                recvp = NULL;
                 uservers = uservers->next;
                 relay_forw.hit = TRUE;
             }                   /* while */
@@ -825,7 +832,8 @@ gint send_message(void) {
 
                 g_debug("%s: => relay_forw, sent to: %s sent_bytes: %d",
                         __func__, dest_addr, count);
-                free(recvp);
+                g_free(recvp);
+                recvp = NULL;
             }                   /* for */
         }
     }

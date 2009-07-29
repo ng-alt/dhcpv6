@@ -112,7 +112,8 @@ gint configure_duid(const gchar *str, struct duid *duid) {
 
 bad:
     if (idbuf) {
-        free(idbuf);
+        g_free(idbuf);
+        idbuf = NULL;
     }
 
     g_error("%s: assumption failure (bad string)", __func__);
@@ -355,7 +356,7 @@ void duidfree(struct duid *duid) {
 
     if (duid->duid_id != NULL && duid->duid_len != 0) {
         g_debug("%s: removing ID (ID: %s)", __func__, duidstr(duid));
-        free(duid->duid_id);
+        g_free(duid->duid_id);
         duid->duid_id = NULL;
         duid->duid_len = 0;
     }

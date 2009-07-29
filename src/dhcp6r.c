@@ -209,7 +209,8 @@ gint main(gint argc, gchar **argv) {
                 iface->sname = sa;
                 g_debug("%s: setting up server address: %s for interface: %s",
                         __func__, addr, eth);
-                free(sf);
+                g_free(sf);
+                sf = NULL;
             } else {
                 err = 5;
                 goto ERROR;

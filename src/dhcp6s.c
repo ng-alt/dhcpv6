@@ -593,7 +593,8 @@ static gint _handle_addr_request(struct dhcp6_optinfo *roptinfo,
         if (!g_slist_length(ria->addr_list)) {
             if (resptype == DH6_ADVERTISE) {
                 /* Omit IA option */
-                free(ria);
+                g_free(ria);
+                ria = NULL;
                 continue;
             } else if (resptype == DH6_REPLY) {
                 /* Set status code in IA */
@@ -631,7 +632,8 @@ static gint _handle_addr_request(struct dhcp6_optinfo *roptinfo,
     return 0;
 
 fail:
-    free(ria);
+    g_free(ria);
+    ria = NULL;
     ia_clear_list(ia_list);
     return -1;
 }
@@ -679,7 +681,7 @@ static gint _update_binding_ia(struct dhcp6_optinfo *roptinfo,
                 if (addr_flag == ADDR_VALIDATE) {
                     goto out;
                 } else if (msgtype == DH6_REBIND) {
-                    free(ria);
+                    g_free(ria);
                     ria = NULL;
                 } else {
                     ria->status_code = DH6OPT_STCODE_NOBINDING;
@@ -776,7 +778,8 @@ out:
     return 0;
 
 fail:
-    free(ria);
+    g_free(ria);
+    ria = NULL;
     ia_clear_list(ria_list);
     return -1;
 }

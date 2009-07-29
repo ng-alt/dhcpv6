@@ -1298,7 +1298,8 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                 switch (opt) {
                     case DH6OPT_IA_TA:
                         if (optlen < sizeof(guint32)) {
-                            free(ia);
+                            g_free(ia);
+                            ia = NULL;
                             goto malformed;
                         }
 
@@ -1310,7 +1311,8 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                     case DH6OPT_IA_NA:
                     case DH6OPT_IA_PD:
                         if (optlen < sizeof(struct dhcp6_iaid_info)) {
-                            free(ia);
+                            g_free(ia);
+                            ia = NULL;
                             goto malformed;
                         }
 
@@ -1331,12 +1333,14 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                 if (ia_find_listval(optinfo->ia_list, ia->type,
                                     ia->iaidinfo.iaid)) {
                     g_message("%s: duplicated iaid", __func__);
-                    free(ia);
+                    g_free(ia);
+                    ia = NULL;
                     goto fail;
                 }
 
                 if (_get_assigned_ipv6addrs(iacp, cp + optlen, ia)) {
-                    free(ia);
+                    g_free(ia);
+                    ia = NULL;
                     goto fail;
                 }
 
@@ -1636,7 +1640,8 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
 
 fail:
     if (tmpbuf) {
-        free(tmpbuf);
+        g_free(tmpbuf);
+        tmpbuf = NULL;
     }
 
     return -1;

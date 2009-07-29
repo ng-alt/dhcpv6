@@ -126,8 +126,13 @@ void delete_messages(void) {
             msg->next->prev = msg->prev;
             msg->next = NULL;
             msg->prev = NULL;
-            free(msg->buffer);
-            free(msg);
+
+            g_free(msg->buffer);
+            msg->buffer = NULL;
+
+            g_free(msg);
+            msg = NULL;
+
             msg = msg_parser_list.next;
         }
     }
@@ -260,8 +265,13 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
     pointer += len;
     memcpy(pointer, msg->buffer, msg->datalength);
     msg->datalength += len;     /* final length for sending */
-    free(msg->buffer);
-    free(head);
+
+    g_free(msg->buffer);
+    msg->buffer = NULL;
+
+    g_free(head);
+    head = NULL;
+
     msg->buffer = newbuff;
 
     return 1;
@@ -398,7 +408,7 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
                 len = (msg->datalength - len);
                 memcpy(newbuff, pointer, len);
                 msg->datalength = len;
-                free(msg->buffer);
+                g_free(msg->buffer);
                 msg->buffer = newbuff;
                 return 1;
             } else {
@@ -433,7 +443,7 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
                 len = (msg->datalength - len);
                 memcpy(newbuff, pointer, len);
                 msg->datalength = len;
-                free(msg->buffer);
+                g_free(msg->buffer);
                 msg->buffer = newbuff;
                 return 1;
             }
@@ -503,7 +513,7 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
             memset(newbuff, 0, MAX_DHCP_MSG_LENGTH);
             memcpy(newbuff, pointer, msglen);
             msg->datalength = msglen;
-            free(msg->buffer);
+            g_free(msg->buffer);
             msg->buffer = newbuff;
             return 1;
         } else {
@@ -536,7 +546,7 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
             memset(newbuff, 0, MAX_DHCP_MSG_LENGTH);
             memcpy(newbuff, pointer, msglen);
             msg->datalength = msglen;
-            free(msg->buffer);
+            g_free(msg->buffer);
             msg->buffer = newbuff;
             return 1;
         }
