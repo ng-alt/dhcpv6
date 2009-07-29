@@ -148,7 +148,7 @@ gint main(gint argc, gchar **argv) {
             }
 
             unia = (struct IPv6_uniaddr *)
-                malloc(sizeof(struct IPv6_uniaddr));
+                g_malloc0(sizeof(struct IPv6_uniaddr));
 
             if (unia == NULL) {
                 g_error("%s: memory allocation error", __func__);
@@ -192,7 +192,7 @@ gint main(gint argc, gchar **argv) {
             }
 
             if ((iface = get_interface_s(eth)) != NULL) {
-                sa = (struct server *) malloc(sizeof(struct server));
+                sa = (struct server *) g_malloc0(sizeof(struct server));
 
                 if (sa == NULL) {
                     g_error("%s: memory allocation error", __func__);

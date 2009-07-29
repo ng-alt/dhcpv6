@@ -159,15 +159,14 @@ static void _send_relay_forw(gpointer data, gpointer user_data) {
 /* END STATIC FUNCTIONS */
 
 void init_socket(void) {
-    relaysock = (struct relay_socket *) malloc(sizeof(struct relay_socket));
+    relaysock = (struct relay_socket *) g_malloc0(sizeof(struct relay_socket));
 
     if (relaysock == NULL) {
         g_error("%s: memory allocation error", __func__);
         exit(1);
     }
 
-    memset(relaysock, 0, sizeof(struct relay_socket));
-    relaysock->databuf = (gchar *) malloc(MAX_DHCP_MSG_LENGTH * sizeof(gchar));
+    relaysock->databuf = (gchar *) g_malloc0(MAX_DHCP_MSG_LENGTH*sizeof(gchar));
 
     if (relaysock->databuf == NULL) {
         g_error("%s: memory allocation error", __func__);
@@ -333,7 +332,7 @@ gint fill_addr_struct(void) {
     relaysock->msg.msg_iovlen = 1;
 
     relaysock->recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-    relaysock->recvp = (gchar *) malloc(relaysock->recvmsglen * sizeof(gchar));
+    relaysock->recvp = (gchar *) g_malloc0(relaysock->recvmsglen*sizeof(gchar));
     relaysock->msg.msg_control = (void *) relaysock->recvp;
     relaysock->msg.msg_controllen = relaysock->recvmsglen;
 
@@ -413,7 +412,7 @@ gint get_interface_info(void) {
 
         if (sw == 0) {
             opaq += 10;
-            device = (struct interface *) malloc(sizeof(struct interface));
+            device = (struct interface *) g_malloc0(sizeof(struct interface));
 
             if (device == NULL) {
                 g_error("%s: memory allocation error", __func__);
@@ -437,7 +436,7 @@ gint get_interface_info(void) {
                     __func__, devname, if_idx, src_addr);
         } else {
             ipv6addr = (struct IPv6_address *)
-                malloc(sizeof(struct IPv6_address));
+                g_malloc0(sizeof(struct IPv6_address));
 
             if (ipv6addr == NULL) {
                 g_error("%s: memory allocation error", __func__);
@@ -515,14 +514,13 @@ gint send_message(void) {
         memcpy(dest_addr, relay_forw.mesg->peer_addr, INET6_ADDRSTRLEN);
 
         recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-        recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
+        recvp = (gchar *) g_malloc0(recvmsglen * sizeof(gchar));
 
         if (recvp == NULL) {
             g_error("%s: memory allocation error", __func__);
             exit(1);
         }
 
-        memset(recvp, 0, recvmsglen);
         cmsgp = (struct cmsghdr *) recvp;
         cmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
         cmsgp->cmsg_level = IPPROTO_IPV6;
@@ -616,14 +614,12 @@ gint send_message(void) {
             }
 
             recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-            recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
+            recvp = (gchar *) g_malloc0(recvmsglen * sizeof(gchar));
 
             if (recvp == NULL) {
                 g_error("%s: memory allocation error", __func__);
                 exit(1);
             }
-
-            memset(recvp, 0, recvmsglen);
 
             cmsgp = (struct cmsghdr *) recvp;
             cmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
@@ -687,14 +683,12 @@ gint send_message(void) {
                 }
 
                 recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-                recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
+                recvp = (gchar *) g_malloc0(recvmsglen * sizeof(gchar));
 
                 if (recvp == NULL) {
                     g_error("%s: memory allocation error", __func__);
                     exit(1);
                 }
-
-                memset(recvp, 0, recvmsglen);
 
                 cmsgp = (struct cmsghdr *) recvp;
                 cmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
@@ -774,14 +768,12 @@ gint send_message(void) {
                 }
 
                 recvmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-                recvp = (gchar *) malloc(recvmsglen * sizeof(gchar));
+                recvp = (gchar *) g_malloc0(recvmsglen * sizeof(gchar));
 
                 if (recvp == NULL) {
                     g_error("%s: memory allocation error", __func__);
                     exit(1);
                 }
-
-                memset(recvp, 0, recvmsglen);
 
                 cmsgp = (struct cmsghdr *) recvp;
                 cmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));

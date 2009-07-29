@@ -333,7 +333,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
             buflen = sizeof(opt_iana) + g_slist_length(ia->addr_list) *
                 (sizeof(ai) + sizeof(status)) + sizeof(status);
 
-            if ((*tmpbuf = malloc(buflen)) == NULL) {
+            if ((*tmpbuf = g_malloc0(buflen)) == NULL) {
                 g_error("%s: memory allocation failed for options", __func__);
                 return -1;
             }
@@ -433,7 +433,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
             buflen = sizeof(opt_iapd) + g_slist_length(ia->addr_list) *
                 (sizeof(pi) + sizeof(status)) + sizeof(status);
 
-            if ((*tmpbuf = malloc(buflen)) == NULL) {
+            if ((*tmpbuf = g_malloc0(buflen)) == NULL) {
                 g_error("%s: memory allocation failed for options", __func__);
                 return -1;
             }
@@ -568,12 +568,11 @@ void ifinit(const gchar *ifname) {
         return;
     }
 
-    if ((ifp = malloc(sizeof(*ifp))) == NULL) {
-        g_error("%s: malloc failed", __func__);
+    if ((ifp = g_malloc0(sizeof(*ifp))) == NULL) {
+        g_error("%s: memory allocation failure", __func__);
         goto die;
     }
 
-    memset(ifp, 0, sizeof(*ifp));
     ifp->event_list = NULL;
 
     if ((ifp->ifname = strdup((gchar *) ifname)) == NULL) {
@@ -683,12 +682,10 @@ dhcp6_value_t *dhcp6_add_listval(GSList *head, void *val,
                                  dhcp6_listval_type_t type) {
     dhcp6_value_t *lv;
 
-    if ((lv = malloc(sizeof(*lv))) == NULL) {
+    if ((lv = g_malloc0(sizeof(*lv))) == NULL) {
         g_error("%s: failed to allocate memory for list entry", __func__);
         return NULL;
     }
-
-    memset(lv, 0, sizeof(*lv));
 
     switch (type) {
         case DHCP6_LISTVAL_NUM:

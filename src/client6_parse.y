@@ -61,14 +61,13 @@ extern void client6error(gchar *, ...) __attribute__((__format__(__printf__, 1, 
 
 #define MAKE_NAMELIST(l, n, p) \
     do { \
-        (l) = (struct cf_namelist *) malloc(sizeof(*(l))); \
+        (l) = (struct cf_namelist *) g_malloc0(sizeof(*(l))); \
         if ((l) == NULL) { \
             cpyywarn("can't allocate memory"); \
             if (p) \
                 cleanup_cflist(p); \
             return (-1); \
         } \
-        memset((l), 0, sizeof(*(l))); \
         l->line = lineno; \
         l->name = (n); \
         l->params = (p); \
@@ -76,7 +75,7 @@ extern void client6error(gchar *, ...) __attribute__((__format__(__printf__, 1, 
 
 #define MAKE_CFLIST(l, t, pp, pl) \
     do { \
-        (l) = (struct cf_list *) malloc(sizeof(*(l))); \
+        (l) = (struct cf_list *) g_malloc0(sizeof(*(l))); \
         if ((l) == NULL) { \
             cpyywarn("can't allocate memory"); \
             if (pp) \
@@ -85,7 +84,6 @@ extern void client6error(gchar *, ...) __attribute__((__format__(__printf__, 1, 
                 cleanup_cflist(pl); \
             return (-1); \
         } \
-        memset((l), 0, sizeof(*(l))); \
         l->line = lineno; \
         l->type = (t); \
         l->ptr = (pp); \
@@ -315,12 +313,11 @@ addrparam
           if ($3 < 0 || $3 > 128)
               return (-1);
 
-          if ((v6addr = malloc(sizeof(*v6addr))) == NULL) {
+          if ((v6addr = g_malloc0(sizeof(*v6addr))) == NULL) {
               cpyywarn("can't allocate memory");
               return (-1);
           }
 
-          memset(v6addr, 0, sizeof(*v6addr));
           memcpy(&v6addr->addr, &$1, sizeof(v6addr->addr));
           v6addr->plen = $3;
           $$ = v6addr;

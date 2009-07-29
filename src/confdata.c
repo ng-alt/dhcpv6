@@ -233,11 +233,10 @@ static gint _add_address(GSList *addr_list, struct dhcp6_addr *v6addr) {
         } while ((iterator = g_slist_next(iterator)) != NULL);
     }
 
-    if ((val = (dhcp6_value_t *) malloc(sizeof(*val))) == NULL) {
+    if ((val = (dhcp6_value_t *) g_malloc0(sizeof(*val))) == NULL) {
         g_error("%s: memory allocation failed", __func__);
     }
 
-    memset(val, 0, sizeof(*val));
     memcpy(&val->val_dhcp6addr, v6addr, sizeof(val->val_dhcp6addr));
     g_debug("%s: add address: %s", __func__, in6addr2str(&v6addr->addr, 0));
     addr_list = g_slist_append(addr_list, val);
@@ -253,13 +252,12 @@ gint configure_interface(const struct cf_namelist *iflist) {
     for (ifp = iflist; ifp; ifp = ifp->next) {
         struct cf_list *cfl;
 
-        if ((ifc = malloc(sizeof(*ifc))) == NULL) {
+        if ((ifc = g_malloc0(sizeof(*ifc))) == NULL) {
             g_error("%s: memory allocation for %s failed",
                     __func__, ifp->name);
             goto bad;
         }
 
-        memset(ifc, 0, sizeof(*ifc));
         ifc->next = dhcp6_ifconflist;
         dhcp6_ifconflist = ifc;
 
@@ -443,13 +441,12 @@ gint configure_host(const struct cf_namelist *hostlist) {
     for (host = hostlist; host; host = host->next) {
         struct cf_list *cfl;
 
-        if ((hconf = malloc(sizeof(*hconf))) == NULL) {
+        if ((hconf = g_malloc0(sizeof(*hconf))) == NULL) {
             g_error("%s: memory allocation failed for host %s",
                     __func__, host->name);
             goto bad;
         }
 
-        memset(hconf, 0, sizeof(*hconf));
         hconf->addr_list = NULL;
         hconf->addr_binding_list = NULL;
         hconf->prefix_list = NULL;

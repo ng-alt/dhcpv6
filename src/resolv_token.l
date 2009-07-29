@@ -226,7 +226,7 @@ gint change_resolv_conf(gchar *new_rscf) {
     }
 
     l = strlen(NETWORK_FUNCTIONS_SCRIPT) + strlen(new_rscf) + 27;
-    cmd = (gchar *) malloc(l);
+    cmd = (gchar *) g_malloc0(l);
     snprintf(cmd, l, ". %s ; change_resolv_conf %s",
              NETWORK_FUNCTIONS_SCRIPT, new_rscf);
     argv[2] = cmd;

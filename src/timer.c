@@ -100,12 +100,10 @@ dhcp6_timer_t *dhcp6_add_timer(dhcp6_timer_t *(*timeout) (void *),
                                void *timeodata) {
     dhcp6_timer_t *newtimer;
 
-    if ((newtimer = malloc(sizeof(*newtimer))) == NULL) {
+    if ((newtimer = g_malloc0(sizeof(*newtimer))) == NULL) {
         g_error("%s: can't allocate memory", __func__);
         return NULL;
     }
-
-    memset(newtimer, 0, sizeof(*newtimer));
 
     if (timeout == NULL) {
         g_error("%s: timeout function unspecified", __func__);

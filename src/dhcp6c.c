@@ -297,7 +297,7 @@ static gint _create_request_list(gint reboot) {
         cl = (dhcp6_lease_t *) iterator->data;
 
         /* IANA, IAPD */
-        if ((lv = malloc(sizeof(*lv))) == NULL) {
+        if ((lv = g_malloc0(sizeof(*lv))) == NULL) {
             g_error("%s: failed to allocate memory for an ipv6 addr", __func__);
             exit(1);
         }
@@ -727,12 +727,11 @@ static struct dhcp6_serverinfo *_allocate_newserver(struct dhcp6_if *ifp,
     struct dhcp6_serverinfo *newserver, **sp;
 
     /* keep the server */
-    if ((newserver = malloc(sizeof(*newserver))) == NULL) {
+    if ((newserver = g_malloc0(sizeof(*newserver))) == NULL) {
         g_error("%s: memory allocation failed for server", __func__);
         return NULL;
     }
 
-    memset(newserver, 0, sizeof(*newserver));
     dhcp6_init_options(&newserver->optinfo);
 
     if (dhcp6_copy_options(&newserver->optinfo, optinfo)) {
@@ -1613,7 +1612,7 @@ gint get_if_rainfo(struct dhcp6_if *ifp) {
 
             /* create a new rainfo struct and add it to the list of addresses 
              */
-            rainfo = (struct ra_info *) malloc(sizeof(*rainfo));
+            rainfo = (struct ra_info *) g_malloc0(sizeof(*rainfo));
             if (rainfo == NULL) {
                 nl_addr_destroy(addr);
                 rtnl_addr_put(raddr);
@@ -1622,7 +1621,6 @@ gint get_if_rainfo(struct dhcp6_if *ifp) {
                 return 5;
             }
 
-            memset(rainfo, 0, sizeof(rainfo));
             memcpy((&rainfo->prefix), tmpaddr, sizeof(struct in6_addr));
             rainfo->plen = rtnl_addr_get_prefixlen(raddr);
 
@@ -2317,13 +2315,11 @@ gint main(gint argc, gchar **argv, gchar **envp) {
                      addr = strtok(NULL, " ")) {
                     dhcp6_value_t *lv;
 
-                    if ((lv = (dhcp6_value_t *) malloc(sizeof(*lv)))
+                    if ((lv = (dhcp6_value_t *) g_malloc0(sizeof(*lv)))
                         == NULL) {
                         g_error("failed to allocate memory");
                         exit(1);
                     }
-
-                    memset(lv, 0, sizeof(*lv));
 
                     if (inet_pton(AF_INET6, strtok(addr, "/"),
                                   &lv->val_dhcp6addr.addr) < 1) {
@@ -2358,13 +2354,11 @@ gint main(gint argc, gchar **argv, gchar **envp) {
                      addr = strtok(NULL, " ")) {
                     dhcp6_value_t *lv;
 
-                    if ((lv = (dhcp6_value_t *) malloc(sizeof(*lv)))
+                    if ((lv = (dhcp6_value_t *) g_malloc0(sizeof(*lv)))
                         == NULL) {
                         g_error("failed to allocate memory");
                         exit(1);
                     }
-
-                    memset(lv, 0, sizeof(*lv));
 
                     if (inet_pton(AF_INET6, addr, &lv->val_dhcp6addr.addr) <
                         1) {

@@ -140,7 +140,7 @@ gint dad_parse(const gchar *file, GSList *dad_list) {
             abort();
         }
 
-        if ((ifinfo = malloc(sizeof(*ifinfo))) == NULL) {
+        if ((ifinfo = g_malloc0(sizeof(*ifinfo))) == NULL) {
             g_error("memory allocation failure");
             abort();
         }
@@ -216,7 +216,7 @@ gint dad_parse(const gchar *file, GSList *dad_list) {
             ifinfo->next = NULL;
 
             /* check address on client6_iaidaddr list */
-            if ((lv = malloc(sizeof(*lv))) == NULL) {
+            if ((lv = g_malloc0(sizeof(*lv))) == NULL) {
                 g_error("memory allocation failure");
                 abort();
             }

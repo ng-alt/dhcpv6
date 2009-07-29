@@ -48,13 +48,13 @@
 struct msg_parser *create_parser_obj(void) {
     struct msg_parser *msg;
 
-    msg = (struct msg_parser *) malloc(sizeof(struct msg_parser));
+    msg = (struct msg_parser *) g_malloc0(sizeof(struct msg_parser));
     if (msg == NULL) {
         g_error("%s: memory allocation error", __func__);
         exit(1);
     }
 
-    msg->buffer = (uint8_t *) malloc(MAX_DHCP_MSG_LENGTH * sizeof(uint8_t));
+    msg->buffer = (uint8_t *) g_malloc0(MAX_DHCP_MSG_LENGTH * sizeof(uint8_t));
     if (msg->buffer == NULL) {
         g_error("%s: memory allocation error", __func__);
         exit(1);

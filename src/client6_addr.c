@@ -330,12 +330,11 @@ gint dhcp6_add_lease(struct dhcp6_addr *addr) {
         return -1;
     }
 
-    if ((sp = (dhcp6_lease_t *) malloc(sizeof(*sp))) == NULL) {
+    if ((sp = (dhcp6_lease_t *) g_malloc0(sizeof(*sp))) == NULL) {
         g_error("%s: failed to allocate memory for a addr", __func__);
         return -1;
     }
 
-    memset(sp, 0, sizeof(*sp));
     memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
     sp->iaidaddr = &client6_iaidaddr;
     time(&sp->start_date);

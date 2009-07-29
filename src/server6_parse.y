@@ -188,14 +188,13 @@ ifhead
               temp_if = temp_if->next;
           }
 
-          ifnetwork = (struct interface *) malloc(sizeof(*ifnetwork));
+          ifnetwork = (struct interface *) g_malloc0(sizeof(*ifnetwork));
 
           if (ifnetwork == NULL) {
               g_error("failed to allocate memory");
               ABORT;
           }
 
-          memset(ifnetwork, 0, sizeof(*ifnetwork));
           ifnetwork->ifscope.dnsinfo.servers = NULL;
           strncpy(ifnetwork->name, $2, strlen($2));
 
@@ -253,14 +252,13 @@ linkhead
     : LINK name {
           struct link_decl *temp_sub = linklist;
           /* memory allocation for link */
-          link = (struct link_decl *) malloc(sizeof(*link));
+          link = (struct link_decl *) g_malloc0(sizeof(*link));
 
           if (link == NULL) {
               g_error("failed to allocate memory");
               ABORT;
           }
 
-          memset(link, 0, sizeof(*link));
           link->linkscope.dnsinfo.servers = NULL;
 
           while (temp_sub) {
@@ -318,13 +316,12 @@ relaypara
               ABORT;
           }
 
-          temprelay = (struct v6addrlist *) malloc(sizeof(*temprelay));
+          temprelay = (struct v6addrlist *) g_malloc0(sizeof(*temprelay));
           if (temprelay == NULL) {
               g_error("failed to allocate memory");
               ABORT;
           }
 
-          memset(temprelay, 0, sizeof(*temprelay));
           memcpy(&temprelay->v6addr.addr, &$2, sizeof(temprelay->v6addr.addr));
           temprelay->v6addr.plen = $4;
           temprelay->next = link->relaylist;
@@ -352,14 +349,13 @@ poolhead
               ABORT;
           }
 
-          pool = (struct pool_decl *) malloc(sizeof(*pool));
+          pool = (struct pool_decl *) g_malloc0(sizeof(*pool));
 
           if (pool == NULL) {
               g_error("fail to allocate memory");
               ABORT;
           }
 
-          memset(pool, 0, sizeof(*pool));
           pool->poolscope.dnsinfo.servers = NULL;
 
           if (link)
@@ -396,14 +392,13 @@ prefixdef
               ABORT;
           }
 
-          v6prefix = (struct v6prefix *) malloc(sizeof(*v6prefix));
+          v6prefix = (struct v6prefix *) g_malloc0(sizeof(*v6prefix));
 
           if (v6prefix == NULL) {
               g_error("failed to allocate memory");
               ABORT;
           }
 
-          memset(v6prefix, 0, sizeof(*v6prefix));
           v6prefix->link = link;
 
           if (pool)
@@ -448,14 +443,13 @@ rangedef
               ABORT;
           }
 
-          seg = (struct v6addrseg *) malloc(sizeof(*seg));
+          seg = (struct v6addrseg *) g_malloc0(sizeof(*seg));
 
           if (seg == NULL) {
               g_error("failed to allocate memory");
               ABORT;
           }
 
-          memset(seg, 0, sizeof(*seg));
           temp_seg = link->seglist;
           seg->link = link;
 
@@ -580,13 +574,12 @@ grouphead
     : GROUP {
           struct scope *groupscope;
 
-          groupscope = (struct scope *) malloc(sizeof(*groupscope));
+          groupscope = (struct scope *) g_malloc0(sizeof(*groupscope));
           if (groupscope == NULL) {
               g_error("group memory allocation failed");
               ABORT;
           }
 
-          memset(groupscope, 0, sizeof(*groupscope));
           groupscope->dnsinfo.servers = NULL;
           /* set up current group */
           currentgroup = push_double_list(currentgroup, groupscope);
@@ -640,13 +633,12 @@ hosthead
               temp_host = temp_host->next;
           }
 
-          host = (struct host_decl *)malloc(sizeof(*host));
+          host = (struct host_decl *) g_malloc0(sizeof(*host));
           if (host == NULL) {
               g_error("fail to allocate memory");
               ABORT;
           }
 
-          memset(host, 0, sizeof(*host));
           host->addrlist = NULL;
           host->prefixlist = NULL;
           host->hostscope.dnsinfo.servers = NULL;
@@ -759,13 +751,12 @@ v6address
     : IPV6ADDR '/' NUMBER ';' {
           struct dhcp6_addr *temp;
 
-          temp = (struct dhcp6_addr *) malloc(sizeof(*temp));
+          temp = (struct dhcp6_addr *) g_malloc0(sizeof(*temp));
           if (temp == NULL) {
               g_error("v6addr memory allocation failed");
               ABORT;
           }
 
-          memset(temp, 0, sizeof(*temp));
           memcpy(&temp->addr, &$1, sizeof(temp->addr));
 
           if ($3 > 128 || $3 < 0) {
@@ -977,7 +968,7 @@ name
 %%
 
 static void cleanup(void) {
-    /* it is not necessary to free all the pre malloc(), if it fails,
+    /* it is not necessary to free all the pre g_malloc(), if it fails,
      * exit will free them automatically.
      */
 }

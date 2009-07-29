@@ -134,9 +134,9 @@ void delete_messages(void) {
 }
 
 gint process_RELAY_FORW(struct msg_parser *msg) {
-    uint8_t *head = (uint8_t *) malloc(HEAD_SIZE * sizeof(uint8_t));
+    uint8_t *head = (uint8_t *) g_malloc0(HEAD_SIZE * sizeof(uint8_t));
     uint8_t *newbuff =
-        (uint8_t *) malloc(MAX_DHCP_MSG_LENGTH * sizeof(uint8_t));
+        (uint8_t *) g_malloc0(MAX_DHCP_MSG_LENGTH * sizeof(uint8_t));
     uint8_t *pointer;
     struct interface *device = NULL;
     struct sockaddr_in6 sap;
@@ -150,7 +150,6 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
         exit(1);
     }
 
-    memset(head, 0, HEAD_SIZE);
     pointer = head;
 
     if (msg->isRF == 1) {
@@ -269,7 +268,7 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
 }
 
 gint process_RELAY_REPL(struct msg_parser *msg) {
-    guint8 *newbuff = (guint8 *) malloc(MAX_DHCP_MSG_LENGTH * sizeof(guint8));
+    guint8 *newbuff = (guint8 *) g_malloc(MAX_DHCP_MSG_LENGTH * sizeof(guint8));
     guint8 *pointer, *pstart, *psp;
     struct interface *device = NULL;
     struct sockaddr_in6 sap;

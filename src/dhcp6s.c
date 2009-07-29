@@ -263,7 +263,8 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
                 if (relay_val->intf_id == NULL) {
                     if (optlen) {
                         relay_val->intf_id = (struct intf_id *)
-                            malloc(sizeof(struct intf_id));
+                            g_malloc0(sizeof(struct intf_id));
+
                         if (relay_val->intf_id == NULL) {
                             g_error("%s: failed to allocate memory", __func__);
                             g_slist_free(optinfo->relay_list);
@@ -272,7 +273,7 @@ static struct dhcp6 *_dhcp6_parse_relay(struct dhcp6_relay *relay_msg,
                         } else {
                             relay_val->intf_id->intf_len = optlen;
                             relay_val->intf_id->intf_id = (gchar *)
-                                malloc(optlen);
+                                g_malloc0(optlen);
 
                             if (relay_val->intf_id->intf_id == NULL) {
                                 g_error("%s: failed to allocate memory",
@@ -1407,7 +1408,7 @@ void server6_init() {
     rmh.msg_iovlen = 1;
 
     rmsgctllen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-    if ((rmsgctlbuf = (gchar *) malloc(rmsgctllen)) == NULL) {
+    if ((rmsgctlbuf = (gchar *) g_malloc0(rmsgctllen)) == NULL) {
         g_error("%s: memory allocation failed", __func__);
         exit(1);
     }
@@ -1618,13 +1619,12 @@ gint main(gint argc, gchar **argv) {
         exit(1);
     }
 
-    globalgroup = (struct rootgroup *) malloc(sizeof(struct rootgroup));
+    globalgroup = (struct rootgroup *) g_malloc0(sizeof(struct rootgroup));
     if (globalgroup == NULL) {
         g_error("failed to allocate memory %s", strerror(errno));
         exit(1);
     }
 
-    memset(globalgroup, 0, sizeof(*globalgroup));
     globalgroup->scope.dnsinfo.servers = NULL;
 
     if ((sfparse(conffile)) != 0) {
@@ -1639,13 +1639,12 @@ gint main(gint argc, gchar **argv) {
             /* If there was no link defined in the conf file, make an empty
              * one. */
             ifnetwork->linklist =
-                (struct link_decl *) malloc(sizeof(*subnet));
+                (struct link_decl *) g_malloc0(sizeof(*subnet));
             if (ifnetwork->linklist == NULL) {
                 g_error("failed to allocate memory");
                 exit(1);
             }
 
-            memset(ifnetwork->linklist, 0, sizeof(*ifnetwork->linklist));
             ifnetwork->linklist->linkscope.dnsinfo.servers = NULL;
         }
     }

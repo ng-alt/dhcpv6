@@ -588,12 +588,11 @@ gint dhcp6_add_lease(dhcp6_iaidaddr_t *iaidaddr, struct dhcp6_addr *addr) {
         return -1;
     }
 
-    if ((sp = (dhcp6_lease_t *) malloc(sizeof(*sp))) == NULL) {
+    if ((sp = (dhcp6_lease_t *) g_malloc0(sizeof(*sp))) == NULL) {
         g_error("%s: failed to allocate memory for an address", __func__);
         return -1;
     }
 
-    memset(sp, 0, sizeof(*sp));
     memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
     sp->iaidaddr = iaidaddr;
     /* ToDo: preferlifetime EXPIRED; validlifetime DELETED; */
@@ -885,14 +884,13 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
         }
 
         if (numaddr == 0) {
-            v6addr = (dhcp6_value_t *) malloc(sizeof(*v6addr));
+            v6addr = (dhcp6_value_t *) g_malloc0(sizeof(*v6addr));
             if (v6addr == NULL) {
                 g_error("%s: fail to allocate memory %s",
                         __func__, strerror(errno));
                 return -1;
             }
 
-            memset(v6addr, 0, sizeof(*v6addr));
             v6addr->val_dhcp6addr.type = ia->type;
             _server6_get_newaddr(ia->type, &v6addr->val_dhcp6addr, seg);
 
@@ -925,14 +923,13 @@ gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
     ria->type = ia->type;
 
     for (prefix6 = subnet->prefixlist; prefix6; prefix6 = prefix6->next) {
-        v6addr = (dhcp6_value_t *) malloc(sizeof(*v6addr));
+        v6addr = (dhcp6_value_t *) g_malloc0(sizeof(*v6addr));
 
         if (v6addr == NULL) {
             g_error("%s: fail to allocate memory", __func__);
             return -1;
         }
 
-        memset(v6addr, 0, sizeof(*v6addr));
         /* XXX: ToDo: get new paras */
         memcpy(&v6addr->val_dhcp6addr.addr, &prefix6->prefix.addr,
                sizeof(v6addr->val_dhcp6addr.addr));

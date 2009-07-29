@@ -85,7 +85,7 @@ gint configure_duid(const gchar *str, struct duid *duid) {
     }
 
     duidlen += (slen / 3);
-    if ((idbuf = (guchar *) malloc(duidlen)) == NULL) {
+    if ((idbuf = (guchar *) g_malloc0(duidlen)) == NULL) {
         g_error("%s: memory allocation failed", __func__);
         return -1;
     }
@@ -162,7 +162,7 @@ gint get_duid(const gchar *idfile, const gchar *ifname, struct duid *duid) {
     memset(duid, 0, sizeof(*duid));
     duid->duid_len = len;
 
-    if ((duid->duid_id = (guchar *) malloc(len)) == NULL) {
+    if ((duid->duid_id = (guchar *) g_malloc0(len)) == NULL) {
         g_error("%s: failed to allocate memory", __func__);
         goto fail;
     }
@@ -331,7 +331,7 @@ ssize_t gethwid(guchar *buf, gint len, const gchar *ifname,
 gint duidcpy(struct duid *dd, const struct duid *ds) {
     dd->duid_len = ds->duid_len;
 
-    if ((dd->duid_id = malloc(dd->duid_len)) == NULL) {
+    if ((dd->duid_id = g_malloc0(dd->duid_len)) == NULL) {
         g_error("%s: len %d memory allocation failed", __func__, dd->duid_len);
         return -1;
     }

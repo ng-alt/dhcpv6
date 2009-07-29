@@ -148,12 +148,11 @@ comment		\#.*
 {semi}		{;}
 	/* lease parser */
 "lease" {
-	lease_rec = (dhcp6_lease_t *)malloc(sizeof(*lease_rec));
+	lease_rec = (dhcp6_lease_t *) g_malloc0(sizeof(*lease_rec));
 	if (lease_rec == NULL) {
 		YYABORT("failed to allocate memory for a lease");
 		ABORT;
 	}
-	memset(lease_rec, 0, sizeof(*lease_rec));
 	memset(&client6_info, 0, sizeof(client6_info));
 	lease_flags = 0;
 	BEGIN S_LEASE;}
@@ -339,12 +338,11 @@ do_iaidaddr_hash(lease_rec, key)
 			}
 		}
 	} else {
-		iaidaddr = (dhcp6_iaidaddr_t *)malloc(sizeof(*iaidaddr));
+		iaidaddr = (dhcp6_iaidaddr_t *) g_malloc0(sizeof(*iaidaddr));
 	  	if (!iaidaddr) {
 			g_error("%s: failed to allocate memory", __func__);
 			return (-1);
 	  	}
-		memset(iaidaddr, 0, sizeof(*iaidaddr));
 		iaidaddr->lease_list = NULL;
 		/* get the client info */
 		memcpy(&iaidaddr->client6_info, &client6_info, sizeof(iaidaddr->client6_info));

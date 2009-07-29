@@ -134,13 +134,12 @@ struct v6addr *getprefix(struct in6_addr *addr, gint len) {
     gint i, num_bytes;
     struct v6addr *prefix;
 
-    prefix = (struct v6addr *) malloc(sizeof(*prefix));
+    prefix = (struct v6addr *) g_malloc0(sizeof(*prefix));
     if (prefix == NULL) {
-        g_error("%s: fail to malloc memory", __func__);
+        g_error("%s: failed to allocate memory", __func__);
         return NULL;
     }
 
-    memset(prefix, 0, sizeof(*prefix));
     prefix->plen = len;
     num_bytes = len / 8;
 
@@ -169,14 +168,13 @@ struct scopelist *push_double_list(struct scopelist *current,
                                    struct scope *scope) {
     struct scopelist *item;
 
-    item = (struct scopelist *) malloc(sizeof(*item));
+    item = (struct scopelist *) g_malloc0(sizeof(*item));
 
     if (item == NULL) {
-        g_error("%s: fail to allocate memory", __func__);
+        g_error("%s: failed to allocate memory", __func__);
         return NULL;
     }
 
-    memset(item, 0, sizeof(*item));
     item->scope = scope;
 
     if (current) {
