@@ -72,7 +72,7 @@ struct interface {
     struct hardware hw_address;
     struct in6_addr primary_v6addr;
     struct in6_addr linklocal;
-    struct link_decl *linklist;
+    GSList *linklist;
     struct host_decl *hostlist;
     scope_t ifscope;
     scope_t *group;
@@ -85,23 +85,32 @@ struct interface {
 /* information to determin whether a particular IPv6 addresses is on the */
 
 /* link */
-struct link_decl {
-    struct link_decl *next;
+typedef struct _link_decl_t {
     gchar name[IFNAMSIZ];
     struct v6addrlist *relaylist;
     struct v6addrseg *seglist;
     struct v6prefix *prefixlist;
-    struct pool_decl *poollist;
+    GSList *poollist;
     struct interface *network;
     scope_t linkscope;
     scope_t *group;
-};
+} link_decl_t;
+
+/* The pool declaration is used to declare an address pool from which IPv6 */
+/* address can be allocated, with its own permit to control client access  */
+/* and its own scope in which you can declare pool-specific parameter*/
+typedef struct _pool_decl_t {
+    struct interface *network;
+    link_decl_t *link;
+    scope_t poolscope;
+    scope_t *group;
+} pool_decl_t;
 
 struct v6addrseg {
     struct v6addrseg *next;
     struct v6addrseg *prev;
-    struct link_decl *link;
-    struct pool_decl *pool;
+    link_decl_t *link;
+    pool_decl_t *pool;
     struct in6_addr min;
     struct in6_addr max;
     struct in6_addr free;
@@ -115,23 +124,10 @@ struct v6addrseg {
 struct v6prefix {
     struct v6prefix *next;
     struct v6prefix *prev;
-    struct link_decl *link;
-    struct pool_decl *pool;
+    link_decl_t *link;
+    pool_decl_t *pool;
     struct v6addr prefix;
     scope_t parainfo;
-};
-
-/* The pool declaration is used to declare an address pool from which IPv6 */
-
-/* address can be allocated, with its own permit to control client access  */
-
-/* and its own scopt in which you can declare pool-specific parameter*/
-struct pool_decl {
-    struct pool_decl *next;
-    struct interface *network;
-    struct link_decl *link;
-    scope_t poolscope;
-    scope_t *group;
 };
 
 struct v6addrlist {

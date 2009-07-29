@@ -160,13 +160,13 @@ struct v6addr *getprefix(struct in6_addr *addr, gint len) {
     return prefix;
 }
 
-gint get_numleases(struct pool_decl *currentpool, gchar *poolfile) {
+gint get_numleases(pool_decl_t *currentpool, gchar *poolfile) {
     return 0;
 }
 
 void post_config(struct rootgroup *root) {
     struct interface *ifnetwork = NULL;
-    struct link_decl *link = NULL;
+    link_decl_t *link = NULL;
     struct host_decl *host = NULL;
     struct v6addrseg *seg = NULL;
     struct v6prefix *prefix6 = NULL;
@@ -209,7 +209,10 @@ void post_config(struct rootgroup *root) {
         up = &ifnetwork->ifscope;
 
         /* XXX: check host */
-        for (link = ifnetwork->linklist; link; link = link->next) {
+        GSList *iterator = ifnetwork->linklist;
+        while (iterator) {
+            link = (link_decl_t *) iterator->data;
+
             if (link->group) {
                 _download_scope(link->group, &link->linkscope);
             }
@@ -268,6 +271,8 @@ void post_config(struct rootgroup *root) {
                     memcpy(&prefix6->parainfo, up, sizeof(prefix6->parainfo));
                 }
             }
+
+            iterator = g_slist_next(iterator);
         }
     }
 

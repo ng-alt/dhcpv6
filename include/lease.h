@@ -92,9 +92,9 @@ gint dhcp6_get_prefixlen(struct in6_addr *, struct dhcp6_if *);
 gint prefixcmp(struct in6_addr *, struct in6_addr *, gint);
 gint addr_on_addrlist(GSList *, struct dhcp6_addr *);
 gint dhcp6_create_prefixlist(ia_t *, ia_t *, const dhcp6_iaidaddr_t *,
-                             const struct link_decl *, guint16 *);
+                             const link_decl_t *, guint16 *);
 gint dhcp6_create_addrlist(ia_t *, ia_t *, const dhcp6_iaidaddr_t *,
-                           const struct link_decl *, guint16 *);
+                           const link_decl_t *, guint16 *);
 gint dad_parse(const gchar *, GSList *);
 
 #endif /* __LEASE_H_DEFINED */

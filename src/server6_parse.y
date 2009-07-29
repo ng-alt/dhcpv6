@@ -59,14 +59,14 @@ extern gint sock;
 extern GHashTable *host_addr_hash_table;
 
 static struct interface *ifnetworklist = NULL;
-static struct link_decl *linklist = NULL;
+static GSList *linklist = NULL;
 static struct host_decl *hostlist = NULL;
-static struct pool_decl *poollist = NULL;
+static GSList *poollist = NULL;
 
 static struct interface *ifnetwork = NULL;
-static struct link_decl *link = NULL;
+static link_decl_t *link = NULL;
 static struct host_decl *host = NULL;
-static struct pool_decl *pool = NULL;
+static pool_decl_t *pool = NULL;
 static GSList *currentscope = NULL;
 static GSList *currentgroup = NULL;
 static gint allow = 0;
@@ -243,19 +243,19 @@ linkdef
               link->group = (scope_t *) currentgroup->data;
           }
 
-          link->next = linklist;
-          linklist = link;
-          link = NULL;
-          /* leave iink scope we know the current scope is not point to NULL*/
+          linklist = g_slist_prepend(linklist, link);
+
+          /* leave link scope we know the current scope is not point to NULL*/
           currentscope = g_slist_delete_link(currentscope, currentscope);
       }
     ;
 
 linkhead
     : LINK name {
-          struct link_decl *temp_sub = linklist;
+          GSList *iterator = linklist;
+
           /* memory allocation for link */
-          link = (struct link_decl *) g_malloc0(sizeof(*link));
+          link = (link_decl_t *) g_malloc0(sizeof(*link));
 
           if (link == NULL) {
               g_error("failed to allocate memory");
@@ -264,13 +264,15 @@ linkhead
 
           link->linkscope.dnsinfo.servers = NULL;
 
-          while (temp_sub) {
-              if (!strcmp(temp_sub->name, $2)) {
+          while (iterator) {
+              link_decl_t *temp_link = (link_decl_t *) iterator->data;
+
+              if (!strcmp(temp_link->name, $2)) {
                   g_error("duplicate link definition for %s", $2);
                   ABORT;
               }
 
-              temp_sub = temp_sub->next;
+              iterator = g_slist_next(iterator);
           }
 
           /* link set */
@@ -285,8 +287,9 @@ linkhead
           link->seglist = NULL;
           /* enter link scope */
           currentscope = g_slist_prepend(currentscope, &link->linkscope);
-          if (currentscope == NULL)
+          if (currentscope == NULL) {
               ABORT;
+          }
       }
     ;
 
@@ -339,9 +342,8 @@ pooldef
               pool->group = (scope_t *) currentgroup->data;
           }
 
-          pool->next = poollist;
-          poollist = pool;
-          pool = NULL;
+          poollist = g_slist_prepend(poollist, pool);
+
           /* leave pool scope we know the current scope is not point to NULL*/
           currentscope = g_slist_delete_link(currentscope, currentscope);
       }
@@ -354,7 +356,7 @@ poolhead
               ABORT;
           }
 
-          pool = (struct pool_decl *) g_malloc0(sizeof(*pool));
+          pool = (pool_decl_t *) g_malloc0(sizeof(*pool));
 
           if (pool == NULL) {
               g_error("fail to allocate memory");
@@ -363,8 +365,9 @@ poolhead
 
           pool->poolscope.dnsinfo.servers = NULL;
 
-          if (link)
+          if (link) {
               pool->link = link;
+          }
 
           /* enter pool scope */
           currentscope = g_slist_prepend(currentscope, &pool->poolscope);

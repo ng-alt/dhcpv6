@@ -106,7 +106,7 @@ const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_SERVER;
 gint iosock = -1;                /* inbound/outbound udp port */
 extern FILE *server6_lease_file;
 gchar server6_lease_temp[100];
-struct link_decl *subnet = NULL;
+link_decl_t *subnet = NULL;
 struct host_decl *host = NULL;
 struct rootgroup *globalgroup = NULL;
 
@@ -118,9 +118,8 @@ struct rootgroup *globalgroup = NULL;
      a == DH6_REBIND || a == DH6_CONFIRM || a == DH6_RELEASE || \
      a == DH6_DECLINE || a == DH6_INFORM_REQ)
 
-extern struct link_decl *dhcp6_allocate_link(struct dhcp6_if *,
-                                             struct rootgroup *,
-                                             struct in6_addr *);
+extern link_decl_t *dhcp6_allocate_link(struct dhcp6_if *, struct rootgroup *,
+                                        struct in6_addr *);
 extern struct host_decl *dhcp6_allocate_host(struct dhcp6_if *,
                                              struct rootgroup *,
                                              struct dhcp6_optinfo *);
@@ -1638,17 +1637,17 @@ gint main(gint argc, gchar **argv) {
     ifnetwork = globalgroup->iflist;
     for (ifnetwork = globalgroup->iflist; ifnetwork;
          ifnetwork = ifnetwork->next) {
-        if (ifnetwork->linklist == NULL) {
+        if (!g_slist_length(ifnetwork->linklist)) {
             /* If there was no link defined in the conf file, make an empty
              * one. */
-            ifnetwork->linklist =
-                (struct link_decl *) g_malloc0(sizeof(*subnet));
-            if (ifnetwork->linklist == NULL) {
+            link_decl_t *link = (link_decl_t *) g_malloc0(sizeof(*subnet));
+            if (link == NULL) {
                 g_error("failed to allocate memory");
                 exit(1);
             }
 
-            ifnetwork->linklist->linkscope.dnsinfo.servers = NULL;
+            link->linkscope.dnsinfo.servers = NULL;
+            ifnetwork->linklist = g_slist_append(ifnetwork->linklist, link);
         }
     }
 

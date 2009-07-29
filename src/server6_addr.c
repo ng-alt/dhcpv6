@@ -64,8 +64,8 @@ extern GHashTable *host_addr_hash_table;
 extern GHashTable *lease_hash_table;
 extern GHashTable *server6_hash_table;
 
-struct link_decl *dhcp6_allocate_link(struct dhcp6_if *, struct rootgroup *,
-                                      struct in6_addr *);
+link_decl_t *dhcp6_allocate_link(struct dhcp6_if *, struct rootgroup *,
+                                 struct in6_addr *);
 struct host_decl *dhcp6_allocate_host(struct dhcp6_if *, struct rootgroup *,
                                       struct dhcp6_optinfo *);
 gint dhcp6_get_hostconf(ia_t *, ia_t *, dhcp6_iaidaddr_t *, struct host_decl *);
@@ -774,10 +774,10 @@ gint dhcp6_get_hostconf(ia_t *ria, ia_t *ia, dhcp6_iaidaddr_t *iaidaddr,
 
 gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
                            const dhcp6_iaidaddr_t *iaidaddr,
-                           const struct link_decl *subnet,
+                           const link_decl_t *subnet,
                            guint16 *ia_status_code) {
-    dhcp6_value_t *v6addr;
-    struct v6addrseg *seg;
+    dhcp6_value_t *v6addr = NULL;
+    struct v6addrseg *seg = NULL;
     GSList *reply_list = ria->addr_list;
     GSList *req_list = ia->addr_list;
     gint numaddr;
@@ -919,7 +919,7 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
 
 gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
                              const dhcp6_iaidaddr_t *iaidaddr,
-                             const struct link_decl *subnet,
+                             const link_decl_t *subnet,
                              guint16 *ia_status_code) {
     dhcp6_value_t *v6addr;
     struct v6prefix *prefix6;
@@ -1019,10 +1019,10 @@ struct host_decl *dhcp6_allocate_host(struct dhcp6_if *ifp,
     return NULL;
 }
 
-struct link_decl *dhcp6_allocate_link(struct dhcp6_if *ifp,
-                                      struct rootgroup *rootgroup,
-                                      struct in6_addr *relay) {
-    struct link_decl *link;
+link_decl_t *dhcp6_allocate_link(struct dhcp6_if *ifp,
+                                 struct rootgroup *rootgroup,
+                                 struct in6_addr *relay) {
+    link_decl_t *link;
     struct interface *ifnetwork;
 
     ifnetwork = rootgroup->iflist;
@@ -1032,7 +1032,10 @@ struct link_decl *dhcp6_allocate_link(struct dhcp6_if *ifp,
         if (strcmp(ifnetwork->name, ifp->ifname) != 0) {
             continue;
         } else {
-            for (link = ifnetwork->linklist; link; link = link->next) {
+            GSList *iterator = ifnetwork->linklist;
+            while (iterator) {
+                link = (link_decl_t *) iterator->data;
+
                 /* if relay is NULL, assume client and server are on the same 
                  * link (which cannot have a relay configuration option) */
                 struct v6addrlist *temp;
@@ -1055,6 +1058,8 @@ struct link_decl *dhcp6_allocate_link(struct dhcp6_if *ifp,
                         }
                     }
                 }
+
+                iterator = g_slist_next(iterator);
             }
         }
     }
