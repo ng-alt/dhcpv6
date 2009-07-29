@@ -693,11 +693,22 @@ static void _process_signals(void) {
 }
 
 static dhcp6_event_t *_find_event_withid(struct dhcp6_if *ifp, guint32 xid) {
-    dhcp6_event_t *ev;
+    dhcp6_event_t *event;
+    GSList *iterator = ifp->event_list;
 
-    ev = (dhcp6_event_t *) g_slist_find_custom(ifp->event_list, &xid,
-                                               _find_event_by_xid);
-    return ev;
+    if (!g_slist_length(iterator)) {
+        return NULL;
+    }
+
+    do {
+        event = (dhcp6_event_t *) iterator->data;
+
+        if (event->xid == xid) {
+            return event;
+        }
+    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+    return NULL;
 }
 
 static struct dhcp6_serverinfo *_allocate_newserver(struct dhcp6_if *ifp,

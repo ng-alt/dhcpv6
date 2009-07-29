@@ -161,11 +161,22 @@ static gint _dhcp6_update_lease(struct dhcp6_addr *addr, dhcp6_lease_t *sp) {
 
 static dhcp6_event_t *_dhcp6_iaidaddr_find_event(struct dhcp6_iaidaddr *sp,
                                                  gint state) {
-    dhcp6_event_t *ev;
+    dhcp6_event_t *event;
+    GSList *iterator = sp->ifp->event_list;
 
-    ev = (dhcp6_event_t *) g_slist_find_custom(sp->ifp->event_list, &state,
-                                               _find_event_by_state);
-    return ev;
+    if (!g_slist_length(iterator)) {
+        return NULL;
+    }
+
+    do {
+        event = (dhcp6_event_t *) iterator->data;
+
+        if (event->state == state) {
+            return event;
+        }
+    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+    return NULL;
 }
 
 /* END STATIC FUNCTIONS */

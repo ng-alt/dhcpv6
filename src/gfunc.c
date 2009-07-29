@@ -46,20 +46,6 @@ gint _find_string(gconstpointer a, gconstpointer b) {
     return g_strcmp0(name1, name2);
 }
 
-gint _find_event_by_xid(gconstpointer a, gconstpointer b) {
-    dhcp6_event_t *event = (dhcp6_event_t *) a;
-    guint32 *xid = (guint32 *) b;
-
-    return ((event->xid) - (*xid));
-}
-
-gint _find_event_by_state(gconstpointer a, gconstpointer b) {
-    dhcp6_event_t *event = (dhcp6_event_t *) a;
-    gint *state = (gint *) b;
-
-    return ((event->state) - (*state));
-}
-
 void _print_in6_addr(gpointer data, gpointer user_data) {
     struct in6_addr *ns = (struct in6_addr *) data;
     gchar *msg = (gchar *) user_data;
