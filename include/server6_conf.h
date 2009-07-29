@@ -38,7 +38,7 @@
 struct rootgroup *globalgroup;
 
 /* provide common paramters within scopes */
-struct scope {
+typedef struct _scope_t {
     gint32 prefer_life_time;
     gint32 valid_life_time;
     gint32 renew_time;
@@ -48,17 +48,11 @@ struct scope {
     guint8 send_flags;
     guint8 allow_flags;
     dns_info_t dnsinfo;
-};
-
-struct scopelist {
-    struct scopelist *prev;
-    struct scopelist *next;
-    struct scope *scope;
-};
+} scope_t;
 
 struct rootgroup {
-    struct scope scope;
-    struct scope *group;
+    scope_t scope;
+    scope_t *group;
     struct interface *iflist;
 };
 
@@ -80,8 +74,8 @@ struct interface {
     struct in6_addr linklocal;
     struct link_decl *linklist;
     struct host_decl *hostlist;
-    struct scope ifscope;
-    struct scope *group;
+    scope_t ifscope;
+    scope_t *group;
 };
 
 /* link declaration */
@@ -99,8 +93,8 @@ struct link_decl {
     struct v6prefix *prefixlist;
     struct pool_decl *poollist;
     struct interface *network;
-    struct scope linkscope;
-    struct scope *group;
+    scope_t linkscope;
+    scope_t *group;
 };
 
 struct v6addrseg {
@@ -115,7 +109,7 @@ struct v6addrseg {
     struct lease *active;
     struct lease *expired;
     struct lease *abandoned;
-    struct scope parainfo;
+    scope_t parainfo;
 };
 
 struct v6prefix {
@@ -124,7 +118,7 @@ struct v6prefix {
     struct link_decl *link;
     struct pool_decl *pool;
     struct v6addr prefix;
-    struct scope parainfo;
+    scope_t parainfo;
 };
 
 /* The pool declaration is used to declare an address pool from which IPv6 */
@@ -136,8 +130,8 @@ struct pool_decl {
     struct pool_decl *next;
     struct interface *network;
     struct link_decl *link;
-    struct scope poolscope;
-    struct scope *group;
+    scope_t poolscope;
+    scope_t *group;
 };
 
 struct v6addrlist {
@@ -156,8 +150,8 @@ struct host_decl {
     GSList *addrlist;
     GSList *prefixlist;
     struct interface *network;
-    struct scope hostscope;
-    struct scope *group;
+    scope_t hostscope;
+    scope_t *group;
 };
 
 gint is_anycast(struct in6_addr *, gint);
@@ -167,8 +161,6 @@ gint sfparse(const gchar *);
 gint ipv6addrcmp(struct in6_addr *, struct in6_addr *);
 struct v6addr *getprefix(struct in6_addr *, gint);
 struct in6_addr *inc_ipv6addr(struct in6_addr *);
-struct scopelist *push_double_list(struct scopelist *, struct scope *);
-struct scopelist *pop_double_list(struct scopelist *);
 gint get_primary_ipv6addr(const gchar *);
 
 #endif /* __SERVER6_CONF_H_DEFINED */

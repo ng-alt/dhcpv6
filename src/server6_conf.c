@@ -51,7 +51,7 @@
 
 /* BEGIN STATIC FUNCTIONS */
 
-static void _download_scope(struct scope *up, struct scope *current) {
+static void _download_scope(scope_t *up, scope_t *current) {
     if (current->prefer_life_time == 0 && up->prefer_life_time != 0) {
         current->prefer_life_time = up->prefer_life_time;
     }
@@ -164,68 +164,14 @@ gint get_numleases(struct pool_decl *currentpool, gchar *poolfile) {
     return 0;
 }
 
-struct scopelist *push_double_list(struct scopelist *current,
-                                   struct scope *scope) {
-    struct scopelist *item;
-
-    item = (struct scopelist *) g_malloc0(sizeof(*item));
-
-    if (item == NULL) {
-        g_error("%s: failed to allocate memory", __func__);
-        return NULL;
-    }
-
-    item->scope = scope;
-
-    if (current) {
-        if (current->next) {
-            current->next->prev = item;
-        }
-
-        item->next = current->next;
-        current->next = item;
-    } else {
-        item->next = NULL;
-    }
-
-    item->prev = current;
-    current = item;
-
-    return current;
-}
-
-struct scopelist *pop_double_list(struct scopelist *current) {
-    struct scopelist *temp;
-
-    temp = current;
-
-    /* current must not be NULL */
-    if (current->next) {
-        current->next->prev = current->prev;
-    }
-
-    if (current->prev) {
-        current->prev->next = current->next;
-    }
-
-    current = current->prev;
-    temp->prev = NULL;
-    temp->next = NULL;
-    temp->scope = NULL;
-    g_free(temp);
-    temp = NULL;
-
-    return current;
-}
-
 void post_config(struct rootgroup *root) {
-    struct interface *ifnetwork;
-    struct link_decl *link;
-    struct host_decl *host;
-    struct v6addrseg *seg;
-    struct v6prefix *prefix6;
-    struct scope *current;
-    struct scope *up;
+    struct interface *ifnetwork = NULL;
+    struct link_decl *link = NULL;
+    struct host_decl *host = NULL;
+    struct v6addrseg *seg = NULL;
+    struct v6prefix *prefix6 = NULL;
+    scope_t *current = NULL;
+    scope_t *up = NULL;
 
     if (root->group) {
         _download_scope(root->group, &root->scope);

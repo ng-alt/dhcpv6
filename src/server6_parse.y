@@ -67,8 +67,8 @@ static struct interface *ifnetwork = NULL;
 static struct link_decl *link = NULL;
 static struct host_decl *host = NULL;
 static struct pool_decl *pool = NULL;
-static struct scopelist *currentscope = NULL;
-static struct scopelist *currentgroup = NULL;
+static GSList *currentscope = NULL;
+static GSList *currentgroup = NULL;
 static gint allow = 0;
 
 static void cleanup(void);
@@ -156,8 +156,9 @@ ifdef
               hostlist = NULL;
           }
 
-          if (currentgroup)
-              ifnetwork->group = currentgroup->scope;
+          if (currentgroup) {
+              ifnetwork->group = (scope_t *) currentgroup->data;
+          }
 
           g_debug("interface definition for %s is ok", ifnetwork->name);
           ifnetwork->next = ifnetworklist;
@@ -170,7 +171,7 @@ ifdef
            * leave interface scope we know the current scope
            * is not point to NULL
            */
-          currentscope = pop_double_list(currentscope);
+          currentscope = g_slist_delete_link(currentscope, currentscope);
       }
     ;
 
@@ -212,9 +213,10 @@ ifhead
 
           /* set up hw_addr, link local, primary ipv6addr */
           /* enter interface scope */
-          currentscope = push_double_list(currentscope, &ifnetwork->ifscope);
-          if (currentscope == NULL)
+          currentscope = g_slist_prepend(currentscope, &ifnetwork->ifscope);
+          if (currentscope == NULL) {
               ABORT;
+          }
       }
     ;
 
@@ -237,14 +239,15 @@ linkdef
               poollist = NULL;
           }
 
-          if (currentgroup)
-              link->group = currentgroup->scope;
+          if (currentgroup) {
+              link->group = (scope_t *) currentgroup->data;
+          }
 
           link->next = linklist;
           linklist = link;
           link = NULL;
           /* leave iink scope we know the current scope is not point to NULL*/
-          currentscope = pop_double_list(currentscope);
+          currentscope = g_slist_delete_link(currentscope, currentscope);
       }
     ;
 
@@ -281,7 +284,7 @@ linkhead
           link->relaylist = NULL;
           link->seglist = NULL;
           /* enter link scope */
-          currentscope = push_double_list(currentscope, &link->linkscope);
+          currentscope = g_slist_prepend(currentscope, &link->linkscope);
           if (currentscope == NULL)
               ABORT;
       }
@@ -332,13 +335,15 @@ relaypara
 
 pooldef
     : poolhead '{' poolbody '}' ';' {
-          if (currentgroup)
-              pool->group = currentgroup->scope;
+          if (currentgroup) {
+              pool->group = (scope_t *) currentgroup->data;
+          }
+
           pool->next = poollist;
           poollist = pool;
           pool = NULL;
           /* leave pool scope we know the current scope is not point to NULL*/
-          currentscope = pop_double_list(currentscope);
+          currentscope = g_slist_delete_link(currentscope, currentscope);
       }
     ;
 
@@ -362,9 +367,10 @@ poolhead
               pool->link = link;
 
           /* enter pool scope */
-          currentscope = push_double_list(currentscope, &pool->poolscope);
-          if (currentscope == NULL)
+          currentscope = g_slist_prepend(currentscope, &pool->poolscope);
+          if (currentscope == NULL) {
               ABORT;
+          }
       }
     ;
 
@@ -551,10 +557,10 @@ rangedef
 groupdef
     : grouphead '{' groupbody  '}' ';' {
           /* return to prev group scope if any */
-          currentgroup = pop_double_list(currentgroup);
+          currentgroup = g_slist_delete_link(currentgroup, currentgroup);
 
           /* leave current group scope */
-          currentscope = pop_double_list(currentscope);
+          currentscope = g_slist_delete_link(currentscope, currentscope);
       }
     ;
 
@@ -575,9 +581,9 @@ groupparas
 
 grouphead
     : GROUP {
-          struct scope *groupscope;
+          scope_t *groupscope;
 
-          groupscope = (struct scope *) g_malloc0(sizeof(*groupscope));
+          groupscope = (scope_t *) g_malloc0(sizeof(*groupscope));
           if (groupscope == NULL) {
               g_error("group memory allocation failed");
               ABORT;
@@ -585,14 +591,16 @@ grouphead
 
           groupscope->dnsinfo.servers = NULL;
           /* set up current group */
-          currentgroup = push_double_list(currentgroup, groupscope);
-          if (currentgroup == NULL)
+          currentgroup = g_slist_prepend(currentgroup, &groupscope);
+          if (currentgroup == NULL) {
               ABORT;
+          }
 
           /* enter group scope  */
-          currentscope = push_double_list(currentscope, groupscope);
-          if (currentscope == NULL)
+          currentscope = g_slist_prepend(currentscope, &groupscope);
+          if (currentscope == NULL) {
               ABORT;
+          }
       }
     ;
 
@@ -612,13 +620,15 @@ hostdef
               temp_host = temp_host->next;
           }
 
-          if (currentgroup)
-              host->group = currentgroup->scope;
+          if (currentgroup) {
+              host->group = (scope_t *) currentgroup->data;
+          }
+
           host->next = hostlist;
           hostlist = host;
           host = NULL;
           /* leave host scope we know the current scope is not point to NULL*/
-          currentscope = pop_double_list(currentscope);
+          currentscope = g_slist_delete_link(currentscope, currentscope);
       }
     ;
 
@@ -648,9 +658,10 @@ hosthead
           host->network = ifnetwork;
           strncpy(host->name, $2, strlen($2));
           /* enter host scope */
-          currentscope = push_double_list(currentscope, &host->hostscope);
-          if (currentscope == NULL)
+          currentscope = g_slist_prepend(currentscope, &host->hostscope);
+          if (currentscope == NULL) {
               ABORT;
+          }
       }
     ;
 
@@ -779,71 +790,83 @@ optiondecl
 optionhead
     : SEND {
           if (!currentscope) {
-              currentscope = push_double_list(currentscope,
-                                              &globalgroup->scope);
-              if (currentscope == NULL)
+              currentscope = g_slist_prepend(currentscope, &globalgroup->scope);
+              if (currentscope == NULL) {
                   ABORT;
+              }
           }
       }
     | ALLOW {
           if (!currentscope) {
-              currentscope = push_double_list(currentscope,
-                                              &globalgroup->scope);
-              if (currentscope == NULL)
+              currentscope = g_slist_prepend(currentscope, &globalgroup->scope);
+              if (currentscope == NULL) {
                   ABORT;
+              }
           }
 
           allow = 1;
       }
     | OPTION {
           if (!currentscope) {
-              currentscope = push_double_list(currentscope,
-                                              &globalgroup->scope);
-              if (currentscope == NULL)
+              currentscope = g_slist_prepend(currentscope, &globalgroup->scope);
+              if (currentscope == NULL) {
                   ABORT;
+              }
           }
       }
     ;
 
 optionpara
     : RAPIDCOMMIT ';' {
-          if (allow)
-              currentscope->scope->allow_flags |= DHCIFF_RAPID_COMMIT;
-          else
-              currentscope->scope->send_flags |= DHCIFF_RAPID_COMMIT;
+          scope_t *scope = (scope_t *) currentscope->data;
+
+          if (allow) {
+              scope->allow_flags |= DHCIFF_RAPID_COMMIT;
+          } else {
+              scope->send_flags |= DHCIFF_RAPID_COMMIT;
+          }
       }
     | TEMPIPV6ADDR ';' {
-          if (allow)
-              currentscope->scope->allow_flags |= DHCIFF_TEMP_ADDRS;
-          else
-              currentscope->scope->send_flags |= DHCIFF_TEMP_ADDRS;
+          scope_t *scope = (scope_t *) currentscope->data;
+
+          if (allow) {
+              scope->allow_flags |= DHCIFF_TEMP_ADDRS;
+          } else {
+              scope->send_flags |= DHCIFF_TEMP_ADDRS;
+          }
       }
     | UNICAST ';' {
-          if (allow)
-              currentscope->scope->allow_flags |= DHCIFF_UNICAST;
-          else
-              currentscope->scope->send_flags |= DHCIFF_UNICAST;
+          scope_t *scope = (scope_t *) currentscope->data;
+
+          if (allow) {
+              scope->allow_flags |= DHCIFF_UNICAST;
+          } else {
+              scope->send_flags |= DHCIFF_UNICAST;
+          }
       }
     | INFO_ONLY ';' {
-          if (allow)
-              currentscope->scope->allow_flags |= DHCIFF_INFO_ONLY;
-          else
-              currentscope->scope->send_flags |= DHCIFF_INFO_ONLY;
+          scope_t *scope = (scope_t *) currentscope->data;
+
+          if (allow) {
+              scope->allow_flags |= DHCIFF_INFO_ONLY;
+          } else {
+              scope->send_flags |= DHCIFF_INFO_ONLY;
+          }
       }
     | INFO_REFRESH_TIME number_or_infinity ';' {
+          globalgroup->scope.irt = $2;
+
           if (!currentscope) {
-              currentscope = push_double_list(currentscope,
-                                              &globalgroup->scope);
-              if (currentscope == NULL)
+              currentscope = g_slist_prepend(currentscope, &globalgroup->scope);
+              if (currentscope == NULL) {
                   ABORT;
+              }
           }
 
           if ($2 < IRT_MINIMUM || DHCP6_DURATITION_INFINITE < $2) {
               g_error("%s: bad information refresh time", __func__);
               ABORT;
           }
-
-          currentscope->scope->irt = $2;
       }
     | DNS_SERVERS dns_paras ';' {
       }
@@ -856,11 +879,13 @@ dns_paras
 
 dns_para
     : IPV6ADDR {
-          GSList *servers = currentscope->scope->dnsinfo.servers;
-          servers = g_slist_append(servers, &$1);
+          scope_t *scope = currentscope->data;
+          GSList *servers = scope->dnsinfo.servers;
+          servers = g_slist_prepend(servers, &$1);
       }
     | STRING {
-          GSList *domains = currentscope->scope->dnsinfo.domains;
+          scope_t *scope = currentscope->data;
+          GSList *domains = scope->dnsinfo.domains;
           GString *tmp = g_string_new(NULL);
           gint len = strlen($1);
 
@@ -870,7 +895,7 @@ dns_para
 
           g_string_printf(tmp, "%s", $1);
           g_debug("add domain name %s", tmp->str);
-          domains = g_slist_append(domains, tmp->str);
+          domains = g_slist_prepend(domains, tmp->str);
           g_string_free(tmp, FALSE);
       }
     ;
@@ -882,74 +907,74 @@ confdecl
 
 paradecl
     : RENEWTIME number_or_infinity ';' {
-          if (!currentscope) {
-              currentscope = push_double_list(currentscope,
-                                              &globalgroup->scope);
-              if (currentscope == NULL)
-                  ABORT;
-          }
+          globalgroup->scope.renew_time = $2;
 
-          currentscope->scope->renew_time = $2;
+          if (!currentscope) {
+              currentscope = g_slist_prepend(currentscope, &globalgroup->scope);
+              if (currentscope == NULL) {
+                  ABORT;
+              }
+          }
       }
     | REBINDTIME number_or_infinity ';' {
-          if (!currentscope) {
-              currentscope = push_double_list(currentscope,
-                                              &globalgroup->scope);
-              if (currentscope == NULL)
-                  ABORT;
-          }
+          globalgroup->scope.rebind_time = $2;
 
-          currentscope->scope->rebind_time = $2;
+          if (!currentscope) {
+              currentscope = g_slist_prepend(currentscope, &globalgroup->scope);
+              if (currentscope == NULL) {
+                  ABORT;
+              }
+          }
       }
     | VALIDLIFETIME number_or_infinity ';' {
+          globalgroup->scope.valid_life_time = $2;
+
           if (!currentscope) {
-              currentscope = push_double_list(currentscope,
-                                              &globalgroup->scope);
-              if (currentscope == NULL)
+              currentscope = g_slist_prepend(currentscope, &globalgroup->scope);
+              if (currentscope == NULL) {
                   ABORT;
+              }
           }
 
-          currentscope->scope->valid_life_time = $2;
-
-          if (currentscope->scope->prefer_life_time != 0 && 
-              currentscope->scope->valid_life_time <
-              currentscope->scope->prefer_life_time) {
+          scope_t *scope = currentscope->data;
+          if (scope->prefer_life_time != 0 &&
+              scope->valid_life_time < scope->prefer_life_time) {
               g_error("%s: validlifetime is less than preferlifetime",
                       __func__);
               ABORT;
           }
       }
     | PREFERLIFETIME number_or_infinity ';' {
+          globalgroup->scope.prefer_life_time = $2;
+
           if (!currentscope) {
-              currentscope = push_double_list(currentscope,
-                                              &globalgroup->scope);
-              if (currentscope == NULL)
+              currentscope = g_slist_prepend(currentscope, &globalgroup->scope);
+              if (currentscope == NULL) {
                   ABORT;
+              }
           }
 
-          currentscope->scope->prefer_life_time = $2;
-
-          if (currentscope->scope->valid_life_time != 0 &&
-              currentscope->scope->valid_life_time <
-              currentscope->scope->prefer_life_time) {
+          scope_t *scope = currentscope->data;
+          if (scope->valid_life_time != 0 &&
+              scope->valid_life_time < scope->prefer_life_time) {
               g_error("%s: validlifetime is less than preferlifetime",
                       __func__);
               ABORT;
           }
       }
     | PREFERENCE NUMBER ';' {
+          globalgroup->scope.server_pref = $2;
+
           if (!currentscope) {
-              currentscope = push_double_list(currentscope,
-                                              &globalgroup->scope);
-              if (currentscope == NULL)
+              currentscope = g_slist_prepend(currentscope, &globalgroup->scope);
+              if (currentscope == NULL) {
                   ABORT;
+              }
           }
 
           if ($2 < 0 || $2 > 255) {
               g_error("%s: bad server preference number", __func__);
           }
-
-          currentscope->scope->server_pref = $2;
       }
     ;
 
