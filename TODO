@@ -41,8 +41,6 @@ paths to make command line options:
 
 - Replace sprintf() with asprintf().  (better, use GString)
 
-- Simplify free() calls.  Make sure pointers that are freed are set to NULL.
-
 - Clean up function prototypes (put them in header files).
 
 - Make sure O_CLOEXEC is used on open files to keep SELinux happy
