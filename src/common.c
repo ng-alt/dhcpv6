@@ -80,34 +80,6 @@ static struct host_conf *_host_conflist;
 
 /* BEGIN STATIC FUNCTIONS */
 
-void _build_domain_name_buf(gpointer data, gpointer user_data) {
-    gchar *name = (gchar *) data;
-    guchar *buf = (guchar *) user_data;
-    gint n;
-
-    n = dn_comp(name, buf, MAXDNAME, NULL, NULL);
-
-    if (n < 0) {
-        g_error("%s: compress domain name %s failed", __func__, name);
-    } else {
-        g_debug("%s: compress domain name %s", __func__, name);
-    }
-
-    buf += n;
-
-    return;
-}
-
-static void _build_in6_addr_buf(gpointer data, gpointer user_data) {
-    struct in6_addr *addr = (struct in6_addr *) data;
-    struct in6_addr *buf = (struct in6_addr *) user_data;
-
-    memcpy(buf, addr, sizeof(struct in6_addr));
-    buf++;
-
-    return;
-}
-
 static gint _in6_matchflags(struct sockaddr *addr, size_t addrlen,
                             gchar *ifnam, gint flags) {
     gint s;
@@ -1558,7 +1530,8 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
     }
 
     if (g_slist_length(optinfo->dnsinfo.servers)) {
-        struct in6_addr *in6;
+        struct in6_addr *in6buf, *in6tmp;
+        GSList *iterator = NULL;
 
         tmpbuf = NULL;
         optlen = g_slist_length(optinfo->dnsinfo.servers) *
@@ -1569,8 +1542,14 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
             goto fail;
         }
 
-        in6 = (struct in6_addr *) tmpbuf;
-        g_slist_foreach(optinfo->dnsinfo.servers, _build_in6_addr_buf, in6);
+        in6buf = (struct in6_addr *) tmpbuf;
+        iterator = optinfo->dnsinfo.servers;
+
+        do {
+            in6tmp = (struct in6_addr *) iterator->data;
+            memcpy(in6buf, in6tmp, sizeof(struct in6_addr));
+            in6buf++;
+        } while ((iterator = g_slist_next(iterator)) != NULL);
 
         if (((void *) ep - (void *) p) < optlen + sizeof(struct dhcp6opt)) {
             g_message("%s: option buffer short for %s",
@@ -1594,9 +1573,11 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
     }
 
     if (g_slist_length(optinfo->dnsinfo.domains)) {
+        gchar *name;
         guchar *dst;
+        GSList *iterator = optinfo->dnsinfo.domains;
 
-        optlen = g_slist_length(optinfo->dnsinfo.domains);
+        optlen = 0;
         tmpbuf = NULL;
 
         if ((tmpbuf = g_malloc0(MAXDNAME * MAXDN)) == NULL) {
@@ -1606,8 +1587,23 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
 
         memset(&tmpbuf, '\0', sizeof(tmpbuf));
         dst = tmpbuf;
-        g_slist_foreach(optinfo->dnsinfo.domains, _build_domain_name_buf, dst);
-        optlen = sizeof(tmpbuf) - (sizeof(tmpbuf) - sizeof(dst));
+
+        do {
+            gint n;
+            name = (gchar *) iterator->data;
+
+            n = dn_comp(name, dst, MAXDNAME, NULL, NULL);
+
+            if (n < 0) {
+                g_error("%s: compress domain name %s failed", __func__, name);
+                goto fail;
+            } else {
+                g_debug("%s: compress domain name %s", __func__, name);
+            }
+
+            optlen += n;
+            dst += n;
+        } while ((iterator = g_slist_next(iterator)) != NULL);
 
         if (((void *) ep - (void *) p) < optlen + sizeof(struct dhcp6opt)) {
             g_message("%s: option buffer short for %s",
