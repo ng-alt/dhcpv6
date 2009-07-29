@@ -125,8 +125,8 @@ extern struct link_decl *dhcp6_allocate_link(struct dhcp6_if *,
 extern struct host_decl *dhcp6_allocate_host(struct dhcp6_if *,
                                              struct rootgroup *,
                                              struct dhcp6_optinfo *);
-extern gint dhcp6_get_hostconf(ia_t *, ia_t *,
-                               struct dhcp6_iaidaddr *, struct host_decl *);
+extern gint dhcp6_get_hostconf(ia_t *, ia_t *, dhcp6_iaidaddr_t *,
+                               struct host_decl *);
 
 /* BEGIN STATIC FUNCTIONS */
 
@@ -546,7 +546,7 @@ static gint _handle_addr_request(struct dhcp6_optinfo *roptinfo,
                                  GSList *ria_list, GSList *ia_list,
                                  gint resptype, gint *status_code) {
     ia_t *ria = NULL, *ia = NULL;
-    struct dhcp6_iaidaddr *iaidaddr;
+    dhcp6_iaidaddr_t *iaidaddr = NULL;
     gint addr_flag = 0;
     gint found_binding = 0;
     GSList *iterator = ia_list;
@@ -641,7 +641,7 @@ static gint _update_binding_ia(struct dhcp6_optinfo *roptinfo,
                                guint8 msgtype, gint addr_flag,
                                gint *status_code) {
     ia_t *ria, *ia;
-    struct dhcp6_iaidaddr *iaidaddr;
+    dhcp6_iaidaddr_t *iaidaddr = NULL;
     size_t num_ia = 0;
     size_t num_noaddr_ia = 0;
     size_t num_nobinding_ia = 0;

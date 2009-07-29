@@ -168,13 +168,30 @@ struct dhcp6_addr {
     gchar *status_msg;
 };
 
+struct client6_if {
+    iatype_t type;
+    struct dhcp6_iaid_info iaidinfo;
+    struct duid clientid;
+    struct duid serverid;
+};
+
+typedef struct _dhcp6_iaidaddr_t {
+    struct client6_if client6_info;
+    time_t start_date;
+    state_t state;
+    struct dhcp6_if *ifp;
+    struct dhcp6_timer *timer;
+    /* list of client leases */
+    GSList *lease_list;
+} dhcp6_iaidaddr_t;
+
 typedef struct _dhcp6_lease_t {
     gchar hostname[1024];
     struct in6_addr linklocal;
     struct dhcp6_addr lease_addr;
     iatype_t addr_type;
     state_t state;
-    struct dhcp6_iaidaddr *iaidaddr;
+    dhcp6_iaidaddr_t *iaidaddr;
     time_t start_date;
     /* address assigned on the interface */
     struct dhcp6_timer *timer;

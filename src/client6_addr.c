@@ -87,14 +87,14 @@ extern void run_script(struct dhcp6_if *, gint, gint, guint32);
 
 gint dhcp6_add_lease(struct dhcp6_addr *);
 
-extern struct dhcp6_iaidaddr client6_iaidaddr;
+extern dhcp6_iaidaddr_t client6_iaidaddr;
 extern struct dhcp6_timer *client6_timo(void *);
 extern void client6_send(dhcp6_event_t *);
 extern void free_servers(struct dhcp6_if *);
 
 extern gint nlsock;
 extern FILE *client6_lease_file;
-extern struct dhcp6_iaidaddr client6_iaidaddr;
+extern dhcp6_iaidaddr_t client6_iaidaddr;
 extern GSList *request_list;
 
 /* BEGIN STATIC FUNCTIONS */
@@ -159,7 +159,7 @@ static gint _dhcp6_update_lease(struct dhcp6_addr *addr, dhcp6_lease_t *sp) {
     return 0;
 }
 
-static dhcp6_event_t *_dhcp6_iaidaddr_find_event(struct dhcp6_iaidaddr *sp,
+static dhcp6_event_t *_dhcp6_iaidaddr_find_event(dhcp6_iaidaddr_t *sp,
                                                  gint state) {
     dhcp6_event_t *event;
     GSList *iterator = sp->ifp->event_list;
@@ -395,7 +395,7 @@ gint dhcp6_add_lease(struct dhcp6_addr *addr) {
     return 0;
 }
 
-gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
+gint dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *iaidaddr) {
     dhcp6_lease_t *lv = NULL;
     GSList *iterator = iaidaddr->lease_list;
 
@@ -602,7 +602,7 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
 }
 
 struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
-    struct dhcp6_iaidaddr *sp = (struct dhcp6_iaidaddr *) arg;
+    dhcp6_iaidaddr_t *sp = (dhcp6_iaidaddr_t *) arg;
     dhcp6_event_t *ev, *prev_ev = NULL;
     struct timeval timeo;
     gint dhcpstate, prev_state;

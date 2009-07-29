@@ -89,7 +89,7 @@
 
 extern struct dhcp6_timer *dhcp6_lease_timo(void *);
 
-extern struct dhcp6_iaidaddr client6_iaidaddr;
+extern dhcp6_iaidaddr_t client6_iaidaddr;
 extern GHashTable *lease_hash_table;
 extern GHashTable *server6_hash_table;
 
@@ -99,7 +99,7 @@ static struct client6_if client6_info;
 
 static u_int16_t lease_flags = 0;
 
-static gint add_lease(struct dhcp6_iaidaddr *, dhcp6_lease_t *);
+static gint add_lease(dhcp6_iaidaddr_t *, dhcp6_lease_t *);
 static gint remove_lease(dhcp6_lease_t *);
 
 %}
@@ -264,8 +264,8 @@ do_iaidaddr_hash(lease_rec, key)
 	dhcp6_lease_t *lease_rec;
 	struct client6_if *key;
 {
-	struct dhcp6_iaidaddr *iaidaddr;
-	dhcp6_lease_t *found_lease;
+	dhcp6_iaidaddr_t *iaidaddr = NULL;
+	dhcp6_lease_t *found_lease = NULL;
 	struct timeb now;
 	time_t offset;
 	struct timeval timo;
@@ -315,7 +315,7 @@ do_iaidaddr_hash(lease_rec, key)
 			return (0);
 		}
 	}
-	iaidaddr = (struct dhcp6_iaidaddr *) g_hash_table_lookup(server6_hash_table, (gconstpointer) key); 
+	iaidaddr = (dhcp6_iaidaddr_t *) g_hash_table_lookup(server6_hash_table, (gconstpointer) key); 
 	if (iaidaddr){
 		if (iaidaddr->client6_info.iaidinfo.iaid != client6_info.iaidinfo.iaid ||
 		    duidcmp(&iaidaddr->client6_info.clientid, &client6_info.clientid)) {
@@ -340,7 +340,7 @@ do_iaidaddr_hash(lease_rec, key)
 			}
 		}
 	} else {
-		iaidaddr = (struct dhcp6_iaidaddr *)malloc(sizeof(*iaidaddr));
+		iaidaddr = (dhcp6_iaidaddr_t *)malloc(sizeof(*iaidaddr));
 	  	if (!iaidaddr) {
 			g_error("%s: failed to allocate memory", __func__);
 			return (-1);
@@ -374,10 +374,7 @@ do_iaidaddr_hash(lease_rec, key)
 }
 
 static gint 
-add_lease(iaidaddr, lease)
-	struct dhcp6_iaidaddr *iaidaddr;
-	dhcp6_lease_t *lease;
-{
+add_lease(dhcp6_iaidaddr_t *iaidaddr, dhcp6_lease_t *lease) {
 	struct timeval timo;
 	struct timeb now;
 	time_t offset;

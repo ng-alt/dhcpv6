@@ -101,7 +101,7 @@
 extern gchar *raproc_file;
 extern gchar *ifproc_file;
 extern FILE *client6_lease_file;
-extern struct dhcp6_iaidaddr client6_iaidaddr;
+extern dhcp6_iaidaddr_t client6_iaidaddr;
 
 /* External prototypes */
 extern gint client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);

@@ -69,9 +69,8 @@ struct link_decl *dhcp6_allocate_link(struct dhcp6_if *, struct rootgroup *,
                                       struct in6_addr *);
 struct host_decl *dhcp6_allocate_host(struct dhcp6_if *, struct rootgroup *,
                                       struct dhcp6_optinfo *);
-gint dhcp6_get_hostconf(ia_t *, ia_t *, struct dhcp6_iaidaddr *,
-                        struct host_decl *);
-gint dhcp6_add_lease(struct dhcp6_iaidaddr *, struct dhcp6_addr *);
+gint dhcp6_get_hostconf(ia_t *, ia_t *, dhcp6_iaidaddr_t *, struct host_decl *);
+gint dhcp6_add_lease(dhcp6_iaidaddr_t *, struct dhcp6_addr *);
 gint dhcp6_update_lease(struct dhcp6_addr *, dhcp6_lease_t *);
 
 /* BEGIN STATIC FUNCTIONS */
@@ -300,20 +299,19 @@ struct host_decl *find_hostdecl(struct duid *duid, guint32 iaid,
 
 /* for request/solicit rapid commit */
 gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia) {
-    struct dhcp6_iaidaddr *iaidaddr;
+    dhcp6_iaidaddr_t *iaidaddr = NULL;
     dhcp6_value_t *lv = NULL;
     struct timeval timo;
     gdouble d;
     GSList *iterator = ia->addr_list;
 
-    iaidaddr = (struct dhcp6_iaidaddr *) malloc(sizeof(*iaidaddr));
+    iaidaddr = (dhcp6_iaidaddr_t *) g_malloc0(sizeof(*iaidaddr));
 
     if (iaidaddr == NULL) {
         g_error("%s: failed to allocate memory", __func__);
         return -1;
     }
 
-    memset(iaidaddr, 0, sizeof(*iaidaddr));
     duidcpy(&iaidaddr->client6_info.clientid, &optinfo->clientID);
     iaidaddr->client6_info.iaidinfo.iaid = ia->iaidinfo.iaid;
     iaidaddr->client6_info.type = ia->type;
@@ -373,7 +371,7 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia) {
     return 0;
 }
 
-gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
+gint dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *iaidaddr) {
     /* remove all the leases in this iaid */
     g_slist_foreach(iaidaddr->lease_list, _remove_leases_for_iaid,
                     lease_hash_table);
@@ -394,9 +392,9 @@ gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *iaidaddr) {
     return 0;
 }
 
-struct dhcp6_iaidaddr *dhcp6_find_iaidaddr(struct duid *clientID,
-                                           guint32 iaid, iatype_t type) {
-    struct dhcp6_iaidaddr *iaidaddr;
+dhcp6_iaidaddr_t *dhcp6_find_iaidaddr(struct duid *clientID, guint32 iaid,
+                                      iatype_t type) {
+    dhcp6_iaidaddr_t *iaidaddr;
     struct client6_if client6_info;
 
     duidcpy(&client6_info.clientid, clientID);
@@ -446,7 +444,7 @@ gint dhcp6s_remove_lease(dhcp6_lease_t *lease) {
 
 /* for renew/rebind/release/decline */
 gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
-    struct dhcp6_iaidaddr *iaidaddr;
+    dhcp6_iaidaddr_t *iaidaddr = NULL;
     dhcp6_lease_t *lease = NULL;
     dhcp6_value_t *lv = NULL;
     struct timeval timo;
@@ -537,8 +535,8 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
     return 0;
 }
 
-gint dhcp6_validate_bindings(GSList *addrlist,
-                             struct dhcp6_iaidaddr *iaidaddr, gint update) {
+gint dhcp6_validate_bindings(GSList *addrlist, dhcp6_iaidaddr_t *iaidaddr,
+                             gint update) {
     dhcp6_value_t *lv = NULL;
     GSList *iterator = addrlist;
 
@@ -564,7 +562,7 @@ gint dhcp6_validate_bindings(GSList *addrlist,
     return 0;
 }
 
-gint dhcp6_add_lease(struct dhcp6_iaidaddr *iaidaddr, struct dhcp6_addr *addr) {
+gint dhcp6_add_lease(dhcp6_iaidaddr_t *iaidaddr, struct dhcp6_addr *addr) {
     dhcp6_lease_t *sp;
     struct timeval timo;
     gdouble d;
@@ -697,7 +695,7 @@ gint dhcp6_update_lease(struct dhcp6_addr *addr, dhcp6_lease_t *sp) {
 }
 
 struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
-    struct dhcp6_iaidaddr *sp = (struct dhcp6_iaidaddr *) arg;
+    dhcp6_iaidaddr_t *sp = (dhcp6_iaidaddr_t *) arg;
 
     g_debug("server6_iaidaddr timeout for %u, state=%d",
             sp->client6_info.iaidinfo.iaid, sp->state);
@@ -742,8 +740,7 @@ struct dhcp6_timer *dhcp6_lease_timo(void *arg) {
     return sp->timer;
 }
 
-gint dhcp6_get_hostconf(ia_t *ria, ia_t *ia,
-                        struct dhcp6_iaidaddr *iaidaddr,
+gint dhcp6_get_hostconf(ia_t *ria, ia_t *ia, dhcp6_iaidaddr_t *iaidaddr,
                         struct host_decl *host) {
     GSList *reply_list = ia->addr_list;
 
@@ -768,7 +765,7 @@ gint dhcp6_get_hostconf(ia_t *ria, ia_t *ia,
 }
 
 gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
-                           const struct dhcp6_iaidaddr *iaidaddr,
+                           const dhcp6_iaidaddr_t *iaidaddr,
                            const struct link_decl *subnet,
                            guint16 *ia_status_code) {
     dhcp6_value_t *v6addr;
@@ -913,7 +910,7 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
 }
 
 gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
-                             const struct dhcp6_iaidaddr *iaidaddr,
+                             const dhcp6_iaidaddr_t *iaidaddr,
                              const struct link_decl *subnet,
                              guint16 *ia_status_code) {
     dhcp6_value_t *v6addr;

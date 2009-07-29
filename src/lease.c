@@ -64,7 +64,7 @@
 #include "lease.h"
 #include "str.h"
 
-extern struct dhcp6_iaidaddr client6_iaidaddr;
+extern dhcp6_iaidaddr_t client6_iaidaddr;
 extern FILE *server6_lease_file;
 extern gchar *server6_lease_temp;
 extern FILE *client6_lease_file;
@@ -361,7 +361,7 @@ gint addr_on_addrlist(GSList *addrlist, struct dhcp6_addr *addr6) {
     return 0;
 }
 
-guint32 get_min_preferlifetime(struct dhcp6_iaidaddr * sp) {
+guint32 get_min_preferlifetime(dhcp6_iaidaddr_t *sp) {
     dhcp6_lease_t *lease = NULL;
     guint32 min;
     GSList *iterator = sp->lease_list;
@@ -381,7 +381,7 @@ guint32 get_min_preferlifetime(struct dhcp6_iaidaddr * sp) {
     return min;
 }
 
-guint32 get_max_validlifetime(struct dhcp6_iaidaddr * sp) {
+guint32 get_max_validlifetime(dhcp6_iaidaddr_t *sp) {
     dhcp6_lease_t *lease = NULL;
     guint32 max;
     GSList *iterator = sp->lease_list;
@@ -401,7 +401,7 @@ guint32 get_max_validlifetime(struct dhcp6_iaidaddr * sp) {
     return max;
 }
 
-dhcp6_lease_t *dhcp6_find_lease(struct dhcp6_iaidaddr *iaidaddr,
+dhcp6_lease_t *dhcp6_find_lease(dhcp6_iaidaddr_t *iaidaddr,
                                 struct dhcp6_addr *ifaddr) {
     dhcp6_lease_t *lease;
     GSList *iterator = iaidaddr->lease_list;

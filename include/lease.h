@@ -51,45 +51,26 @@ typedef enum {
     IFADDRCONF_REMOVE
 } ifaddrconf_cmd_t;
 
-struct dhcp6_iaidaddr client6_iaidaddr;
+dhcp6_iaidaddr_t client6_iaidaddr;
 FILE *server6_lease_file;
 FILE *client6_lease_file;
 FILE *lease_file;
 FILE *sync_file;
 
-struct client6_if {
-    iatype_t type;
-    struct dhcp6_iaid_info iaidinfo;
-    struct duid clientid;
-    struct duid serverid;
-};
-
-struct dhcp6_iaidaddr {
-    TAILQ_ENTRY(dhcp6_iaidaddr) link;
-    struct client6_if client6_info;
-    time_t start_date;
-    state_t state;
-    struct dhcp6_if *ifp;
-    struct dhcp6_timer *timer;
-    /* list of client leases */
-    GSList *lease_list;
-};
-
 guint32 do_hash(const void *, guint8);
 gint get_linklocal(const gchar *, struct in6_addr *);
 void dhcp6_init_iaidaddr(void);
-gint dhcp6_remove_iaidaddr(struct dhcp6_iaidaddr *);
+gint dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *);
 gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *, ia_t *);
 gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *, ia_t *,
                            gint);
 struct dhcp6_timer *dhcp6_iaidaddr_timo(void *);
 struct dhcp6_timer *dhcp6_lease_timo(void *);
-guint32 get_min_preferlifetime(struct dhcp6_iaidaddr *);
-guint32 get_max_validlifetime(struct dhcp6_iaidaddr *);
-struct dhcp6_iaidaddr *dhcp6_find_iaidaddr(struct duid *, guint32,
-                                           iatype_t);
-dhcp6_lease_t *dhcp6_find_lease(struct dhcp6_iaidaddr *, struct dhcp6_addr *);
-gint dhcp6_validate_bindings(GSList *, struct dhcp6_iaidaddr *, gint);
+guint32 get_min_preferlifetime(dhcp6_iaidaddr_t *);
+guint32 get_max_validlifetime(dhcp6_iaidaddr_t *);
+dhcp6_iaidaddr_t *dhcp6_find_iaidaddr(struct duid *, guint32, iatype_t);
+dhcp6_lease_t *dhcp6_find_lease(dhcp6_iaidaddr_t *, struct dhcp6_addr *);
+gint dhcp6_validate_bindings(GSList *, dhcp6_iaidaddr_t *, gint);
 gint get_iaid(const gchar *, const struct iaid_table *, gint);
 gint create_iaid(struct iaid_table *, gint);
 FILE *init_leases(const gchar *);
@@ -110,9 +91,9 @@ gint client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
 gint dhcp6_get_prefixlen(struct in6_addr *, struct dhcp6_if *);
 gint prefixcmp(struct in6_addr *, struct in6_addr *, gint);
 gint addr_on_addrlist(GSList *, struct dhcp6_addr *);
-gint dhcp6_create_prefixlist(ia_t *, ia_t *, const struct dhcp6_iaidaddr *,
+gint dhcp6_create_prefixlist(ia_t *, ia_t *, const dhcp6_iaidaddr_t *,
                              const struct link_decl *, guint16 *);
-gint dhcp6_create_addrlist(ia_t *, ia_t *, const struct dhcp6_iaidaddr *,
+gint dhcp6_create_addrlist(ia_t *, ia_t *, const dhcp6_iaidaddr_t *,
                            const struct link_decl *, guint16 *);
 gint dad_parse(const gchar *, GSList *);
 
