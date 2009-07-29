@@ -179,6 +179,7 @@ static void _check_existing_dns_servers(gpointer data, gpointer user_data) {
     if (dupe != NULL) {
         g_debug("nameserver %s found in resolv.conf", in6addr2str(ns, 0));
         existing_servers = g_slist_remove(existing_servers, dupe);
+        g_slist_free(dupe);
     }
 
     return;
@@ -193,6 +194,7 @@ static void _check_existing_dns_domains(gpointer data, gpointer user_data) {
     if (dupe != NULL) {
         g_debug("domain name %s found in resolv.conf", domain);
         existing_domains = g_slist_remove(existing_domains, dupe);
+        g_slist_free(dupe);
     }
 
     return;
