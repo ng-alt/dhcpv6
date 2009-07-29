@@ -160,7 +160,7 @@ gchar *dhcp6optstr(gint type) {
     }
 }
 
-GString *dhcp6_options2str(struct dhcp6_list *options) {
+GString *dhcp6_options2str(GSList *options) {
     GString *ret = g_string_new(NULL);
 
     if (dhcp6_has_option(options, DH6OPT_CLIENTID)) {

@@ -592,7 +592,7 @@ static gint _handle_addr_request(struct dhcp6_optinfo *roptinfo,
             }
         }
 
-        if (TAILQ_EMPTY(&ria->addr_list)) {
+        if (!g_slist_length(ria->addr_list)) {
             if (resptype == DH6_ADVERTISE) {
                 /* Omit IA option */
                 free(ria);
@@ -659,7 +659,7 @@ static gint _update_binding_ia(struct dhcp6_optinfo *roptinfo,
         num_ia++;
         ria = NULL;
 
-        if (!TAILQ_EMPTY(&ia->addr_list)) {
+        if (g_slist_length(ia->addr_list)) {
             if (addr_flag != ADDR_VALIDATE) {
                 if ((ria = ia_create_listval()) == NULL) {
                     goto fail;
@@ -690,19 +690,19 @@ static gint _update_binding_ia(struct dhcp6_optinfo *roptinfo,
                 /* Found a binding IA Addr */
                 switch (addr_flag) {
                     case ADDR_VALIDATE:
-                        if (dhcp6_validate_bindings
-                            (&ia->addr_list, iaidaddr, 0)) {
-                            ++num_invalid_ia;
+                        if (dhcp6_validate_bindings(ia->addr_list,
+                                                    iaidaddr, 0)) {
+                            num_invalid_ia++;
                             goto out;
                         }
 
                         break;
                     case ADDR_UPDATE:
                         /* get static host configuration */
-                        if (dhcp6_validate_bindings
-                            (&ia->addr_list, iaidaddr, 1)) {
-                            ++num_invalid_ia;
-                            dhcp6_copy_list(&ria->addr_list, &ia->addr_list);
+                        if (dhcp6_validate_bindings(ia->addr_list,
+                                                    iaidaddr, 1)) {
+                            num_invalid_ia++;
+                            dhcp6_copy_list(ria->addr_list, ia->addr_list);
                             break;
                         }
 
@@ -736,7 +736,7 @@ static gint _update_binding_ia(struct dhcp6_optinfo *roptinfo,
 
                         break;
                     default:
-                        dhcp6_copy_list(&ria->addr_list, &ia->addr_list);
+                        dhcp6_copy_list(ria->addr_list, ia->addr_list);
                         break;
                 }
             }
@@ -875,43 +875,43 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
     }
 
     if (subnet) {
-        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_PREFERENCE)) {
+        if (dhcp6_has_option(optinfo->reqopt_list, DH6OPT_PREFERENCE)) {
             roptinfo.pref = subnet->linkscope.server_pref;
         }
 
         roptinfo.flags = (optinfo->flags & subnet->linkscope.allow_flags) |
             subnet->linkscope.send_flags;
 
-        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS) ||
-            dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
+        if (dhcp6_has_option(optinfo->reqopt_list, DH6OPT_DNS_SERVERS) ||
+            dhcp6_has_option(optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
             dnsinfo = subnet->linkscope.dnsinfo;
         }
 
-        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_INFO_REFRESH_TIME)) {
+        if (dhcp6_has_option(optinfo->reqopt_list, DH6OPT_INFO_REFRESH_TIME)) {
             roptinfo.irt = subnet->linkscope.irt;
         }
     }
 
     if (host) {
-        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_PREFERENCE)) {
+        if (dhcp6_has_option(optinfo->reqopt_list, DH6OPT_PREFERENCE)) {
             roptinfo.pref = host->hostscope.server_pref;
         }
 
         roptinfo.flags = (optinfo->flags & host->hostscope.allow_flags) |
             host->hostscope.send_flags;
 
-        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS) ||
-            dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
+        if (dhcp6_has_option(optinfo->reqopt_list, DH6OPT_DNS_SERVERS) ||
+            dhcp6_has_option(optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
             dnsinfo = host->hostscope.dnsinfo;
         }
 
-        if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_INFO_REFRESH_TIME)) {
+        if (dhcp6_has_option(optinfo->reqopt_list, DH6OPT_INFO_REFRESH_TIME)) {
             roptinfo.irt = host->hostscope.irt;
         }
     }
 
     /* prohibit a mixture of old and new style of DNS server config */
-    if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
+    if (dhcp6_has_option(optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
         if (g_slist_length(arg_dnsinfo.servers)) {
             if (g_slist_length(dnsinfo.servers)) {
                 g_message("%s: do not specify DNS servers both by command line "
@@ -924,7 +924,7 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
         }
     }
 
-    if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_PREFERENCE)) {
+    if (dhcp6_has_option(optinfo->reqopt_list, DH6OPT_PREFERENCE)) {
         g_debug("server preference is %2x", roptinfo.pref);
     }
 
@@ -1091,7 +1091,7 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
         case DH6_REBIND:
         case DH6_INFORM_REQ:
             /* DNS Recursive Name Server option */
-            if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
+            if (dhcp6_has_option(optinfo->reqopt_list, DH6OPT_DNS_SERVERS)) {
                 roptinfo.dnsinfo.servers = g_slist_copy(dnsinfo.servers);
                 if (roptinfo.dnsinfo.servers == NULL) {
                     g_error("%s: failed to copy DNS servers", __func__);
@@ -1100,7 +1100,7 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
             }
 
             /* Domain Search List option */
-            if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
+            if (dhcp6_has_option(optinfo->reqopt_list, DH6OPT_DOMAIN_LIST)) {
                 roptinfo.dnsinfo.domains = dnsinfo.domains;
             }
 
@@ -1108,7 +1108,7 @@ static gint _server6_react_message(struct dhcp6_if *ifp,
     }
 
     /* Information refresh time option (RFC 4242) */
-    if (dhcp6_has_option(&optinfo->reqopt_list, DH6OPT_INFO_REFRESH_TIME)) {
+    if (dhcp6_has_option(optinfo->reqopt_list, DH6OPT_INFO_REFRESH_TIME)) {
         switch (dh6->dh6_msgtype) {
             case DH6_INFORM_REQ:
                 if (roptinfo.irt == 0) {

@@ -180,23 +180,19 @@ typedef struct _dhcp6_lease_t {
     struct dhcp6_timer *timer;
 } dhcp6_lease_t;
 
-struct dhcp6_listval {
-    TAILQ_ENTRY(dhcp6_listval) link;
-
+typedef struct _dhcp6_value_t {
     union {
         gint uv_num;
         struct in6_addr uv_addr6;
         struct dhcp6_addr uv_dhcp6_addr;
         dhcp6_lease_t uv_dhcp6_lease;
     } uv;
-};
+} dhcp6_value_t;
 
 #define val_num uv.uv_num
 #define val_addr6 uv.uv_addr6
 #define val_dhcp6addr uv.uv_dhcp6_addr
 #define val_dhcp6lease uv.uv_dhcp6_lease
-
-TAILQ_HEAD(dhcp6_list, dhcp6_listval);
 
 typedef enum {
     DHCP6_LISTVAL_NUM,
@@ -210,7 +206,7 @@ typedef struct _ia_t {
     iatype_t type;                      /* type of IA (e.g. IANA) */
     guint8 flags;                       /* flags for temp address */
     struct dhcp6_iaid_info iaidinfo;    /* IAID, renewtime and rebindtime */
-    struct dhcp6_list addr_list;        /* assigned ipv6 address list */
+    GSList *addr_list;                  /* assigned ipv6 address list */
     guint16 status_code;                /* status code */
     gchar *status_msg;                  /* status message */
 } ia_t;
@@ -260,7 +256,7 @@ struct dhcp6_optinfo {
     guint8 pref;                   /* server preference */
     guint32 irt;                   /* information refresh time */
     struct in6_addr server_addr;
-    struct dhcp6_list reqopt_list; /* options in option request */
+    GSList *reqopt_list;           /* options in option request */
     dns_info_t dnsinfo;            /* DNS server list */
     GSList *relay_list;            /* list of the relays the message
                                       passed through on to the server */

@@ -338,10 +338,17 @@ gint dhcp6_get_prefixlen(struct in6_addr *addr, struct dhcp6_if *ifp) {
     return PREFIX_LEN_NOTINRA;
 }
 
-gint addr_on_addrlist(struct dhcp6_list *addrlist, struct dhcp6_addr *addr6) {
-    struct dhcp6_listval *lv;
+gint addr_on_addrlist(GSList *addrlist, struct dhcp6_addr *addr6) {
+    dhcp6_value_t *lv = NULL;
+    GSList *iterator = addrlist;
 
-    for (lv = TAILQ_FIRST(addrlist); lv; lv = TAILQ_NEXT(lv, link)) {
+    if (!g_slist_length(iterator)) {
+        return 0;
+    }
+
+    do {
+        lv = (dhcp6_value_t *) iterator->data;
+
         if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &addr6->addr)) {
             if ((lv->val_dhcp6addr.type != IAPD) ||
                 ((lv->val_dhcp6addr.type == IAPD) &&
@@ -349,7 +356,7 @@ gint addr_on_addrlist(struct dhcp6_list *addrlist, struct dhcp6_addr *addr6) {
                 return 1;
             }
         }
-    }
+    } while ((iterator = g_slist_next(iterator)) != NULL);
 
     return 0;
 }

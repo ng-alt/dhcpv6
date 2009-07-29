@@ -78,7 +78,7 @@ gint dhcp6_update_lease(struct dhcp6_addr *, dhcp6_lease_t *);
 
 static void _remove_leases_not_on_reply(gpointer data, gpointer user_data) {
     dhcp6_lease_t *lease = (dhcp6_lease_t *) data;
-    struct dhcp6_list *addr_list = (struct dhcp6_list *) user_data;
+    GSList *addr_list = (GSList *) user_data;
 
     if (!addr_on_addrlist(addr_list, &lease->lease_addr)) {
         g_debug("%s: lease %s is not on the link",
@@ -301,9 +301,10 @@ struct host_decl *find_hostdecl(struct duid *duid, guint32 iaid,
 /* for request/solicit rapid commit */
 gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia) {
     struct dhcp6_iaidaddr *iaidaddr;
-    struct dhcp6_listval *lv, *lv_next = NULL;
+    dhcp6_value_t *lv = NULL;
     struct timeval timo;
     gdouble d;
+    GSList *iterator = ia->addr_list;
 
     iaidaddr = (struct dhcp6_iaidaddr *) malloc(sizeof(*iaidaddr));
 
@@ -319,20 +320,26 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia) {
     iaidaddr->lease_list = NULL;
 
     /* add new leases */
-    for (lv = TAILQ_FIRST(&ia->addr_list); lv; lv = lv_next) {
-        lv_next = TAILQ_NEXT(lv, link);
+    if (g_slist_length(iterator)) {
+        do {
+            lv = (dhcp6_value_t *) iterator->data;
 
-        if ((g_hash_table_lookup(lease_hash_table,
-                 (gconstpointer) &lv->val_dhcp6addr)) != NULL) {
-            g_message("%s: address for %s has been used",
-                      __func__, in6addr2str(&lv->val_dhcp6addr.addr, 0));
-            TAILQ_REMOVE(&ia->addr_list, lv, link);
-            continue;
-        }
+            if ((g_hash_table_lookup(lease_hash_table,
+                                     &lv->val_dhcp6addr)) != NULL) {
+                g_message("%s: address for %s has been used",
+                          __func__, in6addr2str(&lv->val_dhcp6addr.addr, 0));
+                ia->addr_list = g_slist_remove_all(ia->addr_list, lv);
+                g_free(lv);
+                lv = NULL;
+                continue;
+            }
 
-        if (dhcp6_add_lease(iaidaddr, &lv->val_dhcp6addr) != 0) {
-            TAILQ_REMOVE(&ia->addr_list, lv, link);
-        }
+            if (dhcp6_add_lease(iaidaddr, &lv->val_dhcp6addr) != 0) {
+                ia->addr_list = g_slist_remove_all(ia->addr_list, lv);
+                g_free(lv);
+                lv = NULL;
+            }
+        } while ((iterator = g_slist_next(iterator)) != NULL);
     }
 
     /* it's meaningless to have an iaid without any leases */
@@ -427,21 +434,24 @@ gint dhcp6s_remove_lease(dhcp6_lease_t *lease) {
         dhcp6_remove_timer(lease->timer);
     }
 
-    lease->iaidaddr->lease_list = g_slist_remove(lease->iaidaddr->lease_list,
-                                                 lease);
     g_debug("%s: removed lease %s", __func__,
             in6addr2str(&lease->lease_addr.addr, 0));
+    lease->iaidaddr->lease_list = g_slist_remove(lease->iaidaddr->lease_list,
+                                                 lease);
     g_free(lease);
+    lease = NULL;
+
     return 0;
 }
 
 /* for renew/rebind/release/decline */
 gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
     struct dhcp6_iaidaddr *iaidaddr;
-    dhcp6_lease_t *lease;
-    struct dhcp6_listval *lv, *lv_next = NULL;
+    dhcp6_lease_t *lease = NULL;
+    dhcp6_value_t *lv = NULL;
     struct timeval timo;
     gdouble d;
+    GSList *iterator = NULL;
 
     if ((iaidaddr = dhcp6_find_iaidaddr(&optinfo->clientID,
                                         ia->iaidinfo.iaid,
@@ -451,17 +461,22 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
 
     if (flag == ADDR_UPDATE) {
         /* add or update new lease */
-        for (lv = TAILQ_FIRST(&ia->addr_list); lv; lv = lv_next) {
-            lv_next = TAILQ_NEXT(lv, link);
-            g_debug("%s: address is %s ", __func__,
-                    in6addr2str(&lv->val_dhcp6addr.addr, 0));
+        iterator = ia->addr_list;
 
-            if ((lease = dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr))
-                != NULL) {
-                dhcp6_update_lease(&lv->val_dhcp6addr, lease);
-            } else {
-                dhcp6_add_lease(iaidaddr, &lv->val_dhcp6addr);
-            }
+        if (g_slist_length(iterator)) {
+            do {
+                lv = (dhcp6_value_t *) iterator->data;
+
+                g_debug("%s: address is %s ", __func__,
+                        in6addr2str(&lv->val_dhcp6addr.addr, 0));
+
+                lease = dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr);
+                if (lease == NULL) {
+                    dhcp6_add_lease(iaidaddr, &lv->val_dhcp6addr);
+                } else {
+                    dhcp6_update_lease(&lv->val_dhcp6addr, lease);
+                }
+            } while ((iterator = g_slist_next(iterator)) != NULL);
         }
 
         /* remove leases that are not on the reply list */
@@ -471,21 +486,26 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
                 iaidaddr->client6_info.iaidinfo.iaid);
     } else {
         /* remove leases */
-        for (lv = TAILQ_FIRST(&ia->addr_list); lv; lv = lv_next) {
-            lv_next = TAILQ_NEXT(lv, link);
-            lease = dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr);
+        iterator = ia->addr_list;
 
-            if (lease) {
-                if (flag == ADDR_ABANDON) {
-                    /* XXX: preallocate a abandoned duid for maintain
-                     * abandoned list with preferlifetime xxx, validlifetime
-                     * xxx */
+        if (g_slist_length(iterator)) {
+            do {
+                lv = (dhcp6_value_t *) iterator->data;
+
+                lease = dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr);
+                if (lease) {
+                    if (flag == ADDR_ABANDON) {
+                        /* XXX: preallocate a abandoned duid for maintain
+                         * abandoned list with preferlifetime xxx, validlifetime
+                         * xxx
+                         */
+                    }
+
+                    dhcp6s_remove_lease(lease);
+                } else {
+                    g_message("%s: address is not on the iaid", __func__);
                 }
-
-                dhcp6s_remove_lease(lease);
-            } else {
-                g_message("%s: address is not on the iaid", __func__);
-            }
+            } while ((iterator = g_slist_next(iterator)) != NULL);
         }
     }
 
@@ -517,12 +537,19 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
     return 0;
 }
 
-gint dhcp6_validate_bindings(struct dhcp6_list *addrlist,
+gint dhcp6_validate_bindings(GSList *addrlist,
                              struct dhcp6_iaidaddr *iaidaddr, gint update) {
-    struct dhcp6_listval *lv;
+    dhcp6_value_t *lv = NULL;
+    GSList *iterator = addrlist;
+
+    if (!g_slist_length(iterator)) {
+        return 0;
+    }
 
     /* XXX: confirm needs to update bindings ?? */
-    for (lv = TAILQ_FIRST(addrlist); lv; lv = TAILQ_NEXT(lv, link)) {
+    do {
+        lv = (dhcp6_value_t *) iterator->data;
+
         if (dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr) == NULL) {
             if (update) {
                 /* returns with lifetimes of 0 [RFC3315, Section 18.2.3] */
@@ -532,7 +559,7 @@ gint dhcp6_validate_bindings(struct dhcp6_list *addrlist,
 
             return -1;
         }
-    }
+    } while ((iterator = g_slist_next(iterator)) != NULL);
 
     return 0;
 }
@@ -718,7 +745,7 @@ struct dhcp6_timer *dhcp6_lease_timo(void *arg) {
 gint dhcp6_get_hostconf(ia_t *ria, ia_t *ia,
                         struct dhcp6_iaidaddr *iaidaddr,
                         struct host_decl *host) {
-    struct dhcp6_list *reply_list = &ia->addr_list;
+    GSList *reply_list = ia->addr_list;
 
     if (!(host->hostscope.allow_flags & DHCIFF_TEMP_ADDRS)) {
         ria->iaidinfo.renewtime = host->hostscope.renew_time;
@@ -727,12 +754,12 @@ gint dhcp6_get_hostconf(ia_t *ria, ia_t *ia,
 
         switch (ia->type) {
             case IANA:
-                dhcp6_copy_list(reply_list, &host->addrlist);
+                dhcp6_copy_list(reply_list, host->addrlist);
                 break;
             case IATA:
                 break;
             case IAPD:
-                dhcp6_copy_list(reply_list, &host->prefixlist);
+                dhcp6_copy_list(reply_list, host->prefixlist);
                 break;
         }
     }
@@ -744,78 +771,92 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
                            const struct dhcp6_iaidaddr *iaidaddr,
                            const struct link_decl *subnet,
                            guint16 *ia_status_code) {
-    struct dhcp6_listval *v6addr;
+    dhcp6_value_t *v6addr;
     struct v6addrseg *seg;
-    struct dhcp6_list *reply_list = &ria->addr_list;
-    struct dhcp6_list *req_list = &ia->addr_list;
+    GSList *reply_list = ria->addr_list;
+    GSList *req_list = ia->addr_list;
     gint numaddr;
-    struct dhcp6_listval *lv, *lv_next = NULL;
+    dhcp6_value_t *lv = NULL;
     GSList *iterator = NULL;
-    dhcp6_lease_t *cl;
+    dhcp6_lease_t *cl = NULL;
 
     ria->iaidinfo.renewtime = subnet->linkscope.renew_time;
     ria->iaidinfo.rebindtime = subnet->linkscope.rebind_time;
     ria->type = ia->type;
 
     /* check the duplication */
-    for (lv = TAILQ_FIRST(req_list); lv; lv = lv_next) {
-        lv_next = TAILQ_NEXT(lv, link);
-        if (addr_on_addrlist(reply_list, &lv->val_dhcp6addr)) {
-            TAILQ_REMOVE(req_list, lv, link);
-        }
+    iterator = req_list;
+    if (g_slist_length(iterator)) {
+        do {
+            lv = (dhcp6_value_t *) iterator->data;
+
+            if (addr_on_addrlist(reply_list, &lv->val_dhcp6addr)) {
+                req_list = g_slist_remove_all(req_list, lv);
+                g_free(lv);
+                lv = NULL;
+            }
+        } while ((iterator = g_slist_next(iterator)) != NULL);
     }
 
     dhcp6_copy_list(reply_list, req_list);
 
-    for (lv = TAILQ_FIRST(reply_list); lv; lv = lv_next) {
-        lv_next = TAILQ_NEXT(lv, link);
-        lv->val_dhcp6addr.type = ia->type;
-        lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
-        lv->val_dhcp6addr.status_msg = NULL;
+    iterator = reply_list;
+    if (g_slist_length(iterator)) {
+        do {
+            lv = (dhcp6_value_t *) iterator->data;
+
+            lv->val_dhcp6addr.type = ia->type;
+            lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
+            lv->val_dhcp6addr.status_msg = NULL;
+        } while ((iterator = g_slist_next(iterator)) != NULL);
     }
 
     for (seg = subnet->seglist; seg; seg = seg->next) {
         numaddr = 0;
+        iterator = reply_list;
 
-        for (lv = TAILQ_FIRST(reply_list); lv; lv = lv_next) {
-            lv_next = TAILQ_NEXT(lv, link);
-            /* skip checked segment */
+        if (g_slist_length(iterator)) {
+            do {
+                lv = (dhcp6_value_t *) iterator->data;
 
-            if (lv->val_dhcp6addr.status_code == DH6OPT_STCODE_SUCCESS) {
-                continue;
-            }
+                /* skip checked segment */
 
-            if (IN6_IS_ADDR_RESERVED(&lv->val_dhcp6addr.addr) ||
-                is_anycast(&lv->val_dhcp6addr.addr, seg->prefix.plen)) {
-                numaddr += 1;
-                lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
-                g_debug("%s: %s address not on link",
-                        __func__, in6addr2str(&lv->val_dhcp6addr.addr,
-                                                  0));
-                *ia_status_code = DH6OPT_STCODE_NOTONLINK;
-                continue;
-            }
-
-            lv->val_dhcp6addr.type = ia->type;
-
-            if (_addr_on_segment(seg, &lv->val_dhcp6addr)) {
-                if (numaddr == 0) {
-                    lv->val_dhcp6addr.type = ia->type;
-                    _server6_get_addrpara(&lv->val_dhcp6addr, seg);
-                    numaddr += 1;
-                } else {
-                    /* check the addr count per seg, we only allow one
-                     * address per segment, set the status code */
-                    lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOADDRAVAIL;
+                if (lv->val_dhcp6addr.status_code == DH6OPT_STCODE_SUCCESS) {
+                    continue;
                 }
-            } else {
-                numaddr += 1;
-                lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
-                g_debug("%s: %s address not on link",
-                        __func__, in6addr2str(&lv->val_dhcp6addr.addr,
+
+                if (IN6_IS_ADDR_RESERVED(&lv->val_dhcp6addr.addr) ||
+                    is_anycast(&lv->val_dhcp6addr.addr, seg->prefix.plen)) {
+                    numaddr += 1;
+                    lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
+                    g_debug("%s: %s address not on link",
+                            __func__, in6addr2str(&lv->val_dhcp6addr.addr,
                                                   0));
-                *ia_status_code = DH6OPT_STCODE_NOTONLINK;
-            }
+                    *ia_status_code = DH6OPT_STCODE_NOTONLINK;
+                    continue;
+                }
+
+                lv->val_dhcp6addr.type = ia->type;
+
+                if (_addr_on_segment(seg, &lv->val_dhcp6addr)) {
+                    if (numaddr == 0) {
+                        lv->val_dhcp6addr.type = ia->type;
+                        _server6_get_addrpara(&lv->val_dhcp6addr, seg);
+                        numaddr += 1;
+                    } else {
+                        /* check the addr count per seg, we only allow one
+                         * address per segment, set the status code */
+                        lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOADDRAVAIL;
+                    }
+                } else {
+                    numaddr += 1;
+                    lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
+                    g_debug("%s: %s address not on link",
+                            __func__, in6addr2str(&lv->val_dhcp6addr.addr,
+                                                      0));
+                    *ia_status_code = DH6OPT_STCODE_NOTONLINK;
+                }
+            } while ((iterator = g_slist_next(iterator)) != NULL);
         }
 
         if (iaidaddr != NULL && g_slist_length(iaidaddr->lease_list)) {
@@ -840,7 +881,7 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
                         v6addr->val_dhcp6addr.type = ia->type;
                         _server6_get_addrpara(&v6addr->val_dhcp6addr, seg);
                         numaddr += 1;
-                        TAILQ_INSERT_TAIL(reply_list, v6addr, link);
+                        reply_list = g_slist_append(reply_list, v6addr);
                         continue;
                     }
                 }
@@ -848,7 +889,7 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
         }
 
         if (numaddr == 0) {
-            v6addr = (struct dhcp6_listval *) malloc(sizeof(*v6addr));
+            v6addr = (dhcp6_value_t *) malloc(sizeof(*v6addr));
             if (v6addr == NULL) {
                 g_error("%s: fail to allocate memory %s",
                         __func__, strerror(errno));
@@ -864,7 +905,7 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
                 continue;
             }
 
-            TAILQ_INSERT_TAIL(reply_list, v6addr, link);
+            reply_list = g_slist_append(reply_list, v6addr);
         }
     }
 
@@ -875,11 +916,12 @@ gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
                              const struct dhcp6_iaidaddr *iaidaddr,
                              const struct link_decl *subnet,
                              guint16 *ia_status_code) {
-    struct dhcp6_listval *v6addr;
+    dhcp6_value_t *v6addr;
     struct v6prefix *prefix6;
-    struct dhcp6_list *reply_list = &ria->addr_list;
-    const struct dhcp6_list *req_list = &ia->addr_list;
-    struct dhcp6_listval *lv, *lv_next = NULL;
+    GSList *reply_list = ria->addr_list;
+    GSList *req_list = ia->addr_list;
+    dhcp6_value_t *lv = NULL;
+    GSList *iterator = NULL;
 
     /* XXX: ToDo check hostdecl first */
     ria->iaidinfo.renewtime = subnet->linkscope.renew_time;
@@ -887,7 +929,7 @@ gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
     ria->type = ia->type;
 
     for (prefix6 = subnet->prefixlist; prefix6; prefix6 = prefix6->next) {
-        v6addr = (struct dhcp6_listval *) malloc(sizeof(*v6addr));
+        v6addr = (dhcp6_value_t *) malloc(sizeof(*v6addr));
 
         if (v6addr == NULL) {
             g_error("%s: fail to allocate memory", __func__);
@@ -901,28 +943,36 @@ gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
         v6addr->val_dhcp6addr.plen = prefix6->prefix.plen;
         v6addr->val_dhcp6addr.type = IAPD;
         _server6_get_prefixpara(&v6addr->val_dhcp6addr, prefix6);
+
         g_debug(" get prefix %s/%d, preferlifetime %u, validlifetime %u",
                 in6addr2str(&v6addr->val_dhcp6addr.addr, 0),
                 v6addr->val_dhcp6addr.plen,
                 v6addr->val_dhcp6addr.preferlifetime,
                 v6addr->val_dhcp6addr.validlifetime);
-        TAILQ_INSERT_TAIL(reply_list, v6addr, link);
+
+        reply_list = g_slist_append(reply_list, v6addr);
     }
 
     for (prefix6 = subnet->prefixlist; prefix6; prefix6 = prefix6->next) {
-        for (lv = TAILQ_FIRST(req_list); lv; lv = lv_next) {
-            lv_next = TAILQ_NEXT(lv, link);
+        iterator = req_list;
 
-            if (IN6_IS_ADDR_RESERVED(&lv->val_dhcp6addr.addr) ||
-                is_anycast(&lv->val_dhcp6addr.addr, prefix6->prefix.plen) ||
-                !addr_on_addrlist(reply_list, &lv->val_dhcp6addr)) {
-                lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
-                *ia_status_code = DH6OPT_STCODE_NOTONLINK;
-                g_debug(" %s prefix not on link",
-                        in6addr2str(&lv->val_dhcp6addr.addr, 0));
-                lv->val_dhcp6addr.type = IAPD;
-                TAILQ_INSERT_TAIL(reply_list, lv, link);
-            }
+        if (g_slist_length(iterator)) {
+            do {
+                lv = (dhcp6_value_t *) iterator->data;
+
+                if (IN6_IS_ADDR_RESERVED(&lv->val_dhcp6addr.addr) ||
+                    is_anycast(&lv->val_dhcp6addr.addr, prefix6->prefix.plen) ||
+                    !addr_on_addrlist(reply_list, &lv->val_dhcp6addr)) {
+                    lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
+                    *ia_status_code = DH6OPT_STCODE_NOTONLINK;
+
+                    g_debug(" %s prefix not on link",
+                            in6addr2str(&lv->val_dhcp6addr.addr, 0));
+
+                    lv->val_dhcp6addr.type = IAPD;
+                    reply_list = g_slist_append(reply_list, lv);
+                }
+            } while ((iterator = g_slist_next(iterator)) != NULL);
         }
     }
 

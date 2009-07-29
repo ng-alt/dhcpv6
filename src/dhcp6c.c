@@ -106,7 +106,7 @@ extern struct dhcp6_iaidaddr client6_iaidaddr;
 /* External prototypes */
 extern gint client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
 extern struct dhcp6_timer *syncfile_timo(void *);
-extern gint dad_parse(const gchar *, struct dhcp6_list *);
+extern gint dad_parse(const gchar *, GSList *);
 
 /* Globals */
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_CLIENT;
@@ -114,7 +114,7 @@ gint iosock = -1;                /* inbound/outbound udp port */
 gint nlsock = -1;
 FILE *dhcp6_resolv_file;
 gchar client6_lease_temp[256];
-struct dhcp6_list request_list;
+GSList *request_list;
 gchar *script = NULL;
 
 /* Static globals */
@@ -285,7 +285,7 @@ static gint _set_info_refresh_timer(struct dhcp6_if *ifp, guint32 offered_irt) {
 
 static gint _create_request_list(gint reboot) {
     dhcp6_lease_t *cl;
-    struct dhcp6_listval *lv;
+    dhcp6_value_t *lv;
     GSList *iterator = client6_iaidaddr.lease_list;
 
     if (!g_slist_length(iterator)) {
@@ -306,7 +306,7 @@ static gint _create_request_list(gint reboot) {
         memcpy(&lv->val_dhcp6addr, &cl->lease_addr,
                sizeof(lv->val_dhcp6addr));
         lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
-        TAILQ_INSERT_TAIL(&request_list, lv, link);
+        request_list = g_slist_append(request_list, lv);
 
         /* config the interface for reboot */
         if (reboot && client6_iaidaddr.client6_info.type != IAPD &&
@@ -328,8 +328,8 @@ static struct dhcp6_timer *_check_link_timo(void *arg) {
     struct timeval timo;
     static long d = DHCP6_CHECKLINK_TIME_UPCASE;
     gint newstate;
-    struct dhcp6_list dad_list;
-    struct dhcp6_listval *lv;
+    GSList *dad_list;
+    dhcp6_value_t *lv;
 
     g_debug("enter checking link ...");
     strncpy(ifr.ifr_name, dhcp6_if->ifname, IFNAMSIZ);
@@ -351,24 +351,30 @@ static struct dhcp6_timer *_check_link_timo(void *arg) {
                 break;
             default:
                 /* check DAD status of the link-local address */
-                TAILQ_INIT(&dad_list);
+                dad_list = NULL;
 
-                if (dad_parse("/proc/net/if_inet6", &dad_list) < 0) {
+                if (dad_parse("/proc/net/if_inet6", dad_list) < 0) {
                     g_error("parse /proc/net/if_inet6 failed");
                     goto settimer;
                 }
 
-                for (lv = TAILQ_FIRST(&dad_list);
-                     lv; lv = TAILQ_NEXT(lv, link)) {
-                    if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr,
-                                           &ifp->linklocal)) {
-                        g_debug("wait for the DAD completion");
-                        dhcp6_clear_list(&dad_list);
-                        goto settimer;
-                    }
+                GSList *iterator = dad_list;
+                if (g_slist_length(iterator)) {
+                    do {
+                        lv = (dhcp6_value_t *) iterator->data;
+
+                        if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr,
+                                               &ifp->linklocal)) {
+                            g_debug("wait for the DAD completion");
+                            g_slist_free(dad_list);
+                            dad_list = NULL;
+                            goto settimer;
+                        }
+                    } while ((iterator = g_slist_next(iterator)) != NULL);
                 }
 
-                dhcp6_clear_list(&dad_list);
+                g_slist_free(dad_list);
+                dad_list = NULL;
                 newstate = DHCP6S_CONFIRM;
                 break;
         }
@@ -428,24 +434,25 @@ static struct dhcp6_timer *_check_lease_file_timo(void *arg) {
 static struct dhcp6_timer *_check_dad_timo(void *arg) {
     struct dhcp6_if *ifp = (struct dhcp6_if *) arg;
     gint newstate;
-    struct dhcp6_list dad_list;
-    dhcp6_lease_t *cl;
-    struct dhcp6_listval *lv;
-    GSList *cl_iterator = NULL;
+    GSList *dad_list = NULL;
+    dhcp6_lease_t *cl = NULL;
+    dhcp6_value_t *lv = NULL;
+    GSList *cl_iterator = NULL, *dad_iterator = NULL;
 
     if (client6_iaidaddr.client6_info.type == IAPD) {
         goto end;
     }
 
     g_debug("enter checking dad ...");
-    TAILQ_INIT(&dad_list);
 
-    if (dad_parse("/proc/net/if_inet6", &dad_list) < 0) {
+    if (dad_parse("/proc/net/if_inet6", dad_list) < 0) {
         g_error("parse /proc/net/if_inet6 failed");
         goto end;
     }
 
-    for (lv = TAILQ_FIRST(&dad_list); lv; lv = TAILQ_NEXT(lv, link)) {
+    dad_iterator = dad_list;
+    do {
+        lv = (dhcp6_value_t *) dad_iterator->data;
         cl_iterator = client6_iaidaddr.lease_list;
 
         if (!g_slist_length(cl_iterator)) {
@@ -464,18 +471,19 @@ static struct dhcp6_timer *_check_dad_timo(void *arg) {
                     g_error("remove duplicated address failed: %s",
                             in6addr2str(&cl->lease_addr.addr, 0));
                 } else {
-                    TAILQ_REMOVE(&dad_list, lv, link);
-                    TAILQ_INSERT_TAIL(&request_list, lv, link);
+                    dad_list = g_slist_remove_all(dad_list, lv);
+                    request_list = g_slist_append(request_list, lv);
                 }
 
                 break;
             }
         } while ((cl_iterator = g_slist_next(cl_iterator)) != NULL);
-    }
+    } while ((dad_iterator = g_slist_next(dad_iterator)) != NULL);
 
-    dhcp6_clear_list(&dad_list);
+    g_slist_free(dad_list);
+    dad_list = NULL;
 
-    if (TAILQ_EMPTY(&request_list)) {
+    if (!g_slist_length(request_list)) {
         goto end;
     }
 
@@ -553,20 +561,23 @@ static gint _client6_ifinit(gchar *device) {
         }
 
         if (g_slist_length(client6_iaidaddr.lease_list)) {
-            struct dhcp6_listval *lv;
+            dhcp6_value_t *lv;
 
             if (!(client6_request_flag & CLIENT6_REQUEST_ADDR) &&
                 !(client6_request_flag & CLIENT6_RELEASE_ADDR)) {
                 client6_request_flag |= CLIENT6_CONFIRM_ADDR;
             }
 
-            if (TAILQ_EMPTY(&request_list)) {
+            if (!g_slist_length(request_list)) {
                 if (_create_request_list(1) < 0) {
                     return -1;
                 }
             } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
-                for (lv = TAILQ_FIRST(&request_list); lv;
-                     lv = TAILQ_NEXT(lv, link)) {
+                GSList *iterator = request_list;
+
+                do {
+                    lv = (dhcp6_value_t *) iterator->data;
+
                     if (dhcp6_find_lease(&client6_iaidaddr,
                                          &lv->val_dhcp6addr) == NULL) {
                         g_message("this address %s is not leased by "
@@ -574,7 +585,7 @@ static gint _client6_ifinit(gchar *device) {
                                   in6addr2str(&lv->val_dhcp6addr.addr, 0));
                         return -1;
                     }
-                }
+                } while ((iterator = g_slist_next(iterator)) != NULL);
             }
         } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
             g_message("no ipv6 addresses are leased by client");
@@ -894,7 +905,7 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
                 case DH6OPT_STCODE_SUCCESS:
                 case DH6OPT_STCODE_UNDEFINE:
                 default:
-                    if (!TAILQ_EMPTY(&ia->addr_list)) {
+                    if (g_slist_length(ia->addr_list)) {
                         err = get_if_rainfo(ifp);
                         if (err) {
                             g_error("failed to get interface info via "
@@ -1060,8 +1071,8 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
         g_debug("%s: got an expected reply, sleeping.", __func__);
     }
 
-    dhcp6_clear_list(&request_list);
-    TAILQ_INIT(&request_list);
+    g_slist_free(request_list);
+    request_list = NULL;
     return 0;
 }
 
@@ -1168,7 +1179,7 @@ static gint _client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
     /* XXX: client might have some local policy to select the addresses */
     if ((ia = ia_find_listval(optinfo0->ia_list, _iatype_of_if(ifp),
                               ifp->iaidinfo.iaid)) != NULL) {
-        dhcp6_copy_list(&request_list, &ia->addr_list);
+        dhcp6_copy_list(request_list, ia->addr_list);
     }
 
     return 0;
@@ -1828,7 +1839,7 @@ void client6_send(dhcp6_event_t *ev) {
     }
 
     /* option request options */
-    if (dhcp6_copy_list(&optinfo.reqopt_list, &ifp->reqopt_list)) {
+    if (dhcp6_copy_list(optinfo.reqopt_list, ifp->reqopt_list)) {
         g_error("%s: failed to copy requested options", __func__);
         goto end;
     }
@@ -1836,7 +1847,7 @@ void client6_send(dhcp6_event_t *ev) {
     if (ifp->send_flags & DHCIFF_INFO_ONLY) {   /* RFC4242 */
         gint opttype = DH6OPT_INFO_REFRESH_TIME;
 
-        if (dhcp6_add_listval(&optinfo.reqopt_list, &opttype,
+        if (dhcp6_add_listval(optinfo.reqopt_list, &opttype,
                               DHCP6_LISTVAL_NUM) == NULL) {
             g_error("%s: failed to copy infomation refresh time option",
                     __func__);
@@ -1860,7 +1871,7 @@ void client6_send(dhcp6_event_t *ev) {
 
             /* support for client preferred ipv6 address */
             if (client6_request_flag & CLIENT6_REQUEST_ADDR) {
-                if (dhcp6_copy_list(&ia->addr_list, &request_list)) {
+                if (dhcp6_copy_list(ia->addr_list, request_list)) {
                     goto end;
                 }
             }
@@ -1882,8 +1893,8 @@ void client6_send(dhcp6_event_t *ev) {
              * given in the ADVERTISE, if it doesn't see it, the REQUEST
              * will be ignored).
              */
-            if (!TAILQ_EMPTY(&request_list)) {
-                dhcp6_copy_list(&ia->addr_list, &request_list);
+            if (g_slist_length(request_list)) {
+                dhcp6_copy_list(ia->addr_list, request_list);
             }
 
             break;
@@ -1901,9 +1912,9 @@ void client6_send(dhcp6_event_t *ev) {
                 ia->iaidinfo.rebindtime = 0;
             }
 
-            if (!TAILQ_EMPTY(&request_list)) {
+            if (g_slist_length(request_list)) {
                 /* XXX: ToDo: seperate to prefix list and address list */
-                if (dhcp6_copy_list(&ia->addr_list, &request_list)) {
+                if (dhcp6_copy_list(ia->addr_list, request_list)) {
                     goto end;
                 }
             } else {
@@ -2107,7 +2118,7 @@ void run_script(struct dhcp6_if *ifp, gint old_state, gint new_state,
     }
 
     /* dhcpv6_requested_options */
-    tmp = dhcp6_options2str(&ifp->reqopt_list);
+    tmp = dhcp6_options2str(ifp->reqopt_list);
 
     if (!g_setenv(REQUESTED_OPTIONS, tmp->str, TRUE)) {
         g_error("could not set %s environment variable", REQUESTED_OPTIONS);
@@ -2200,7 +2211,8 @@ struct dhcp6_timer *client6_timo(void *arg) {
                 /* do release */
                 _ev_set_state(ev, DHCP6S_RELEASE);
             } else if (client6_request_flag & CLIENT6_CONFIRM_ADDR) {
-                struct dhcp6_listval *lv;
+                dhcp6_value_t *lv;
+                GSList *iterator = request_list;
 
                 /* do confirm for reboot for IANA, IATA */
                 if (client6_iaidaddr.client6_info.type == IAPD) {
@@ -2209,10 +2221,13 @@ struct dhcp6_timer *client6_timo(void *arg) {
                     _ev_set_state(ev, DHCP6S_CONFIRM);
                 }
 
-                for (lv = TAILQ_FIRST(&request_list); lv;
-                     lv = TAILQ_NEXT(lv, link)) {
-                    lv->val_dhcp6addr.preferlifetime = 0;
-                    lv->val_dhcp6addr.validlifetime = 0;
+                if (g_slist_length(iterator)) {
+                    do {
+                        lv = (dhcp6_value_t *) iterator->data;
+
+                        lv->val_dhcp6addr.preferlifetime = 0;
+                        lv->val_dhcp6addr.validlifetime = 0;
+                    } while ((iterator = g_slist_next(iterator)) != NULL);
                 }
             } else {
                 _ev_set_state(ev, DHCP6S_SOLICIT);
@@ -2248,7 +2263,7 @@ struct dhcp6_timer *client6_timo(void *arg) {
         case DHCP6S_CONFIRM:
         case DHCP6S_RENEW:
         case DHCP6S_REBIND:
-            if (!TAILQ_EMPTY(&request_list)) {
+            if (g_slist_length(request_list)) {
                 client6_send(ev);
             } else {
                 g_message("%s: all information to be updated were canceled",
@@ -2277,7 +2292,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
     pid = getpid();
     srandom(time(NULL) & pid);
 
-    TAILQ_INIT(&request_list);
+    request_list = NULL;
     while ((ch = getopt(argc, argv, "c:r:R:P:vfdIp:l:s:i:?")) != -1) {
         switch (ch) {
             case 'p':
@@ -2301,9 +2316,9 @@ gint main(gint argc, gchar **argv, gchar **envp) {
 
                 for (addr = strtok(optarg, " "); addr;
                      addr = strtok(NULL, " ")) {
-                    struct dhcp6_listval *lv;
+                    dhcp6_value_t *lv;
 
-                    if ((lv = (struct dhcp6_listval *) malloc(sizeof(*lv)))
+                    if ((lv = (dhcp6_value_t *) malloc(sizeof(*lv)))
                         == NULL) {
                         g_error("failed to allocate memory");
                         exit(1);
@@ -2333,7 +2348,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
                         exit(1);
                     }
 
-                    TAILQ_INSERT_TAIL(&request_list, lv, link);
+                    request_list = g_slist_append(request_list, lv);
                 }
 
                 break;
@@ -2342,9 +2357,9 @@ gint main(gint argc, gchar **argv, gchar **envp) {
 
                 for (addr = strtok(optarg, " "); addr;
                      addr = strtok(NULL, " ")) {
-                    struct dhcp6_listval *lv;
+                    dhcp6_value_t *lv;
 
-                    if ((lv = (struct dhcp6_listval *) malloc(sizeof(*lv)))
+                    if ((lv = (dhcp6_value_t *) malloc(sizeof(*lv)))
                         == NULL) {
                         g_error("failed to allocate memory");
                         exit(1);
@@ -2361,7 +2376,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
 
                     lv->val_dhcp6addr.type = IANA;
                     lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
-                    TAILQ_INSERT_TAIL(&request_list, lv, link);
+                    request_list = g_slist_append(request_list, lv);
                 }
 
                 break;
@@ -2371,16 +2386,13 @@ gint main(gint argc, gchar **argv, gchar **envp) {
                 if (strcmp(optarg, "all")) {
                     for (addr = strtok(optarg, " "); addr;
                          addr = strtok(NULL, " ")) {
-                        struct dhcp6_listval *lv;
+                        dhcp6_value_t *lv;
 
-                        if ((lv =
-                             (struct dhcp6_listval *) malloc(sizeof(*lv)))
-                            == NULL) {
+                        lv = (dhcp6_value_t *) g_malloc0(sizeof(*lv));
+                        if (lv == NULL) {
                             g_error("failed to allocate memory");
                             exit(1);
                         }
-
-                        memset(lv, 0, sizeof(*lv));
 
                         if (inet_pton(AF_INET6, addr,
                                       &lv->val_dhcp6addr.addr) < 1) {
@@ -2390,7 +2402,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
                         }
 
                         lv->val_dhcp6addr.type = IANA;
-                        TAILQ_INSERT_TAIL(&request_list, lv, link);
+                        request_list = g_slist_append(request_list, lv);
                     }
                 }
 

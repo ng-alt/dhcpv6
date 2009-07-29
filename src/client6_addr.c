@@ -95,7 +95,7 @@ extern void free_servers(struct dhcp6_if *);
 extern gint nlsock;
 extern FILE *client6_lease_file;
 extern struct dhcp6_iaidaddr client6_iaidaddr;
-extern struct dhcp6_list request_list;
+extern GSList *request_list;
 
 /* BEGIN STATIC FUNCTIONS */
 
@@ -187,10 +187,11 @@ void dhcp6_init_iaidaddr(void) {
 }
 
 gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia) {
-    struct dhcp6_listval *lv, *lv_next = NULL;
+    dhcp6_value_t *lv = NULL;
     struct timeval timo;
-    dhcp6_lease_t *cl_lease;
+    dhcp6_lease_t *cl_lease = NULL;
     gdouble d;
+    GSList *iterator = ia->addr_list;
 
     /* ignore IA with T1 > T2 */
     if (ia->iaidinfo.renewtime > ia->iaidinfo.rebindtime) {
@@ -210,31 +211,33 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia) {
     }
 
     /* add new address */
-    for (lv = TAILQ_FIRST(&ia->addr_list); lv; lv = lv_next) {
-        lv_next = TAILQ_NEXT(lv, link);
+    if (g_slist_length(iterator)) {
+        do {
+            lv = (dhcp6_value_t *) iterator->data;
 
-        if (lv->val_dhcp6addr.type != IAPD) {
-            lv->val_dhcp6addr.plen =
-                dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
+            if (lv->val_dhcp6addr.type != IAPD) {
+                lv->val_dhcp6addr.plen =
+                    dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
 
-            if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
-                g_warning("assigned address %s prefix len is not in any RAs"
-                          " prefix length using 64 bit instead",
-                          in6addr2str(&lv->val_dhcp6addr.addr, 0));
+                if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
+                    g_warning("assigned address %s prefix len is not in any RAs"
+                              " prefix length using 64 bit instead",
+                              in6addr2str(&lv->val_dhcp6addr.addr, 0));
+                }
             }
-        }
 
-        if ((cl_lease = dhcp6_find_lease(&client6_iaidaddr,
-                                         &lv->val_dhcp6addr)) != NULL) {
-            _dhcp6_update_lease(&lv->val_dhcp6addr, cl_lease);
-            continue;
-        }
+            if ((cl_lease = dhcp6_find_lease(&client6_iaidaddr,
+                                             &lv->val_dhcp6addr)) != NULL) {
+                _dhcp6_update_lease(&lv->val_dhcp6addr, cl_lease);
+                continue;
+            }
 
-        if (dhcp6_add_lease(&lv->val_dhcp6addr)) {
-            g_error("%s: failed to add a new addr lease %s",
-                    __func__, in6addr2str(&lv->val_dhcp6addr.addr, 0));
-            continue;
-        }
+            if (dhcp6_add_lease(&lv->val_dhcp6addr)) {
+                g_error("%s: failed to add a new addr lease %s",
+                        __func__, in6addr2str(&lv->val_dhcp6addr.addr, 0));
+                continue;
+            }
+        } while ((iterator = g_slist_next(iterator)) != NULL);
     }
 
     if (!g_slist_length(client6_iaidaddr.lease_list)) {
@@ -445,20 +448,25 @@ gint dhcp6c_remove_lease(dhcp6_lease_t *sp) {
     client6_iaidaddr.lease_list = g_slist_remove(client6_iaidaddr.lease_list,
                                                  sp);
     g_free(sp);
+    sp = NULL;
 
     /* can't remove expired iaidaddr even there is no lease in this iaidaddr
      * since the rebind->solicit timer uses this iaidaddr
-     * if(TAILQ_EMPTY(&client6_iaidaddr.lease_list)) dhcp6_remove_iaidaddr(); 
+     *
+     * if (!g_slist_length(client6_iaidaddr.lease_list)) {
+     *     dhcp6_remove_iaidaddr();
+     * }
      */
 
     return 0;
 }
 
 gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
-    struct dhcp6_listval *lv, *lv_next = NULL;
-    dhcp6_lease_t *cl;
+    dhcp6_value_t *lv = NULL;
+    dhcp6_lease_t *cl = NULL;
     struct timeval timo;
     gdouble d;
+    GSList *iterator = NULL;
 
     if (client6_iaidaddr.client6_info.iaidinfo.renewtime >
         client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
@@ -467,49 +475,56 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
     }
 
     if (flag == ADDR_REMOVE) {
-        for (lv = TAILQ_FIRST(&ia->addr_list); lv; lv = lv_next) {
-            lv_next = TAILQ_NEXT(lv, link);
-            cl = dhcp6_find_lease(&client6_iaidaddr, &lv->val_dhcp6addr);
+        iterator = ia->addr_list;
 
-            if (cl) {
-                /* remove leases */
-                dhcp6c_remove_lease(cl);
-            }
+        if (g_slist_length(iterator)) {
+            do {
+                lv = (dhcp6_value_t *) iterator->data;
+                cl = dhcp6_find_lease(&client6_iaidaddr, &lv->val_dhcp6addr);
+
+                if (cl) {
+                    /* remove leases */
+                    dhcp6c_remove_lease(cl);
+                }
+            } while ((iterator = g_slist_next(iterator)) != NULL);
         }
 
         return 0;
     }
 
     /* flag == ADDR_UPDATE */
-    for (lv = TAILQ_FIRST(&ia->addr_list); lv; lv = lv_next) {
-        lv_next = TAILQ_NEXT(lv, link);
+    iterator = ia->addr_list;
+    if (g_slist_length(iterator)) {
+        do {
+            lv = (dhcp6_value_t *) iterator->data;
 
-        if (lv->val_dhcp6addr.type != IAPD) {
-            lv->val_dhcp6addr.plen =
-                dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
+            if (lv->val_dhcp6addr.type != IAPD) {
+                lv->val_dhcp6addr.plen =
+                    dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
 
-            if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
-                g_warning("assigned address %s is not in any RAs"
-                          " prefix length using 64 bit instead",
-                          in6addr2str(&lv->val_dhcp6addr.addr, 0));
+                if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
+                    g_warning("assigned address %s is not in any RAs"
+                              " prefix length using 64 bit instead",
+                              in6addr2str(&lv->val_dhcp6addr.addr, 0));
+                }
             }
-        }
 
-        if ((cl = dhcp6_find_lease(&client6_iaidaddr,
-                                   &lv->val_dhcp6addr)) != NULL) {
-            /* update leases */
-            _dhcp6_update_lease(&lv->val_dhcp6addr, cl);
+            if ((cl = dhcp6_find_lease(&client6_iaidaddr,
+                                       &lv->val_dhcp6addr)) != NULL) {
+                /* update leases */
+                _dhcp6_update_lease(&lv->val_dhcp6addr, cl);
+                continue;
+            }
+
+            /* need to add the new leases */
+            if (dhcp6_add_lease(&lv->val_dhcp6addr)) {
+                g_message("%s: failed to add a new addr lease %s",
+                          __func__, in6addr2str(&lv->val_dhcp6addr.addr, 0));
+                continue;
+            }
+
             continue;
-        }
-
-        /* need to add the new leases */
-        if (dhcp6_add_lease(&lv->val_dhcp6addr)) {
-            g_message("%s: failed to add a new addr lease %s",
-                      __func__, in6addr2str(&lv->val_dhcp6addr.addr, 0));
-            continue;
-        }
-
-        continue;
+        } while ((iterator = g_slist_next(iterator)) != NULL);
     }
 
     /* update server id */
@@ -598,8 +613,8 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
     g_debug("client6_iaidaddr timeout for %d, state=%d",
             client6_iaidaddr.client6_info.iaidinfo.iaid, sp->state);
 
-    dhcp6_clear_list(&request_list);
-    TAILQ_INIT(&request_list);
+    g_slist_free(request_list);
+    request_list = NULL;
 
     /* ToDo: what kind of opiton Request value, client would like to pass? */
     switch (sp->state) {
@@ -687,7 +702,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
     if (sp->state != INVALID && g_slist_length(iterator)) {
         /* create an address list for renew and rebind */
         do {
-            struct dhcp6_listval *lv;
+            dhcp6_value_t *lv;
             cl = (dhcp6_lease_t *) iterator->data;
 
             /* IA_NA address */
@@ -707,7 +722,7 @@ struct dhcp6_timer *dhcp6_iaidaddr_timo(void *arg) {
             memcpy(&lv->val_dhcp6addr, &cl->lease_addr,
                    sizeof(lv->val_dhcp6addr));
             lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
-            TAILQ_INSERT_TAIL(&request_list, lv, link);
+            request_list = g_slist_append(request_list, lv);
         } while ((iterator = g_slist_next(iterator)) != NULL);
 
         dhcp6_set_timer(&timeo, sp->timer);

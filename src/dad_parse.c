@@ -88,7 +88,7 @@ struct ifproc_info {
     gint flags;
 };
 
-gint dad_parse(const gchar *file, struct dhcp6_list *dad_list) {
+gint dad_parse(const gchar *file, GSList *dad_list) {
     gint i = 0;
     gint len = 0;
     gint ret = 0;
@@ -211,7 +211,7 @@ gint dad_parse(const gchar *file, struct dhcp6_list *dad_list) {
             ifinfo = NULL;
             continue;
         } else {
-            struct dhcp6_listval *lv;
+            dhcp6_value_t *lv;
 
             strncpy(ifinfo->name, tmp, IF_NAMESIZE);
             ifinfo->next = NULL;
@@ -229,7 +229,7 @@ gint dad_parse(const gchar *file, struct dhcp6_list *dad_list) {
             lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
             lv->val_dhcp6addr.preferlifetime = 0;
             lv->val_dhcp6addr.validlifetime = 0;
-            TAILQ_INSERT_TAIL(dad_list, lv, link);
+            dad_list = g_slist_append(dad_list, lv);
         }
     }
 
@@ -243,7 +243,8 @@ out:
     return ret;
 
 fail:
-    dhcp6_clear_list(dad_list);
+    g_slist_free(dad_list);
+    dad_list = NULL;
     ret = -1;
     goto out;
 }

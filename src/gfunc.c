@@ -63,18 +63,21 @@ void _print_string(gpointer data, gpointer user_data) {
 }
 
 /* FIXME: will go away when optlist becomes a GSList */
-gint dhcp6_has_option(struct dhcp6_list *optlist, gint option) {
-    struct dhcp6_listval *lv = NULL;
+gint dhcp6_has_option(GSList *optlist, gint option) {
+    dhcp6_value_t *lv = NULL;
+    GSList *iterator = optlist;
 
-    if (TAILQ_EMPTY(optlist)) {
+    if (!g_slist_length(iterator)) {
         return 0;
     }
 
-    for (lv = TAILQ_FIRST(optlist); lv; lv = TAILQ_NEXT(lv, link)) {
+    do {
+        lv = (dhcp6_value_t *) iterator->data;
+
         if (lv->val_num == option) {
             return 1;
         }
-    }
+    } while ((iterator = g_slist_next(iterator)) != NULL);
 
     return 0;
 }

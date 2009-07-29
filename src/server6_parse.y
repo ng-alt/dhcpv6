@@ -648,8 +648,8 @@ hosthead
           }
 
           memset(host, 0, sizeof(*host));
-          TAILQ_INIT(&host->addrlist);
-          TAILQ_INIT(&host->prefixlist);
+          host->addrlist = NULL;
+          host->prefixlist = NULL;
           host->hostscope.dnsinfo.servers = NULL;
           host->network = ifnetwork;
           strncpy(host->name, $2, strlen($2));
@@ -716,7 +716,7 @@ hostpara
               ABORT;
           }
 
-          dhcp6_add_listval(&host->addrlist, $1, DHCP6_LISTVAL_DHCP6ADDR);
+          dhcp6_add_listval(host->addrlist, $1, DHCP6_LISTVAL_DHCP6ADDR);
           g_hash_table_insert(host_addr_hash_table, &($1->addr), $1);
       }
     | hostprefix6 {
@@ -725,7 +725,7 @@ hostpara
               ABORT;
           }
 
-          dhcp6_add_listval(&host->prefixlist, $1, DHCP6_LISTVAL_DHCP6ADDR);
+          dhcp6_add_listval(host->prefixlist, $1, DHCP6_LISTVAL_DHCP6ADDR);
       }
     | optiondecl
     ;

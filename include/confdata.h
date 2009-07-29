@@ -103,10 +103,10 @@ struct dhcp6_if {
     gint server_pref;            /* server preference (server only) */
     guint32 default_irt;  /* default information refresh time (client only) */
     guint32 maximum_irt;  /* maximum information refresh time (client only) */
-    struct dhcp6_list reqopt_list;
+    GSList *reqopt_list;
     /* request specific addresses list from client */
-    struct dhcp6_list addr_list;
-    struct dhcp6_list prefix_list;
+    GSList *addr_list;
+    GSList *prefix_list;
     GSList *option_list;
     struct dhcp6_serverinfo *current_server;
     struct dhcp6_serverinfo *servers;
@@ -184,9 +184,9 @@ struct dhcp6_ifconf {
     guint32 maximum_irt;  /* maximum information refresh time (client only) */
     struct dhcp6_iaid_info iaidinfo;
 
-    struct dhcp6_list prefix_list;
-    struct dhcp6_list addr_list;
-    struct dhcp6_list reqopt_list;
+    GSList *prefix_list;
+    GSList *addr_list;
+    GSList *reqopt_list;
 
     GSList *option_list;
 };
@@ -214,13 +214,13 @@ struct host_conf {
     struct dhcp6_iaid_info iaidinfo;
     struct in6_addr linklocal;
     /* delegated prefixes for the host: */
-    struct dhcp6_list prefix_list;
+    GSList *prefix_list;
 
     /* bindings of delegated prefixes */
-    struct dhcp6_list prefix_binding_list;
+    GSList *prefix_binding_list;
 
-    struct dhcp6_list addr_list;
-    struct dhcp6_list addr_binding_list;
+    GSList *addr_list;
+    GSList *addr_binding_list;
 };
 
 /* structures and definitions used in the config file parser */

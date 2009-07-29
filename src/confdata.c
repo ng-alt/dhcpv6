@@ -50,7 +50,7 @@ extern gint errno;
 
 static struct dhcp6_ifconf *dhcp6_ifconflist;
 static struct host_conf *host_conflist0, *host_conflist;
-static struct dhcp6_list dnslist0;
+static GSList *dnslist0;
 
 enum {
     DHCPOPTCODE_SEND,
@@ -65,32 +65,38 @@ static void _clear_ifconf(struct dhcp6_ifconf *iflist) {
 
     for (ifc = iflist; ifc; ifc = ifc_next) {
         ifc_next = ifc->next;
-        free(ifc->ifname);
-        dhcp6_clear_list(&ifc->reqopt_list);
-        free(ifc);
+
+        g_free(ifc->ifname);
+        ifc->ifname = NULL;
+
+        g_slist_free(ifc->reqopt_list);
+        ifc->reqopt_list = NULL;
+
+        g_free(ifc);
+        ifc = NULL;
     }
 
     return;
 }
 
 static void _clear_hostconf(struct host_conf *hlist) {
-    struct host_conf *host, *host_next;
-    struct dhcp6_listval *p;
+    struct host_conf *host = NULL, *host_next = NULL;
 
     for (host = hlist; host; host = host_next) {
         host_next = host->next;
-        free(host->name);
+        g_free(host->name);
+        host->name = NULL;
 
-        while ((p = TAILQ_FIRST(&host->prefix_list)) != NULL) {
-            TAILQ_REMOVE(&host->prefix_list, p, link);
-            free(p);
-        }
+        g_slist_free(host->prefix_list);
+        host->prefix_list = NULL;
 
         if (host->duid.duid_id) {
-            free(host->duid.duid_id);
+            g_free(host->duid.duid_id);
+            host->duid.duid_id = NULL;
         }
 
-        free(host);
+        g_free(host);
+        host = NULL;
     }
 
     return;
@@ -98,19 +104,25 @@ static void _clear_hostconf(struct host_conf *hlist) {
 
 static gint _add_options(gint opcode, struct dhcp6_ifconf *ifc,
                          struct cf_list *cfl0) {
-    struct dhcp6_listval *opt;
+    dhcp6_value_t *opt;
     struct cf_list *cfl;
     gint opttype;
+    GSList *iterator = NULL;
 
     for (cfl = cfl0; cfl; cfl = cfl->next) {
         if (opcode == DHCPOPTCODE_REQUEST) {
-            for (opt = TAILQ_FIRST(&ifc->reqopt_list); opt;
-                 opt = TAILQ_NEXT(opt, link)) {
-                if (opt->val_num == cfl->type) {
-                    g_message("%s: duplicated requested option: %s", __func__,
-                              dhcp6optstr(cfl->type));
-                    goto next;  /* ignore it */
-                }
+            iterator = ifc->reqopt_list;
+
+            if (g_slist_length(iterator)) {
+                do {
+                    opt = (dhcp6_value_t *) iterator->data;
+
+                    if (opt->val_num == cfl->type) {
+                        g_message("%s: duplicated requested option: %s",
+                                  __func__, dhcp6optstr(cfl->type));
+                        goto next;  /* ignore it */
+                    }
+                } while ((iterator = g_slist_next(iterator)) != NULL);
             }
         }
 
@@ -148,7 +160,7 @@ static gint _add_options(gint opcode, struct dhcp6_ifconf *ifc,
                 switch (opcode) {
                     case DHCPOPTCODE_REQUEST:
                         opttype = DH6OPT_DNS_SERVERS;
-                        if (dhcp6_add_listval(&ifc->reqopt_list,
+                        if (dhcp6_add_listval(ifc->reqopt_list,
                                               &opttype,
                                               DHCP6_LISTVAL_NUM) == NULL) {
                             g_error("%s: failed to configure an option",
@@ -169,7 +181,7 @@ static gint _add_options(gint opcode, struct dhcp6_ifconf *ifc,
                 switch (opcode) {
                     case DHCPOPTCODE_REQUEST:
                         opttype = DH6OPT_DOMAIN_LIST;
-                        if (dhcp6_add_listval(&ifc->reqopt_list,
+                        if (dhcp6_add_listval(ifc->reqopt_list,
                                               &opttype,
                                               DHCP6_LISTVAL_NUM) == NULL) {
                             g_error("%s: failed to configure an option",
@@ -197,9 +209,9 @@ static gint _add_options(gint opcode, struct dhcp6_ifconf *ifc,
     return 0;
 }
 
-static gint _add_address(struct dhcp6_list *addr_list,
-                         struct dhcp6_addr *v6addr) {
-    struct dhcp6_listval *lv, *val;
+static gint _add_address(GSList *addr_list, struct dhcp6_addr *v6addr) {
+    dhcp6_value_t *lv, *val;
+    GSList *iterator = addr_list;
 
     /* avoid invalid addresses */
     if (IN6_IS_ADDR_RESERVED(&v6addr->addr)) {
@@ -209,23 +221,27 @@ static gint _add_address(struct dhcp6_list *addr_list,
     }
 
     /* address duplication check */
-    for (lv = TAILQ_FIRST(addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
-        if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &v6addr->addr) &&
-            lv->val_dhcp6addr.plen == v6addr->plen) {
-            g_error("%s: duplicated address: %s/%d", __func__,
-                    in6addr2str(&v6addr->addr, 0), v6addr->plen);
-            return -1;
-        }
+    if (g_slist_length(iterator)) {
+        do {
+            lv = (dhcp6_value_t *) iterator->data;
+
+            if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &v6addr->addr) &&
+                lv->val_dhcp6addr.plen == v6addr->plen) {
+                g_error("%s: duplicated address: %s/%d", __func__,
+                        in6addr2str(&v6addr->addr, 0), v6addr->plen);
+                return -1;
+            }
+        } while ((iterator = g_slist_next(iterator)) != NULL);
     }
 
-    if ((val = (struct dhcp6_listval *) malloc(sizeof(*val))) == NULL) {
+    if ((val = (dhcp6_value_t *) malloc(sizeof(*val))) == NULL) {
         g_error("%s: memory allocation failed", __func__);
     }
 
     memset(val, 0, sizeof(*val));
     memcpy(&val->val_dhcp6addr, v6addr, sizeof(val->val_dhcp6addr));
     g_debug("%s: add address: %s", __func__, in6addr2str(&v6addr->addr, 0));
-    TAILQ_INSERT_TAIL(addr_list, val, link);
+    addr_list = g_slist_append(addr_list, val);
     return 0;
 }
 
@@ -256,8 +272,8 @@ gint configure_interface(const struct cf_namelist *iflist) {
         ifc->server_pref = DH6OPT_PREF_UNDEF;
         ifc->default_irt = IRT_DEFAULT;
         ifc->maximum_irt = DHCP6_DURATITION_INFINITE;
-        TAILQ_INIT(&ifc->reqopt_list);
-        TAILQ_INIT(&ifc->addr_list);
+        ifc->reqopt_list = NULL;
+        ifc->addr_list = NULL;
         ifc->option_list = NULL;
 
         for (cfl = ifp->params; cfl; cfl = cfl->next) {
@@ -385,7 +401,7 @@ gint configure_interface(const struct cf_namelist *iflist) {
 
                     break;
                 case DECL_ADDRESS:
-                    if (_add_address(&ifc->addr_list, cfl->ptr)) {
+                    if (_add_address(ifc->addr_list, cfl->ptr)) {
                         g_error("%s: failed to configure ipv6address for %s",
                                 __func__, ifc->ifname);
                         goto bad;
@@ -435,10 +451,10 @@ gint configure_host(const struct cf_namelist *hostlist) {
         }
 
         memset(hconf, 0, sizeof(*hconf));
-        TAILQ_INIT(&hconf->addr_list);
-        TAILQ_INIT(&hconf->addr_binding_list);
-        TAILQ_INIT(&hconf->prefix_list);
-        TAILQ_INIT(&hconf->prefix_binding_list);
+        hconf->addr_list = NULL;
+        hconf->addr_binding_list = NULL;
+        hconf->prefix_list = NULL;
+        hconf->prefix_binding_list = NULL;
         hconf->next = host_conflist0;
         host_conflist0 = hconf;
 
@@ -469,7 +485,7 @@ gint configure_host(const struct cf_namelist *hostlist) {
                             host->name, duidstr(&hconf->duid));
                     break;
                 case DECL_PREFIX:
-                    if (_add_address(&hconf->prefix_list, cfl->ptr)) {
+                    if (_add_address(hconf->prefix_list, cfl->ptr)) {
                         g_error("%s: failed to configure prefix for %s",
                                 __func__, host->name);
                         goto bad;
@@ -510,7 +526,7 @@ gint configure_host(const struct cf_namelist *hostlist) {
 
                     break;
                 case DECL_ADDRESS:
-                    if (_add_address(&hconf->addr_list, cfl->ptr)) {
+                    if (_add_address(hconf->addr_list, cfl->ptr)) {
                         g_error("%s: failed to configure ipv6address for %s",
                                 __func__, host->name);
                         goto bad;
@@ -554,18 +570,18 @@ gint configure_global_option(void) {
         goto bad;
     }
 
-    TAILQ_INIT(&dnslist0);
+    dnslist0 = NULL;
 
     for (cl = cf_dns_list; cl; cl = cl->next) {
         /* duplication check */
-        if (dhcp6_find_listval(&dnslist0, cl->ptr, DHCP6_LISTVAL_ADDR6)) {
+        if (dhcp6_find_listval(dnslist0, cl->ptr, DHCP6_LISTVAL_ADDR6)) {
             g_message("%s: %s:%d duplicated DNS server: %s", __func__,
                       configfilename, cl->line,
                       in6addr2str((struct in6_addr *) cl->ptr, 0));
             goto bad;
         }
 
-        if (dhcp6_add_listval(&dnslist0, cl->ptr,
+        if (dhcp6_add_listval(dnslist0, cl->ptr,
                               DHCP6_LISTVAL_ADDR6) == NULL) {
             g_error("%s: failed to add a DNS server", __func__);
             goto bad;
@@ -581,10 +597,13 @@ bad:
 void configure_cleanup(void) {
     _clear_ifconf(dhcp6_ifconflist);
     dhcp6_ifconflist = NULL;
+
     _clear_hostconf(host_conflist0);
     host_conflist0 = NULL;
-    dhcp6_clear_list(&dnslist0);
-    TAILQ_INIT(&dnslist0);
+
+    g_slist_free(dnslist0);
+    dnslist0 = NULL;
+
     return;
 }
 
@@ -599,17 +618,17 @@ void configure_commit(void) {
 
             ifp->allow_flags = ifc->allow_flags;
 
-            dhcp6_clear_list(&ifp->reqopt_list);
+            g_slist_free(ifp->reqopt_list);
             ifp->reqopt_list = ifc->reqopt_list;
-            TAILQ_INIT(&ifc->reqopt_list);
+            ifc->reqopt_list = NULL;
 
-            dhcp6_clear_list(&ifp->addr_list);
+            g_slist_free(ifp->addr_list);
             ifp->addr_list = ifc->addr_list;
-            TAILQ_INIT(&ifc->addr_list);
+            ifc->addr_list = NULL;
 
-            dhcp6_clear_list(&ifp->prefix_list);
+            g_slist_free(ifp->prefix_list);
             ifp->prefix_list = ifc->prefix_list;
-            TAILQ_INIT(&ifc->prefix_list);
+            ifc->prefix_list = NULL;
 
             g_slist_free(ifp->option_list);
             ifp->option_list = NULL;

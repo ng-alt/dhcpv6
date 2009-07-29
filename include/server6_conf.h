@@ -153,8 +153,8 @@ struct host_decl {
     gchar name[IFNAMSIZ];
     struct duid cid;
     struct dhcp6_iaid_info iaidinfo;
-    struct dhcp6_list addrlist;
-    struct dhcp6_list prefixlist;
+    GSList *addrlist;
+    GSList *prefixlist;
     struct interface *network;
     struct scope hostscope;
     struct scope *group;

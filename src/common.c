@@ -109,14 +109,14 @@ static gint _ia_add_address(ia_t *ia, struct dhcp6_addr *addr6) {
     /* set up address type */
     addr6->type = ia->type;
 
-    if (dhcp6_find_listval(&ia->addr_list, addr6, DHCP6_LISTVAL_DHCP6ADDR)) {
+    if (dhcp6_find_listval(ia->addr_list, addr6, DHCP6_LISTVAL_DHCP6ADDR)) {
         g_message("duplicated address (%s/%d)",
                   in6addr2str(&addr6->addr, 0), addr6->plen);
         /* XXX: decline message */
         return 0;
     }
 
-    if (dhcp6_add_listval(&ia->addr_list, addr6,
+    if (dhcp6_add_listval(ia->addr_list, addr6,
                           DHCP6_LISTVAL_DHCP6ADDR) == NULL) {
         g_error("%s: failed to copy an address", __func__);
         return -1;
@@ -280,8 +280,11 @@ static gint _get_assigned_ipv6addrs(guchar *p, guchar *ep, ia_t *ia) {
 
 malformed:
     g_message("  malformed IA option: type %d, len %d", opt, optlen);
+
 fail:
-    dhcp6_clear_list(&ia->addr_list);
+    g_slist_free(ia->addr_list);
+    ia->addr_list = NULL;
+
     return -1;
 }
 
@@ -294,7 +297,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
     struct dhcp6_prefix_info pi;
     struct dhcp6_addr_info ai;
     struct dhcp6_status_info status;
-    struct dhcp6_listval *dp = NULL;
+    dhcp6_value_t *dp = NULL;
     gint iaddr_len = 0;
     gint num = 0;
 
@@ -328,7 +331,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
                 opt_iana.rebindtime = htonl(ia->iaidinfo.rebindtime);
             }
 
-            buflen = sizeof(opt_iana) + dhcp6_count_list(&ia->addr_list) *
+            buflen = sizeof(opt_iana) + g_slist_length(ia->addr_list) *
                 (sizeof(ai) + sizeof(status)) + sizeof(status);
 
             if ((*tmpbuf = malloc(buflen)) == NULL) {
@@ -344,9 +347,11 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
 
             tp = *tmpbuf + *optlen;
 
-            if (!TAILQ_EMPTY(&ia->addr_list)) {
-                for (dp = TAILQ_FIRST(&ia->addr_list); dp;
-                     dp = TAILQ_NEXT(dp, link)) {
+            if (g_slist_length(ia->addr_list)) {
+                GSList *iterator = ia->addr_list;
+
+                do {
+                    dp = (dhcp6_value_t *) iterator->data;
                     iaddr_len = sizeof(ai) - sizeof(guint32);
 
                     if (dp->val_dhcp6addr.status_code !=
@@ -389,7 +394,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
                                 (gint) sizeof(status), *optlen);
                         /* XXX: copy status message if any */
                     }
-                }
+                } while ((iterator = g_slist_next(iterator)) != NULL);
 
                 num = ia->status_code;
             } else if (dhcp6_mode == DHCP6_MODE_SERVER) {
@@ -426,7 +431,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
             opt_iapd.iaid = htonl(ia->iaidinfo.iaid);
             opt_iapd.renewtime = htonl(ia->iaidinfo.renewtime);
             opt_iapd.rebindtime = htonl(ia->iaidinfo.rebindtime);
-            buflen = sizeof(opt_iapd) + dhcp6_count_list(&ia->addr_list) *
+            buflen = sizeof(opt_iapd) + g_slist_length(ia->addr_list) *
                 (sizeof(pi) + sizeof(status)) + sizeof(status);
 
             if ((*tmpbuf = malloc(buflen)) == NULL) {
@@ -437,9 +442,11 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
             memcpy(*tmpbuf, &opt_iapd, sizeof(opt_iapd));
             tp = *tmpbuf + *optlen;
 
-            if (!TAILQ_EMPTY(&ia->addr_list)) {
-                for (dp = TAILQ_FIRST(&ia->addr_list); dp;
-                     dp = TAILQ_NEXT(dp, link)) {
+            if (g_slist_length(ia->addr_list)) {
+                GSList *iterator = ia->addr_list;
+
+                do {
+                    dp = (dhcp6_value_t *) iterator->data;
                     iaddr_len = sizeof(pi) - sizeof(guint32);
 
                     if (dp->val_dhcp6addr.status_code !=
@@ -483,7 +490,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
                                 (gint) sizeof(status), *optlen);
                         /* XXX: copy status message if any */
                     }
-                }
+                } while ((iterator = g_slist_next(iterator)) != NULL);
 
                 num = ia->status_code;
             } else if (dhcp6_mode == DHCP6_MODE_SERVER) {
@@ -601,55 +608,46 @@ die:
     exit(1);
 }
 
-gint dhcp6_copy_list(struct dhcp6_list *dst, const struct dhcp6_list *src) {
-    const struct dhcp6_listval *ent;
-    struct dhcp6_listval *dent;
+gint dhcp6_copy_list(GSList *dst, const GSList *src) {
+    dhcp6_value_t *ent = NULL, *dent = NULL;
+    GSList *iterator = dst;
 
-    for (ent = TAILQ_FIRST(src); ent; ent = TAILQ_NEXT(ent, link)) {
-        if ((dent = malloc(sizeof(*dent))) == NULL) {
+    if (!g_slist_length(iterator)) {
+        goto fail;
+    }
+
+    do {
+        ent = (dhcp6_value_t *) iterator->data;
+
+        if ((dent = g_malloc0(sizeof(*dent))) == NULL) {
             goto fail;
         }
 
-        memset(dent, 0, sizeof(*dent));
         memcpy(&dent->uv, &ent->uv, sizeof(ent->uv));
-
-        TAILQ_INSERT_TAIL(dst, dent, link);
-    }
+        dst = g_slist_append(dst, dent);
+    } while ((iterator = g_slist_next(iterator)) != NULL);
 
     return 0;
 
 fail:
-    dhcp6_clear_list(dst);
+    g_slist_free(dst);
+    dst = NULL;
+
     return -1;
 }
 
-void dhcp6_clear_list(struct dhcp6_list *head) {
-    struct dhcp6_listval *v;
+dhcp6_value_t *dhcp6_find_listval(GSList *head, void *val,
+                                  dhcp6_listval_type_t type) {
+    dhcp6_value_t *lv = NULL;
+    GSList *iterator = head;
 
-    while ((v = TAILQ_FIRST(head)) != NULL) {
-        TAILQ_REMOVE(head, v, link);
-        free(v);
+    if (!g_slist_length(iterator)) {
+        return NULL;
     }
 
-    return;
-}
+    do {
+        lv = (dhcp6_value_t *) iterator->data;
 
-gint dhcp6_count_list(struct dhcp6_list *head) {
-    struct dhcp6_listval *v;
-    gint i;
-
-    for (i = 0, v = TAILQ_FIRST(head); v; v = TAILQ_NEXT(v, link)) {
-        i++;
-    }
-
-    return i;
-}
-
-struct dhcp6_listval *dhcp6_find_listval(struct dhcp6_list *head, void *val,
-                                         dhcp6_listval_type_t type) {
-    struct dhcp6_listval *lv;
-
-    for (lv = TAILQ_FIRST(head); lv; lv = TAILQ_NEXT(lv, link)) {
         switch (type) {
             case DHCP6_LISTVAL_NUM:
                 if (lv->val_num == *(gint *) val) {
@@ -677,14 +675,14 @@ struct dhcp6_listval *dhcp6_find_listval(struct dhcp6_list *head, void *val,
                 /* FIXME */
                 break;
         }
-    }
+    } while ((iterator = g_slist_next(iterator)) != NULL);
 
     return NULL;
 }
 
-struct dhcp6_listval *dhcp6_add_listval(struct dhcp6_list *head, void *val,
-                                        dhcp6_listval_type_t type) {
-    struct dhcp6_listval *lv;
+dhcp6_value_t *dhcp6_add_listval(GSList *head, void *val,
+                                 dhcp6_listval_type_t type) {
+    dhcp6_value_t *lv;
 
     if ((lv = malloc(sizeof(*lv))) == NULL) {
         g_error("%s: failed to allocate memory for list entry", __func__);
@@ -708,20 +706,19 @@ struct dhcp6_listval *dhcp6_add_listval(struct dhcp6_list *head, void *val,
             return NULL;
     }
 
-    TAILQ_INSERT_TAIL(head, lv, link);
+    head = g_slist_append(head, lv);
     return lv;
 }
 
 ia_t *ia_create_listval(void) {
     ia_t *ia;
 
-    if ((ia = malloc(sizeof(*ia))) == NULL) {
+    if ((ia = g_malloc0(sizeof(*ia))) == NULL) {
         g_error("%s: failed to allocate memory for ia list", __func__);
         return NULL;
     }
 
-    memset(ia, 0, sizeof(*ia));
-    TAILQ_INIT(&ia->addr_list);
+    ia->addr_list = NULL;
     ia->status_code = DH6OPT_STCODE_UNDEFINE;
 
     return ia;
@@ -735,7 +732,8 @@ void ia_clear_list(GSList *head) {
         do {
             ia = (ia_t *) iterator->data;
 
-            dhcp6_clear_list(&ia->addr_list);
+            g_slist_free(ia->addr_list);
+            ia->addr_list = NULL;
         } while ((iterator = g_slist_next(iterator)) != NULL);
     }
 
@@ -765,7 +763,7 @@ gint ia_copy_list(GSList *dst, GSList *src) {
         dent->flags = ent->flags;
         dent->iaidinfo = ent->iaidinfo;
 
-        if (dhcp6_copy_list(&dent->addr_list, &ent->addr_list)) {
+        if (dhcp6_copy_list(dent->addr_list, ent->addr_list)) {
             g_free(dent);
             goto fail;
         }
@@ -1079,7 +1077,7 @@ void dhcp6_init_options(struct dhcp6_optinfo *optinfo) {
     optinfo->serverID.duid_id = NULL;
     optinfo->pref = DH6OPT_PREF_UNDEF;
     optinfo->ia_list = NULL;
-    TAILQ_INIT(&optinfo->reqopt_list);
+    optinfo->reqopt_list = NULL;
     optinfo->dnsinfo.servers = NULL;
     optinfo->relay_list = NULL;
     optinfo->dnsinfo.domains = NULL;
@@ -1093,7 +1091,8 @@ void dhcp6_clear_options(struct dhcp6_optinfo *optinfo) {
     duidfree(&optinfo->serverID);
 
     ia_clear_list(optinfo->ia_list);
-    dhcp6_clear_list(&optinfo->reqopt_list);
+    g_slist_free(optinfo->reqopt_list);
+    optinfo->reqopt_list = NULL;
 
     g_slist_free(optinfo->dnsinfo.servers);
     optinfo->dnsinfo.servers = NULL;
@@ -1124,7 +1123,7 @@ int dhcp6_copy_options(struct dhcp6_optinfo *dst, struct dhcp6_optinfo *src) {
         goto fail;
     }
 
-    if (dhcp6_copy_list(&dst->reqopt_list, &src->reqopt_list)) {
+    if (dhcp6_copy_list(dst->reqopt_list, src->reqopt_list)) {
         goto fail;
     }
 
@@ -1242,14 +1241,14 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
 
                     g_debug("  requested option: %s", dhcp6optstr(num));
 
-                    if (dhcp6_find_listval(&optinfo->reqopt_list,
+                    if (dhcp6_find_listval(optinfo->reqopt_list,
                                            &num, DHCP6_LISTVAL_NUM)) {
                         g_message("%s: duplicated option type (%s)", __func__,
                                   dhcp6optstr(opttype));
                         goto nextoption;
                     }
 
-                    if (dhcp6_add_listval(&optinfo->reqopt_list,
+                    if (dhcp6_add_listval(optinfo->reqopt_list,
                                           &num, DHCP6_LISTVAL_NUM) == NULL) {
                         g_error("%s: failed to copy requested option",
                                 __func__);
@@ -1508,27 +1507,29 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
         COPY_OPTION(DH6OPT_STATUS_CODE, sizeof(code), &code, p);
     }
 
-    if (!TAILQ_EMPTY(&optinfo->reqopt_list)) {
-        struct dhcp6_listval *opt;
+    if (g_slist_length(optinfo->reqopt_list)) {
+        dhcp6_value_t *opt;
         guint16 *valp;
+        GSList *iterator = optinfo->reqopt_list;
 
         tmpbuf = NULL;
-        optlen = dhcp6_count_list(&optinfo->reqopt_list) * sizeof(guint16);
+        optlen = g_slist_length(optinfo->reqopt_list) * sizeof(guint16);
 
-        if ((tmpbuf = malloc(optlen)) == NULL) {
+        if ((tmpbuf = g_malloc0(optlen)) == NULL) {
             g_error("%s: memory allocation failed for options", __func__);
             goto fail;
         }
 
         valp = (guint16 *) tmpbuf;
 
-        for (opt = TAILQ_FIRST(&optinfo->reqopt_list); opt;
-             opt = TAILQ_NEXT(opt, link), valp++) {
+        do {
+            opt = (dhcp6_value_t *) iterator->data;
+
             *valp = htons((guint16) opt->val_num);
-        }
+        } while ((iterator = g_slist_next(iterator)) != NULL);
 
         COPY_OPTION(DH6OPT_ORO, optlen, tmpbuf, p);
-        free(tmpbuf);
+        g_free(tmpbuf);
     }
 
     if (g_slist_length(optinfo->dnsinfo.servers)) {

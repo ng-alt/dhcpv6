@@ -27,6 +27,6 @@ gint _find_in6_addr(gconstpointer, gconstpointer);
 gint _find_string(gconstpointer, gconstpointer);
 void _print_in6_addr(gpointer, gpointer);
 void _print_string(gpointer, gpointer);
-gint dhcp6_has_option(struct dhcp6_list *, gint);
+gint dhcp6_has_option(GSList *, gint);
 
 #endif /* __GFUNC_H_DEFINED */

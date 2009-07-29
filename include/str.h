@@ -57,7 +57,7 @@
 gchar *addr2str(struct sockaddr *, socklen_t);
 gchar *in6addr2str(struct in6_addr *in6, gint);
 gchar *dhcp6optstr(gint);
-GString *dhcp6_options2str(struct dhcp6_list *);
+GString *dhcp6_options2str(GSList *);
 gchar *dhcp6msgstr(gint);
 gchar *dhcp6_stcodestr(gint);
 gchar *duidstr(const struct duid *);

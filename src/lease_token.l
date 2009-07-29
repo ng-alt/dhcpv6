@@ -483,10 +483,11 @@ remove_lease(lease)
 	}
 	if (lease->timer)
 		dhcp6_remove_timer(lease->timer);
-	lease->iaidaddr->lease_list = g_slist_remove(lease->iaidaddr->lease_list, lease);
 	g_message("%s: removed lease addr %s/%d from %u",
 		__func__, in6addr2str(&lease->lease_addr.addr, 0),
 		lease->lease_addr.plen, lease->iaidaddr->client6_info.iaidinfo.iaid);
+	lease->iaidaddr->lease_list = g_slist_remove(lease->iaidaddr->lease_list, lease);
 	g_free(lease);
+	lease = NULL;
 	return 0;
 }

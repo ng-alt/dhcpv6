@@ -64,13 +64,9 @@ do { \
 } while (0)
 
 /* common.c */
-gint dhcp6_copy_list(struct dhcp6_list *, const struct dhcp6_list *);
-void dhcp6_clear_list(struct dhcp6_list *);
-gint dhcp6_count_list(struct dhcp6_list *);
-struct dhcp6_listval *dhcp6_find_listval(struct dhcp6_list *, void *,
-                                         dhcp6_listval_type_t);
-struct dhcp6_listval *dhcp6_add_listval(struct dhcp6_list *, void *,
-                                        dhcp6_listval_type_t);
+gint dhcp6_copy_list(GSList *, const GSList *);
+dhcp6_value_t *dhcp6_find_listval(GSList *, void *, dhcp6_listval_type_t);
+dhcp6_value_t *dhcp6_add_listval(GSList *, void *, dhcp6_listval_type_t);
 ia_t *ia_create_listval();
 void ia_clear_list(GSList *);
 gint ia_copy_list(GSList *, GSList *);
