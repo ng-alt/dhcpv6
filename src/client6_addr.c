@@ -163,17 +163,15 @@ static dhcp6_event_t *_dhcp6_iaidaddr_find_event(dhcp6_iaidaddr_t *sp,
     dhcp6_event_t *event;
     GSList *iterator = sp->ifp->event_list;
 
-    if (!g_slist_length(iterator)) {
-        return NULL;
-    }
-
-    do {
+    while (iterator) {
         event = (dhcp6_event_t *) iterator->data;
 
         if (event->state == state) {
             return event;
         }
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+        iterator = g_slist_next(iterator);
+    }
 
     return NULL;
 }
@@ -210,33 +208,33 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia) {
     }
 
     /* add new address */
-    if (g_slist_length(iterator)) {
-        do {
-            lv = (dhcp6_value_t *) iterator->data;
+    while (iterator) {
+        lv = (dhcp6_value_t *) iterator->data;
 
-            if (lv->val_dhcp6addr.type != IAPD) {
-                lv->val_dhcp6addr.plen =
-                    dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
+        if (lv->val_dhcp6addr.type != IAPD) {
+            lv->val_dhcp6addr.plen =
+                dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
 
-                if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
-                    g_warning("assigned address %s prefix len is not in any RAs"
-                              " prefix length using 64 bit instead",
-                              in6addr2str(&lv->val_dhcp6addr.addr, 0));
-                }
+            if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
+                g_warning("assigned address %s prefix len is not in any RAs"
+                          " prefix length using 64 bit instead",
+                          in6addr2str(&lv->val_dhcp6addr.addr, 0));
             }
+        }
 
-            if ((cl_lease = dhcp6_find_lease(&client6_iaidaddr,
-                                             &lv->val_dhcp6addr)) != NULL) {
-                _dhcp6_update_lease(&lv->val_dhcp6addr, cl_lease);
-                continue;
-            }
+        if ((cl_lease = dhcp6_find_lease(&client6_iaidaddr,
+                                         &lv->val_dhcp6addr)) != NULL) {
+            _dhcp6_update_lease(&lv->val_dhcp6addr, cl_lease);
+            continue;
+        }
 
-            if (dhcp6_add_lease(&lv->val_dhcp6addr)) {
-                g_error("%s: failed to add a new addr lease %s",
-                        __func__, in6addr2str(&lv->val_dhcp6addr.addr, 0));
-                continue;
-            }
-        } while ((iterator = g_slist_next(iterator)) != NULL);
+        if (dhcp6_add_lease(&lv->val_dhcp6addr)) {
+            g_error("%s: failed to add a new addr lease %s",
+                    __func__, in6addr2str(&lv->val_dhcp6addr.addr, 0));
+            continue;
+        }
+
+        iterator = g_slist_next(iterator);
     }
 
     if (!g_slist_length(client6_iaidaddr.lease_list)) {
@@ -400,11 +398,10 @@ gint dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *iaidaddr) {
     dhcp6_lease_t *lv = NULL;
     GSList *iterator = iaidaddr->lease_list;
 
-    if (g_slist_length(iterator)) {
-        do {
-            lv = (dhcp6_lease_t *) iterator->data;
-            dhcp6c_remove_lease(lv);
-        } while ((iterator = g_slist_next(iterator)) != NULL);
+    while (iterator) {
+        lv = (dhcp6_lease_t *) iterator->data;
+        dhcp6c_remove_lease(lv);
+        iterator = g_slist_next(iterator);
     }
 
     /*
@@ -478,16 +475,16 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
     if (flag == ADDR_REMOVE) {
         iterator = ia->addr_list;
 
-        if (g_slist_length(iterator)) {
-            do {
-                lv = (dhcp6_value_t *) iterator->data;
-                cl = dhcp6_find_lease(&client6_iaidaddr, &lv->val_dhcp6addr);
+        while (iterator) {
+            lv = (dhcp6_value_t *) iterator->data;
+            cl = dhcp6_find_lease(&client6_iaidaddr, &lv->val_dhcp6addr);
 
-                if (cl) {
-                    /* remove leases */
-                    dhcp6c_remove_lease(cl);
-                }
-            } while ((iterator = g_slist_next(iterator)) != NULL);
+            if (cl) {
+                /* remove leases */
+                dhcp6c_remove_lease(cl);
+            }
+
+            iterator = g_slist_next(iterator);
         }
 
         return 0;
@@ -495,37 +492,35 @@ gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
 
     /* flag == ADDR_UPDATE */
     iterator = ia->addr_list;
-    if (g_slist_length(iterator)) {
-        do {
-            lv = (dhcp6_value_t *) iterator->data;
+    while (iterator) {
+        lv = (dhcp6_value_t *) iterator->data;
 
-            if (lv->val_dhcp6addr.type != IAPD) {
-                lv->val_dhcp6addr.plen =
-                    dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
+        if (lv->val_dhcp6addr.type != IAPD) {
+            lv->val_dhcp6addr.plen =
+                dhcp6_get_prefixlen(&lv->val_dhcp6addr.addr, dhcp6_if);
 
-                if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
-                    g_warning("assigned address %s is not in any RAs"
-                              " prefix length using 64 bit instead",
-                              in6addr2str(&lv->val_dhcp6addr.addr, 0));
-                }
+            if (lv->val_dhcp6addr.plen == PREFIX_LEN_NOTINRA) {
+                g_warning("assigned address %s is not in any RAs"
+                          " prefix length using 64 bit instead",
+                          in6addr2str(&lv->val_dhcp6addr.addr, 0));
             }
+        }
 
-            if ((cl = dhcp6_find_lease(&client6_iaidaddr,
-                                       &lv->val_dhcp6addr)) != NULL) {
-                /* update leases */
-                _dhcp6_update_lease(&lv->val_dhcp6addr, cl);
-                continue;
-            }
-
-            /* need to add the new leases */
-            if (dhcp6_add_lease(&lv->val_dhcp6addr)) {
-                g_message("%s: failed to add a new addr lease %s",
-                          __func__, in6addr2str(&lv->val_dhcp6addr.addr, 0));
-                continue;
-            }
-
+        if ((cl = dhcp6_find_lease(&client6_iaidaddr,
+                                   &lv->val_dhcp6addr)) != NULL) {
+            /* update leases */
+            _dhcp6_update_lease(&lv->val_dhcp6addr, cl);
             continue;
-        } while ((iterator = g_slist_next(iterator)) != NULL);
+        }
+
+        /* need to add the new leases */
+        if (dhcp6_add_lease(&lv->val_dhcp6addr)) {
+            g_message("%s: failed to add a new addr lease %s",
+                      __func__, in6addr2str(&lv->val_dhcp6addr.addr, 0));
+            continue;
+        }
+
+        iterator = g_slist_next(iterator);
     }
 
     /* update server id */
@@ -704,7 +699,7 @@ dhcp6_timer_t *dhcp6_iaidaddr_timo(void *arg) {
 
     if (sp->state != INVALID && g_slist_length(iterator)) {
         /* create an address list for renew and rebind */
-        do {
+        while (iterator) {
             dhcp6_value_t *lv;
             cl = (dhcp6_lease_t *) iterator->data;
 
@@ -726,7 +721,9 @@ dhcp6_timer_t *dhcp6_iaidaddr_timo(void *arg) {
                    sizeof(lv->val_dhcp6addr));
             lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
             request_list = g_slist_append(request_list, lv);
-        } while ((iterator = g_slist_next(iterator)) != NULL);
+
+            iterator = g_slist_next(iterator);
+        }
 
         dhcp6_set_timer(&timeo, sp->timer);
     } else {

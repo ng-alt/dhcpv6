@@ -349,7 +349,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
             if (g_slist_length(ia->addr_list)) {
                 GSList *iterator = ia->addr_list;
 
-                do {
+                while (iterator) {
                     dp = (dhcp6_value_t *) iterator->data;
                     iaddr_len = sizeof(ai) - sizeof(guint32);
 
@@ -393,7 +393,9 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
                                 (gint) sizeof(status), *optlen);
                         /* XXX: copy status message if any */
                     }
-                } while ((iterator = g_slist_next(iterator)) != NULL);
+
+                    iterator = g_slist_next(iterator);
+                }
 
                 num = ia->status_code;
             } else if (dhcp6_mode == DHCP6_MODE_SERVER) {
@@ -444,7 +446,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
             if (g_slist_length(ia->addr_list)) {
                 GSList *iterator = ia->addr_list;
 
-                do {
+                while (iterator) {
                     dp = (dhcp6_value_t *) iterator->data;
                     iaddr_len = sizeof(pi) - sizeof(guint32);
 
@@ -489,7 +491,9 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
                                 (gint) sizeof(status), *optlen);
                         /* XXX: copy status message if any */
                     }
-                } while ((iterator = g_slist_next(iterator)) != NULL);
+
+                    iterator = g_slist_next(iterator);
+                }
 
                 num = ia->status_code;
             } else if (dhcp6_mode == DHCP6_MODE_SERVER) {
@@ -614,7 +618,7 @@ gint dhcp6_copy_list(GSList *dst, const GSList *src) {
         goto fail;
     }
 
-    do {
+    while (iterator) {
         ent = (dhcp6_value_t *) iterator->data;
 
         if ((dent = g_malloc0(sizeof(*dent))) == NULL) {
@@ -623,7 +627,9 @@ gint dhcp6_copy_list(GSList *dst, const GSList *src) {
 
         memcpy(&dent->uv, &ent->uv, sizeof(ent->uv));
         dst = g_slist_append(dst, dent);
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+        iterator = g_slist_next(iterator);
+    }
 
     return 0;
 
@@ -643,7 +649,7 @@ dhcp6_value_t *dhcp6_find_listval(GSList *head, void *val,
         return NULL;
     }
 
-    do {
+    while (iterator) {
         lv = (dhcp6_value_t *) iterator->data;
 
         switch (type) {
@@ -673,7 +679,9 @@ dhcp6_value_t *dhcp6_find_listval(GSList *head, void *val,
                 /* FIXME */
                 break;
         }
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+        iterator = g_slist_next(iterator);
+    }
 
     return NULL;
 }
@@ -724,13 +732,13 @@ void ia_clear_list(GSList *head) {
     ia_t *ia;
     GSList *iterator = head;
 
-    if (g_slist_length(iterator)) {
-        do {
-            ia = (ia_t *) iterator->data;
+    while (iterator) {
+        ia = (ia_t *) iterator->data;
 
-            g_slist_free(ia->addr_list);
-            ia->addr_list = NULL;
-        } while ((iterator = g_slist_next(iterator)) != NULL);
+        g_slist_free(ia->addr_list);
+        ia->addr_list = NULL;
+
+        iterator = g_slist_next(iterator);
     }
 
     g_slist_free(head);
@@ -748,7 +756,7 @@ gint ia_copy_list(GSList *dst, GSList *src) {
         goto fail;
     }
 
-    do {
+    while (iterator) {
         ent = (ia_t *) iterator->data;
 
         if ((dent = ia_create_listval()) == NULL) {
@@ -766,7 +774,9 @@ gint ia_copy_list(GSList *dst, GSList *src) {
 
         dent->status_code = ent->status_code;
         dst = g_slist_append(dst, dent);
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+        iterator = g_slist_next(iterator);
+    }
 
     return 0;
 
@@ -779,17 +789,15 @@ ia_t *ia_find_listval(GSList *head, iatype_t type, guint32 iaid) {
     ia_t *ia = NULL;
     GSList *iterator = head;
 
-    if (!g_slist_length(iterator)) {
-        return NULL;
-    }
-
-    do {
+    while (iterator) {
         ia = (ia_t *) iterator->data;
 
         if (ia->type == type && ia->iaidinfo.iaid == iaid) {
             return ia;
         }
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+        iterator = g_slist_next(iterator);
+    }
 
     return NULL;
 }
@@ -1467,7 +1475,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
     if (g_slist_length(optinfo->ia_list)) {
         GSList *iterator = optinfo->ia_list;
 
-        do {
+        while (iterator) {
             ia = (ia_t *) iterator->data;
             tmpbuf = NULL;
 
@@ -1490,7 +1498,9 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
 
                 g_free(tmpbuf);
             }
-        } while ((iterator = g_slist_next(iterator)) != NULL);
+
+            iterator = g_slist_next(iterator);
+        }
     }
 
     if (dhcp6_mode == DHCP6_MODE_SERVER && optinfo->pref != DH6OPT_PREF_UNDEF) {
@@ -1522,11 +1532,12 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
 
         valp = (guint16 *) tmpbuf;
 
-        do {
+        while (iterator) {
             opt = (dhcp6_value_t *) iterator->data;
 
             *valp = htons((guint16) opt->val_num);
-        } while ((iterator = g_slist_next(iterator)) != NULL);
+            iterator = g_slist_next(iterator);
+        }
 
         COPY_OPTION(DH6OPT_ORO, optlen, tmpbuf, p);
         g_free(tmpbuf);
@@ -1548,11 +1559,12 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
         in6buf = (struct in6_addr *) tmpbuf;
         iterator = optinfo->dnsinfo.servers;
 
-        do {
+        while (iterator) {
             in6tmp = (struct in6_addr *) iterator->data;
             memcpy(in6buf, in6tmp, sizeof(struct in6_addr));
             in6buf++;
-        } while ((iterator = g_slist_next(iterator)) != NULL);
+            iterator = g_slist_next(iterator);
+        }
 
         if (((void *) ep - (void *) p) < optlen + sizeof(struct dhcp6opt)) {
             g_message("%s: option buffer short for %s",
@@ -1591,7 +1603,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
         memset(&tmpbuf, '\0', sizeof(tmpbuf));
         dst = tmpbuf;
 
-        do {
+        while (iterator) {
             gint n;
             name = (gchar *) iterator->data;
 
@@ -1606,7 +1618,9 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
 
             optlen += n;
             dst += n;
-        } while ((iterator = g_slist_next(iterator)) != NULL);
+
+            iterator = g_slist_next(iterator);
+        }
 
         if (((void *) ep - (void *) p) < optlen + sizeof(struct dhcp6opt)) {
             g_message("%s: option buffer short for %s",

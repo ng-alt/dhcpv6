@@ -359,11 +359,7 @@ static void _dhcp6_set_relay_option_len(struct dhcp6_optinfo *optinfo,
     guint16 len;
     GSList *iterator = g_slist_reverse(optinfo->relay_list);
 
-    if (!g_slist_length(iterator)) {
-        return;
-    }
-
-    do {
+    while (iterator) {
         relay = (relay_t *) iterator->data;
 
         if (last == NULL) {
@@ -376,7 +372,9 @@ static void _dhcp6_set_relay_option_len(struct dhcp6_optinfo *optinfo,
             len = htons(len);
             memcpy(&relay->option->dh6opt_len, &len, sizeof(len));
         }
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+        iterator = g_slist_next(iterator);
+    }
 
     return;
 }
@@ -396,7 +394,7 @@ static gint _dhcp6_set_relay(struct dhcp6_relay *msg,
     guint16 type, len;
     GSList *iterator = optinfo->relay_list;
 
-    do {
+    while (iterator) {
         relay = (relay_t *) iterator->data;
 
         /* bounds check */
@@ -450,7 +448,9 @@ static gint _dhcp6_set_relay(struct dhcp6_relay *msg,
         /* dh6opt_len will be set by dhcp6_set_relay_option_len */
 
         msg = (struct dhcp6_relay *) (option + 1);
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+        iterator = g_slist_next(iterator);
+    }
 
     /*
      * if there were no relays, this is an error since this function should
@@ -554,7 +554,7 @@ static gint _handle_addr_request(struct dhcp6_optinfo *roptinfo,
         goto fail;
     }
 
-    do {
+    while (iterator) {
         ia = (ia_t *) iterator->data;
 
         /* find bindings */
@@ -622,7 +622,8 @@ static gint _handle_addr_request(struct dhcp6_optinfo *roptinfo,
         }
 
         ria_list = g_slist_append(ria_list, ria);
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+        iterator = g_slist_next(iterator);
+    }
 
     if (resptype == DH6_ADVERTISE && !g_slist_length(ria_list)) {
         *status_code = DH6OPT_STCODE_NOADDRAVAIL;
@@ -653,7 +654,7 @@ static gint _update_binding_ia(struct dhcp6_optinfo *roptinfo,
         goto fail;
     }
 
-    do {
+    while (iterator) {
         ia = (ia_t *) iterator->data;
         num_ia++;
         ria = NULL;
@@ -747,7 +748,9 @@ static gint _update_binding_ia(struct dhcp6_optinfo *roptinfo,
             /* IA doesn't include any IA Addr */
             num_noaddr_ia++;
         }
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+        iterator = g_slist_next(iterator);
+    }
 
 out:
     switch (msgtype) {

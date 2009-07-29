@@ -153,29 +153,29 @@ struct timeval *dhcp6_check_timer(void) {
 
     tm_sentinel = tm_max;
 
-    if (g_slist_length(iterator)) {
-        do {
-            tm = (dhcp6_timer_t *) iterator->data;
+    while (iterator) {
+        tm = (dhcp6_timer_t *) iterator->data;
 
-            gettimeofday(&now, NULL);
+        gettimeofday(&now, NULL);
 
-            if (tm->flag & MARK_REMOVE) {
-                timer_list = g_slist_remove_all(timer_list, tm);
-                g_free(tm);
-                tm = NULL;
-                continue;
+        if (tm->flag & MARK_REMOVE) {
+            timer_list = g_slist_remove_all(timer_list, tm);
+            g_free(tm);
+            tm = NULL;
+            continue;
+        }
+
+        if (TIMEVAL_LEQ(tm->tm, now)) {
+            if ((*tm->expire) (tm->expire_data) == NULL) {
+                continue;       /* timer has been freed */
             }
+        }
 
-            if (TIMEVAL_LEQ(tm->tm, now)) {
-                if ((*tm->expire) (tm->expire_data) == NULL) {
-                    continue;       /* timer has been freed */
-                }
-            }
+        if (TIMEVAL_LT(tm->tm, tm_sentinel)) {
+            tm_sentinel = tm->tm;
+        }
 
-            if (TIMEVAL_LT(tm->tm, tm_sentinel)) {
-                tm_sentinel = tm->tm;
-            }
-        } while ((iterator = g_slist_next(iterator)) != NULL);
+        iterator = g_slist_next(iterator);
     }
 
     if (TIMEVAL_EQUAL(tm_max, tm_sentinel)) {

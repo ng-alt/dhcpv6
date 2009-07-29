@@ -66,17 +66,15 @@ gint dhcp6_has_option(GSList *optlist, gint option) {
     dhcp6_value_t *lv = NULL;
     GSList *iterator = optlist;
 
-    if (!g_slist_length(iterator)) {
-        return 0;
-    }
-
-    do {
+    while (iterator) {
         lv = (dhcp6_value_t *) iterator->data;
 
         if (lv->val_num == option) {
             return 1;
         }
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+        iterator = g_slist_next(iterator);
+    }
 
     return 0;
 }

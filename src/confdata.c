@@ -112,16 +112,16 @@ static gint _add_options(gint opcode, struct dhcp6_ifconf *ifc,
         if (opcode == DHCPOPTCODE_REQUEST) {
             iterator = ifc->reqopt_list;
 
-            if (g_slist_length(iterator)) {
-                do {
-                    opt = (dhcp6_value_t *) iterator->data;
+            while (iterator) {
+                opt = (dhcp6_value_t *) iterator->data;
 
-                    if (opt->val_num == cfl->type) {
-                        g_message("%s: duplicated requested option: %s",
-                                  __func__, dhcp6optstr(cfl->type));
-                        goto next;  /* ignore it */
-                    }
-                } while ((iterator = g_slist_next(iterator)) != NULL);
+                if (opt->val_num == cfl->type) {
+                    g_message("%s: duplicated requested option: %s",
+                              __func__, dhcp6optstr(cfl->type));
+                    goto next;  /* ignore it */
+                }
+
+                iterator = g_slist_next(iterator);
             }
         }
 
@@ -220,17 +220,17 @@ static gint _add_address(GSList *addr_list, struct dhcp6_addr *v6addr) {
     }
 
     /* address duplication check */
-    if (g_slist_length(iterator)) {
-        do {
-            lv = (dhcp6_value_t *) iterator->data;
+    while (iterator) {
+        lv = (dhcp6_value_t *) iterator->data;
 
-            if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &v6addr->addr) &&
-                lv->val_dhcp6addr.plen == v6addr->plen) {
-                g_error("%s: duplicated address: %s/%d", __func__,
-                        in6addr2str(&v6addr->addr, 0), v6addr->plen);
-                return -1;
-            }
-        } while ((iterator = g_slist_next(iterator)) != NULL);
+        if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &v6addr->addr) &&
+            lv->val_dhcp6addr.plen == v6addr->plen) {
+            g_error("%s: duplicated address: %s/%d", __func__,
+                    in6addr2str(&v6addr->addr, 0), v6addr->plen);
+            return -1;
+        }
+
+        iterator = g_slist_next(iterator);
     }
 
     if ((val = (dhcp6_value_t *) g_malloc0(sizeof(*val))) == NULL) {

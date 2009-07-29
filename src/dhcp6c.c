@@ -293,7 +293,7 @@ static gint _create_request_list(gint reboot) {
     }
 
     /* create an address list for release all/confirm */
-    do {
+    while (iterator) {
         cl = (dhcp6_lease_t *) iterator->data;
 
         /* IANA, IAPD */
@@ -316,7 +316,9 @@ static gint _create_request_list(gint reboot) {
                 return -1;
             }
         }
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+        iterator = g_slist_next(iterator);
+    }
 
     return 0;
 }
@@ -358,18 +360,18 @@ static dhcp6_timer_t *_check_link_timo(void *arg) {
                 }
 
                 GSList *iterator = dad_list;
-                if (g_slist_length(iterator)) {
-                    do {
-                        lv = (dhcp6_value_t *) iterator->data;
+                while (iterator) {
+                    lv = (dhcp6_value_t *) iterator->data;
 
-                        if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr,
-                                               &ifp->linklocal)) {
-                            g_debug("wait for the DAD completion");
-                            g_slist_free(dad_list);
-                            dad_list = NULL;
-                            goto settimer;
-                        }
-                    } while ((iterator = g_slist_next(iterator)) != NULL);
+                    if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr,
+                                           &ifp->linklocal)) {
+                        g_debug("wait for the DAD completion");
+                        g_slist_free(dad_list);
+                        dad_list = NULL;
+                        goto settimer;
+                    }
+
+                    iterator = g_slist_next(iterator);
                 }
 
                 g_slist_free(dad_list);
@@ -450,7 +452,7 @@ static dhcp6_timer_t *_check_dad_timo(void *arg) {
     }
 
     dad_iterator = dad_list;
-    do {
+    while (dad_iterator) {
         lv = (dhcp6_value_t *) dad_iterator->data;
         cl_iterator = client6_iaidaddr.lease_list;
 
@@ -458,7 +460,7 @@ static dhcp6_timer_t *_check_dad_timo(void *arg) {
             continue;
         }
 
-        do {
+        while (cl_iterator) {
             cl = (dhcp6_lease_t *) cl_iterator->data;
 
             if (cl->lease_addr.type != IAPD &&
@@ -476,8 +478,12 @@ static dhcp6_timer_t *_check_dad_timo(void *arg) {
 
                 break;
             }
-        } while ((cl_iterator = g_slist_next(cl_iterator)) != NULL);
-    } while ((dad_iterator = g_slist_next(dad_iterator)) != NULL);
+
+            cl_iterator = g_slist_next(cl_iterator);
+        }
+
+        dad_iterator = g_slist_next(dad_iterator);
+    }
 
     g_slist_free(dad_list);
     dad_list = NULL;
@@ -574,7 +580,7 @@ static gint _client6_ifinit(gchar *device) {
             } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
                 GSList *iterator = request_list;
 
-                do {
+                while (iterator) {
                     lv = (dhcp6_value_t *) iterator->data;
 
                     if (dhcp6_find_lease(&client6_iaidaddr,
@@ -584,7 +590,9 @@ static gint _client6_ifinit(gchar *device) {
                                   in6addr2str(&lv->val_dhcp6addr.addr, 0));
                         return -1;
                     }
-                } while ((iterator = g_slist_next(iterator)) != NULL);
+
+                    iterator = g_slist_next(iterator);
+                }
             }
         } else if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
             g_message("no ipv6 addresses are leased by client");
@@ -651,15 +659,15 @@ static void _free_resources(struct dhcp6_if *ifp) {
     dhcp6_lease_t *sp = NULL;
     GSList *iterator = client6_iaidaddr.lease_list;
 
-    if (g_slist_length(iterator)) {
-        do {
-            sp = (dhcp6_lease_t *) iterator->data;
+    while (iterator) {
+        sp = (dhcp6_lease_t *) iterator->data;
 
-            if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
-                g_message("%s: deconfiging address %s failed",
-                          __func__, in6addr2str(&sp->lease_addr.addr, 0));
-            }
-        } while ((iterator = g_slist_next(iterator)) != NULL);
+        if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
+            g_message("%s: deconfiging address %s failed",
+                      __func__, in6addr2str(&sp->lease_addr.addr, 0));
+        }
+
+        iterator = g_slist_next(iterator);
     }
 
     g_debug("%s: remove all events on interface", __func__);
@@ -710,13 +718,15 @@ static dhcp6_event_t *_find_event_withid(struct dhcp6_if *ifp, guint32 xid) {
         return NULL;
     }
 
-    do {
+    while (iterator) {
         event = (dhcp6_event_t *) iterator->data;
 
         if (event->xid == xid) {
             return event;
         }
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+        iterator = g_slist_next(iterator);
+    }
 
     return NULL;
 }
@@ -2221,13 +2231,13 @@ dhcp6_timer_t *client6_timo(void *arg) {
                     _ev_set_state(ev, DHCP6S_CONFIRM);
                 }
 
-                if (g_slist_length(iterator)) {
-                    do {
-                        lv = (dhcp6_value_t *) iterator->data;
+                while (iterator) {
+                    lv = (dhcp6_value_t *) iterator->data;
 
-                        lv->val_dhcp6addr.preferlifetime = 0;
-                        lv->val_dhcp6addr.validlifetime = 0;
-                    } while ((iterator = g_slist_next(iterator)) != NULL);
+                    lv->val_dhcp6addr.preferlifetime = 0;
+                    lv->val_dhcp6addr.validlifetime = 0;
+
+                    iterator = g_slist_next(iterator);
                 }
             } else {
                 _ev_set_state(ev, DHCP6S_SOLICIT);

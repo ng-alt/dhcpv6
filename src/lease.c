@@ -196,13 +196,15 @@ FILE *sync_leases(FILE * file, const gchar *original, gchar *template) {
     if (dhcp6_mode == DHCP6_MODE_SERVER) {
         g_hash_table_foreach(lease_hash_table, _sync_lease, sync_file);
     } else if (dhcp6_mode == DHCP6_MODE_CLIENT) {
-        do {
+        while (iterator) {
             lease = (dhcp6_lease_t *) iterator->data;
 
             if (write_lease(lease, sync_file) < 0) {
                 g_error("%s: write lease failed", __func__);
             }
-        } while ((iterator = g_slist_next(iterator)) != NULL);
+
+            iterator = g_slist_next(iterator);
+        }
     }
 
     fclose(sync_file);
@@ -345,7 +347,7 @@ gint addr_on_addrlist(GSList *addrlist, struct dhcp6_addr *addr6) {
         return 0;
     }
 
-    do {
+    while (iterator) {
         lv = (dhcp6_value_t *) iterator->data;
 
         if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr, &addr6->addr)) {
@@ -355,7 +357,9 @@ gint addr_on_addrlist(GSList *addrlist, struct dhcp6_addr *addr6) {
                 return 1;
             }
         }
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+        iterator = g_slist_next(iterator);
+    }
 
     return 0;
 }
@@ -409,7 +413,7 @@ dhcp6_lease_t *dhcp6_find_lease(dhcp6_iaidaddr_t *iaidaddr,
         return NULL;
     }
 
-    do {
+    while (iterator) {
         lease = (dhcp6_lease_t *) iterator->data;
 
         g_debug("%s: request address is %s/%d ", __func__,
@@ -425,7 +429,9 @@ dhcp6_lease_t *dhcp6_find_lease(dhcp6_iaidaddr_t *iaidaddr,
                 return lease;
             }
         }
-    } while ((iterator = g_slist_next(iterator)) != NULL);
+
+        iterator = g_slist_next(iterator);
+    }
 
     return NULL;
 }
