@@ -987,22 +987,27 @@ struct host_decl *dhcp6_allocate_host(struct dhcp6_if *ifp,
                                       struct rootgroup *rootgroup,
                                       struct dhcp6_optinfo *optinfo) {
     struct host_decl *host = NULL;
-    struct interface *ifnetwork;
+    server_interface_t *ifnetwork = NULL;
     struct duid *duid = &optinfo->clientID;
     ia_t *ia = NULL;
-    GSList *iterator = optinfo->ia_list;
+    GSList *if_iterator = NULL, *ia_iterator = NULL;
 
-    for (ifnetwork = rootgroup->iflist; ifnetwork;
-         ifnetwork = ifnetwork->next) {
-        if (strcmp(ifnetwork->name, ifp->ifname) != 0) {
+    if_iterator = rootgroup->iflist;
+
+    while (if_iterator) {
+        ifnetwork = (server_interface_t *) if_iterator->data;
+
+        if (g_strcmp0(ifnetwork->name, ifp->ifname) != 0) {
             continue;
         } else {
             if (!g_slist_length(optinfo->ia_list)) {
                 host = find_hostdecl(duid, 0, ifnetwork->hostlist);
                 return host;
             } else {
-                while (iterator) {
-                    ia = (ia_t *) iterator->data;
+                ia_iterator = optinfo->ia_list;
+
+                while (ia_iterator) {
+                    ia = (ia_t *) ia_iterator->data;
 
                     host = find_hostdecl(duid, ia->iaidinfo.iaid,
                                          ifnetwork->hostlist);
@@ -1010,10 +1015,12 @@ struct host_decl *dhcp6_allocate_host(struct dhcp6_if *ifp,
                         return host;
                     }
 
-                    iterator = g_slist_next(iterator);
+                    ia_iterator = g_slist_next(ia_iterator);
                 }
             }
         }
+
+        if_iterator = g_slist_next(if_iterator);
     }
 
     return NULL;
@@ -1023,18 +1030,21 @@ link_decl_t *dhcp6_allocate_link(struct dhcp6_if *ifp,
                                  struct rootgroup *rootgroup,
                                  struct in6_addr *relay) {
     link_decl_t *link;
-    struct interface *ifnetwork;
+    server_interface_t *ifnetwork = NULL;
+    GSList *link_iterator = NULL, *if_iterator = NULL;
 
-    ifnetwork = rootgroup->iflist;
+    if_iterator = rootgroup->iflist;
 
-    for (ifnetwork = rootgroup->iflist; ifnetwork;
-         ifnetwork = ifnetwork->next) {
-        if (strcmp(ifnetwork->name, ifp->ifname) != 0) {
+    while (if_iterator) {
+        ifnetwork = (server_interface_t *) if_iterator->data;
+
+        if (g_strcmp0(ifnetwork->name, ifp->ifname) != 0) {
             continue;
         } else {
-            GSList *iterator = ifnetwork->linklist;
-            while (iterator) {
-                link = (link_decl_t *) iterator->data;
+            link_iterator = ifnetwork->linklist;
+
+            while (link_iterator) {
+                link = (link_decl_t *) link_iterator->data;
 
                 /* if relay is NULL, assume client and server are on the same 
                  * link (which cannot have a relay configuration option) */
@@ -1059,9 +1069,11 @@ link_decl_t *dhcp6_allocate_link(struct dhcp6_if *ifp,
                     }
                 }
 
-                iterator = g_slist_next(iterator);
+                link_iterator = g_slist_next(link_iterator);
             }
         }
+
+        if_iterator = g_slist_next(if_iterator);
     }
 
     return NULL;

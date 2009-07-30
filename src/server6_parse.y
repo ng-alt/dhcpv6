@@ -58,12 +58,12 @@ extern gint num_lines;
 extern gint sock;
 extern GHashTable *host_addr_hash_table;
 
-static struct interface *ifnetworklist = NULL;
+static GSList *ifnetworklist = NULL;
 static GSList *linklist = NULL;
 static struct host_decl *hostlist = NULL;
 static GSList *poollist = NULL;
 
-static struct interface *ifnetwork = NULL;
+static server_interface_t *ifnetwork = NULL;
 static link_decl_t *link = NULL;
 static struct host_decl *host = NULL;
 static pool_decl_t *pool = NULL;
@@ -161,10 +161,7 @@ ifdef
           }
 
           g_debug("interface definition for %s is ok", ifnetwork->name);
-          ifnetwork->next = ifnetworklist;
-          ifnetworklist = ifnetwork;
-          ifnetwork = NULL;
-
+          ifnetworklist = g_slist_append(ifnetworklist, ifnetwork);
           globalgroup->iflist = ifnetworklist;
 
           /*
@@ -177,19 +174,20 @@ ifdef
 
 ifhead
     : INTERFACE IFNAME {
-          struct interface *temp_if = ifnetworklist;
+          GSList *iterator = ifnetworklist;
 
-          while (temp_if) {
-              if (!strcmp(temp_if->name, $2)) {
-                  g_error("duplicate interface definition for %s",
-                          temp_if->name);
+          while (iterator) {
+              server_interface_t *i = (server_interface_t *) iterator->data;
+
+              if (!g_strcmp0(i->name, $2)) {
+                  g_error("duplicate interface definition for %s", i->name);
                   ABORT;
               }
 
-              temp_if = temp_if->next;
+              iterator = g_slist_next(iterator);
           }
 
-          ifnetwork = (struct interface *) g_malloc0(sizeof(*ifnetwork));
+          ifnetwork = (server_interface_t *) g_malloc0(sizeof(*ifnetwork));
 
           if (ifnetwork == NULL) {
               g_error("failed to allocate memory");

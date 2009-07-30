@@ -1555,8 +1555,9 @@ gint main(gint argc, gchar **argv) {
     gchar *progname = basename(argv[0]);
     gchar *conffile = DHCP6S_CONF;
     FILE *pidfp = NULL;
-    struct interface *ifnetwork;
+    server_interface_t *ifnetwork = NULL;
     log_properties_t log_props;
+    GSList *iterator = NULL;
 
     memset(&pidfile, '\0', sizeof(pidfile));
     strcpy(pidfile, DHCP6S_PIDFILE);
@@ -1637,9 +1638,11 @@ gint main(gint argc, gchar **argv) {
         exit(1);
     }
 
-    ifnetwork = globalgroup->iflist;
-    for (ifnetwork = globalgroup->iflist; ifnetwork;
-         ifnetwork = ifnetwork->next) {
+    iterator = globalgroup->iflist;
+
+    while (iterator) {
+        ifnetwork = (server_interface_t *) iterator->data;
+
         if (!g_slist_length(ifnetwork->linklist)) {
             /* If there was no link defined in the conf file, make an empty
              * one. */
@@ -1652,6 +1655,8 @@ gint main(gint argc, gchar **argv) {
             link->linkscope.dnsinfo.servers = NULL;
             ifnetwork->linklist = g_slist_append(ifnetwork->linklist, link);
         }
+
+        iterator = g_slist_next(iterator);
     }
 
     if (signal(SIGHUP, _server6_sighandler) == SIG_ERR) {

@@ -50,24 +50,10 @@ typedef struct _scope_t {
     dns_info_t dnsinfo;
 } scope_t;
 
-struct rootgroup {
-    scope_t scope;
-    scope_t *group;
-    struct interface *iflist;
-};
-
-struct v6addr {
-    struct in6_addr addr;
-    guint8 plen;
-};
-
 /* interface network declaration */
-
 /* interface declaration is used to inform DHCPv6 server that the links */
-
 /* and pool declared within it are connected to the same network segment */
-struct interface {
-    struct interface *next;
+typedef struct _server_interface_t {
     gchar name[IFNAMSIZ];
     struct hardware hw_address;
     struct in6_addr primary_v6addr;
@@ -76,12 +62,21 @@ struct interface {
     struct host_decl *hostlist;
     scope_t ifscope;
     scope_t *group;
+} server_interface_t;
+
+struct rootgroup {
+    scope_t scope;
+    scope_t *group;
+    GSList *iflist;
+};
+
+struct v6addr {
+    struct in6_addr addr;
+    guint8 plen;
 };
 
 /* link declaration */
-
 /* link declaration is used to provide the DHCPv6 server with enough   */
-
 /* information to determin whether a particular IPv6 addresses is on the */
 
 /* link */
@@ -91,7 +86,7 @@ typedef struct _link_decl_t {
     struct v6addrseg *seglist;
     struct v6prefix *prefixlist;
     GSList *poollist;
-    struct interface *network;
+    server_interface_t *network;
     scope_t linkscope;
     scope_t *group;
 } link_decl_t;
@@ -100,7 +95,7 @@ typedef struct _link_decl_t {
 /* address can be allocated, with its own permit to control client access  */
 /* and its own scope in which you can declare pool-specific parameter*/
 typedef struct _pool_decl_t {
-    struct interface *network;
+    server_interface_t *network;
     link_decl_t *link;
     scope_t poolscope;
     scope_t *group;
@@ -145,7 +140,7 @@ struct host_decl {
     struct dhcp6_iaid_info iaidinfo;
     GSList *addrlist;
     GSList *prefixlist;
-    struct interface *network;
+    server_interface_t *network;
     scope_t hostscope;
     scope_t *group;
 };

@@ -165,13 +165,14 @@ gint get_numleases(pool_decl_t *currentpool, gchar *poolfile) {
 }
 
 void post_config(struct rootgroup *root) {
-    struct interface *ifnetwork = NULL;
+    server_interface_t *ifnetwork = NULL;
     link_decl_t *link = NULL;
     struct host_decl *host = NULL;
     struct v6addrseg *seg = NULL;
     struct v6prefix *prefix6 = NULL;
     scope_t *current = NULL;
     scope_t *up = NULL;
+    GSList *iterator = NULL, *link_iterator = NULL;
 
     if (root->group) {
         _download_scope(root->group, &root->scope);
@@ -180,7 +181,10 @@ void post_config(struct rootgroup *root) {
     up = &root->scope;
 
     /* XXX: check the physical interfaces for the server */
-    for (ifnetwork = root->iflist; ifnetwork; ifnetwork = ifnetwork->next) {
+    iterator = root->iflist;
+    while (iterator) {
+        ifnetwork = (server_interface_t *) iterator->data;
+
         if (ifnetwork->group) {
             _download_scope(ifnetwork->group, &ifnetwork->ifscope);
         }
@@ -197,9 +201,14 @@ void post_config(struct rootgroup *root) {
             current = &host->hostscope;
             _download_scope(up, current);
         }
+
+        iterator = g_slist_next(iterator);
     }
 
-    for (ifnetwork = root->iflist; ifnetwork; ifnetwork = ifnetwork->next) {
+    iterator = root->iflist;
+    while (iterator) {
+        ifnetwork = (server_interface_t *) iterator->data;
+
         if (ifnetwork->group) {
             _download_scope(ifnetwork->group, &ifnetwork->ifscope);
         }
@@ -209,9 +218,9 @@ void post_config(struct rootgroup *root) {
         up = &ifnetwork->ifscope;
 
         /* XXX: check host */
-        GSList *iterator = ifnetwork->linklist;
-        while (iterator) {
-            link = (link_decl_t *) iterator->data;
+        link_iterator = ifnetwork->linklist;
+        while (link_iterator) {
+            link = (link_decl_t *) link_iterator->data;
 
             if (link->group) {
                 _download_scope(link->group, &link->linkscope);
@@ -272,8 +281,10 @@ void post_config(struct rootgroup *root) {
                 }
             }
 
-            iterator = g_slist_next(iterator);
+            link_iterator = g_slist_next(link_iterator);
         }
+
+        iterator = g_slist_next(iterator);
     }
 
     return;
