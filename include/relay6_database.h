@@ -49,10 +49,9 @@ GSList *IPv6_address_list;
 GSList *IPv6_uniaddr_list;
 GSList *relay_interface_list;
 
-gint process_RELAY_FORW(struct msg_parser * msg);
-gint process_RELAY_REPL(struct msg_parser * msg);
-struct msg_parser *get_send_messages_out(void);
-void delete_messages(void);
+gint process_RELAY_FORW(relay_msg_parser_t * msg);
+gint process_RELAY_REPL(relay_msg_parser_t * msg);
+relay_msg_parser_t *get_send_messages_out(void);
 gint check_interface_semafor(gint index);
 relay_interface_t *get_interface(gint if_index);
 relay_interface_t *get_interface_s(gchar *s);

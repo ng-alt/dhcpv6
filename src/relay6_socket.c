@@ -53,7 +53,7 @@
 #endif
 
 typedef struct _relay_forw_data_t {
-    struct msg_parser *mesg;
+    relay_msg_parser_t *mesg;
     gboolean hit;
 } relay_forw_data_t;
 

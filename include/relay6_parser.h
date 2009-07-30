@@ -30,10 +30,7 @@
 #ifndef __RELAY6_PARSER_H_DEFINED
 #define __RELAY6_PARSER_H_DEFINED
 
-struct msg_parser {
-    struct msg_parser *next;
-    struct msg_parser *prev;
-
+typedef struct _relay_msg_parser_t {
     gint if_index;
     guint8 msg_type;
     guint8 hop;
@@ -49,12 +46,12 @@ struct msg_parser {
     gint interface_in, hop_count;
     gint sent;
     gint isRF;
-};
+} relay_msg_parser_t;
 
-struct msg_parser msg_parser_list;
+GSList *relay_msg_parser_list;
 
-struct msg_parser *create_parser_obj(void);
-gint put_msg_in_store(struct msg_parser * mesg);
-gint check_buffer(gint ref, struct msg_parser * mesg);
+relay_msg_parser_t *create_parser_obj(void);
+gint put_msg_in_store(relay_msg_parser_t *mesg);
+gint check_buffer(gint ref, relay_msg_parser_t *mesg);
 
 #endif /* __RELAY6_PARSER_H_DEFINED */

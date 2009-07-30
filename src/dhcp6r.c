@@ -65,7 +65,7 @@ gint main(gint argc, gchar **argv) {
     relay_interface_t *iface = NULL;
     struct sockaddr_in6 sin6;
     gchar *sf = NULL, *eth = NULL, *addr = NULL;
-    struct msg_parser *mesg = NULL;
+    relay_msg_parser_t *mesg = NULL;
     FILE *pidfp = NULL;
 
     memset(&pidfile, '\0', sizeof(pidfile));
@@ -250,7 +250,8 @@ gint main(gint argc, gchar **argv) {
         }
 
         send_message();
-        delete_messages();
+        g_slist_free(relay_msg_parser_list);
+        relay_msg_parser_list = NULL;
     }
 
 ERROR:

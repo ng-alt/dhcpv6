@@ -56,8 +56,7 @@ void init_relay(void) {
     IPv6_address_list = NULL;
     IPv6_uniaddr_list = NULL;
     relay_interface_list = NULL;
-    msg_parser_list.prev = &msg_parser_list;
-    msg_parser_list.next = &msg_parser_list;
+    relay_msg_parser_list = NULL;
     return;
 }
 
@@ -112,40 +111,24 @@ relay_interface_t *get_interface_s(gchar *s) {
     return NULL;
 }
 
-struct msg_parser *get_send_messages_out(void) {
-    struct msg_parser *msg;
+relay_msg_parser_t *get_send_messages_out(void) {
+    relay_msg_parser_t *msg = NULL;
+    GSList *iterator = relay_msg_parser_list;
 
-    for (msg = msg_parser_list.next; msg != &msg_parser_list; msg = msg->next) {
+    while (iterator) {
+        msg = (relay_msg_parser_t *) iterator->data;
+
         if (msg->sent == 0) {
             return msg;
         }
+
+        iterator = g_slist_next(iterator);
     }
 
     return NULL;
 }
 
-void delete_messages(void) {
-    struct msg_parser *msg;
-
-    for (msg = msg_parser_list.next; msg != &msg_parser_list; msg = msg->next) {
-        if (msg->sent == 1) {
-            msg->prev->next = msg->next;
-            msg->next->prev = msg->prev;
-            msg->next = NULL;
-            msg->prev = NULL;
-
-            g_free(msg->buffer);
-            msg->buffer = NULL;
-
-            g_free(msg);
-            msg = NULL;
-
-            msg = msg_parser_list.next;
-        }
-    }
-}
-
-gint process_RELAY_FORW(struct msg_parser *msg) {
+gint process_RELAY_FORW(relay_msg_parser_t *msg) {
     uint8_t *head = (uint8_t *) g_malloc0(HEAD_SIZE * sizeof(uint8_t));
     uint8_t *newbuff =
         (uint8_t *) g_malloc0(MAX_DHCP_MSG_LENGTH * sizeof(uint8_t));
@@ -285,7 +268,7 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
     return 1;
 }
 
-gint process_RELAY_REPL(struct msg_parser *msg) {
+gint process_RELAY_REPL(relay_msg_parser_t *msg) {
     guint8 *newbuff = (guint8 *) g_malloc(MAX_DHCP_MSG_LENGTH * sizeof(guint8));
     guint8 *pointer, *pstart, *psp;
     relay_interface_t *device = NULL;

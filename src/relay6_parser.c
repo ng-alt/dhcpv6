@@ -45,10 +45,10 @@
 #include "relay6_database.h"
 #include "relay6_socket.h"
 
-struct msg_parser *create_parser_obj(void) {
-    struct msg_parser *msg;
+relay_msg_parser_t *create_parser_obj(void) {
+    relay_msg_parser_t *msg;
 
-    msg = (struct msg_parser *) g_malloc0(sizeof(struct msg_parser));
+    msg = (relay_msg_parser_t *) g_malloc0(sizeof(relay_msg_parser_t));
     if (msg == NULL) {
         g_error("%s: memory allocation error", __func__);
         exit(1);
@@ -71,10 +71,7 @@ struct msg_parser *create_parser_obj(void) {
     msg->pointer_start = msg->buffer;
     msg->dst_addr_type = relaysock->dst_addr_type;
 
-    msg->prev = &msg_parser_list;
-    msg->next = msg_parser_list.next;
-    msg->prev->next = msg;
-    msg->next->prev = msg;
+    relay_msg_parser_list = g_slist_append(relay_msg_parser_list, msg);
 
     g_debug("%s: received new message on interface: %d, source: %s",
             __func__, msg->interface_in, msg->src_addr);
@@ -82,7 +79,7 @@ struct msg_parser *create_parser_obj(void) {
     return msg;
 }
 
-gint check_buffer(gint ref, struct msg_parser *mesg) {
+gint check_buffer(gint ref, relay_msg_parser_t *mesg) {
     gint diff;
 
     diff = (int) (mesg->pstart - mesg->pointer_start);
@@ -94,7 +91,7 @@ gint check_buffer(gint ref, struct msg_parser *mesg) {
     }
 }
 
-gint put_msg_in_store(struct msg_parser *mesg) {
+gint put_msg_in_store(relay_msg_parser_t *mesg) {
     uint32_t msg_type;
     uint8_t *hop, msg;
 
