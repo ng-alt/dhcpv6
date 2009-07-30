@@ -83,7 +83,7 @@ struct v6addr {
 typedef struct _link_decl_t {
     gchar name[IFNAMSIZ];
     struct v6addrlist *relaylist;
-    struct v6addrseg *seglist;
+    GSList *seglist;
     struct v6prefix *prefixlist;
     GSList *poollist;
     server_interface_t *network;
@@ -101,9 +101,7 @@ typedef struct _pool_decl_t {
     scope_t *group;
 } pool_decl_t;
 
-struct v6addrseg {
-    struct v6addrseg *next;
-    struct v6addrseg *prev;
+typedef struct _v6addrseg_t {
     link_decl_t *link;
     pool_decl_t *pool;
     struct in6_addr min;
@@ -114,7 +112,7 @@ struct v6addrseg {
     struct lease *expired;
     struct lease *abandoned;
     scope_t parainfo;
-};
+} v6addrseg_t;
 
 struct v6prefix {
     struct v6prefix *next;

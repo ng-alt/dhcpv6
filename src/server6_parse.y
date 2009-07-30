@@ -443,26 +443,27 @@ prefixdef
 
 rangedef
     : RANGE IPV6ADDR TO IPV6ADDR '/' NUMBER ';' {
-          struct v6addrseg *seg, *temp_seg;
+          v6addrseg_t *seg, *temp_seg;
           struct v6addr *prefix1, *prefix2;
+          GSList *iterator = NULL;
 
           if (!link) {
               g_error("range must be defined under link");
               ABORT;
           }
 
-          seg = (struct v6addrseg *) g_malloc0(sizeof(*seg));
+          seg = (v6addrseg_t *) g_malloc0(sizeof(*seg));
 
           if (seg == NULL) {
               g_error("failed to allocate memory");
               ABORT;
           }
 
-          temp_seg = link->seglist;
           seg->link = link;
 
-          if (pool)
+          if (pool) {
               seg->pool = pool;
+          }
 
           /* make sure the range ipv6 address within the prefixaddr */
           if ($6 > 128 || $6 < 0) {
@@ -502,51 +503,30 @@ rangedef
           memcpy(&seg->prefix, prefix1, sizeof(seg->prefix));
           memcpy(&seg->free, &seg->min, sizeof(seg->free));
 
-          if (pool)
+          if (pool) {
               seg->pool = pool;
+          }
 
           /* make sure there is no overlap in the rangelist */
           /* the segaddr is sorted by prefix len, thus most specific
            * ipv6 address is going to be assigned.
            */
-          if (!temp_seg) {
-              seg->next = NULL;
-              seg->prev = NULL;
-              link->seglist = seg;
-          } else {
-              for (; temp_seg; temp_seg = temp_seg->next) {
-                  if (prefix1->plen < temp_seg->prefix.plen) {
-                      if (temp_seg->next == NULL) {
-                          temp_seg->next = seg;
-                          seg->prev = temp_seg;
-                          seg->next = NULL;
-                          break;
-                      }
+          iterator = link->seglist;
+          while (iterator) {
+              temp_seg = (v6addrseg_t *) iterator->data;
 
-                      continue;
+              if (prefix1->plen == temp_seg->prefix.plen) {
+                  if (!(ipv6addrcmp(&seg->min, &temp_seg->max) > 0 ||
+                      ipv6addrcmp(&seg->max, &temp_seg->min) < 0)) {
+                         g_error("overlap range addr defined");
+                         ABORT;
                   }
-
-                  if (prefix1->plen == temp_seg->prefix.plen) {
-                      if (!(ipv6addrcmp(&seg->min, &temp_seg->max) > 0 ||
-                          ipv6addrcmp(&seg->max, &temp_seg->min) < 0)) {
-                             g_error("overlap range addr defined");
-                             ABORT;
-                      }
-                  }
-
-                  if (temp_seg->prev == NULL) {
-                      link->seglist = seg;
-                      seg->prev = NULL;
-                  } else {
-                      temp_seg->prev->next = seg;
-                      seg->prev = temp_seg->prev;
-                  }
-
-                  temp_seg->prev = seg;
-                  seg->next = temp_seg;
-                  break;
               }
+
+              iterator = g_slist_next(iterator);
           }
+
+          link->seglist = g_slist_append(link->seglist, seg);
 
           g_free(prefix1);
           prefix1 = NULL;

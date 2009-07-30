@@ -137,7 +137,7 @@ static void _create_tempaddr(struct in6_addr *prefix, gint plen,
     return;
 }
 
-static gint _addr_on_segment(struct v6addrseg *seg, struct dhcp6_addr *addr) {
+static gint _addr_on_segment(v6addrseg_t *seg, struct dhcp6_addr *addr) {
     gint onseg = 0;
     struct v6addr *prefix;
 
@@ -175,7 +175,7 @@ static gint _addr_on_segment(struct v6addrseg *seg, struct dhcp6_addr *addr) {
 }
 
 static void _server6_get_addrpara(struct dhcp6_addr *v6addr,
-                                  struct v6addrseg *seg) {
+                                  v6addrseg_t *seg) {
     v6addr->plen = seg->prefix.plen;
 
     if (seg->parainfo.prefer_life_time == 0 &&
@@ -203,7 +203,7 @@ static void _server6_get_addrpara(struct dhcp6_addr *v6addr,
 }
 
 static void _server6_get_newaddr(iatype_t type, struct dhcp6_addr *v6addr,
-                                 struct v6addrseg *seg) {
+                                 v6addrseg_t *seg) {
     struct in6_addr current;
     gint round = 0;
 
@@ -775,12 +775,12 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
                            const link_decl_t *subnet,
                            guint16 *ia_status_code) {
     dhcp6_value_t *v6addr = NULL;
-    struct v6addrseg *seg = NULL;
+    v6addrseg_t *seg = NULL;
     GSList *reply_list = ria->addr_list;
     GSList *req_list = ia->addr_list;
     gint numaddr;
     dhcp6_value_t *lv = NULL;
-    GSList *iterator = NULL;
+    GSList *iterator = NULL, *sub_iterator = NULL;
     dhcp6_lease_t *cl = NULL;
 
     ria->iaidinfo.renewtime = subnet->linkscope.renew_time;
@@ -814,12 +814,14 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
         iterator = g_slist_next(iterator);
     }
 
-    for (seg = subnet->seglist; seg; seg = seg->next) {
+    iterator = subnet->seglist;
+    while (iterator) {
+        seg = (v6addrseg_t *) iterator->data;
         numaddr = 0;
-        iterator = reply_list;
+        sub_iterator = reply_list;
 
-        while (iterator) {
-            lv = (dhcp6_value_t *) iterator->data;
+        while (sub_iterator) {
+            lv = (dhcp6_value_t *) sub_iterator->data;
 
             /* skip checked segment */
 
@@ -859,14 +861,14 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
                 *ia_status_code = DH6OPT_STCODE_NOTONLINK;
             }
 
-            iterator = g_slist_next(iterator);
+            sub_iterator = g_slist_next(sub_iterator);
         }
 
         if (iaidaddr != NULL && g_slist_length(iaidaddr->lease_list)) {
-            iterator = iaidaddr->lease_list;
+            sub_iterator = iaidaddr->lease_list;
 
-            while (iterator) {
-                cl = (dhcp6_lease_t *) iterator->data;
+            while (sub_iterator) {
+                cl = (dhcp6_lease_t *) sub_iterator->data;
 
                 if (_addr_on_segment(seg, &cl->lease_addr)) {
                     if (addr_on_addrlist(reply_list, &cl->lease_addr)) {
@@ -889,7 +891,7 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
                     }
                 }
 
-                iterator = g_slist_next(iaidaddr->lease_list);
+                sub_iterator = g_slist_next(sub_iterator);
             }
         }
 
@@ -912,6 +914,8 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
 
             reply_list = g_slist_append(reply_list, v6addr);
         }
+
+        iterator = g_slist_next(iterator);
     }
 
     return 0;
