@@ -253,7 +253,7 @@ static void _server6_get_newaddr(iatype_t type, struct dhcp6_addr *v6addr,
 }
 
 static void _server6_get_prefixpara(struct dhcp6_addr *v6addr,
-                                    struct v6prefix *seg) {
+                                    v6prefix_t *seg) {
     v6addr->plen = seg->prefix.plen;
 
     if (seg->parainfo.prefer_life_time == 0 &&
@@ -926,18 +926,20 @@ gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
                              const link_decl_t *subnet,
                              guint16 *ia_status_code) {
     dhcp6_value_t *v6addr;
-    struct v6prefix *prefix6;
+    v6prefix_t *prefix6 = NULL;
     GSList *reply_list = ria->addr_list;
     GSList *req_list = ia->addr_list;
     dhcp6_value_t *lv = NULL;
-    GSList *iterator = NULL;
+    GSList *iterator = NULL, *prefix_iterator = NULL;
 
     /* XXX: ToDo check hostdecl first */
     ria->iaidinfo.renewtime = subnet->linkscope.renew_time;
     ria->iaidinfo.rebindtime = subnet->linkscope.rebind_time;
     ria->type = ia->type;
 
-    for (prefix6 = subnet->prefixlist; prefix6; prefix6 = prefix6->next) {
+    iterator = subnet->prefixlist;
+    while (iterator) {
+        prefix6 = (v6prefix_t *) iterator->data;
         v6addr = (dhcp6_value_t *) g_malloc0(sizeof(*v6addr));
 
         if (v6addr == NULL) {
@@ -959,9 +961,12 @@ gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
                 v6addr->val_dhcp6addr.validlifetime);
 
         reply_list = g_slist_append(reply_list, v6addr);
+
+        iterator = g_slist_next(iterator);
     }
 
-    for (prefix6 = subnet->prefixlist; prefix6; prefix6 = prefix6->next) {
+    prefix_iterator = subnet->prefixlist;
+    while (prefix_iterator) {
         iterator = req_list;
 
         while (iterator) {
@@ -982,6 +987,8 @@ gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
 
             iterator = g_slist_next(iterator);
         }
+
+        prefix_iterator = g_slist_next(prefix_iterator);
     }
 
     return 0;

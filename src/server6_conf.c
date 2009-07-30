@@ -169,10 +169,11 @@ void post_config(struct rootgroup *root) {
     link_decl_t *link = NULL;
     struct host_decl *host = NULL;
     v6addrseg_t *seg = NULL;
-    struct v6prefix *prefix6 = NULL;
+    v6prefix_t *prefix6 = NULL;
     scope_t *current = NULL;
     scope_t *up = NULL;
     GSList *iterator = NULL, *link_iterator = NULL, *seg_iterator = NULL;
+    GSList *prefix_iterator = NULL;
 
     if (root->group) {
         _download_scope(root->group, &root->scope);
@@ -260,7 +261,10 @@ void post_config(struct rootgroup *root) {
                 seg_iterator = g_slist_next(seg_iterator);
             }
 
-            for (prefix6 = link->prefixlist; prefix6; prefix6 = prefix6->next) {
+            prefix_iterator = link->prefixlist;
+            while (prefix_iterator) {
+                prefix6 = (v6prefix_t *) prefix_iterator->data;
+
                 if (prefix6->pool) {
                     if (prefix6->pool->group) {
                         _download_scope(prefix6->pool->group,
@@ -284,6 +288,8 @@ void post_config(struct rootgroup *root) {
                 } else {
                     memcpy(&prefix6->parainfo, up, sizeof(prefix6->parainfo));
                 }
+
+                prefix_iterator = g_slist_next(prefix_iterator);
             }
 
             link_iterator = g_slist_next(link_iterator);

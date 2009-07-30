@@ -391,15 +391,16 @@ poolparas
 
 prefixdef
     : PREFIX IPV6ADDR '/' NUMBER ';' {
-          struct v6prefix *v6prefix, *v6prefix0;
-          struct v6addr *prefix;
+          v6prefix_t *v6prefix = NULL, *v6prefix0 = NULL;
+          struct v6addr *prefix = NULL;
+          GSList *iterator = NULL;
 
           if (!link) {
               g_error("prefix must be defined under link");
               ABORT;
           }
 
-          v6prefix = (struct v6prefix *) g_malloc0(sizeof(*v6prefix));
+          v6prefix = (v6prefix_t *) g_malloc0(sizeof(*v6prefix));
 
           if (v6prefix == NULL) {
               g_error("failed to allocate memory");
@@ -418,13 +419,18 @@ prefixdef
           }
 
           prefix = getprefix(&$2, $4);
-          for (v6prefix0 = link->prefixlist; v6prefix0;
-               v6prefix0 = v6prefix0->next) {
+          iterator = link->prefixlist;
+
+          while (iterator) {
+              v6prefix0 = (v6prefix_t *) iterator->data;
+
               if (IN6_ARE_ADDR_EQUAL(prefix, &v6prefix0->prefix.addr) &&
                   $4 == v6prefix0->prefix.plen) {
                   g_error("duplicated prefix defined within same link");
                   ABORT;
               }
+
+              iterator = g_slist_next(iterator);
           }
 
           /* check the assigned prefix is not reserved pv6 addresses */
@@ -434,8 +440,7 @@ prefixdef
           }
 
           memcpy(&v6prefix->prefix, prefix, sizeof(v6prefix->prefix));
-          v6prefix->next = link->prefixlist;
-          link->prefixlist = v6prefix;
+          link->prefixlist = g_slist_append(link->prefixlist, v6prefix);
           g_free(prefix);
           prefix = NULL;
       }
