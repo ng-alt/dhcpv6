@@ -62,12 +62,10 @@ gint main(gint argc, gchar **argv) {
     gint err = 0, i;
     gint sw = 0;
     gint du = 0;
-    struct interface *iface;
+    relay_interface_t *iface = NULL;
     struct sockaddr_in6 sin6;
-    gchar *sf, *eth, *addr;
-    struct IPv6_uniaddr *unia;
-    struct server *sa;
-    struct msg_parser *mesg;
+    gchar *sf = NULL, *eth = NULL, *addr = NULL;
+    struct msg_parser *mesg = NULL;
     FILE *pidfp = NULL;
 
     memset(&pidfile, '\0', sizeof(pidfile));
@@ -147,17 +145,8 @@ gint main(gint argc, gchar **argv) {
                 goto ERROR;
             }
 
-            unia = (struct IPv6_uniaddr *)
-                g_malloc0(sizeof(struct IPv6_uniaddr));
-
-            if (unia == NULL) {
-                g_error("%s: memory allocation error", __func__);
-                exit(1);
-            }
-
-            unia->uniaddr = strdup(argv[i]);
-            unia->next = IPv6_uniaddr_list.next;
-            IPv6_uniaddr_list.next = unia;
+            gchar *uniaddr = g_strdup(argv[i]);
+            IPv6_uniaddr_list = g_slist_append(IPv6_uniaddr_list, uniaddr);
 
             g_debug("%s: setting up server address: %s", __func__, argv[i]);
             nr_of_uni_addr += 1;
@@ -192,25 +181,11 @@ gint main(gint argc, gchar **argv) {
             }
 
             if ((iface = get_interface_s(eth)) != NULL) {
-                sa = (struct server *) g_malloc0(sizeof(struct server));
+                gchar *sa = g_strdup(addr);
+                iface->sname = g_slist_append(iface->sname, sa);
 
-                if (sa == NULL) {
-                    g_error("%s: memory allocation error", __func__);
-                    exit(1);
-                }
-
-                sa->serv = strdup(addr);
-                sa->next = NULL;
-
-                if (iface->sname != NULL) {
-                    sa->next = iface->sname;
-                }
-
-                iface->sname = sa;
                 g_debug("%s: setting up server address: %s for interface: %s",
                         __func__, addr, eth);
-                g_free(sf);
-                sf = NULL;
             } else {
                 err = 5;
                 goto ERROR;

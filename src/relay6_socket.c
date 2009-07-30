@@ -70,7 +70,7 @@ static void _send_relay_forw(gpointer data, gpointer user_data) {
     struct cmsghdr *cmsgp = NULL;
     struct in6_pktinfo *in6_pkt = NULL;
     struct msghdr msg;
-    struct interface *iface = NULL;
+    relay_interface_t *iface = NULL;
     struct iovec iov[1];
 
     *(relay_forw->mesg->hc_pointer) = MAXHOPCOUNT;
@@ -120,14 +120,15 @@ static void _send_relay_forw(gpointer data, gpointer user_data) {
         exit(0);
     }
 
-    if (inet_pton(AF_INET6, iface->ipv6addr->gaddr,
+    if (inet_pton(AF_INET6, (gchar *) iface->ipv6addr->data,
                   &in6_pkt->ipi6_addr) <= 0) {
         /* source address */
         g_error("%s: inet_pton() failure", __func__);
         abort();
     }
 
-    g_debug("%s: source address: %s", __func__, iface->ipv6addr->gaddr);
+    g_debug("%s: source address: %s", __func__,
+            (gchar *) iface->ipv6addr->data);
 
     sin6.sin6_port = htons(SERVER_PORT);
 
@@ -264,9 +265,10 @@ gint check_select(void) {
 gint set_sock_opt(void) {
     gint on = 1;
     gint hop_limit;
-    struct interface *device;
+    relay_interface_t *device = NULL;
     gint flag;
     struct ipv6_mreq sock_opt;
+    GSList *iterator = relay_interface_list;
 
     /* If the relay agent relays messages to the All_DHCP_Servers multicast
      * address or other multicast addresses, it sets the Hop Limit field to
@@ -284,9 +286,10 @@ gint set_sock_opt(void) {
         return 0;
     }
 
-    for (device = interface_list.next; device != &interface_list;
-         device = device->next) {
+    while (iterator) {
+        device = (relay_interface_t *) iterator->data;
         flag = 0;
+
         if (g_slist_find_custom(cifaces_list, device->ifname,
                                 _find_string) != NULL) {
             flag = 1;
@@ -311,6 +314,8 @@ gint set_sock_opt(void) {
                     __func__);
             return 0;
         }
+
+        iterator = g_slist_next(iterator);
     }
 
     g_debug("%s: socket options are set", __func__);
@@ -368,10 +373,10 @@ gint get_interface_info(void) {
     gint plen, scope, dad_status, if_idx;
     gchar addr6p[8][5];
     gchar src_addr[INET6_ADDRSTRLEN];
-    struct interface *device = NULL, *next_device;
+    relay_interface_t *device = NULL;
     gint opaq = OPAQ;
     gint sw = 0;
-    struct IPv6_address *ipv6addr;
+    GSList *iterator = NULL;
 
     if ((f = fopen(INTERFACEINFO, "r")) == NULL) {
         g_error("%s: could not open file", __func__);
@@ -403,17 +408,22 @@ gint get_interface_info(void) {
         }
 
         sw = 0;
-        for (device = interface_list.next; device != &interface_list;
-             device = device->next) {
+        iterator = relay_interface_list;
+
+        while (iterator) {
+            device = (relay_interface_t *) iterator->data;
+
             if (device->devindex == if_idx) {
                 sw = 1;
                 break;
             }
+
+            iterator = g_slist_next(iterator);
         }
 
         if (sw == 0) {
             opaq += 10;
-            device = (struct interface *) g_malloc0(sizeof(struct interface));
+            device = (relay_interface_t *) g_malloc0(sizeof(relay_interface_t));
 
             if (device == NULL) {
                 g_error("%s: memory allocation error", __func__);
@@ -424,11 +434,9 @@ gint get_interface_info(void) {
             device->ifname = strdup(devname);
             device->devindex = if_idx;
             device->ipv6addr = NULL;
-            device->prev = &interface_list;
-            device->next = interface_list.next;
-            device->prev->next = device;
-            device->next->prev = device;
             nr_of_devices += 1;
+
+            relay_interface_list = g_slist_append(relay_interface_list, device);
         }
 
         if (IN6_IS_ADDR_LINKLOCAL(&sap.sin6_addr)) {
@@ -436,47 +444,32 @@ gint get_interface_info(void) {
             g_debug("%s: devname: %s, index: %d, link local addr: %s",
                     __func__, devname, if_idx, src_addr);
         } else {
-            ipv6addr = (struct IPv6_address *)
-                g_malloc0(sizeof(struct IPv6_address));
-
-            if (ipv6addr == NULL) {
-                g_error("%s: memory allocation error", __func__);
-                exit(1);
-            }
-
-            ipv6addr->gaddr = strdup(src_addr);
-            ipv6addr->next = NULL;
-
-            if (device->ipv6addr != NULL) {
-                ipv6addr->next = device->ipv6addr;
-            }
-
-            device->ipv6addr = ipv6addr;
+            device->ipv6addr = g_slist_append(device->ipv6addr,
+                                              g_strdup(src_addr));
         }
-    }                           /* while */
+    }
 
-    for (device = interface_list.next; device != &interface_list;) {
-        next_device = device->next;
+    iterator = relay_interface_list;
 
-        if (device->ipv6addr == NULL) {
+    while (iterator) {
+        GSList *remove = NULL;
+        device = (relay_interface_t *) iterator->data;
+
+        if (!g_slist_length(device->ipv6addr)) {
             g_debug("%s: remove interface %s as it does not have any "
                     "global address", __func__, device->ifname);
             nr_of_devices--;
-            device->prev->next = device->next;
-            device->next->prev = device->prev;
-            g_free(device->ifname);
-            device->ifname = NULL;
-
-            if (device->link_local != NULL) {
-                g_free(device->link_local);
-                device->link_local = NULL;
-            }
-
-            g_free(device);
-            device = NULL;
+            remove = iterator;
+            relay_interface_list = g_slist_remove_all(relay_interface_list,
+                                                      remove);
         }
 
-        device = next_device;
+        iterator = g_slist_next(iterator);
+
+        if (remove != NULL) {
+            g_free(remove);
+            remove = NULL;
+        }
     }
 
     fclose(f);
@@ -490,12 +483,11 @@ gint send_message(void) {
     struct in6_pktinfo *in6_pkt;
     struct cmsghdr *cmsgp;
     gchar dest_addr[INET6_ADDRSTRLEN];
-    struct IPv6_uniaddr *ipv6uni;
-    struct interface *iface;
+    relay_interface_t *iface = NULL;
     struct iovec iov[1];
     gint recvmsglen;
-    gchar *recvp;
-    struct server *uservers;
+    gchar *recvp = NULL;
+    GSList *uservers = NULL;
     relay_forw_data_t relay_forw;
 
     relay_forw.hit = FALSE;
@@ -555,7 +547,7 @@ gint send_message(void) {
             if (IN6_IS_ADDR_LINKLOCAL(&sin6.sin6_addr)) {
                 src_addr = iface->link_local;
             } else {
-                src_addr = iface->ipv6addr->gaddr;
+                src_addr = (gchar *) iface->ipv6addr->data;
             }
 
             if (inet_pton(AF_INET6, src_addr, &in6_pkt->ipi6_addr) <= 0) {
@@ -604,13 +596,15 @@ gint send_message(void) {
     }
 
     if (relay_forw.mesg->msg_type == DH6_RELAY_FORW) {
-        for (ipv6uni = IPv6_uniaddr_list.next; ipv6uni != &IPv6_uniaddr_list;
-             ipv6uni = ipv6uni->next) {
+        GSList *iterator = IPv6_uniaddr_list;
+
+        while (iterator) {
+            gchar *ipv6uni = (gchar *) iterator->data;
             memset(&sin6, '\0', sizeof(struct sockaddr_in6));
             sin6.sin6_family = AF_INET6;
 
             memset(dest_addr, 0, INET6_ADDRSTRLEN);
-            memcpy(dest_addr, ipv6uni->uniaddr, INET6_ADDRSTRLEN);
+            memcpy(dest_addr, ipv6uni, INET6_ADDRSTRLEN);
 
             /* destination address */
             if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
@@ -669,18 +663,23 @@ gint send_message(void) {
             g_free(recvp);
             recvp = NULL;
             relay_forw.hit = TRUE;
-        }                       /* for */
 
-        for (iface = interface_list.next; iface != &interface_list;
-             iface = iface->next) {
-            uservers = iface->sname;
+            iterator = g_slist_next(iterator);
+        }
 
-            while (uservers != NULL) {
+        iterator = relay_interface_list;
+
+        while (iterator) {
+            uservers = (GSList *) iface->sname;
+
+            while (uservers) {
+                gchar *serv = (gchar *) uservers->data;
+
                 memset(&sin6, '\0', sizeof(struct sockaddr_in6));
                 sin6.sin6_family = AF_INET6;
 
                 memset(dest_addr, 0, INET6_ADDRSTRLEN);
-                memcpy(dest_addr, uservers->serv, INET6_ADDRSTRLEN);
+                memcpy(dest_addr, serv, INET6_ADDRSTRLEN);
 
                 /* destination address */
                 if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
@@ -715,7 +714,7 @@ gint send_message(void) {
 
                 g_debug("%s: outgoing device index: %d", __func__,
                         in6_pkt->ipi6_ifindex);
-                if (inet_pton(AF_INET6, iface->ipv6addr->gaddr,
+                if (inet_pton(AF_INET6, (gchar *) iface->ipv6addr->data,
                               &in6_pkt->ipi6_addr) <= 0) {
                     /* source address */
                     g_error("%s: inet_pton() failure", __func__);
@@ -723,7 +722,7 @@ gint send_message(void) {
                 }
 
                 g_debug("%s: source address: %s", __func__,
-                        iface->ipv6addr->gaddr);
+                        (gchar *) iface->ipv6addr->data);
 
                 sin6.sin6_port = htons(SERVER_PORT);
 
@@ -747,16 +746,22 @@ gint send_message(void) {
                         __func__, dest_addr, count);
                 g_free(recvp);
                 recvp = NULL;
-                uservers = uservers->next;
+
+                uservers = g_slist_next(uservers);
                 relay_forw.hit = TRUE;
-            }                   /* while */
-        }                       /* Interfaces */
+            }
+
+            iterator = g_slist_next(iterator);
+        }
 
         g_slist_foreach(sifaces_list, _send_relay_forw, (gpointer) &relay_forw);
 
         if (relay_forw.hit) {
-            for (iface = interface_list.next; iface != &interface_list;
-                 iface = iface->next) {
+            GSList *iterator = relay_interface_list;
+
+            while (iterator) {
+                iface = (relay_interface_t *) iterator->data;
+
                 if (relay_forw.mesg->interface_in == iface->devindex) {
                     continue;
                 }
@@ -804,7 +809,7 @@ gint send_message(void) {
                 g_debug("%s: outgoing device index: %d", __func__,
                         in6_pkt->ipi6_ifindex);
 
-                if (inet_pton(AF_INET6, iface->ipv6addr->gaddr,
+                if (inet_pton(AF_INET6, (gchar *) iface->ipv6addr->data,
                               &in6_pkt->ipi6_addr) <= 0) {
                     /* source address */
                     g_error("%s: inet_pton() failure", __func__);
@@ -812,7 +817,7 @@ gint send_message(void) {
                 }
 
                 g_debug("%s: source address: %s", __func__,
-                        iface->ipv6addr->gaddr);
+                        (gchar *) iface->ipv6addr->data);
 
                 iov[0].iov_base = relay_forw.mesg->buffer;
                 iov[0].iov_len = relay_forw.mesg->datalength;
@@ -834,7 +839,9 @@ gint send_message(void) {
                         __func__, dest_addr, count);
                 g_free(recvp);
                 recvp = NULL;
-            }                   /* for */
+
+                iterator = g_slist_next(iterator);
+            }
         }
     }
 

@@ -46,12 +46,11 @@ struct iaid_table {
     guint32 iaid;
 };
 
-struct ra_info {
-    struct ra_info *next;
+typedef struct _ra_info_t {
     struct in6_addr prefix;
     gint plen;
     gint flags;
-};
+} ra_info_t;
 
 typedef struct _dhcp6_option_t {
     gint type;
@@ -82,7 +81,7 @@ struct dhcp6_if {
     /* static parameters of the interface */
     gchar *ifname;
     guint ifid;
-    struct ra_info *ralist;
+    GSList *ralist;
     dns_info_t dnsinfo;
     guint32 linkid;           /* to send link-local packets */
     struct dhcp6_iaid_info iaidinfo;

@@ -30,50 +30,32 @@
 #ifndef __RELAY6_DATABASE_H_DEFINED
 #define __RELAY6_DATABASE_H_DEFINED
 
-struct server {
-    struct server *next;
-    gchar *serv;
-};
-
-struct IPv6_address {
-    struct IPv6_address *next;
-    gchar *gaddr;
-};
-
-struct IPv6_uniaddr {           /* STORAGE OF UNICAST DEST. SERVER ADRESSES */
-    struct IPv6_uniaddr *next;
-    gchar *uniaddr;
-};
-
-struct interface {
-    struct interface *next;
-    struct interface *prev;
-
-    struct server *sname;
-    struct IPv6_address *ipv6addr;
+typedef struct _relay_interface_t {
+    GSList *sname;
+    GSList *ipv6addr;
 
     gint got_addr;
     gchar *ifname;
     guint32 devindex;
     gchar *link_local;
     gint opaq;
-};
+} relay_interface_t;
 
 GSList *cifaces_list;
 GSList *sifaces_list;
 
-struct server server_list;
-struct IPv6_address IPv6_address_list;
-struct IPv6_uniaddr IPv6_uniaddr_list;
-struct interface interface_list;
+GSList *relay_server_list;
+GSList *IPv6_address_list;
+GSList *IPv6_uniaddr_list;
+GSList *relay_interface_list;
 
 gint process_RELAY_FORW(struct msg_parser * msg);
 gint process_RELAY_REPL(struct msg_parser * msg);
 struct msg_parser *get_send_messages_out(void);
 void delete_messages(void);
 gint check_interface_semafor(gint index);
-struct interface *get_interface(gint if_index);
-struct interface *get_interface_s(gchar *s);
+relay_interface_t *get_interface(gint if_index);
+relay_interface_t *get_interface_s(gchar *s);
 
 gint nr_of_devices;
 gint nr_of_uni_addr;

@@ -1582,7 +1582,7 @@ gint get_if_rainfo(struct dhcp6_if *ifp) {
     struct nl_addr *addr = NULL;
     gchar buf[INET6_ADDRSTRLEN + 1];
     struct in6_addr *tmpaddr = NULL;
-    struct ra_info *rainfo = NULL, *ra = NULL, *ra_prev = NULL;
+    ra_info_t *rainfo = NULL;
 
     memset(&buf, '\0', sizeof(buf));
 
@@ -1623,7 +1623,7 @@ gint get_if_rainfo(struct dhcp6_if *ifp) {
 
             /* create a new rainfo struct and add it to the list of addresses 
              */
-            rainfo = (struct ra_info *) g_malloc0(sizeof(*rainfo));
+            rainfo = (ra_info_t *) g_malloc0(sizeof(*rainfo));
             if (rainfo == NULL) {
                 nl_addr_destroy(addr);
                 rtnl_addr_put(raddr);
@@ -1647,36 +1647,7 @@ gint get_if_rainfo(struct dhcp6_if *ifp) {
             g_debug("get prefix address %s", buf);
             g_debug("get prefix plen %d", rainfo->plen);
 
-            if (ifp->ralist == NULL) {
-                ifp->ralist = rainfo;
-                rainfo->next = NULL;
-            } else {
-                ra_prev = ifp->ralist;
-
-                for (ra = ifp->ralist; ra; ra = ra->next) {
-                    if (rainfo->plen >= ra->plen) {
-                        if (ra_prev == ra) {
-                            ifp->ralist = rainfo;
-                            rainfo->next = ra;
-                        } else {
-                            ra_prev->next = rainfo;
-                            rainfo->next = ra;
-                        }
-
-                        break;
-                    } else {
-                        if (ra->next == NULL) {
-                            ra->next = rainfo;
-                            rainfo->next = NULL;
-                            break;
-                        } else {
-                            ra_prev = ra;
-                            continue;
-                        }
-                    }
-                }
-            }
-
+            ifp->ralist = g_slist_append(ifp->ralist, rainfo);
             nl_addr_destroy(addr);
 
             /* gather flags */

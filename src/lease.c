@@ -327,13 +327,17 @@ gint get_linklocal(const gchar *ifname, struct in6_addr *linklocal) {
 }
 
 gint dhcp6_get_prefixlen(struct in6_addr *addr, struct dhcp6_if *ifp) {
-    struct ra_info *rainfo;
+    ra_info_t *rainfo = NULL;
+    GSList *iterator = ifp->ralist;
 
-    for (rainfo = ifp->ralist; rainfo; rainfo = rainfo->next) {
-        /* prefixes are sorted by plen */
+    while (iterator) {
+        rainfo = (ra_info_t *) iterator->data;
+
         if (prefixcmp(addr, &rainfo->prefix, rainfo->plen) == 0) {
             return rainfo->plen;
         }
+
+        iterator = g_slist_next(iterator);
     }
 
     return PREFIX_LEN_NOTINRA;

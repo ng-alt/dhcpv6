@@ -52,18 +52,17 @@ void init_relay(void) {
     nr_of_devices = 0;
     max_count = 0;
 
-    server_list.next = &server_list;
-    IPv6_address_list.next = &IPv6_address_list;
-    IPv6_uniaddr_list.next = &IPv6_uniaddr_list;
-    interface_list.prev = &interface_list;
-    interface_list.next = &interface_list;
+    relay_server_list = NULL;
+    IPv6_address_list = NULL;
+    IPv6_uniaddr_list = NULL;
+    relay_interface_list = NULL;
     msg_parser_list.prev = &msg_parser_list;
     msg_parser_list.next = &msg_parser_list;
     return;
 }
 
 gint check_interface_semafor(gint index) {
-    struct interface *device = NULL;
+    relay_interface_t *device = NULL;
 
     device = get_interface(index);
     if (device == NULL) {
@@ -79,27 +78,35 @@ gint check_interface_semafor(gint index) {
     return 0;
 }
 
-struct interface *get_interface(gint if_index) {
-    struct interface *deviface;
+relay_interface_t *get_interface(gint if_index) {
+    relay_interface_t *deviface = NULL;
+    GSList *iterator = relay_interface_list;
 
-    for (deviface = interface_list.next; deviface != &interface_list;
-         deviface = deviface->next) {
+    while (iterator) {
+        deviface = (relay_interface_t *) iterator->data;
+
         if (deviface->devindex == if_index) {
             return deviface;
         }
+
+        iterator = g_slist_next(iterator);
     }
 
     return NULL;
 }
 
-struct interface *get_interface_s(gchar *s) {
-    struct interface *deviface;
+relay_interface_t *get_interface_s(gchar *s) {
+    relay_interface_t *deviface = NULL;
+    GSList *iterator = relay_interface_list;
 
-    for (deviface = interface_list.next; deviface != &interface_list;
-         deviface = deviface->next) {
+    while (iterator) {
+        deviface = (relay_interface_t *) iterator->data;
+
         if (strcmp(s, deviface->ifname) == 0) {
             return deviface;
         }
+
+        iterator = g_slist_next(iterator);
     }
 
     return NULL;
@@ -143,7 +150,7 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
     uint8_t *newbuff =
         (uint8_t *) g_malloc0(MAX_DHCP_MSG_LENGTH * sizeof(uint8_t));
     uint8_t *pointer;
-    struct interface *device = NULL;
+    relay_interface_t *device = NULL;
     struct sockaddr_in6 sap;
     gint check = 0;
     uint16_t *p16, *optl;
@@ -211,7 +218,8 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
         check = 0;
         memset(&sap.sin6_addr, 0, sizeof(sap.sin6_addr));
 
-        if (inet_pton(AF_INET6, device->ipv6addr->gaddr, &sap.sin6_addr) <= 0) {
+        if (inet_pton(AF_INET6, (gchar *) device->ipv6addr->data,
+                      &sap.sin6_addr) <= 0) {
             g_error("%s: inet_pton() failure", __func__);
             exit(1);
         }
@@ -280,14 +288,14 @@ gint process_RELAY_FORW(struct msg_parser *msg) {
 gint process_RELAY_REPL(struct msg_parser *msg) {
     guint8 *newbuff = (guint8 *) g_malloc(MAX_DHCP_MSG_LENGTH * sizeof(guint8));
     guint8 *pointer, *pstart, *psp;
-    struct interface *device = NULL;
+    relay_interface_t *device = NULL;
     struct sockaddr_in6 sap;
     gint check = 0;
     guint16 *p16, option, opaqlen, msglen;
     guint32 *p32;
     gint len, opaq;
-    struct IPv6_address *ipv6a;
-    gchar *s;
+    gchar *s = NULL;
+    GSList *iterator = NULL;
 
     if (newbuff == NULL) {
         g_error("%s: memory allocation error", __func__);
@@ -387,21 +395,23 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
                 return 0;
             }
 
-                        /*--------------------------*/
             if (*pointer == DH6_RELAY_FORW) {
                 /* is the job of the server to set to RELAY_REPL? */
                 *pointer = DH6_RELAY_REPL;
             }
 
-                        /*--------------------------*/
-            for (device = interface_list.next; device != &interface_list;
-                 device = device->next) {
+            iterator = relay_interface_list;
+            while (iterator) {
+                device = (relay_interface_t *) iterator->data;
+
                 if (device->opaq == opaq) {
                     break;
                 }
+
+                iterator = g_slist_next(iterator);
             }
 
-            if (device != &interface_list) {
+            if (iterator != relay_interface_list) {
                 msg->if_index = device->devindex;
                 memset(newbuff, 0, MAX_DHCP_MSG_LENGTH);
                 len = (pointer - msg->buffer);
@@ -413,24 +423,29 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
                 return 1;
             } else {
                 s = msg->link_addr;
+                iterator = relay_interface_list;
 
-                for (device = interface_list.next; device != &interface_list;
-                     device = device->next) {
-                    ipv6a = device->ipv6addr;
+                while (iterator) {
+                    device = (relay_interface_t *) iterator->data;
+                    GSList *addr_iterator = device->ipv6addr;
 
-                    while (ipv6a != NULL) {
-                        if (strcmp(s, ipv6a->gaddr) == 0) {
+                    while (addr_iterator) {
+                        gchar *gaddr = (gchar *) addr_iterator->data;
+
+                        if (g_strcmp0(s, gaddr) == 0) {
                             msg->if_index = device->devindex;
                             check = 1;
                             break;
                         }
 
-                        ipv6a = ipv6a->next;
+                        addr_iterator = g_slist_next(addr_iterator);
                     }
 
                     if (check == 1) {
                         break;
                     }
+
+                    iterator = g_slist_next(iterator);
                 }
 
                 if (check == 0) {
@@ -494,21 +509,23 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
             }
         }
 
-                /*--------------------------*/
         if (*pointer == DH6_RELAY_FORW) {
             /* is the job of the server to set to RELAY_REPL? */
             *pointer = DH6_RELAY_REPL;
         }
 
-                /*--------------------------*/
-        for (device = interface_list.next; device != &interface_list;
-             device = device->next) {
+        iterator = relay_interface_list;
+        while (iterator) {
+            device = (relay_interface_t *) iterator->data;
+
             if (device->opaq == opaq) {
                 break;
             }
+
+            iterator = g_slist_next(iterator);
         }
 
-        if (device != &interface_list) {
+        if (iterator != relay_interface_list) {
             msg->if_index = device->devindex;
             memset(newbuff, 0, MAX_DHCP_MSG_LENGTH);
             memcpy(newbuff, pointer, msglen);
@@ -518,24 +535,29 @@ gint process_RELAY_REPL(struct msg_parser *msg) {
             return 1;
         } else {
             s = msg->link_addr;
+            iterator = relay_interface_list;
 
-            for (device = interface_list.next; device != &interface_list;
-                 device = device->next) {
-                ipv6a = device->ipv6addr;
+            while (iterator) {
+                device = (relay_interface_t *) iterator->data;
+                GSList *addr_iterator = device->ipv6addr;
 
-                while (ipv6a != NULL) {
-                    if (strcmp(s, ipv6a->gaddr) == 0) {
+                while (addr_iterator) {
+                    gchar *gaddr = (gchar *) addr_iterator->data;
+
+                    if (g_strcmp0(s, gaddr) == 0) {
                         msg->if_index = device->devindex;
                         check = 1;
                         break;
                     }
 
-                    ipv6a = ipv6a->next;
+                    addr_iterator = g_slist_next(addr_iterator);
                 }
 
                 if (check == 1) {
                     break;
                 }
+
+                iterator = g_slist_next(iterator);
             }
 
             if (check == 0) {
