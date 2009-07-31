@@ -18,7 +18,7 @@ dnl
 dnl Author: David Cantrell <dcantrell@redhat.com>
 
 AC_PREREQ(2.61)
-AC_INIT([dhcpv6], [1.9.9], [dcantrell@redhat.com])
+AC_INIT([dhcpv6], [2.0.0-alpha1], [dcantrell@redhat.com])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR([src/dhcp6s.c])
 AC_CONFIG_HEADER([config.h])
@@ -132,28 +132,37 @@ AC_ARG_WITH(pid-path,
     AC_HELP_STRING([--with-pid-path=PATH],
                    [Directory for PID files.
                     (default is LOCALSTATEDIR/run/dhcpv6)]),
-    AC_DEFINE_UNQUOTED([PID_FILE_PATH], ["$withval"],
-                       [Directory for PID files.]),
-    AC_DEFINE_UNQUOTED([PID_FILE_PATH], ["$localstatedir/run/dhcpv6"],
-                       [Directory for PID files.]))
+    [pid_file_path="$withval"],
+    [pid_file_path="$localstatedir/run/dhcpv6"])
+AC_DEFINE_UNQUOTED([PID_FILE_PATH], ["$pid_file_path"],
+                   [Directory for PID files.])
 
 AC_ARG_WITH(db-path,
     AC_HELP_STRING([--with-db-path=PATH],
                    [Directory for lease databases and DUID files.
                     (default is LOCALSTATEDIR/lib/dhcpv6)]),
-    AC_DEFINE_UNQUOTED([DB_FILE_PATH], ["$withval"],
-                       [Directory for lease databases and DUID files.]),
-    AC_DEFINE_UNQUOTED([DB_FILE_PATH], ["$localstatedir/lib/dhcpv6"],
-                       [Directory for lease databases and DUID files.]))
+    [db_file_path="$withval"],
+    [db_file_path="$localstatedir/lib/dhcpv6"])
+AC_DEFINE_UNQUOTED([DB_FILE_PATH], ["$db_file_path"],
+                   [Directory for lease databases and DUID files.])
 
 AC_ARG_WITH(relay-dump-file,
     AC_HELP_STRING([--with-relay-dump-file=PATH],
                    [Dump file that dhcp6r should output.
                     (default is LOCALSTATEDIR/log/dhcp6r.log)]),
-    AC_DEFINE_UNQUOTED([RELAY_DUMP_FILE], ["$withval"],
-                       [Dump file that dhcp6r should output.]),
-    AC_DEFINE_UNQUOTED([RELAY_DUMP_FILE], ["$localstatedir/log/dhcp6r.log"],
-                       [Dump file that dhcp6r should output.]))
+    [relay_dump_file="$withval"],
+    [relay_dump_file="$localstatedir/log/dhcp6r.log"])
+AC_DEFINE_UNQUOTED([RELAY_DUMP_FILE], ["$relay_dump_file"],
+                   [Dump file that dhcp6r should output.])
+
+# Paths for the man pages
+AC_SUBST(DHCP6C_CONF_PATH, ["$sysconfdir/dhcp6c.conf"])
+AC_SUBST(DHCP6S_CONF_PATH, ["$sysconfdir/dhcp6s.conf"])
+AC_SUBST(DHCP6C_PID_PATH, ["$pid_file_path/dhcp6c.pid"])
+AC_SUBST(DHCP6C_DUID_PATH, ["$db_file_path/dhcp6c_duid"])
+AC_SUBST(DHCP6S_DUID_PATH, ["$db_file_path/dhcp6s_duid"])
+AC_SUBST(DHCP6C_LEASE_PATH, ["$db_file_path/client6.leases*"])
+AC_SUBST(DHCP6S_LEASE_PATH, ["$db_file_path/server6.leases"])
 
 AC_CONFIG_FILES([Makefile include/Makefile src/Makefile man/Makefile \
                  etc/Makefile etc/sysconfig/Makefile etc/init.d/Makefile])
