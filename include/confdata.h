@@ -191,8 +191,6 @@ struct dhcp6_ifconf {
 };
 
 struct prefix_ifconf {
-    struct prefix_ifconf *next;
-
     gchar *ifname;               /* interface name such as eth0 */
     gint sla_len;                /* SLA ID length in bits */
     guint32 sla_id;              /* need more than 32bits? */
