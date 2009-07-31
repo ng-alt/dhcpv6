@@ -75,7 +75,7 @@ gint debug_thresh;
 dhcp6_if_t *dhcp6_if;
 dns_info_t dnsinfo;
 
-static struct host_conf *_host_conflist;
+static host_conf_t *_host_conflist;
 
 /* BEGIN STATIC FUNCTIONS */
 
@@ -550,8 +550,8 @@ dhcp6_if_t *find_ifconfbyid(guint id) {
     return NULL;
 }
 
-struct host_conf *find_hostconf(const duid_t *duid) {
-    struct host_conf *host;
+host_conf_t *find_hostconf(const duid_t *duid) {
+    host_conf_t *host;
 
     for (host = _host_conflist; host; host = host->next) {
         if (host->duid.duid_len == duid->duid_len &&

@@ -246,8 +246,8 @@ typedef struct _prefix_ifconf_t {
 #define SLA_LEN_DEFAULT 16
 
 /* per-host configuration */
-struct host_conf {
-    struct host_conf *next;
+typedef struct _host_conf_t {
+    struct _host_conf_t *next;
 
     gchar *name;                 /* host name to identify the host */
     duid_t duid;                 /* DUID for the host */
@@ -261,15 +261,15 @@ struct host_conf {
 
     GSList *addr_list;
     GSList *addr_binding_list;
-};
+} host_conf_t;
 
 /* structures and definitions used in the config file parser */
-struct cf_namelist {
-    struct cf_namelist *next;
+typedef struct _cf_namelist_t {
+    struct _cf_namelist_t *next;
     gchar *name;
     gint line;                   /* the line number of the config file */
     struct cf_list *params;
-};
+} cf_namelist_t;
 
 struct cf_list {
     struct cf_list *next;
@@ -361,7 +361,7 @@ enum {
 typedef enum {
     DHCP6_MODE_SERVER,
     DHCP6_MODE_CLIENT,
-    DHCP6_MODE_RELAYxi
+    DHCP6_MODE_RELAY
 } dhcp6_mode_t;
 
 extern const dhcp6_mode_t dhcp6_mode;
@@ -373,9 +373,9 @@ extern dhcp6_ifconf_t *dhcp6_iflist;
 extern prefix_ifconf_t *prefix_ifconflist;
 extern dns_info_t dnsinfo;
 
-gint configure_interface(const struct cf_namelist *);
-gint configure_prefix_interface(struct cf_namelist *);
-gint configure_host(const struct cf_namelist *);
+gint configure_interface(const cf_namelist_t *);
+gint configure_prefix_interface(cf_namelist_t *);
+gint configure_host(const cf_namelist_t *);
 gint configure_global_option(void);
 void configure_cleanup(void);
 void configure_commit(void);

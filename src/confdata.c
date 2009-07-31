@@ -48,7 +48,7 @@
 extern gint errno;
 
 static dhcp6_ifconf_t *dhcp6_ifconflist;
-static struct host_conf *host_conflist0, *host_conflist;
+static host_conf_t *host_conflist0, *host_conflist;
 static GSList *dnslist0;
 
 enum {
@@ -78,8 +78,8 @@ static void _clear_ifconf(dhcp6_ifconf_t *iflist) {
     return;
 }
 
-static void _clear_hostconf(struct host_conf *hlist) {
-    struct host_conf *host = NULL, *host_next = NULL;
+static void _clear_hostconf(host_conf_t *hlist) {
+    host_conf_t *host = NULL, *host_next = NULL;
 
     for (host = hlist; host; host = host_next) {
         host_next = host->next;
@@ -244,8 +244,8 @@ static gint _add_address(GSList *addr_list, dhcp6_addr_t *v6addr) {
 
 /* END STATIC FUNCTIONS */
 
-gint configure_interface(const struct cf_namelist *iflist) {
-    const struct cf_namelist *ifp;
+gint configure_interface(const cf_namelist_t *iflist) {
+    const cf_namelist_t *ifp;
     dhcp6_ifconf_t *ifc;
 
     for (ifp = iflist; ifp; ifp = ifp->next) {
@@ -433,9 +433,9 @@ bad:
     return -1;
 }
 
-gint configure_host(const struct cf_namelist *hostlist) {
-    const struct cf_namelist *host;
-    struct host_conf *hconf;
+gint configure_host(const cf_namelist_t *hostlist) {
+    const cf_namelist_t *host;
+    host_conf_t *hconf;
 
     for (host = hostlist; host; host = host->next) {
         struct cf_list *cfl;

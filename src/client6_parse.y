@@ -61,7 +61,7 @@ extern void client6error(gchar *, ...) __attribute__((__format__(__printf__, 1, 
 
 #define MAKE_NAMELIST(l, n, p) \
     do { \
-        (l) = (struct cf_namelist *) g_malloc0(sizeof(*(l))); \
+        (l) = (cf_namelist_t *) g_malloc0(sizeof(*(l))); \
         if ((l) == NULL) { \
             cpyywarn("can't allocate memory"); \
             if (p) \
@@ -91,13 +91,13 @@ extern void client6error(gchar *, ...) __attribute__((__format__(__printf__, 1, 
         l->list = (pl); \
     } while (0)
 
-static struct cf_namelist *iflist_head;
+static cf_namelist_t *iflist_head;
 struct cf_list *cf_dns_list;
 
 extern gint cpyylex(void);
 static void cleanup(void);
-static gint add_namelist(struct cf_namelist *, struct cf_namelist **);
-static void cleanup_namelist(struct cf_namelist *);
+static gint add_namelist(cf_namelist_t *, cf_namelist_t **);
+static void cleanup_namelist(cf_namelist_t *);
 static void cleanup_cflist(struct cf_list *);
 %}
 
@@ -133,7 +133,7 @@ statement
 
 interface_statement
     : INTERFACE IFNAME BCL declarations ECL EOS {
-          struct cf_namelist *ifl;
+          cf_namelist_t *ifl;
 
           MAKE_NAMELIST(ifl, $2, $4);
 
@@ -349,8 +349,8 @@ duration
 %%
 
 /* supplement routines for configuration */
-static gint add_namelist(struct cf_namelist *new, struct cf_namelist **headp) {
-    struct cf_namelist *ifp;
+static gint add_namelist(cf_namelist_t *new, cf_namelist_t **headp) {
+    cf_namelist_t *ifp;
 
     /* check for duplicated configuration */
     for (ifp = *headp; ifp; ifp = ifp->next) {
@@ -372,8 +372,8 @@ static void cleanup(void) {
     cleanup_namelist(iflist_head);
 }
 
-static void cleanup_namelist(struct cf_namelist *head) {
-    struct cf_namelist *ifp, *ifp_next;
+static void cleanup_namelist(cf_namelist_t *head) {
+    cf_namelist_t *ifp, *ifp_next;
 
     for (ifp = head; ifp; ifp = ifp_next) {
         ifp_next = ifp->next;

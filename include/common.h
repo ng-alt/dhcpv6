@@ -92,6 +92,6 @@ void ifinit(const gchar *);
 dhcp6_if_t *find_ifconfbyname(const gchar *);
 dhcp6_if_t *find_ifconfbyid(guint);
 prefix_ifconf_t *find_prefixifconf(const gchar *);
-struct host_conf *find_hostconf(const duid_t *);
+host_conf_t *find_hostconf(const duid_t *);
 
 #endif
