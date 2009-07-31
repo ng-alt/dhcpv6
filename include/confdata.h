@@ -212,8 +212,8 @@ enum {
     DHCP6S_IDLE
 };
 
-struct dhcp6_ifconf {
-    struct dhcp6_ifconf *next;
+typedef struct _dhcp6_ifconf_t {
+    struct _dhcp6_ifconf_t *next;
 
     gchar *ifname;
 
@@ -231,7 +231,7 @@ struct dhcp6_ifconf {
     GSList *reqopt_list;
 
     GSList *option_list;
-};
+} dhcp6_ifconf_t;
 
 typedef struct _prefix_ifconf_t {
     gchar *ifname;               /* interface name such as eth0 */
@@ -369,7 +369,7 @@ extern struct cf_list *cf_dns_list;
 extern const gchar *configfilename;
 
 extern dhcp6_if_t *dhcp6_if;
-extern struct dhcp6_ifconf *dhcp6_iflist;
+extern dhcp6_ifconf_t *dhcp6_iflist;
 extern prefix_ifconf_t *prefix_ifconflist;
 extern dns_info_t dnsinfo;
 

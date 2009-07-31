@@ -47,7 +47,7 @@
 
 extern gint errno;
 
-static struct dhcp6_ifconf *dhcp6_ifconflist;
+static dhcp6_ifconf_t *dhcp6_ifconflist;
 static struct host_conf *host_conflist0, *host_conflist;
 static GSList *dnslist0;
 
@@ -59,8 +59,8 @@ enum {
 
 /* BEGIN STATIC FUNCTIONS */
 
-static void _clear_ifconf(struct dhcp6_ifconf *iflist) {
-    struct dhcp6_ifconf *ifc, *ifc_next;
+static void _clear_ifconf(dhcp6_ifconf_t *iflist) {
+    dhcp6_ifconf_t *ifc, *ifc_next;
 
     for (ifc = iflist; ifc; ifc = ifc_next) {
         ifc_next = ifc->next;
@@ -101,8 +101,7 @@ static void _clear_hostconf(struct host_conf *hlist) {
     return;
 }
 
-static gint _add_options(gint opcode, struct dhcp6_ifconf *ifc,
-                         struct cf_list *cfl0) {
+static gint _add_options(gint opcode, dhcp6_ifconf_t *ifc, struct cf_list *cfl0) {
     dhcp6_value_t *opt;
     struct cf_list *cfl;
     gint opttype;
@@ -247,7 +246,7 @@ static gint _add_address(GSList *addr_list, dhcp6_addr_t *v6addr) {
 
 gint configure_interface(const struct cf_namelist *iflist) {
     const struct cf_namelist *ifp;
-    struct dhcp6_ifconf *ifc;
+    dhcp6_ifconf_t *ifc;
 
     for (ifp = iflist; ifp; ifp = ifp->next) {
         struct cf_list *cfl;
@@ -604,7 +603,7 @@ void configure_cleanup(void) {
 }
 
 void configure_commit(void) {
-    struct dhcp6_ifconf *ifc;
+    dhcp6_ifconf_t *ifc;
     dhcp6_if_t *ifp;
 
     /* commit interface configuration */
