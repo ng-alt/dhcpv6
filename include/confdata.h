@@ -58,6 +58,17 @@ typedef struct _dhcp6_option_t {
     void *val;
 } dhcp6_option_t;
 
+typedef struct _dhcp6_serverinfo_t {
+    struct _dhcp6_serverinfo_t *next;
+
+    /* option information provided in the advertisement */
+    dhcp6_optinfo_t optinfo;
+    struct in6_addr server_addr;
+    guint8 pref;                 /* preference */
+    gint active;                 /* bool; if this server is active or not */
+    /* TODO: remember available information from the server */
+} dhcp6_serverinfo_t;
+
 /* per-interface information */
 typedef struct _dhcp6_if_t {
     struct _dhcp6_if_t *next;
@@ -107,8 +118,8 @@ typedef struct _dhcp6_if_t {
     GSList *addr_list;
     GSList *prefix_list;
     GSList *option_list;
-    struct dhcp6_serverinfo *current_server;
-    struct dhcp6_serverinfo *servers;
+    dhcp6_serverinfo_t *current_server;
+    dhcp6_serverinfo_t *servers;
 } dhcp6_if_t;
 
 typedef struct _client6_if_t {
@@ -186,17 +197,6 @@ typedef struct _dhcp6_eventdata_t {
     dhcp6_eventdata_type type;
     void *data;
 } dhcp6_eventdata_t;
-
-struct dhcp6_serverinfo {
-    struct dhcp6_serverinfo *next;
-
-    /* option information provided in the advertisement */
-    dhcp6_optinfo_t optinfo;
-    struct in6_addr server_addr;
-    guint8 pref;                 /* preference */
-    gint active;                 /* bool; if this server is active or not */
-    /* TODO: remember available information from the server */
-};
 
 /* client status code */
 enum {

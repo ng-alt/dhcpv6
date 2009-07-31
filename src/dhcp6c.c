@@ -192,8 +192,8 @@ static void _ev_set_state(dhcp6_event_t *ev, gint new_state) {
     return;
 }
 
-static struct dhcp6_serverinfo *_find_server(dhcp6_if_t *ifp, duid_t *duid) {
-    struct dhcp6_serverinfo *s;
+static dhcp6_serverinfo_t *_find_server(dhcp6_if_t *ifp, duid_t *duid) {
+    dhcp6_serverinfo_t *s;
 
     for (s = ifp->servers; s; s = s->next) {
         if (duidcmp(&s->optinfo.serverID, duid) == 0) {
@@ -730,9 +730,9 @@ static dhcp6_event_t *_find_event_withid(dhcp6_if_t *ifp, guint32 xid) {
     return NULL;
 }
 
-static struct dhcp6_serverinfo *_allocate_newserver(dhcp6_if_t *ifp,
-                                                    dhcp6_optinfo_t *optinfo) {
-    struct dhcp6_serverinfo *newserver, **sp;
+static dhcp6_serverinfo_t *_allocate_newserver(dhcp6_if_t *ifp,
+                                               dhcp6_optinfo_t *optinfo) {
+    dhcp6_serverinfo_t *newserver, **sp;
 
     /* keep the server */
     if ((newserver = g_malloc0(sizeof(*newserver))) == NULL) {
@@ -778,7 +778,7 @@ static gint _client6_recvreply(dhcp6_if_t *ifp, dhcp6_t *dh6,
                                ssize_t len, dhcp6_optinfo_t *optinfo) {
     ia_t *ia;
     dhcp6_event_t *ev;
-    struct dhcp6_serverinfo *newserver;
+    dhcp6_serverinfo_t *newserver;
     gint newstate = 0;
     gint err = 0;
     gint prevstate = 0;
@@ -1086,7 +1086,7 @@ static gint _client6_recvreply(dhcp6_if_t *ifp, dhcp6_t *dh6,
 static gint _client6_recvadvert(dhcp6_if_t *ifp, dhcp6_t *dh6,
                                 ssize_t len, dhcp6_optinfo_t *optinfo0) {
     ia_t *ia;
-    struct dhcp6_serverinfo *newserver;
+    dhcp6_serverinfo_t *newserver;
     dhcp6_event_t *ev;
 
     /* find the corresponding event based on the received xid */
@@ -1312,8 +1312,8 @@ static void _client6_mainloop(void) {
     return;
 }
 
-static struct dhcp6_serverinfo *_select_server(dhcp6_if_t *ifp) {
-    struct dhcp6_serverinfo *s;
+static dhcp6_serverinfo_t *_select_server(dhcp6_if_t *ifp) {
+    dhcp6_serverinfo_t *s;
 
     /*
      * pick the best server according to dhcpv6-26 Section 17.1.3
@@ -1988,7 +1988,7 @@ end:
 }
 
 void free_servers(dhcp6_if_t *ifp) {
-    struct dhcp6_serverinfo *sp, *sp_next;
+    dhcp6_serverinfo_t *sp, *sp_next;
 
     /* free all servers we've seen so far */
     for (sp = ifp->servers; sp; sp = sp_next) {
