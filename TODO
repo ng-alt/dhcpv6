@@ -12,6 +12,8 @@ paths to make command line options:
       types.h
       constants.h
 
+- Remove unused types.
+
 - Add long options to dhcp6c, dhcp6s, and dhcp6r (glib option parser)
 
 - Run autoscan and update configure.ac if needed
