@@ -176,49 +176,6 @@ typedef struct _dhcp6_addr_t {
     gchar *status_msg;
 } dhcp6_addr_t;
 
-typedef struct _client6_if_t {
-    iatype_t type;
-    dhcp6_iaid_info_t iaidinfo;
-    duid_t clientid;
-    duid_t serverid;
-} client6_if_t;
-
-typedef struct _dhcp6_iaidaddr_t {
-    client6_if_t client6_info;
-    time_t start_date;
-    state_t state;
-    struct dhcp6_if *ifp;
-    dhcp6_timer_t *timer;
-    /* list of client leases */
-    GSList *lease_list;
-} dhcp6_iaidaddr_t;
-
-typedef struct _dhcp6_lease_t {
-    gchar hostname[1024];
-    struct in6_addr linklocal;
-    dhcp6_addr_t lease_addr;
-    iatype_t addr_type;
-    state_t state;
-    dhcp6_iaidaddr_t *iaidaddr;
-    time_t start_date;
-    /* address assigned on the interface */
-    dhcp6_timer_t *timer;
-} dhcp6_lease_t;
-
-typedef struct _dhcp6_value_t {
-    union {
-        gint uv_num;
-        struct in6_addr uv_addr6;
-        dhcp6_addr_t uv_dhcp6_addr;
-        dhcp6_lease_t uv_dhcp6_lease;
-    } uv;
-} dhcp6_value_t;
-
-#define val_num uv.uv_num
-#define val_addr6 uv.uv_addr6
-#define val_dhcp6addr uv.uv_dhcp6_addr
-#define val_dhcp6lease uv.uv_dhcp6_lease
-
 typedef enum {
     DHCP6_LISTVAL_NUM,
     DHCP6_LISTVAL_ADDR6,

@@ -69,7 +69,7 @@
         exit(1); \
     } while (0)
 
-extern struct dhcp6_if *dhcp6_if;
+extern dhcp6_if_t *dhcp6_if;
 static gint num_lines = 0;
 static dns_info_t *new_dnsinfo;
 static FILE *dhcp6_resolv_file;

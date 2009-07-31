@@ -87,7 +87,7 @@ gint lease_key_compare(const void *, const void *);
 void *v6addr_findkey(const void *);
 gint v6addr_key_compare(const void *, const void *);
 gint client6_ifaddrconf(ifaddrconf_cmd_t, dhcp6_addr_t *);
-gint dhcp6_get_prefixlen(struct in6_addr *, struct dhcp6_if *);
+gint dhcp6_get_prefixlen(struct in6_addr *, dhcp6_if_t *);
 gint prefixcmp(struct in6_addr *, struct in6_addr *, gint);
 gint addr_on_addrlist(GSList *, dhcp6_addr_t *);
 gint dhcp6_create_prefixlist(ia_t *, ia_t *, const dhcp6_iaidaddr_t *,

@@ -72,7 +72,7 @@
 extern gchar *script;
 
 gint debug_thresh;
-struct dhcp6_if *dhcp6_if;
+dhcp6_if_t *dhcp6_if;
 dns_info_t dnsinfo;
 
 static struct host_conf *_host_conflist;
@@ -526,8 +526,8 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
 
 /* END STATIC FUNCTIONS */
 
-struct dhcp6_if *find_ifconfbyname(const gchar *ifname) {
-    struct dhcp6_if *ifp;
+dhcp6_if_t *find_ifconfbyname(const gchar *ifname) {
+    dhcp6_if_t *ifp;
 
     for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
         if (g_strcmp0(ifp->ifname, ifname) == 0) {
@@ -538,8 +538,8 @@ struct dhcp6_if *find_ifconfbyname(const gchar *ifname) {
     return NULL;
 }
 
-struct dhcp6_if *find_ifconfbyid(guint id) {
-    struct dhcp6_if *ifp;
+dhcp6_if_t *find_ifconfbyid(guint id) {
+    dhcp6_if_t *ifp;
 
     for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
         if (ifp->ifid == id) {
@@ -565,7 +565,7 @@ struct host_conf *find_hostconf(const duid_t *duid) {
 }
 
 void ifinit(const gchar *ifname) {
-    struct dhcp6_if *ifp;
+    dhcp6_if_t *ifp;
 
     if ((ifp = find_ifconfbyname(ifname)) != NULL) {
         g_message("%s: duplicated interface: %s", __func__, ifname);
@@ -802,7 +802,7 @@ ia_t *ia_find_listval(GSList *head, iatype_t type, guint32 iaid) {
     return NULL;
 }
 
-dhcp6_event_t *dhcp6_create_event(struct dhcp6_if *ifp, int state) {
+dhcp6_event_t *dhcp6_create_event(dhcp6_if_t *ifp, int state) {
     dhcp6_event_t *ev;
 
     static guint32 counter = 0;

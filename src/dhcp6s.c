@@ -118,9 +118,9 @@ rootgroup_t *globalgroup = NULL;
      a == DH6_REBIND || a == DH6_CONFIRM || a == DH6_RELEASE || \
      a == DH6_DECLINE || a == DH6_INFORM_REQ)
 
-extern link_decl_t *dhcp6_allocate_link(struct dhcp6_if *, rootgroup_t *,
+extern link_decl_t *dhcp6_allocate_link(dhcp6_if_t *, rootgroup_t *,
                                         struct in6_addr *);
-extern host_decl_t *dhcp6_allocate_host(struct dhcp6_if *, rootgroup_t *,
+extern host_decl_t *dhcp6_allocate_host(dhcp6_if_t *, rootgroup_t *,
                                         dhcp6_optinfo_t *);
 extern gint dhcp6_get_hostconf(ia_t *, ia_t *, dhcp6_iaidaddr_t *,
                                host_decl_t *);
@@ -461,10 +461,9 @@ static gint _dhcp6_set_relay(dhcp6_relay_t *msg, dhcp6_relay_t *endptr,
     }
 }
 
-static gint _server6_send(gint type, struct dhcp6_if *ifp,
-                          dhcp6_t *origmsg, dhcp6_optinfo_t *optinfo,
-                          struct sockaddr *from, gint fromlen,
-                          dhcp6_optinfo_t *roptinfo) {
+static gint _server6_send(gint type, dhcp6_if_t *ifp, dhcp6_t *origmsg,
+                          dhcp6_optinfo_t *optinfo, struct sockaddr *from,
+                          gint fromlen, dhcp6_optinfo_t *roptinfo) {
     gchar replybuf[BUFSIZ];
     struct sockaddr_in6 dst;
     gint len, optlen, relaylen = 0;
@@ -784,9 +783,8 @@ fail:
     return -1;
 }
 
-static gint _server6_react_message(struct dhcp6_if *ifp,
-                                   struct in6_pktinfo *pi, dhcp6_t *dh6,
-                                   dhcp6_optinfo_t *optinfo,
+static gint _server6_react_message(dhcp6_if_t *ifp, struct in6_pktinfo *pi,
+                                   dhcp6_t *dh6, dhcp6_optinfo_t *optinfo,
                                    struct sockaddr *from, gint fromlen) {
     dhcp6_optinfo_t roptinfo;
     gint addr_flag = 0;
@@ -1154,7 +1152,7 @@ static gint _server6_recv(gint s) {
     gchar cmsgbuf[BUFSIZ];
     struct cmsghdr *cm;
     struct in6_pktinfo *pi = NULL;
-    struct dhcp6_if *ifp;
+    dhcp6_if_t *ifp;
     dhcp6_t *dh6;
     dhcp6_optinfo_t optinfo;
     struct in6_addr relay;      /* the address of the first relay, if any */

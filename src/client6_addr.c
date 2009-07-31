@@ -82,14 +82,14 @@
 #include "gfunc.h"
 #include "client6_addr.h"
 
-extern void run_script(struct dhcp6_if *, gint, gint, guint32);
+extern void run_script(dhcp6_if_t *, gint, gint, guint32);
 
 gint dhcp6_add_lease(dhcp6_addr_t *);
 
 extern dhcp6_iaidaddr_t client6_iaidaddr;
 extern dhcp6_timer_t *client6_timo(void *);
 extern void client6_send(dhcp6_event_t *);
-extern void free_servers(struct dhcp6_if *);
+extern void free_servers(dhcp6_if_t *);
 
 extern gint nlsock;
 extern FILE *client6_lease_file;
@@ -776,7 +776,7 @@ dhcp6_timer_t *dhcp6_lease_timo(void *arg) {
 
 gint client6_ifaddrconf(ifaddrconf_cmd_t cmd, dhcp6_addr_t *ifaddr) {
     struct in6_ifreq req;
-    struct dhcp6_if *ifp = client6_iaidaddr.ifp;
+    dhcp6_if_t *ifp = client6_iaidaddr.ifp;
     gulong ioctl_cmd;
     gchar *cmdstr;
     gint s, errno;

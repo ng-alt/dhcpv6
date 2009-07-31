@@ -326,7 +326,7 @@ gint get_linklocal(const gchar *ifname, struct in6_addr *linklocal) {
 #endif
 }
 
-gint dhcp6_get_prefixlen(struct in6_addr *addr, struct dhcp6_if *ifp) {
+gint dhcp6_get_prefixlen(struct in6_addr *addr, dhcp6_if_t *ifp) {
     ra_info_t *rainfo = NULL;
     GSList *iterator = ifp->ralist;
 

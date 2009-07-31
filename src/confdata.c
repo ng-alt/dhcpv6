@@ -605,7 +605,7 @@ void configure_cleanup(void) {
 
 void configure_commit(void) {
     struct dhcp6_ifconf *ifc;
-    struct dhcp6_if *ifp;
+    dhcp6_if_t *ifp;
 
     /* commit interface configuration */
     for (ifc = dhcp6_ifconflist; ifc; ifc = ifc->next) {

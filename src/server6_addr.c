@@ -64,9 +64,9 @@ extern GHashTable *host_addr_hash_table;
 extern GHashTable *lease_hash_table;
 extern GHashTable *server6_hash_table;
 
-link_decl_t *dhcp6_allocate_link(struct dhcp6_if *, rootgroup_t *,
+link_decl_t *dhcp6_allocate_link(dhcp6_if_t *, rootgroup_t *,
                                  struct in6_addr *);
-host_decl_t *dhcp6_allocate_host(struct dhcp6_if *, rootgroup_t *,
+host_decl_t *dhcp6_allocate_host(dhcp6_if_t *, rootgroup_t *,
                                  dhcp6_optinfo_t *);
 gint dhcp6_get_hostconf(ia_t *, ia_t *, dhcp6_iaidaddr_t *, host_decl_t *);
 gint dhcp6_add_lease(dhcp6_iaidaddr_t *, dhcp6_addr_t *);
@@ -994,8 +994,7 @@ gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
     return 0;
 }
 
-host_decl_t *dhcp6_allocate_host(struct dhcp6_if *ifp,
-                                 rootgroup_t *rootgroup,
+host_decl_t *dhcp6_allocate_host(dhcp6_if_t *ifp, rootgroup_t *rootgroup,
                                  dhcp6_optinfo_t *optinfo) {
     host_decl_t *host = NULL;
     server_interface_t *ifnetwork = NULL;
@@ -1037,8 +1036,7 @@ host_decl_t *dhcp6_allocate_host(struct dhcp6_if *ifp,
     return NULL;
 }
 
-link_decl_t *dhcp6_allocate_link(struct dhcp6_if *ifp,
-                                 rootgroup_t *rootgroup,
+link_decl_t *dhcp6_allocate_link(dhcp6_if_t *ifp, rootgroup_t *rootgroup,
                                  struct in6_addr *relay) {
     link_decl_t *link;
     server_interface_t *ifnetwork = NULL;

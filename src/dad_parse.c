@@ -73,7 +73,7 @@
 #include "lease.h"
 #include "str.h"
 
-extern struct dhcp6_if *dhcp6_if;
+extern dhcp6_if_t *dhcp6_if;
 
 #define DAD_FLAGS 0xC0
 
