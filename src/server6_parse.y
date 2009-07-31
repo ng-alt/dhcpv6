@@ -265,7 +265,7 @@ linkhead
           while (iterator) {
               link_decl_t *temp_link = (link_decl_t *) iterator->data;
 
-              if (!strcmp(temp_link->name, $2)) {
+              if (!g_strcmp0(temp_link->name, $2)) {
                   g_error("duplicate link definition for %s", $2);
                   ABORT;
               }
@@ -626,7 +626,7 @@ hosthead
           while (iterator) {
               host_decl_t *temp_host = (host_decl_t *) iterator->data;
 
-              if (!strcmp(temp_host->name, $2)) {
+              if (!g_strcmp0(temp_host->name, $2)) {
                   g_error("duplicated host %s redefined", $2);
                   ABORT;
               }

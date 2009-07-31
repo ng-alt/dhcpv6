@@ -860,7 +860,7 @@ gint create_iaid(struct iaid_table *iaidtab, gint num_device) {
 
     for (i = 0, ifa = ifap;
          (ifa != NULL) && (i < MAX_DEVICE); i++, ifa = ifa->ifa_next) {
-        if (!strcmp(ifa->ifa_name, "lo")) {
+        if (!g_strcmp0(ifa->ifa_name, "lo")) {
             continue;
         }
 

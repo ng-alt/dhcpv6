@@ -205,7 +205,7 @@ gint dad_parse(const gchar *file, GSList *dad_list) {
             continue;
         }
 
-        if (strcmp(tmp, dhcp6_if->ifname)) {
+        if (g_strcmp0(tmp, dhcp6_if->ifname)) {
             g_free(ifinfo);
             ifinfo = NULL;
             continue;

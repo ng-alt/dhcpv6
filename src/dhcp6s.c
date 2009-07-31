@@ -1465,7 +1465,7 @@ void server6_init() {
 
             g_debug("if %s index is %d", ifr->ifr_name, ifidx[num_device]);
 
-            if (strcmp(ifr->ifr_name, "lo")) {
+            if (g_strcmp0(ifr->ifr_name, "lo")) {
                 /* get our DUID */
                 if (get_duid(DUID_FILE, ifr->ifr_name, &server_duid)) {
                     g_error("%s: failed to get a DUID", __func__);

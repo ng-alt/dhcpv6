@@ -530,7 +530,7 @@ struct dhcp6_if *find_ifconfbyname(const gchar *ifname) {
     struct dhcp6_if *ifp;
 
     for (ifp = dhcp6_if; ifp; ifp = ifp->next) {
-        if (strcmp(ifp->ifname, ifname) == 0) {
+        if (g_strcmp0(ifp->ifname, ifname) == 0) {
             return ifp;
         }
     }
@@ -864,7 +864,7 @@ int getifaddr(struct in6_addr *addr, gchar *ifnam, struct in6_addr *prefix,
     for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
         int s1, s2;
 
-        if (strong && strcmp(ifnam, ifa->ifa_name) != 0) {
+        if (strong && g_strcmp0(ifnam, ifa->ifa_name) != 0) {
             continue;
         }
 

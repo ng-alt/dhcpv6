@@ -2360,7 +2360,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
             case 'r':
                 client6_request_flag |= CLIENT6_RELEASE_ADDR;
 
-                if (strcmp(optarg, "all")) {
+                if (g_strcmp0(optarg, "all")) {
                     for (addr = strtok(optarg, " "); addr;
                          addr = strtok(NULL, " ")) {
                         dhcp6_value_t *lv;

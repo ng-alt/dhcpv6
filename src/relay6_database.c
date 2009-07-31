@@ -101,7 +101,7 @@ relay_interface_t *get_interface_s(gchar *s) {
     while (iterator) {
         deviface = (relay_interface_t *) iterator->data;
 
-        if (strcmp(s, deviface->ifname) == 0) {
+        if (g_strcmp0(s, deviface->ifname) == 0) {
             return deviface;
         }
 

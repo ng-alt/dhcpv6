@@ -79,7 +79,7 @@ gint main(gint argc, gchar **argv) {
     /* Specify a file stream for logging */
     if (argc > 1) {
         for (i = 1; i < argc; ++i) {
-            if (strcmp(argv[i], "-d") == 0) {
+            if (g_strcmp0(argv[i], "-d") == 0) {
                 du = 1;
             }
         }
@@ -90,9 +90,9 @@ gint main(gint argc, gchar **argv) {
     }
 
     for (i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "-d") == 0) {
+        if (g_strcmp0(argv[i], "-d") == 0) {
             continue;
-        } else if (strcmp(argv[i], "-p") == 0) {
+        } else if (g_strcmp0(argv[i], "-p") == 0) {
             i++;
 
             if (i < argc) {
@@ -106,7 +106,7 @@ gint main(gint argc, gchar **argv) {
             } else {
                 command_text();
             }
-        } else if (strcmp(argv[i], "-cm") == 0) {
+        } else if (g_strcmp0(argv[i], "-cm") == 0) {
             i++;
 
             if (get_interface_s(argv[i]) == NULL) {
@@ -118,9 +118,9 @@ gint main(gint argc, gchar **argv) {
             cifaces_list = g_slist_append(cifaces_list, g_strdup(argv[i]));
             g_debug("%s: setting up client interface: %s", __func__, argv[i]);
             continue;
-        } else if (strcmp(argv[i], "-cu") == 0) {
+        } else if (g_strcmp0(argv[i], "-cu") == 0) {
             multicast_off = 1;
-        } else if (strcmp(argv[i], "-sm") == 0) {
+        } else if (g_strcmp0(argv[i], "-sm") == 0) {
             i++;
 
             if (get_interface_s(argv[i]) == NULL) {
@@ -131,7 +131,7 @@ gint main(gint argc, gchar **argv) {
             sifaces_list = g_slist_append(sifaces_list, g_strdup(argv[i]));
             g_debug("%s: setting up server interface: %s", __func__, argv[i]);
             continue;
-        } else if (strcmp(argv[i], "-su") == 0) {
+        } else if (g_strcmp0(argv[i], "-su") == 0) {
             i++;
 
             /* destination address */
@@ -152,7 +152,7 @@ gint main(gint argc, gchar **argv) {
             nr_of_uni_addr += 1;
 
             continue;
-        } else if (strcmp(argv[i], "-sf") == 0) {
+        } else if (g_strcmp0(argv[i], "-sf") == 0) {
             i++;
             sf = strdup(argv[i]);
             eth = strtok(sf, "+");
@@ -192,8 +192,8 @@ gint main(gint argc, gchar **argv) {
             }
 
             continue;
-        } else if ((strcmp(argv[i], "-h") == 0) ||
-                   (strcmp(argv[i], "--help") == 0)) {
+        } else if ((g_strcmp0(argv[i], "-h") == 0) ||
+                   (g_strcmp0(argv[i], "--help") == 0)) {
             command_text();
         } else {
             err = 4;

@@ -354,7 +354,7 @@ static gint add_namelist(struct cf_namelist *new, struct cf_namelist **headp) {
 
     /* check for duplicated configuration */
     for (ifp = *headp; ifp; ifp = ifp->next) {
-        if (strcmp(ifp->name, new->name) == 0) {
+        if (g_strcmp0(ifp->name, new->name) == 0) {
             cpyywarn("duplicated interface: %s (ignored)", new->name);
             cleanup_namelist(new);
             return (0);
