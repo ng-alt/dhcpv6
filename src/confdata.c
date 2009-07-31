@@ -101,9 +101,9 @@ static void _clear_hostconf(host_conf_t *hlist) {
     return;
 }
 
-static gint _add_options(gint opcode, dhcp6_ifconf_t *ifc, struct cf_list *cfl0) {
+static gint _add_options(gint opcode, dhcp6_ifconf_t *ifc, cf_list_t *cfl0) {
     dhcp6_value_t *opt;
-    struct cf_list *cfl;
+    cf_list_t *cfl;
     gint opttype;
     GSList *iterator = NULL;
 
@@ -249,7 +249,7 @@ gint configure_interface(const cf_namelist_t *iflist) {
     dhcp6_ifconf_t *ifc;
 
     for (ifp = iflist; ifp; ifp = ifp->next) {
-        struct cf_list *cfl;
+        cf_list_t *cfl;
 
         if ((ifc = g_malloc0(sizeof(*ifc))) == NULL) {
             g_error("%s: memory allocation for %s failed",
@@ -438,7 +438,7 @@ gint configure_host(const cf_namelist_t *hostlist) {
     host_conf_t *hconf;
 
     for (host = hostlist; host; host = host->next) {
-        struct cf_list *cfl;
+        cf_list_t *cfl;
 
         if ((hconf = g_malloc0(sizeof(*hconf))) == NULL) {
             g_error("%s: memory allocation failed for host %s",
@@ -556,7 +556,7 @@ bad:
 }
 
 gint configure_global_option(void) {
-    struct cf_list *cl;
+    cf_list_t *cl;
 
     /* DNS servers */
     if (cf_dns_list && dhcp6_mode != DHCP6_MODE_SERVER) {

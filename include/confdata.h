@@ -264,24 +264,24 @@ typedef struct _host_conf_t {
 } host_conf_t;
 
 /* structures and definitions used in the config file parser */
-typedef struct _cf_namelist_t {
-    struct _cf_namelist_t *next;
-    gchar *name;
-    gint line;                   /* the line number of the config file */
-    struct cf_list *params;
-} cf_namelist_t;
-
-struct cf_list {
-    struct cf_list *next;
-    struct cf_list *tail;
+typedef struct _cf_list_t {
+    struct _cf_list_t *next;
+    struct _cf_list_t *tail;
     gint type;
     gint line;                   /* the line number of the config file */
 
     /* type dependent values: */
     long long num;
-    struct cf_list *list;
+    struct _cf_list_t *list;
     void *ptr;
-};
+} cf_list_t;
+
+typedef struct _cf_namelist_t {
+    struct _cf_namelist_t *next;
+    gchar *name;
+    gint line;                   /* the line number of the config file */
+    cf_list_t *params;
+} cf_namelist_t;
 
 /* Some systems define thes in in.h */
 #ifndef IN6_IS_ADDR_UNSPECIFIED
@@ -365,7 +365,7 @@ typedef enum {
 } dhcp6_mode_t;
 
 extern const dhcp6_mode_t dhcp6_mode;
-extern struct cf_list *cf_dns_list;
+extern cf_list_t *cf_dns_list;
 extern const gchar *configfilename;
 
 extern dhcp6_if_t *dhcp6_if;

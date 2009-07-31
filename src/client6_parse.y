@@ -75,7 +75,7 @@ extern void client6error(gchar *, ...) __attribute__((__format__(__printf__, 1, 
 
 #define MAKE_CFLIST(l, t, pp, pl) \
     do { \
-        (l) = (struct cf_list *) g_malloc0(sizeof(*(l))); \
+        (l) = (cf_list_t *) g_malloc0(sizeof(*(l))); \
         if ((l) == NULL) { \
             cpyywarn("can't allocate memory"); \
             if ((pp)) { \
@@ -92,13 +92,13 @@ extern void client6error(gchar *, ...) __attribute__((__format__(__printf__, 1, 
     } while (0)
 
 static cf_namelist_t *iflist_head;
-struct cf_list *cf_dns_list;
+cf_list_t *cf_dns_list;
 
 extern gint cpyylex(void);
 static void cleanup(void);
 static gint add_namelist(cf_namelist_t *, cf_namelist_t **);
 static void cleanup_namelist(cf_namelist_t *);
-static void cleanup_cflist(struct cf_list *);
+static void cleanup_cflist(cf_list_t *);
 %}
 
 %token INTERFACE IFNAME IPV6ADDR REQUEST SEND RAPID_COMMIT PREFIX_DELEGATION
@@ -110,7 +110,7 @@ static void cleanup_cflist(struct cf_list *);
 %union {
     long long num;
     gchar* str;
-    struct cf_list *list;
+    cf_list_t *list;
     struct in6_addr addr;
     dhcp6_addr_t *v6addr;
 }
@@ -145,7 +145,7 @@ interface_statement
 declarations
     : { $$ = NULL; }
     | declarations declaration {
-          struct cf_list *head;
+          cf_list_t *head;
 
           if ((head = $1) == NULL) {
               $2->next = NULL;
@@ -162,28 +162,28 @@ declarations
 
 declaration
     : SEND dhcpoption EOS {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DECL_SEND, NULL, $2);
 
           $$ = l;
       }
     | REQUEST dhcpoption EOS {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DECL_REQUEST, NULL, $2);
 
           $$ = l;
       }
     | INFO_ONLY EOS {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DECL_INFO_ONLY, NULL, NULL);
           /* no value */
           $$ = l;
       }
     | DEFAULT_IRT duration EOS {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DECL_DEFAULT_IRT, NULL, NULL);
           l->num = $2;
@@ -191,7 +191,7 @@ declaration
           $$ = l;
       }
     | MAXIMUM_IRT duration EOS {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DECL_MAXIMUM_IRT, NULL, NULL);
           l->num = $2;
@@ -199,28 +199,28 @@ declaration
           $$ = l;
       }
     | REQUEST TEMP_ADDR EOS {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DECL_TEMP_ADDR, NULL, NULL);
           /* no value */
           $$ = l;
       }
     | ADDRESS BCL addrdecl ECL EOS {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DECL_ADDRESS, $3, NULL);
 
           $$ = l;
       }
     | PREFIX BCL addrdecl ECL EOS {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DECL_PREFIX, $3, NULL);
 
           $$ = l;
       }
     | RENEW_TIME duration EOS {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DECL_RENEWTIME, NULL, NULL);
           l->num = $2;
@@ -229,7 +229,7 @@ declaration
 
       }
     | REBIND_TIME duration EOS {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DECL_REBINDTIME, NULL, NULL);
           l->num = $2;
@@ -237,7 +237,7 @@ declaration
           $$ = l;
       }
     | IAID NUMBER EOS {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DECL_IAID, NULL, NULL);
           l->num = $2;
@@ -248,28 +248,28 @@ declaration
 
 dhcpoption
     : RAPID_COMMIT {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DHCPOPT_RAPID_COMMIT, NULL, NULL);
           /* no value */
           $$ = l;
       }
     | PREFIX_DELEGATION {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DHCPOPT_PREFIX_DELEGATION, NULL, NULL);
           /* currently no value */
           $$ = l;
       }
     | DNS_SERVERS {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DHCPOPT_DNS, NULL, NULL);
           /* currently no value */
           $$ = l;
       }
     | DOMAIN_LIST {
-          struct cf_list *l;
+          cf_list_t *l;
 
           MAKE_CFLIST(l, DHCPOPT_DOMAIN_LIST, NULL, NULL);
           /* currently no value */
@@ -389,8 +389,8 @@ static void cleanup_namelist(cf_namelist_t *head) {
     return;
 }
 
-static void cleanup_cflist(struct cf_list *p) {
-    struct cf_list *n;
+static void cleanup_cflist(cf_list_t *p) {
+    cf_list_t *n;
 
     if (p == NULL) {
         return;
