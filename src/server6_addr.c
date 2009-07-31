@@ -1045,7 +1045,7 @@ link_decl_t *dhcp6_allocate_link(struct dhcp6_if *ifp,
                                  struct in6_addr *relay) {
     link_decl_t *link;
     server_interface_t *ifnetwork = NULL;
-    GSList *link_iterator = NULL, *if_iterator = NULL;
+    GSList *link_iterator = NULL, *if_iterator = NULL, *relay_iterator = NULL;
 
     if_iterator = rootgroup->iflist;
 
@@ -1062,8 +1062,6 @@ link_decl_t *dhcp6_allocate_link(struct dhcp6_if *ifp,
 
                 /* if relay is NULL, assume client and server are on the same 
                  * link (which cannot have a relay configuration option) */
-                struct v6addrlist *temp;
-
                 if (relay == NULL) {
                     if (link->relaylist != NULL) {
                         continue;
@@ -1071,15 +1069,18 @@ link_decl_t *dhcp6_allocate_link(struct dhcp6_if *ifp,
                         return link;
                     }
                 } else {
-                    for (temp = link->relaylist; temp; temp = temp->next) {
+                    relay_iterator = link->relaylist;
+
+                    while (relay_iterator) {
+                        struct v6addr *temp = (struct v6addr *) relay_iterator->data;
+
                         /* only compare the prefix configured to the relay
                          * link address */
-                        if (!prefixcmp(relay, &temp->v6addr.addr,
-                                       temp->v6addr.plen)) {
+                        if (!prefixcmp(relay, &temp->addr, temp->plen)) {
                             return link;
-                        } else {
-                            continue;
                         }
+
+                        relay_iterator = g_slist_next(relay_iterator);
                     }
                 }
 

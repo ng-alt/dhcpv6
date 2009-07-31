@@ -94,7 +94,7 @@ struct v6addr {
 /* link */
 typedef struct _link_decl_t {
     gchar name[IFNAMSIZ];
-    struct v6addrlist *relaylist;
+    GSList *relaylist;
     GSList *seglist;
     GSList *prefixlist;
     GSList *poollist;
@@ -125,11 +125,6 @@ typedef struct _v6addrseg_t {
     struct lease *abandoned;
     scope_t parainfo;
 } v6addrseg_t;
-
-struct v6addrlist {
-    struct v6addrlist *next;
-    struct v6addr v6addr;
-};
 
 typedef struct _v6prefix_t {
     link_decl_t *link;

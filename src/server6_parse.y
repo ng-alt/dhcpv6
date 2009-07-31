@@ -313,24 +313,23 @@ relaylist
 
 relaypara
     : RELAY IPV6ADDR '/' NUMBER ';' {
-          struct v6addrlist *temprelay;
+          struct v6addr *temprelay = NULL;
 
           if (!link) {
               g_error("relay must be defined under link");
               ABORT;
           }
 
-          temprelay = (struct v6addrlist *) g_malloc0(sizeof(*temprelay));
+          temprelay = (struct v6addr *) g_malloc0(sizeof(*temprelay));
           if (temprelay == NULL) {
               g_error("failed to allocate memory");
               ABORT;
           }
 
-          memcpy(&temprelay->v6addr.addr, &$2, sizeof(temprelay->v6addr.addr));
-          temprelay->v6addr.plen = $4;
-          temprelay->next = link->relaylist;
-          link->relaylist = temprelay;
-          temprelay = NULL;
+          memcpy(&temprelay->addr, &$2, sizeof(temprelay->addr));
+          temprelay->plen = $4;
+
+          link->relaylist = g_slist_append(link->relaylist, temprelay);
       }
     ;
 
