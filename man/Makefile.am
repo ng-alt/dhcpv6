@@ -1,8 +1,17 @@
 # Makefile.am for dhcpv6 man subdirectory
 # Author: David Cantrell <dcantrell@redhat.com>
 
-man_MANS = dhcp6c.8 dhcp6r.8 dhcp6s.8 dhcp6c.conf.5 dhcp6s.conf.5
-
-EXTRA_DIST = dhcp6c.8 dhcp6r.8 dhcp6s.8 dhcp6c.conf.5 dhcp6s.conf.5
+man5_MANS = dhcp6c.conf.man dhcp6s.conf.man
+man8_MANS = dhcp6c.man dhcp6r.man dhcp6s.man
 
 MAINTAINERCLEANFILES = Makefile.in
+
+%.man: %.man.in
+	sed \
+		-e "s/%DHCP6C_LEASE_PATH%/$(DHCP6C_LEASE_PATH)/g" \
+		-e "s/%DHCP6C_DUID_PATH%/$(DHCP6C_DUID_PATH)/g" \
+		-e "s/%DHCP6C_CONF_PATH%/$(DHCP6C_CONF_PATH)/g" \
+		-e "s/%DHCP6C_PID_PATH%/$(DHCP6C_PID_PATH)/g" \
+		-e "s/%DHCP6S_CONF_PATH%/$(DHCP6S_CONF_PATH)/g" \
+		-e "s/%DHCP6S_DUID_PATH%/$(DHCP6S_DUID_PATH)/g" \
+		-e s"/%DHCP6S_LEASE_PATH%/$(DHCP6S_LEASE_PATH)/g" < $< > $@
