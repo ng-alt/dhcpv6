@@ -146,15 +146,6 @@ AC_ARG_WITH(db-path,
 AC_DEFINE_UNQUOTED([DB_FILE_PATH], ["$db_file_path"],
                    [Directory for lease databases and DUID files.])
 
-AC_ARG_WITH(relay-dump-file,
-    AC_HELP_STRING([--with-relay-dump-file=PATH],
-                   [Dump file that dhcp6r should output.
-                    (default is LOCALSTATEDIR/log/dhcp6r.log)]),
-    [relay_dump_file="$withval"],
-    [relay_dump_file="$localstatedir/log/dhcp6r.log"])
-AC_DEFINE_UNQUOTED([RELAY_DUMP_FILE], ["$relay_dump_file"],
-                   [Dump file that dhcp6r should output.])
-
 # Paths for the man pages
 AC_SUBST(DHCP6C_CONF_PATH, ["$sysconfdir/dhcp6c.conf"])
 AC_SUBST(DHCP6S_CONF_PATH, ["$sysconfdir/dhcp6s.conf"])

@@ -1,16 +1,3 @@
-man pages:
-dhcp6c.8
-    %DHCP6C_DUID_PATH%
-    %DHCP6C_CONF_PATH%
-    %DHCP6C_LEASE_PATH%
-    %DHCP6C_PID_PATH%
-
-dhcp6s.8
-    %DHCP6S_CONF_PATH%
-    %DHCP6S_DUID_PATH%
-    %DHCP6S_LEASE_PATH%
-
-
 paths to make command line options:
     server
         conf file
@@ -25,9 +12,7 @@ paths to make command line options:
       types.h
       constants.h
 
-- Replace bcmp() usage with something not deprecated.
-
-- Add long options to dhcp6c, dhcp6s, and dhcp6r
+- Add long options to dhcp6c, dhcp6s, and dhcp6r (glib option parser)
 
 - Run autoscan and update configure.ac if needed
 
@@ -68,8 +53,6 @@ paths to make command line options:
 
 - Replace both .y files with a single parser with multiple state paths for
   the tokens we're parsing.
-
-- Clean up TRACE() messages, they are all over the place.
 
 - Define all DHCPv6 options and states more clearly.  Fix up server component
   to handle all possible options.
