@@ -1061,7 +1061,7 @@ int in6_scope(struct in6_addr *addr) {
         return (addr->s6_addr[1] & 0x0f);
     }
 
-    if (bcmp(&in6addr_loopback, addr, sizeof(addr) - 1) == 0) {
+    if (memcmp(&in6addr_loopback, addr, sizeof(addr) - 1) == 0) {
         if (addr->s6_addr[15] == 1) {   /* loopback */
             return 1;
         }

@@ -21,6 +21,10 @@ paths to make command line options:
     relay
         pid
 
+- Reorganize headers:
+      types.h
+      constants.h
+
 - Replace bcmp() usage with something not deprecated.
 
 - Add long options to dhcp6c, dhcp6s, and dhcp6r
