@@ -94,7 +94,7 @@ extern GHashTable *server6_hash_table;
 
 static gint num_lines = 1;
 static dhcp6_lease_t *lease_rec;
-static struct client6_if client6_info;
+static client6_if_t client6_info;
 
 static u_int16_t lease_flags = 0;
 
@@ -262,7 +262,7 @@ lease_parse(file)
 gint 
 do_iaidaddr_hash(lease_rec, key) 
 	dhcp6_lease_t *lease_rec;
-	struct client6_if *key;
+	client6_if_t *key;
 {
 	dhcp6_iaidaddr_t *iaidaddr = NULL;
 	dhcp6_lease_t *found_lease = NULL;

@@ -60,6 +60,6 @@ gchar *dhcp6optstr(gint);
 GString *dhcp6_options2str(GSList *);
 gchar *dhcp6msgstr(gint);
 gchar *dhcp6_stcodestr(gint);
-gchar *duidstr(const struct duid *);
+gchar *duidstr(const duid_t *);
 
 #endif /* __STR_H_DEFINED */

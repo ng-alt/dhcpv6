@@ -67,10 +67,10 @@ extern GHashTable *server6_hash_table;
 link_decl_t *dhcp6_allocate_link(struct dhcp6_if *, rootgroup_t *,
                                  struct in6_addr *);
 host_decl_t *dhcp6_allocate_host(struct dhcp6_if *, rootgroup_t *,
-                                 struct dhcp6_optinfo *);
+                                 dhcp6_optinfo_t *);
 gint dhcp6_get_hostconf(ia_t *, ia_t *, dhcp6_iaidaddr_t *, host_decl_t *);
-gint dhcp6_add_lease(dhcp6_iaidaddr_t *, struct dhcp6_addr *);
-gint dhcp6_update_lease(struct dhcp6_addr *, dhcp6_lease_t *);
+gint dhcp6_add_lease(dhcp6_iaidaddr_t *, dhcp6_addr_t *);
+gint dhcp6_update_lease(dhcp6_addr_t *, dhcp6_lease_t *);
 
 /* BEGIN STATIC FUNCTIONS */
 
@@ -137,7 +137,7 @@ static void _create_tempaddr(struct in6_addr *prefix, gint plen,
     return;
 }
 
-static gint _addr_on_segment(v6addrseg_t *seg, struct dhcp6_addr *addr) {
+static gint _addr_on_segment(v6addrseg_t *seg, dhcp6_addr_t *addr) {
     gint onseg = 0;
     v6addr_t *prefix = NULL;
 
@@ -174,8 +174,7 @@ static gint _addr_on_segment(v6addrseg_t *seg, struct dhcp6_addr *addr) {
     return onseg;
 }
 
-static void _server6_get_addrpara(struct dhcp6_addr *v6addr,
-                                  v6addrseg_t *seg) {
+static void _server6_get_addrpara(dhcp6_addr_t *v6addr, v6addrseg_t *seg) {
     v6addr->plen = seg->prefix.plen;
 
     if (seg->parainfo.prefer_life_time == 0 &&
@@ -202,7 +201,7 @@ static void _server6_get_addrpara(struct dhcp6_addr *v6addr,
     return;
 }
 
-static void _server6_get_newaddr(iatype_t type, struct dhcp6_addr *v6addr,
+static void _server6_get_newaddr(iatype_t type, dhcp6_addr_t *v6addr,
                                  v6addrseg_t *seg) {
     struct in6_addr current;
     gint round = 0;
@@ -252,8 +251,7 @@ static void _server6_get_newaddr(iatype_t type, struct dhcp6_addr *v6addr,
     return;
 }
 
-static void _server6_get_prefixpara(struct dhcp6_addr *v6addr,
-                                    v6prefix_t *seg) {
+static void _server6_get_prefixpara(dhcp6_addr_t *v6addr, v6prefix_t *seg) {
     v6addr->plen = seg->prefix.plen;
 
     if (seg->parainfo.prefer_life_time == 0 &&
@@ -281,8 +279,7 @@ static void _server6_get_prefixpara(struct dhcp6_addr *v6addr,
 
 /* END STATIC FUNCTIONS */
 
-host_decl_t *find_hostdecl(struct duid *duid, guint32 iaid,
-                           GSList *hostlist) {
+host_decl_t *find_hostdecl(duid_t *duid, guint32 iaid, GSList *hostlist) {
     host_decl_t *host;
     GSList *iterator = hostlist;
 
@@ -300,7 +297,7 @@ host_decl_t *find_hostdecl(struct duid *duid, guint32 iaid,
 }
 
 /* for request/solicit rapid commit */
-gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia) {
+gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia) {
     dhcp6_iaidaddr_t *iaidaddr = NULL;
     dhcp6_value_t *lv = NULL;
     struct timeval timo;
@@ -396,10 +393,10 @@ gint dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *iaidaddr) {
     return 0;
 }
 
-dhcp6_iaidaddr_t *dhcp6_find_iaidaddr(struct duid *clientID, guint32 iaid,
+dhcp6_iaidaddr_t *dhcp6_find_iaidaddr(duid_t *clientID, guint32 iaid,
                                       iatype_t type) {
     dhcp6_iaidaddr_t *iaidaddr;
-    struct client6_if client6_info;
+    client6_if_t client6_info;
 
     duidcpy(&client6_info.clientid, clientID);
     client6_info.iaidinfo.iaid = iaid;
@@ -447,7 +444,7 @@ gint dhcp6s_remove_lease(dhcp6_lease_t *lease) {
 }
 
 /* for renew/rebind/release/decline */
-gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
+gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia, gint flag) {
     dhcp6_iaidaddr_t *iaidaddr = NULL;
     dhcp6_lease_t *lease = NULL;
     dhcp6_value_t *lv = NULL;
@@ -564,7 +561,7 @@ gint dhcp6_validate_bindings(GSList *addrlist, dhcp6_iaidaddr_t *iaidaddr,
     return 0;
 }
 
-gint dhcp6_add_lease(dhcp6_iaidaddr_t *iaidaddr, struct dhcp6_addr *addr) {
+gint dhcp6_add_lease(dhcp6_iaidaddr_t *iaidaddr, dhcp6_addr_t *addr) {
     dhcp6_lease_t *sp;
     struct timeval timo;
     gdouble d;
@@ -651,7 +648,7 @@ gint dhcp6_add_lease(dhcp6_iaidaddr_t *iaidaddr, struct dhcp6_addr *addr) {
 }
 
 /* assume we've found the updated lease already */
-gint dhcp6_update_lease(struct dhcp6_addr *addr, dhcp6_lease_t *sp) {
+gint dhcp6_update_lease(dhcp6_addr_t *addr, dhcp6_lease_t *sp) {
     struct timeval timo;
     gdouble d;
 
@@ -999,10 +996,10 @@ gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
 
 host_decl_t *dhcp6_allocate_host(struct dhcp6_if *ifp,
                                  rootgroup_t *rootgroup,
-                                 struct dhcp6_optinfo *optinfo) {
+                                 dhcp6_optinfo_t *optinfo) {
     host_decl_t *host = NULL;
     server_interface_t *ifnetwork = NULL;
-    struct duid *duid = &optinfo->clientID;
+    duid_t *duid = &optinfo->clientID;
     ia_t *ia = NULL;
     GSList *if_iterator = NULL, *ia_iterator = NULL;
 

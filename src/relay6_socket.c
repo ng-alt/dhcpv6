@@ -161,7 +161,7 @@ static void _send_relay_forw(gpointer data, gpointer user_data) {
 /* END STATIC FUNCTIONS */
 
 void init_socket(void) {
-    relaysock = (struct relay_socket *) g_malloc0(sizeof(struct relay_socket));
+    relaysock = (relay_socket_t *) g_malloc0(sizeof(relay_socket_t));
 
     if (relaysock == NULL) {
         g_error("%s: memory allocation error", __func__);

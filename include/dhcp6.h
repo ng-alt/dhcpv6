@@ -153,20 +153,20 @@ typedef struct _dhcp6_timer_t {
     void *expire_data;
 } dhcp6_timer_t;
 
-struct intf_id {
+typedef struct _intf_id_t {
     guint16 intf_len;           /* length */
     gchar *intf_id;             /* variable length ID value (must be opaque) */
-};
+} intf_id_t;
 
 /* iaid info for the IA_NA */
-struct dhcp6_iaid_info {
+typedef struct _dhcp6_iaid_info_t {
     guint32 iaid;
     guint32 renewtime;
     guint32 rebindtime;
-};
+} dhcp6_iaid_info_t;
 
 /* dhcpv6 addr */
-struct dhcp6_addr {
+typedef struct _dhcp6_addr_t {
     guint32 validlifetime;
     guint32 preferlifetime;
     struct in6_addr addr;
@@ -174,17 +174,17 @@ struct dhcp6_addr {
     iatype_t type;
     guint16 status_code;
     gchar *status_msg;
-};
+} dhcp6_addr_t;
 
-struct client6_if {
+typedef struct _client6_if_t {
     iatype_t type;
-    struct dhcp6_iaid_info iaidinfo;
-    struct duid clientid;
-    struct duid serverid;
-};
+    dhcp6_iaid_info_t iaidinfo;
+    duid_t clientid;
+    duid_t serverid;
+} client6_if_t;
 
 typedef struct _dhcp6_iaidaddr_t {
-    struct client6_if client6_info;
+    client6_if_t client6_info;
     time_t start_date;
     state_t state;
     struct dhcp6_if *ifp;
@@ -196,7 +196,7 @@ typedef struct _dhcp6_iaidaddr_t {
 typedef struct _dhcp6_lease_t {
     gchar hostname[1024];
     struct in6_addr linklocal;
-    struct dhcp6_addr lease_addr;
+    dhcp6_addr_t lease_addr;
     iatype_t addr_type;
     state_t state;
     dhcp6_iaidaddr_t *iaidaddr;
@@ -209,7 +209,7 @@ typedef struct _dhcp6_value_t {
     union {
         gint uv_num;
         struct in6_addr uv_addr6;
-        struct dhcp6_addr uv_dhcp6_addr;
+        dhcp6_addr_t uv_dhcp6_addr;
         dhcp6_lease_t uv_dhcp6_lease;
     } uv;
 } dhcp6_value_t;
@@ -230,7 +230,7 @@ typedef enum {
 typedef struct _ia_t {
     iatype_t type;                      /* type of IA (e.g. IANA) */
     guint8 flags;                       /* flags for temp address */
-    struct dhcp6_iaid_info iaidinfo;    /* IAID, renewtime and rebindtime */
+    dhcp6_iaid_info_t iaidinfo;         /* IAID, renewtime and rebindtime */
     GSList *addr_list;                  /* assigned ipv6 address list */
     guint16 status_code;                /* status code */
     gchar *status_msg;                  /* status message */
@@ -255,26 +255,32 @@ typedef struct _dns_info_t {
     GSList *domains;
 } dns_info_t;
 
+typedef struct _dhcp6opt_t {
+    guint16 dh6opt_type;
+    guint16 dh6opt_len;
+    /* type-dependent data follows */
+} dhcp6opt_t;
+
 /* DHCP6 relay agent base packet format */
-struct dhcp6_relay {
+typedef struct _dhcp6_relay_t {
     guint8 dh6_msg_type;
     guint8 dh6_hop_count;
     struct in6_addr link_addr;
     struct in6_addr peer_addr;
     /* options follow */
-};
+} dhcp6_relay_t;
 
 typedef struct _relay_t {
-    struct dhcp6_relay relay;
-    struct intf_id *intf_id;
+    dhcp6_relay_t relay;
+    intf_id_t *intf_id;
 
     /* pointer to the Relay Message option in the RELAY-REPL */
-    struct dhcp6opt *option;
+    dhcp6opt_t *option;
 } relay_t;
 
-struct dhcp6_optinfo {
-    struct duid clientID;          /* DUID */
-    struct duid serverID;          /* DUID */
+typedef struct _dhcp6_optinfo_t {
+    duid_t clientID;               /* DUID */
+    duid_t serverID;               /* DUID */
     guint16 elapsed_time;
     GSList *ia_list;               /* list of the IAs in a message */
     guint8 flags;                  /* flags for rapid commit, info only */
@@ -287,16 +293,16 @@ struct dhcp6_optinfo {
                                       passed through on to the server */
     guint16 status_code;           /* status code */
     gchar *status_msg;             /* status message */
-};
+} dhcp6_optinfo_t;
 
 /* DHCP6 base packet format */
-struct dhcp6 {
+typedef struct _dhcp6_t {
     union {
         guint8 m;
         guint32 x;
     } dh6_msgtypexid;
     /* options follow */
-};
+} dhcp6_t;
 
 #define dh6_msgtype dh6_msgtypexid.m
 #define dh6_xid     dh6_msgtypexid.x
@@ -360,36 +366,30 @@ struct dhcp6 {
 #define PREFIX_LIST       _ENV_VAR_PREFIX"prefix_list"
 #define OPTIONS           _ENV_VAR_PREFIX"options"
 
-struct dhcp6opt {
-    guint16 dh6opt_type;
-    guint16 dh6opt_len;
-    /* type-dependent data follows */
-};
-
 /* Prefix Information */
-struct dhcp6_prefix_info {
+typedef struct _dhcp6_prefix_info_t {
     guint16 dh6_pi_type;
     guint16 dh6_pi_len;
     guint32 preferlifetime;
     guint32 validlifetime;
     guint8 plen;
     struct in6_addr prefix;
-};
+} dhcp6_prefix_info_t;
 
 /* status code info */
-struct dhcp6_status_info {
+typedef struct _dhcp6_status_info_t {
     guint16 dh6_status_type;
     guint16 dh6_status_len;
     guint16 dh6_status_code;
-};
+} dhcp6_status_info_t;
 
 /* IPv6 address info */
-struct dhcp6_addr_info {
+typedef struct _dhcp6_addr_info_t {
     guint16 dh6_ai_type;
     guint16 dh6_ai_len;
     struct in6_addr addr;
     guint32 preferlifetime;
     guint32 validlifetime;
-};
+} dhcp6_addr_info_t;
 
 #endif /* __DHCP6_H_DEFINED */

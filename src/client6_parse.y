@@ -112,7 +112,7 @@ static void cleanup_cflist(struct cf_list *);
     gchar* str;
     struct cf_list *list;
     struct in6_addr addr;
-    struct dhcp6_addr *v6addr;
+    dhcp6_addr_t *v6addr;
 }
 
 %type <str> IFNAME STRING
@@ -279,24 +279,24 @@ dhcpoption
 
 addrdecl
     : addrparam addrvtime {
-          struct dhcp6_addr *addr = (struct dhcp6_addr *) $1;
+          dhcp6_addr_t *addr = (dhcp6_addr_t *) $1;
 
           addr->validlifetime = (u_int32_t) $2;
           $$ = $1;
       }
     | addrparam addrptime {
-          struct dhcp6_addr *addr = (struct dhcp6_addr *) $1;
+          dhcp6_addr_t *addr = (dhcp6_addr_t *) $1;
           addr->preferlifetime = (u_int32_t) $2;
           $$ = $1;
       }
     | addrparam addrvtime addrptime {
-          struct dhcp6_addr *addr = (struct dhcp6_addr *) $1;
+          dhcp6_addr_t *addr = (dhcp6_addr_t *) $1;
           addr->validlifetime = (u_int32_t) $2;
           addr->preferlifetime = (u_int32_t) $3;
           $$ = $1;
       }
     | addrparam addrptime addrvtime {
-          struct dhcp6_addr *addr = (struct dhcp6_addr *) $1;
+          dhcp6_addr_t *addr = (dhcp6_addr_t *) $1;
           addr->validlifetime = (u_int32_t) $3;
           addr->preferlifetime = (u_int32_t) $2;
           $$ = $1;
@@ -308,7 +308,7 @@ addrdecl
 
 addrparam
     : IPV6ADDR SLASH NUMBER EOS {
-          struct dhcp6_addr *v6addr;
+          dhcp6_addr_t *v6addr = NULL;
 
           /* validate other parameters later */
           if ($3 < 0 || $3 > 128)

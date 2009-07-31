@@ -103,7 +103,7 @@ extern FILE *client6_lease_file;
 extern dhcp6_iaidaddr_t client6_iaidaddr;
 
 /* External prototypes */
-extern gint client6_ifaddrconf(ifaddrconf_cmd_t, struct dhcp6_addr *);
+extern gint client6_ifaddrconf(ifaddrconf_cmd_t, dhcp6_addr_t *);
 extern dhcp6_timer_t *syncfile_timo(void *);
 extern gint dad_parse(const gchar *, GSList *);
 
@@ -120,11 +120,11 @@ gchar *script = NULL;
 static u_long sig_flags = 0;
 static gchar *device = NULL;
 static gint num_device = 0;
-static struct iaid_table iaidtab[MAX_DEVICE];
+static iaid_table_t iaidtab[MAX_DEVICE];
 static guint8 client6_request_flag = 0;
 static const struct sockaddr_in6 *sa6_allagent;
 static socklen_t sa6_alen;
-static struct duid client_duid;
+static duid_t client_duid;
 static gint pid;
 static gchar leasename[MAXPATHLEN];
 static gchar *path_client6_lease = PATH_CLIENT6_LEASE;
@@ -193,7 +193,7 @@ static void _ev_set_state(dhcp6_event_t *ev, gint new_state) {
 }
 
 static struct dhcp6_serverinfo *_find_server(struct dhcp6_if *ifp,
-                                             struct duid *duid) {
+                                             duid_t *duid) {
     struct dhcp6_serverinfo *s;
 
     for (s = ifp->servers; s; s = s->next) {
@@ -732,8 +732,7 @@ static dhcp6_event_t *_find_event_withid(struct dhcp6_if *ifp, guint32 xid) {
 }
 
 static struct dhcp6_serverinfo *_allocate_newserver(struct dhcp6_if *ifp,
-                                                    struct dhcp6_optinfo
-                                                    *optinfo) {
+                                                    dhcp6_optinfo_t *optinfo) {
     struct dhcp6_serverinfo *newserver, **sp;
 
     /* keep the server */
@@ -776,8 +775,8 @@ static struct dhcp6_serverinfo *_allocate_newserver(struct dhcp6_if *ifp,
     return newserver;
 }
 
-static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
-                               ssize_t len, struct dhcp6_optinfo *optinfo) {
+static gint _client6_recvreply(struct dhcp6_if *ifp, dhcp6_t *dh6,
+                               ssize_t len, dhcp6_optinfo_t *optinfo) {
     ia_t *ia;
     dhcp6_event_t *ev;
     struct dhcp6_serverinfo *newserver;
@@ -1085,8 +1084,8 @@ static gint _client6_recvreply(struct dhcp6_if *ifp, struct dhcp6 *dh6,
     return 0;
 }
 
-static gint _client6_recvadvert(struct dhcp6_if *ifp, struct dhcp6 *dh6,
-                                ssize_t len, struct dhcp6_optinfo *optinfo0) {
+static gint _client6_recvadvert(struct dhcp6_if *ifp, dhcp6_t *dh6,
+                                ssize_t len, dhcp6_optinfo_t *optinfo0) {
     ia_t *ia;
     struct dhcp6_serverinfo *newserver;
     dhcp6_event_t *ev;
@@ -1200,10 +1199,10 @@ static void _client6_recv(void) {
     struct iovec iov;
     struct sockaddr_storage from;
     struct dhcp6_if *ifp;
-    struct dhcp6opt *p, *ep;
-    struct dhcp6_optinfo optinfo;
+    dhcp6opt_t *p, *ep;
+    dhcp6_optinfo_t optinfo;
     ssize_t len;
-    struct dhcp6 *dh6;
+    dhcp6_t *dh6;
     struct cmsghdr *cm;
     struct in6_pktinfo *pi = NULL;
 
@@ -1247,7 +1246,7 @@ static void _client6_recv(void) {
 
     g_debug("receive packet info ifname %s, addr is %s scope id is %d",
             ifp->ifname, in6addr2str(&pi->ipi6_addr, 0), pi->ipi6_ifindex);
-    dh6 = (struct dhcp6 *) rbuf;
+    dh6 = (dhcp6_t *) rbuf;
     g_debug("%s: receive %s from %s scope id %d %s", __func__,
             dhcp6msgstr(dh6->dh6_msgtype),
             addr2str((struct sockaddr *) &from, sizeof(from)),
@@ -1255,8 +1254,8 @@ static void _client6_recv(void) {
 
     /* get options */
     dhcp6_init_options(&optinfo);
-    p = (struct dhcp6opt *) (dh6 + 1);
-    ep = (struct dhcp6opt *) ((gchar *) dh6 + len);
+    p = (dhcp6opt_t *) (dh6 + 1);
+    ep = (dhcp6opt_t *) ((gchar *) dh6 + len);
 
     if (dhcp6_get_options(p, ep, &optinfo) < 0) {
         g_message("%s: failed to parse options", __func__);
@@ -1677,15 +1676,15 @@ void client6_send(dhcp6_event_t *ev) {
     struct dhcp6_if *ifp;
     gchar buf[BUFSIZ];
     struct sockaddr_in6 dst;
-    struct dhcp6 *dh6;
-    struct dhcp6_optinfo optinfo;
+    dhcp6_t *dh6;
+    dhcp6_optinfo_t optinfo;
     ia_t *ia;
     ssize_t optlen, len;
     struct timeval duration, now;
     socklen_t salen;
 
     ifp = ev->ifp;
-    dh6 = (struct dhcp6 *) buf;
+    dh6 = (dhcp6_t *) buf;
     memset(dh6, 0, sizeof(*dh6));
 
     switch (ev->state) {
@@ -1917,8 +1916,8 @@ void client6_send(dhcp6_event_t *ev) {
     }
 
     /* set options in the message */
-    if ((optlen = dhcp6_set_options((struct dhcp6opt *) (dh6 + 1),
-                                    (struct dhcp6opt *) (buf + sizeof(buf)),
+    if ((optlen = dhcp6_set_options((dhcp6opt_t *) (dh6 + 1),
+                                    (dhcp6opt_t *) (buf + sizeof(buf)),
                                     &optinfo)) < 0) {
         g_message("%s: failed to construct options", __func__);
         goto end;

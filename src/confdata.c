@@ -208,7 +208,7 @@ static gint _add_options(gint opcode, struct dhcp6_ifconf *ifc,
     return 0;
 }
 
-static gint _add_address(GSList *addr_list, struct dhcp6_addr *v6addr) {
+static gint _add_address(GSList *addr_list, dhcp6_addr_t *v6addr) {
     dhcp6_value_t *lv, *val;
     GSList *iterator = addr_list;
 

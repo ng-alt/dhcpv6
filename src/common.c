@@ -104,7 +104,7 @@ static gint _in6_matchflags(struct sockaddr *addr, size_t addrlen,
     return (ifr.ifr_ifru.ifru_flags & flags);
 }
 
-static gint _ia_add_address(ia_t *ia, struct dhcp6_addr *addr6) {
+static gint _ia_add_address(ia_t *ia, dhcp6_addr_t *addr6) {
     /* set up address type */
     addr6->type = ia->type;
 
@@ -126,15 +126,15 @@ static gint _ia_add_address(ia_t *ia, struct dhcp6_addr *addr6) {
 
 static gint _get_assigned_ipv6addrs(guchar *p, guchar *ep, ia_t *ia) {
     guchar *np, *cp;
-    struct dhcp6opt opth;
-    struct dhcp6_addr_info ai;
-    struct dhcp6_prefix_info pi;
-    struct dhcp6_addr addr6;
+    dhcp6opt_t opth;
+    dhcp6_addr_info_t ai;
+    dhcp6_prefix_info_t pi;
+    dhcp6_addr_t addr6;
     gint optlen, opt;
     guint16 val16;
     gint num;
 
-    for (; p + sizeof(struct dhcp6opt) <= ep; p = np) {
+    for (; p + sizeof(dhcp6opt_t) <= ep; p = np) {
         memcpy(&opth, p, sizeof(opth));
         optlen = ntohs(opth.dh6opt_len);
         opt = ntohs(opth.dh6opt_type);
@@ -291,11 +291,11 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
     gint buflen = 0;
     guchar *tp = NULL;
     guint32 iaid = 0;
-    struct dhcp6_iaid_info opt_iana;
-    struct dhcp6_iaid_info opt_iapd;
-    struct dhcp6_prefix_info pi;
-    struct dhcp6_addr_info ai;
-    struct dhcp6_status_info status;
+    dhcp6_iaid_info_t opt_iana;
+    dhcp6_iaid_info_t opt_iapd;
+    dhcp6_prefix_info_t pi;
+    dhcp6_addr_info_t ai;
+    dhcp6_status_info_t status;
     dhcp6_value_t *dp = NULL;
     gint iaddr_len = 0;
     gint num = 0;
@@ -550,7 +550,7 @@ struct dhcp6_if *find_ifconfbyid(guint id) {
     return NULL;
 }
 
-struct host_conf *find_hostconf(const struct duid *duid) {
+struct host_conf *find_hostconf(const duid_t *duid) {
     struct host_conf *host;
 
     for (host = _host_conflist; host; host = host->next) {
@@ -668,9 +668,9 @@ dhcp6_value_t *dhcp6_find_listval(GSList *head, void *val,
                 break;
             case DHCP6_LISTVAL_DHCP6ADDR:
                 if (IN6_ARE_ADDR_EQUAL(&lv->val_dhcp6addr.addr,
-                                       &((struct dhcp6_addr *) val)->addr) &&
+                                       &((dhcp6_addr_t *) val)->addr) &&
                     (lv->val_dhcp6addr.plen ==
-                     ((struct dhcp6_addr *) val)->plen)) {
+                     ((dhcp6_addr_t *) val)->plen)) {
                     return lv;
                 }
 
@@ -703,7 +703,7 @@ dhcp6_value_t *dhcp6_add_listval(GSList *head, void *val,
             lv->val_addr6 = *(struct in6_addr *) val;
             break;
         case DHCP6_LISTVAL_DHCP6ADDR:
-            lv->val_dhcp6addr = *(struct dhcp6_addr *) val;
+            lv->val_dhcp6addr = *(dhcp6_addr_t *) val;
             break;
         default:
             g_error("%s: unexpected list value type (%d)", __func__, type);
@@ -1074,7 +1074,7 @@ int in6_scope(struct in6_addr *addr) {
     return 14;                  /* global */
 }
 
-void dhcp6_init_options(struct dhcp6_optinfo *optinfo) {
+void dhcp6_init_options(dhcp6_optinfo_t *optinfo) {
     memset(optinfo, 0, sizeof(*optinfo));
     /* for safety */
     optinfo->clientID.duid_id = NULL;
@@ -1090,7 +1090,7 @@ void dhcp6_init_options(struct dhcp6_optinfo *optinfo) {
     return;
 }
 
-void dhcp6_clear_options(struct dhcp6_optinfo *optinfo) {
+void dhcp6_clear_options(dhcp6_optinfo_t *optinfo) {
     duidfree(&optinfo->clientID);
     duidfree(&optinfo->serverID);
 
@@ -1112,7 +1112,7 @@ void dhcp6_clear_options(struct dhcp6_optinfo *optinfo) {
     dhcp6_init_options(optinfo);
 }
 
-int dhcp6_copy_options(struct dhcp6_optinfo *dst, struct dhcp6_optinfo *src) {
+int dhcp6_copy_options(dhcp6_optinfo_t *dst, dhcp6_optinfo_t *src) {
     if (duidcpy(&dst->clientID, &src->clientID)) {
         goto fail;
     }
@@ -1147,9 +1147,9 @@ fail:
     return -1;
 }
 
-int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
-                      struct dhcp6_optinfo *optinfo) {
-    struct dhcp6opt *np, opth;
+int dhcp6_get_options(dhcp6opt_t *p, dhcp6opt_t *ep,
+                      dhcp6_optinfo_t *optinfo) {
+    dhcp6opt_t *np, opth;
     ia_t *ia;
     gint i, opt, optlen, reqopts, num;
     guchar *cp, *val, *iacp;
@@ -1157,7 +1157,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
     guint32 val32;
 
     for (; p + 1 <= ep; p = np) {
-        struct duid duid0;
+        duid_t duid0;
 
         /* 
          * get the option header.  XXX: since there is no guarantee
@@ -1168,7 +1168,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
         opt = ntohs(opth.dh6opt_type);
 
         cp = (guchar *) (p + 1);
-        np = (struct dhcp6opt *) (cp + optlen);
+        np = (dhcp6opt_t *) (cp + optlen);
 
         g_debug("%s: get DHCP option %s, len %d",
                 __func__, dhcp6optstr(opt), optlen);
@@ -1318,7 +1318,7 @@ int dhcp6_get_options(struct dhcp6opt *p, struct dhcp6opt *ep,
                         break;
                     case DH6OPT_IA_NA:
                     case DH6OPT_IA_PD:
-                        if (optlen < sizeof(struct dhcp6_iaid_info)) {
+                        if (optlen < sizeof(dhcp6_iaid_info_t)) {
                             g_free(ia);
                             ia = NULL;
                             goto malformed;
@@ -1439,9 +1439,9 @@ fail:
     return -1;
 }
 
-int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
-                      struct dhcp6_optinfo *optinfo) {
-    struct dhcp6opt *p = bp, opth;
+int dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
+                      dhcp6_optinfo_t *optinfo) {
+    dhcp6opt_t *p = bp, opth;
     gint len = 0, optlen = 0;
     guchar *tmpbuf = NULL;
     ia_t *ia;
@@ -1566,7 +1566,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
             iterator = g_slist_next(iterator);
         }
 
-        if (((void *) ep - (void *) p) < optlen + sizeof(struct dhcp6opt)) {
+        if (((void *) ep - (void *) p) < optlen + sizeof(dhcp6opt_t)) {
             g_message("%s: option buffer short for %s",
                       __func__, dhcp6optstr(DH6OPT_DNS_SERVERS));
             goto fail;
@@ -1580,8 +1580,8 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
             memcpy(p + 1, tmpbuf, optlen);
         }
 
-        p = (struct dhcp6opt *) ((gchar *) (p + 1) + optlen);
-        len += sizeof(struct dhcp6opt) + optlen;
+        p = (dhcp6opt_t *) ((gchar *) (p + 1) + optlen);
+        len += sizeof(dhcp6opt_t) + optlen;
         g_debug("%s: set %s", __func__, dhcp6optstr(DH6OPT_DNS_SERVERS));
 
         g_free(tmpbuf);
@@ -1622,7 +1622,7 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
             iterator = g_slist_next(iterator);
         }
 
-        if (((void *) ep - (void *) p) < optlen + sizeof(struct dhcp6opt)) {
+        if (((void *) ep - (void *) p) < optlen + sizeof(dhcp6opt_t)) {
             g_message("%s: option buffer short for %s",
                       __func__, dhcp6optstr(DH6OPT_DOMAIN_LIST));
             goto fail;
@@ -1636,8 +1636,8 @@ int dhcp6_set_options(struct dhcp6opt *bp, struct dhcp6opt *ep,
             memcpy(p + 1, tmpbuf, optlen);
         }
 
-        p = (struct dhcp6opt *) ((gchar *) (p + 1) + optlen);
-        len += sizeof(struct dhcp6opt) + optlen;
+        p = (dhcp6opt_t *) ((gchar *) (p + 1) + optlen);
+        len += sizeof(dhcp6opt_t) + optlen;
         g_debug("%s: set %s", __func__, dhcp6optstr(DH6OPT_DOMAIN_LIST));
 
         g_free(tmpbuf);

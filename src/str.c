@@ -353,7 +353,7 @@ gchar *dhcp6_stcodestr(gint code) {
     }
 }
 
-gchar *duidstr(const struct duid *duid) {
+gchar *duidstr(const duid_t *duid) {
     gint i;
     gchar *cp;
     static gchar duidstr[sizeof("xx:") * 256 + sizeof("...")];

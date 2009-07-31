@@ -53,7 +53,7 @@ typedef struct _scope_t {
 /* and pool declared within it are connected to the same network segment */
 typedef struct _server_interface_t {
     gchar name[IFNAMSIZ];
-    struct hardware hw_address;
+    hardware_t hw_address;
     struct in6_addr primary_v6addr;
     struct in6_addr linklocal;
     GSList *linklist;
@@ -65,8 +65,8 @@ typedef struct _server_interface_t {
 /* host declaration provides information about a particular DHCPv6 client */
 typedef struct _host_decl_t {
     gchar name[IFNAMSIZ];
-    struct duid cid;
-    struct dhcp6_iaid_info iaidinfo;
+    duid_t cid;
+    dhcp6_iaid_info_t iaidinfo;
     GSList *addrlist;
     GSList *prefixlist;
     server_interface_t *network;

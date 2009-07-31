@@ -128,7 +128,7 @@ extern gint server6_tokenlex(void);
     gint dec;
     gint bool;
     struct in6_addr addr;
-    struct dhcp6_addr *dhcp6addr;
+    dhcp6_addr_t *dhcp6addr;
 }
 
 %%
@@ -751,9 +751,9 @@ addr6para
 
 v6address
     : IPV6ADDR '/' NUMBER ';' {
-          struct dhcp6_addr *temp;
+          dhcp6_addr_t *temp = NULL;
 
-          temp = (struct dhcp6_addr *) g_malloc0(sizeof(*temp));
+          temp = (dhcp6_addr_t *) g_malloc0(sizeof(*temp));
           if (temp == NULL) {
               g_error("v6addr memory allocation failed");
               ABORT;

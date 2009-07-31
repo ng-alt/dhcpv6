@@ -66,7 +66,7 @@
 #include "dhcp6.h"
 #include "str.h"
 
-gint configure_duid(const gchar *str, struct duid *duid) {
+gint configure_duid(const gchar *str, duid_t *duid) {
     const gchar *cp;
     guchar *bp, *idbuf = NULL;
     guint8 duidlen, slen;
@@ -120,12 +120,12 @@ bad:
     return -1;
 }
 
-gint duid_match_llt(struct duid *client, struct duid *server) {
-    struct dhcp6_duid_type1 *client_duid = NULL;
-    struct dhcp6_duid_type1 *server_duid = NULL;
+gint duid_match_llt(duid_t *client, duid_t *server) {
+    dhcp6_duid_type1_t *client_duid = NULL;
+    dhcp6_duid_type1_t *server_duid = NULL;
 
-    server_duid = (struct dhcp6_duid_type1 *) server->duid_id;
-    client_duid = (struct dhcp6_duid_type1 *) client->duid_id;
+    server_duid = (dhcp6_duid_type1_t *) server->duid_id;
+    client_duid = (dhcp6_duid_type1_t *) client->duid_id;
 
     if (server_duid != NULL && client_duid != NULL) {
         server_duid->dh6duid1_time = client_duid->dh6duid1_time;
@@ -136,10 +136,10 @@ gint duid_match_llt(struct duid *client, struct duid *server) {
     return 0;
 }
 
-gint get_duid(const gchar *idfile, const gchar *ifname, struct duid *duid) {
+gint get_duid(const gchar *idfile, const gchar *ifname, duid_t *duid) {
     FILE *fp = NULL;
     guint16 len = 0, hwtype;
-    struct dhcp6_duid_type1 *dp;        /* we only support the type1 DUID */
+    dhcp6_duid_type1_t *dp;        /* we only support the type1 DUID */
     guchar tmpbuf[256];  /* DUID should be no more than 256 bytes */
 
     if ((fp = fopen(idfile, "r")) == NULL && errno != ENOENT) {
@@ -180,7 +180,7 @@ gint get_duid(const gchar *idfile, const gchar *ifname, struct duid *duid) {
     } else {
         guint64 t64;
 
-        dp = (struct dhcp6_duid_type1 *) duid->duid_id;
+        dp = (dhcp6_duid_type1_t *) duid->duid_id;
         dp->dh6duid1_type = htons(1);   /* type 1 */
         dp->dh6duid1_hwtype = htons(hwtype);
         t64 = (guint64) (time(NULL) - 946684800);
@@ -220,7 +220,7 @@ fail:
     return -1;
 }
 
-gint save_duid(const gchar *idfile, const gchar *ifname, struct duid *duid) {
+gint save_duid(const gchar *idfile, const gchar *ifname, duid_t *duid) {
     FILE *fp = NULL;
     guint16 len = 0, hwtype;
 
@@ -277,7 +277,7 @@ guint16 calculate_duid_len(const gchar *ifname, guint16 * hwtype) {
         return 0;
     }
 
-    ret = l + sizeof(struct dhcp6_duid_type1);
+    ret = l + sizeof(dhcp6_duid_type1_t);
     return ret;
 }
 
@@ -329,7 +329,7 @@ ssize_t gethwid(guchar *buf, gint len, const gchar *ifname,
 #endif
 }
 
-gint duidcpy(struct duid *dd, const struct duid *ds) {
+gint duidcpy(duid_t *dd, const duid_t *ds) {
     dd->duid_len = ds->duid_len;
 
     if ((dd->duid_id = g_malloc0(dd->duid_len)) == NULL) {
@@ -342,7 +342,7 @@ gint duidcpy(struct duid *dd, const struct duid *ds) {
     return 0;
 }
 
-gint duidcmp(const struct duid *d1, const struct duid *d2) {
+gint duidcmp(const duid_t *d1, const duid_t *d2) {
     if (d1->duid_len == d2->duid_len) {
         return memcmp(d1->duid_id, d2->duid_id, d1->duid_len);
     } else {
@@ -350,7 +350,7 @@ gint duidcmp(const struct duid *d1, const struct duid *d2) {
     }
 }
 
-void duidfree(struct duid *duid) {
+void duidfree(duid_t *duid) {
     g_debug("%s: DUID is %s, DUID_LEN is %d",
             __func__, duidstr(duid), duid->duid_len);
 

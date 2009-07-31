@@ -33,7 +33,7 @@
 fd_set readfd;
 gint fdmax;
 
-struct relay_socket {
+typedef struct _relay_socket_t {
     struct msghdr msg;
     struct iovec iov[1];
     struct cmsghdr *cmsgp;
@@ -47,9 +47,9 @@ struct relay_socket {
     gint dst_addr_type;
     gchar *databuf;
     gint sock_desc;
-};
+} relay_socket_t;
 
-struct relay_socket *relaysock;
+relay_socket_t *relaysock;
 
 gint send_message(void);
 gint fill_addr_struct(void);

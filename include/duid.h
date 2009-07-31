@@ -54,27 +54,27 @@
 #ifndef __DUID_H_DEFINED
 #define __DUID_H_DEFINED
 
-struct duid {
+typedef struct _duid_t {
     guint8 duid_len;            /* length */
     guchar *duid_id;            /* variable length ID value (must be opaque) */
-};
+} duid_t;
 
 /* DUID type 1 */
-struct dhcp6_duid_type1 {
+typedef struct _dhcp6_duid_type1_t {
     guint16 dh6duid1_type;
     guint16 dh6duid1_hwtype;
     guint32 dh6duid1_time;
     /* link-layer address follows */
-};
+} dhcp6_duid_type1_t;
 
-gint configure_duid(const gchar *, struct duid *);
-gint duid_match_llt(struct duid *, struct duid *);
-gint get_duid(const gchar *, const gchar *, struct duid *);
-gint save_duid(const gchar *, const gchar *, struct duid *);
+gint configure_duid(const gchar *, duid_t *);
+gint duid_match_llt(duid_t *, duid_t *);
+gint get_duid(const gchar *, const gchar *, duid_t *);
+gint save_duid(const gchar *, const gchar *, duid_t *);
 guint16 calculate_duid_len(const gchar *, guint16 *);
 ssize_t gethwid(guchar *, gint, const gchar *, guint16 *);
-gint duidcpy(struct duid *, const struct duid *);
-gint duidcmp(const struct duid *, const struct duid *);
-void duidfree(struct duid *);
+gint duidcpy(duid_t *, const duid_t *);
+gint duidcmp(const duid_t *, const duid_t *);
+void duidfree(duid_t *);
 
 #endif /* __DUID_H_DEFINED */

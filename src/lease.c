@@ -343,7 +343,7 @@ gint dhcp6_get_prefixlen(struct in6_addr *addr, struct dhcp6_if *ifp) {
     return PREFIX_LEN_NOTINRA;
 }
 
-gint addr_on_addrlist(GSList *addrlist, struct dhcp6_addr *addr6) {
+gint addr_on_addrlist(GSList *addrlist, dhcp6_addr_t *addr6) {
     dhcp6_value_t *lv = NULL;
     GSList *iterator = addrlist;
 
@@ -409,7 +409,7 @@ guint32 get_max_validlifetime(dhcp6_iaidaddr_t *sp) {
 }
 
 dhcp6_lease_t *dhcp6_find_lease(dhcp6_iaidaddr_t *iaidaddr,
-                                struct dhcp6_addr *ifaddr) {
+                                dhcp6_addr_t *ifaddr) {
     dhcp6_lease_t *lease;
     GSList *iterator = iaidaddr->lease_list;
 

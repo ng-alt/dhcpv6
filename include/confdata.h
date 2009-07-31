@@ -34,17 +34,17 @@
 
 #define MAX_DEVICE 100
 
-struct hardware {
+typedef struct _hardware_t {
     guint16 type;
     guint8 len;
     guchar data[6];
-};
+} hardware_t;
 
-struct iaid_table {
+typedef struct _iaid_table_t {
     /* so far we support ethernet cards only */
-    struct hardware hwaddr;
+    hardware_t hwaddr;
     guint32 iaid;
-};
+} iaid_table_t;
 
 typedef struct _ra_info_t {
     struct in6_addr prefix;
@@ -84,7 +84,7 @@ struct dhcp6_if {
     GSList *ralist;
     dns_info_t dnsinfo;
     guint32 linkid;           /* to send link-local packets */
-    struct dhcp6_iaid_info iaidinfo;
+    dhcp6_iaid_info_t iaidinfo;
 
     guint16 ra_flag;
     guint16 link_flag;
@@ -115,7 +115,7 @@ typedef struct _dhcp6_event_t {
     struct dhcp6_if *ifp;
     dhcp6_timer_t *timer;
 
-    struct duid serverid;
+    duid_t serverid;
 
     /* internal timer parameters */
     struct timeval start_time;
@@ -148,7 +148,7 @@ struct dhcp6_serverinfo {
     struct dhcp6_serverinfo *next;
 
     /* option information provided in the advertisement */
-    struct dhcp6_optinfo optinfo;
+    dhcp6_optinfo_t optinfo;
     struct in6_addr server_addr;
     guint8 pref;                 /* preference */
     gint active;                 /* bool; if this server is active or not */
@@ -181,7 +181,7 @@ struct dhcp6_ifconf {
     gint server_pref;     /* server preference (server only) */
     guint32 default_irt;  /* default information refresh time (client only) */
     guint32 maximum_irt;  /* maximum information refresh time (client only) */
-    struct dhcp6_iaid_info iaidinfo;
+    dhcp6_iaid_info_t iaidinfo;
 
     GSList *prefix_list;
     GSList *addr_list;
@@ -190,14 +190,14 @@ struct dhcp6_ifconf {
     GSList *option_list;
 };
 
-struct prefix_ifconf {
+typedef struct _prefix_ifconf_t {
     gchar *ifname;               /* interface name such as eth0 */
     gint sla_len;                /* SLA ID length in bits */
     guint32 sla_id;              /* need more than 32bits? */
     gint ifid_len;               /* interface ID length in bits */
     gint ifid_type;              /* EUI-64 and manual (unused?) */
     gchar ifid[16];              /* Interface ID, up to 128bits */
-};
+} prefix_ifconf_t;
 
 #define IFID_LEN_DEFAULT 64
 #define SLA_LEN_DEFAULT 16
@@ -207,8 +207,8 @@ struct host_conf {
     struct host_conf *next;
 
     gchar *name;                 /* host name to identify the host */
-    struct duid duid;            /* DUID for the host */
-    struct dhcp6_iaid_info iaidinfo;
+    duid_t duid;                 /* DUID for the host */
+    dhcp6_iaid_info_t iaidinfo;
     struct in6_addr linklocal;
     /* delegated prefixes for the host: */
     GSList *prefix_list;
@@ -327,7 +327,7 @@ extern const gchar *configfilename;
 
 extern struct dhcp6_if *dhcp6_if;
 extern struct dhcp6_ifconf *dhcp6_iflist;
-extern struct prefix_ifconf *prefix_ifconflist;
+extern prefix_ifconf_t *prefix_ifconflist;
 extern dns_info_t dnsinfo;
 
 gint configure_interface(const struct cf_namelist *);

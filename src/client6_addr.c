@@ -84,7 +84,7 @@
 
 extern void run_script(struct dhcp6_if *, gint, gint, guint32);
 
-gint dhcp6_add_lease(struct dhcp6_addr *);
+gint dhcp6_add_lease(dhcp6_addr_t *);
 
 extern dhcp6_iaidaddr_t client6_iaidaddr;
 extern dhcp6_timer_t *client6_timo(void *);
@@ -98,7 +98,7 @@ extern GSList *request_list;
 
 /* BEGIN STATIC FUNCTIONS */
 
-static gint _dhcp6_update_lease(struct dhcp6_addr *addr, dhcp6_lease_t *sp) {
+static gint _dhcp6_update_lease(dhcp6_addr_t *addr, dhcp6_lease_t *sp) {
     struct timeval timo;
     gdouble d;
 
@@ -183,7 +183,7 @@ void dhcp6_init_iaidaddr(void) {
     client6_iaidaddr.lease_list = NULL;
 }
 
-gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia) {
+gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia) {
     dhcp6_value_t *lv = NULL;
     struct timeval timo;
     dhcp6_lease_t *cl_lease = NULL;
@@ -298,7 +298,7 @@ gint dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia) {
     return 0;
 }
 
-gint dhcp6_add_lease(struct dhcp6_addr *addr) {
+gint dhcp6_add_lease(dhcp6_addr_t *addr) {
     dhcp6_lease_t *sp;
     struct timeval timo;
     gdouble d;
@@ -459,7 +459,7 @@ gint dhcp6c_remove_lease(dhcp6_lease_t *sp) {
     return 0;
 }
 
-gint dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, ia_t *ia, gint flag) {
+gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia, gint flag) {
     dhcp6_value_t *lv = NULL;
     dhcp6_lease_t *cl = NULL;
     struct timeval timo;
@@ -774,7 +774,7 @@ dhcp6_timer_t *dhcp6_lease_timo(void *arg) {
     return sp->timer;
 }
 
-gint client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr) {
+gint client6_ifaddrconf(ifaddrconf_cmd_t cmd, dhcp6_addr_t *ifaddr) {
     struct in6_ifreq req;
     struct dhcp6_if *ifp = client6_iaidaddr.ifp;
     gulong ioctl_cmd;
@@ -822,10 +822,10 @@ gint client6_ifaddrconf(ifaddrconf_cmd_t cmd, struct dhcp6_addr *ifaddr) {
     return 0;
 }
 
-gint get_iaid(const gchar *ifname, const struct iaid_table *iaidtab,
+gint get_iaid(const gchar *ifname, const iaid_table_t *iaidtab,
               gint num_device) {
-    struct hardware hdaddr;
-    struct iaid_table *temp = (struct iaid_table *) iaidtab;
+    hardware_t hdaddr;
+    iaid_table_t *temp = (iaid_table_t *) iaidtab;
     gint i;
 
     hdaddr.len = gethwid(hdaddr.data, 6, ifname, &hdaddr.type);
@@ -845,8 +845,8 @@ gint get_iaid(const gchar *ifname, const struct iaid_table *iaidtab,
     return 0;
 }
 
-gint create_iaid(struct iaid_table *iaidtab, gint num_device) {
-    struct iaid_table *temp = iaidtab;
+gint create_iaid(iaid_table_t *iaidtab, gint num_device) {
+    iaid_table_t *temp = iaidtab;
     struct ifaddrs *ifa = NULL, *ifap = NULL;
     gint i;
     guint8 len;

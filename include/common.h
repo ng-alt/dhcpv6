@@ -48,7 +48,7 @@ do { \
 } while (0)
 
 #define COPY_OPTION(t, l, v, p) do { \
-    if ((void *)(ep) - (void *)(p) < (l) + sizeof(struct dhcp6opt)) { \
+    if ((void *)(ep) - (void *)(p) < (l) + sizeof(dhcp6opt_t)) { \
         g_message("%s: option buffer short for %s", \
                   __func__, dhcp6optstr((t))); \
         goto fail; \
@@ -58,8 +58,8 @@ do { \
     memcpy((p), &opth, sizeof(opth)); \
     if ((l)) \
         memcpy((p) + 1, (v), (l)); \
-    (p) = (struct dhcp6opt *)((gchar *)((p) + 1) + (l)); \
-    (len) += sizeof(struct dhcp6opt) + (l); \
+    (p) = (dhcp6opt_t *)((gchar *)((p) + 1) + (l)); \
+    (len) += sizeof(dhcp6opt_t) + (l); \
     g_debug("%s: set %s", __func__, dhcp6optstr((t))); \
 } while (0)
 
@@ -81,19 +81,17 @@ gint sa6_plen2mask(struct sockaddr_in6 *, gint);
 const gchar *getdev(struct sockaddr_in6 *);
 gint in6_addrscopebyif(struct in6_addr *, gchar *);
 gint in6_scope(struct in6_addr *);
-void dhcp6_init_options(struct dhcp6_optinfo *);
-void dhcp6_clear_options(struct dhcp6_optinfo *);
-gint dhcp6_copy_options(struct dhcp6_optinfo *, struct dhcp6_optinfo *);
-gint dhcp6_get_options(struct dhcp6opt *, struct dhcp6opt *,
-                       struct dhcp6_optinfo *);
-gint dhcp6_set_options(struct dhcp6opt *, struct dhcp6opt *,
-                       struct dhcp6_optinfo *);
+void dhcp6_init_options(dhcp6_optinfo_t *);
+void dhcp6_clear_options(dhcp6_optinfo_t *);
+gint dhcp6_copy_options(dhcp6_optinfo_t *, dhcp6_optinfo_t *);
+gint dhcp6_get_options(dhcp6opt_t *, dhcp6opt_t *, dhcp6_optinfo_t *);
+gint dhcp6_set_options(dhcp6opt_t *, dhcp6opt_t *, dhcp6_optinfo_t *);
 void dhcp6_set_timeoparam(dhcp6_event_t *);
 void dhcp6_reset_timer(dhcp6_event_t *);
 void ifinit(const gchar *);
 struct dhcp6_if *find_ifconfbyname(const gchar *);
 struct dhcp6_if *find_ifconfbyid(guint);
-struct prefix_ifconf *find_prefixifconf(const gchar *);
-struct host_conf *find_hostconf(const struct duid *);
+prefix_ifconf_t *find_prefixifconf(const gchar *);
+struct host_conf *find_hostconf(const duid_t *);
 
 #endif
