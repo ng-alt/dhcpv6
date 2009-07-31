@@ -4,6 +4,8 @@
 man5_MANS = dhcp6c.conf.man dhcp6s.conf.man
 man8_MANS = dhcp6c.man dhcp6r.man dhcp6s.man
 
+EXTRA_DIST = *.man.in
+
 CLEANFILES = *.man
 
 MAINTAINERCLEANFILES = Makefile.in
