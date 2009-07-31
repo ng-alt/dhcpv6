@@ -60,12 +60,12 @@ extern GHashTable *host_addr_hash_table;
 
 static GSList *ifnetworklist = NULL;
 static GSList *linklist = NULL;
-static struct host_decl *hostlist = NULL;
+static GSList *hostlist = NULL;
 static GSList *poollist = NULL;
 
 static server_interface_t *ifnetwork = NULL;
 static link_decl_t *link = NULL;
-static struct host_decl *host = NULL;
+static host_decl_t *host = NULL;
 static pool_decl_t *pool = NULL;
 static GSList *currentscope = NULL;
 static GSList *currentgroup = NULL;
@@ -592,9 +592,11 @@ grouphead
 
 hostdef
     : hosthead '{' hostbody '}' ';' {
-          struct host_decl *temp_host = hostlist;
+          GSList *iterator = hostlist;
 
-          while (temp_host) {
+          while (iterator) {
+              host_decl_t *temp_host = (host_decl_t *) iterator->data;
+
               if (temp_host->iaidinfo.iaid == host->iaidinfo.iaid) {
                   if (0 == duidcmp(&temp_host->cid, &host->cid)) {
                       g_error("duplicated host DUID=%s IAID=%u redefined",
@@ -603,16 +605,15 @@ hostdef
                   }
               }
 
-              temp_host = temp_host->next;
+              iterator = g_slist_next(iterator);
           }
 
           if (currentgroup) {
               host->group = (scope_t *) currentgroup->data;
           }
 
-          host->next = hostlist;
-          hostlist = host;
-          host = NULL;
+          hostlist = g_slist_append(hostlist, host);
+
           /* leave host scope we know the current scope is not point to NULL*/
           currentscope = g_slist_delete_link(currentscope, currentscope);
       }
@@ -621,18 +622,20 @@ hostdef
 
 hosthead
     : HOST name {
-          struct host_decl *temp_host = hostlist;
+          GSList *iterator = hostlist;
 
-          while (temp_host) {
+          while (iterator) {
+              host_decl_t *temp_host = (host_decl_t *) iterator->data;
+
               if (!strcmp(temp_host->name, $2)) {
                   g_error("duplicated host %s redefined", $2);
                   ABORT;
               }
 
-              temp_host = temp_host->next;
+              iterator = g_slist_next(iterator);
           }
 
-          host = (struct host_decl *) g_malloc0(sizeof(*host));
+          host = (host_decl_t *) g_malloc0(sizeof(*host));
           if (host == NULL) {
               g_error("fail to allocate memory");
               ABORT;

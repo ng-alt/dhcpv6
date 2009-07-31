@@ -59,10 +59,22 @@ typedef struct _server_interface_t {
     struct in6_addr primary_v6addr;
     struct in6_addr linklocal;
     GSList *linklist;
-    struct host_decl *hostlist;
+    GSList *hostlist;
     scope_t ifscope;
     scope_t *group;
 } server_interface_t;
+
+/* host declaration provides information about a particular DHCPv6 client */
+typedef struct _host_decl_t {
+    gchar name[IFNAMSIZ];
+    struct duid cid;
+    struct dhcp6_iaid_info iaidinfo;
+    GSList *addrlist;
+    GSList *prefixlist;
+    server_interface_t *network;
+    scope_t hostscope;
+    scope_t *group;
+} host_decl_t;
 
 struct rootgroup {
     scope_t scope;
@@ -127,19 +139,6 @@ typedef struct _v6prefix_t {
 } v6prefix_t;
 
 /* host declaration */
-
-/* host declaration provides information about a particular DHCPv6 client */
-struct host_decl {
-    struct host_decl *next;
-    gchar name[IFNAMSIZ];
-    struct duid cid;
-    struct dhcp6_iaid_info iaidinfo;
-    GSList *addrlist;
-    GSList *prefixlist;
-    server_interface_t *network;
-    scope_t hostscope;
-    scope_t *group;
-};
 
 gint is_anycast(struct in6_addr *, gint);
 extern void printf_in6addr(struct in6_addr *);

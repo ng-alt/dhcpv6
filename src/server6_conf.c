@@ -167,13 +167,13 @@ gint get_numleases(pool_decl_t *currentpool, gchar *poolfile) {
 void post_config(struct rootgroup *root) {
     server_interface_t *ifnetwork = NULL;
     link_decl_t *link = NULL;
-    struct host_decl *host = NULL;
+    host_decl_t *host = NULL;
     v6addrseg_t *seg = NULL;
     v6prefix_t *prefix6 = NULL;
     scope_t *current = NULL;
     scope_t *up = NULL;
     GSList *iterator = NULL, *link_iterator = NULL, *seg_iterator = NULL;
-    GSList *prefix_iterator = NULL;
+    GSList *prefix_iterator = NULL, *host_iterator;
 
     if (root->group) {
         _download_scope(root->group, &root->scope);
@@ -194,13 +194,18 @@ void post_config(struct rootgroup *root) {
         _download_scope(up, current);
         up = &ifnetwork->ifscope;
 
-        for (host = ifnetwork->hostlist; host; host = host->next) {
+        host_iterator = ifnetwork->hostlist;
+        while (host_iterator) {
+            host = (host_decl_t *) host_iterator->data;
+
             if (host->group) {
                 _download_scope(host->group, &host->hostscope);
             }
 
             current = &host->hostscope;
             _download_scope(up, current);
+
+            host_iterator = g_slist_next(host_iterator);
         }
 
         iterator = g_slist_next(iterator);

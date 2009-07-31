@@ -66,9 +66,9 @@ extern GHashTable *server6_hash_table;
 
 link_decl_t *dhcp6_allocate_link(struct dhcp6_if *, struct rootgroup *,
                                  struct in6_addr *);
-struct host_decl *dhcp6_allocate_host(struct dhcp6_if *, struct rootgroup *,
-                                      struct dhcp6_optinfo *);
-gint dhcp6_get_hostconf(ia_t *, ia_t *, dhcp6_iaidaddr_t *, struct host_decl *);
+host_decl_t *dhcp6_allocate_host(struct dhcp6_if *, struct rootgroup *,
+                                 struct dhcp6_optinfo *);
+gint dhcp6_get_hostconf(ia_t *, ia_t *, dhcp6_iaidaddr_t *, host_decl_t *);
 gint dhcp6_add_lease(dhcp6_iaidaddr_t *, struct dhcp6_addr *);
 gint dhcp6_update_lease(struct dhcp6_addr *, dhcp6_lease_t *);
 
@@ -281,16 +281,19 @@ static void _server6_get_prefixpara(struct dhcp6_addr *v6addr,
 
 /* END STATIC FUNCTIONS */
 
-struct host_decl *find_hostdecl(struct duid *duid, guint32 iaid,
-                                struct host_decl *hostlist) {
-    struct host_decl *host;
+host_decl_t *find_hostdecl(struct duid *duid, guint32 iaid,
+                           GSList *hostlist) {
+    host_decl_t *host;
+    GSList *iterator = hostlist;
 
-    for (host = hostlist; host; host = host->next) {
+    while (iterator) {
+        host = (host_decl_t *) iterator->data;
+
         if (!duidcmp(duid, &host->cid) && host->iaidinfo.iaid == iaid) {
             return host;
         }
 
-        continue;
+        iterator = g_slist_next(iterator);
     }
 
     return NULL;
@@ -747,7 +750,7 @@ dhcp6_timer_t *dhcp6_lease_timo(void *arg) {
 }
 
 gint dhcp6_get_hostconf(ia_t *ria, ia_t *ia, dhcp6_iaidaddr_t *iaidaddr,
-                        struct host_decl *host) {
+                        host_decl_t *host) {
     GSList *reply_list = ia->addr_list;
 
     if (!(host->hostscope.allow_flags & DHCIFF_TEMP_ADDRS)) {
@@ -994,10 +997,10 @@ gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
     return 0;
 }
 
-struct host_decl *dhcp6_allocate_host(struct dhcp6_if *ifp,
-                                      struct rootgroup *rootgroup,
-                                      struct dhcp6_optinfo *optinfo) {
-    struct host_decl *host = NULL;
+host_decl_t *dhcp6_allocate_host(struct dhcp6_if *ifp,
+                                 struct rootgroup *rootgroup,
+                                 struct dhcp6_optinfo *optinfo) {
+    host_decl_t *host = NULL;
     server_interface_t *ifnetwork = NULL;
     struct duid *duid = &optinfo->clientID;
     ia_t *ia = NULL;

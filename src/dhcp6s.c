@@ -107,7 +107,7 @@ gint iosock = -1;                /* inbound/outbound udp port */
 extern FILE *server6_lease_file;
 gchar server6_lease_temp[100];
 link_decl_t *subnet = NULL;
-struct host_decl *host = NULL;
+host_decl_t *host = NULL;
 struct rootgroup *globalgroup = NULL;
 
 #define DUID_FILE DB_FILE_PATH"/dhcp6s_duid"
@@ -120,11 +120,10 @@ struct rootgroup *globalgroup = NULL;
 
 extern link_decl_t *dhcp6_allocate_link(struct dhcp6_if *, struct rootgroup *,
                                         struct in6_addr *);
-extern struct host_decl *dhcp6_allocate_host(struct dhcp6_if *,
-                                             struct rootgroup *,
-                                             struct dhcp6_optinfo *);
+extern host_decl_t *dhcp6_allocate_host(struct dhcp6_if *, struct rootgroup *,
+                                        struct dhcp6_optinfo *);
 extern gint dhcp6_get_hostconf(ia_t *, ia_t *, dhcp6_iaidaddr_t *,
-                               struct host_decl *);
+                               host_decl_t *);
 
 /* BEGIN STATIC FUNCTIONS */
 
