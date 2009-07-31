@@ -130,11 +130,11 @@ struct in6_addr *inc_ipv6addr(struct in6_addr *current) {
     return current;
 }
 
-struct v6addr *getprefix(struct in6_addr *addr, gint len) {
+v6addr_t *getprefix(struct in6_addr *addr, gint len) {
     gint i, num_bytes;
-    struct v6addr *prefix;
+    v6addr_t *prefix = NULL;
 
-    prefix = (struct v6addr *) g_malloc0(sizeof(*prefix));
+    prefix = (v6addr_t *) g_malloc0(sizeof(*prefix));
     if (prefix == NULL) {
         g_error("%s: failed to allocate memory", __func__);
         return NULL;
@@ -164,7 +164,7 @@ gint get_numleases(pool_decl_t *currentpool, gchar *poolfile) {
     return 0;
 }
 
-void post_config(struct rootgroup *root) {
+void post_config(rootgroup_t *root) {
     server_interface_t *ifnetwork = NULL;
     link_decl_t *link = NULL;
     host_decl_t *host = NULL;

@@ -35,8 +35,6 @@
 #define DEFAULT_PREFERRED_LIFE_TIME 360000
 #define DEFAULT_VALID_LIFE_TIME 720000
 
-struct rootgroup *globalgroup;
-
 /* provide common paramters within scopes */
 typedef struct _scope_t {
     gint32 prefer_life_time;
@@ -76,16 +74,19 @@ typedef struct _host_decl_t {
     scope_t *group;
 } host_decl_t;
 
-struct rootgroup {
+typedef struct _rootgroup_t {
     scope_t scope;
     scope_t *group;
     GSList *iflist;
-};
+} rootgroup_t;
 
-struct v6addr {
+/* FIXME: remove this global */
+rootgroup_t *globalgroup;
+
+typedef struct _v6addr_t {
     struct in6_addr addr;
     guint8 plen;
-};
+} v6addr_t;
 
 /* link declaration */
 /* link declaration is used to provide the DHCPv6 server with enough   */
@@ -119,7 +120,7 @@ typedef struct _v6addrseg_t {
     struct in6_addr min;
     struct in6_addr max;
     struct in6_addr free;
-    struct v6addr prefix;
+    v6addr_t prefix;
     struct lease *active;
     struct lease *expired;
     struct lease *abandoned;
@@ -129,18 +130,17 @@ typedef struct _v6addrseg_t {
 typedef struct _v6prefix_t {
     link_decl_t *link;
     pool_decl_t *pool;
-    struct v6addr prefix;
+    v6addr_t prefix;
     scope_t parainfo;
 } v6prefix_t;
 
 /* host declaration */
 
 gint is_anycast(struct in6_addr *, gint);
-extern void printf_in6addr(struct in6_addr *);
-void post_config(struct rootgroup *);
+void post_config(rootgroup_t *);
 gint sfparse(const gchar *);
 gint ipv6addrcmp(struct in6_addr *, struct in6_addr *);
-struct v6addr *getprefix(struct in6_addr *, gint);
+v6addr_t *getprefix(struct in6_addr *, gint);
 struct in6_addr *inc_ipv6addr(struct in6_addr *);
 gint get_primary_ipv6addr(const gchar *);
 

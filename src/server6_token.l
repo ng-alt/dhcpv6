@@ -62,7 +62,7 @@ const gchar *configfilename;
 gint num_lines = 1;
 gint server6errorcount = 0;
 extern gint server6parse(void);
-extern struct rootgroup *globalgroup;
+extern rootgroup_t *globalgroup;
 
 %}
 

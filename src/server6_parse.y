@@ -313,14 +313,14 @@ relaylist
 
 relaypara
     : RELAY IPV6ADDR '/' NUMBER ';' {
-          struct v6addr *temprelay = NULL;
+          v6addr_t *temprelay = NULL;
 
           if (!link) {
               g_error("relay must be defined under link");
               ABORT;
           }
 
-          temprelay = (struct v6addr *) g_malloc0(sizeof(*temprelay));
+          temprelay = (v6addr_t *) g_malloc0(sizeof(*temprelay));
           if (temprelay == NULL) {
               g_error("failed to allocate memory");
               ABORT;
@@ -391,7 +391,7 @@ poolparas
 prefixdef
     : PREFIX IPV6ADDR '/' NUMBER ';' {
           v6prefix_t *v6prefix = NULL, *v6prefix0 = NULL;
-          struct v6addr *prefix = NULL;
+          v6addr_t *prefix = NULL;
           GSList *iterator = NULL;
 
           if (!link) {
@@ -448,7 +448,7 @@ prefixdef
 rangedef
     : RANGE IPV6ADDR TO IPV6ADDR '/' NUMBER ';' {
           v6addrseg_t *seg, *temp_seg;
-          struct v6addr *prefix1, *prefix2;
+          v6addr_t *prefix1, *prefix2;
           GSList *iterator = NULL;
 
           if (!link) {

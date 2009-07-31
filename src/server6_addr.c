@@ -64,9 +64,9 @@ extern GHashTable *host_addr_hash_table;
 extern GHashTable *lease_hash_table;
 extern GHashTable *server6_hash_table;
 
-link_decl_t *dhcp6_allocate_link(struct dhcp6_if *, struct rootgroup *,
+link_decl_t *dhcp6_allocate_link(struct dhcp6_if *, rootgroup_t *,
                                  struct in6_addr *);
-host_decl_t *dhcp6_allocate_host(struct dhcp6_if *, struct rootgroup *,
+host_decl_t *dhcp6_allocate_host(struct dhcp6_if *, rootgroup_t *,
                                  struct dhcp6_optinfo *);
 gint dhcp6_get_hostconf(ia_t *, ia_t *, dhcp6_iaidaddr_t *, host_decl_t *);
 gint dhcp6_add_lease(dhcp6_iaidaddr_t *, struct dhcp6_addr *);
@@ -139,7 +139,7 @@ static void _create_tempaddr(struct in6_addr *prefix, gint plen,
 
 static gint _addr_on_segment(v6addrseg_t *seg, struct dhcp6_addr *addr) {
     gint onseg = 0;
-    struct v6addr *prefix;
+    v6addr_t *prefix = NULL;
 
     g_debug("%s: checking address %s on segment", __func__,
             in6addr2str(&addr->addr, 0));
@@ -998,7 +998,7 @@ gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
 }
 
 host_decl_t *dhcp6_allocate_host(struct dhcp6_if *ifp,
-                                 struct rootgroup *rootgroup,
+                                 rootgroup_t *rootgroup,
                                  struct dhcp6_optinfo *optinfo) {
     host_decl_t *host = NULL;
     server_interface_t *ifnetwork = NULL;
@@ -1041,7 +1041,7 @@ host_decl_t *dhcp6_allocate_host(struct dhcp6_if *ifp,
 }
 
 link_decl_t *dhcp6_allocate_link(struct dhcp6_if *ifp,
-                                 struct rootgroup *rootgroup,
+                                 rootgroup_t *rootgroup,
                                  struct in6_addr *relay) {
     link_decl_t *link;
     server_interface_t *ifnetwork = NULL;
@@ -1072,7 +1072,7 @@ link_decl_t *dhcp6_allocate_link(struct dhcp6_if *ifp,
                     relay_iterator = link->relaylist;
 
                     while (relay_iterator) {
-                        struct v6addr *temp = (struct v6addr *) relay_iterator->data;
+                        v6addr_t *temp = (v6addr_t *) relay_iterator->data;
 
                         /* only compare the prefix configured to the relay
                          * link address */
