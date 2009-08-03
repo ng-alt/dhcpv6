@@ -64,30 +64,7 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
-#include "common.h"
-#include "server6_conf.h"
-#include "lease.h"
-#include "timer.h"
-#include "log.h"
-#include "str.h"
-#include "gfunc.h"
-
-typedef enum {
-    DHCP6_CONFINFO_PREFIX,
-    DHCP6_CONFINFO_ADDRS
-} dhcp6_conftype_t;
-
-typedef struct _dhcp6_binding_t {
-    dhcp6_conftype_t type;
-    duid_t clientid;
-    void *val;
-
-    guint32 duration;
-    dhcp6_timer_t *timer;
-} dhcp6_binding_t;
+#include "dhcp6s.h"
 
 static gchar pidfile[MAXPATHLEN];
 static gchar *device[MAX_DEVICE];
@@ -109,14 +86,6 @@ gchar server6_lease_temp[100];
 link_decl_t *subnet = NULL;
 host_decl_t *host = NULL;
 rootgroup_t *globalgroup = NULL;
-
-#define DUID_FILE DB_FILE_PATH"/dhcp6s_duid"
-#define DHCP6S_PIDFILE PID_FILE_PATH"/dhcp6s.pid"
-
-#define DH6_VALID_MESSAGE(a) \
-    (a == DH6_SOLICIT || a == DH6_REQUEST || a == DH6_RENEW || \
-     a == DH6_REBIND || a == DH6_CONFIRM || a == DH6_RELEASE || \
-     a == DH6_DECLINE || a == DH6_INFORM_REQ)
 
 extern link_decl_t *dhcp6_allocate_link(dhcp6_if_t *, rootgroup_t *,
                                         struct in6_addr *);
@@ -1330,7 +1299,7 @@ static dhcp6_timer_t *_check_lease_file_timo(void *arg) {
 
 /* END STATIC FUNCTIONS */
 
-void server6_init() {
+void server6_init(void) {
     struct addrinfo hints;
     struct addrinfo *res, *res2;
     gint error, skfd, i;

@@ -1,4 +1,25 @@
 /*
+ * lease.h
+ *
+ * Copyright (C) 2009  Red Hat, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation; either version 2.1 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author(s): David Cantrell <dcantrell@redhat.com>
+ */
+
+/*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
  *
@@ -32,24 +53,8 @@
 #ifndef __LEASE_H_DEFINED
 #define __LEASE_H_DEFINED
 
-#define LEASE_FILENAME_SIZE
-#define ADDR_UPDATE   0
-#define ADDR_REMOVE   1
-#define ADDR_VALIDATE 2
-#define ADDR_ABANDON  3
-
-#define PATH_SERVER6_LEASE DB_FILE_PATH"/server6.leases"
-#define PATH_CLIENT6_LEASE DB_FILE_PATH"/client6.leases"
-
-#define HASH_TABLE_COUNT 4
-
-#define PREFIX_LEN_NOTINRA 64
-#define MAX_FILE_SIZE 512*1024
-
-typedef enum {
-    IFADDRCONF_ADD,
-    IFADDRCONF_REMOVE
-} ifaddrconf_cmd_t;
+#include "constants.h"
+#include "types.h"
 
 dhcp6_iaidaddr_t client6_iaidaddr;
 FILE *server6_lease_file;
@@ -57,43 +62,16 @@ FILE *client6_lease_file;
 FILE *lease_file;
 FILE *sync_file;
 
-guint32 do_hash(const void *, guint8);
-gint get_linklocal(const gchar *, struct in6_addr *);
-void dhcp6_init_iaidaddr(void);
-gint dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *);
-gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *, ia_t *);
-gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *, ia_t *, gint);
-dhcp6_timer_t *dhcp6_iaidaddr_timo(void *);
-dhcp6_timer_t *dhcp6_lease_timo(void *);
-guint32 get_min_preferlifetime(dhcp6_iaidaddr_t *);
-guint32 get_max_validlifetime(dhcp6_iaidaddr_t *);
-dhcp6_iaidaddr_t *dhcp6_find_iaidaddr(duid_t *, guint32, iatype_t);
-dhcp6_lease_t *dhcp6_find_lease(dhcp6_iaidaddr_t *, dhcp6_addr_t *);
-gint dhcp6_validate_bindings(GSList *, dhcp6_iaidaddr_t *, gint);
-gint get_iaid(const gchar *, const iaid_table_t *, gint);
-gint create_iaid(iaid_table_t *, gint);
-FILE *init_leases(const gchar *);
-void lease_parse(FILE *);
-gint do_iaidaddr_hash(dhcp6_lease_t *, client6_if_t *);
 gint write_lease(const dhcp6_lease_t *, FILE *);
 FILE *sync_leases(FILE *, const gchar *, gchar *);
 dhcp6_timer_t *syncfile_timo(void *);
-guint addr_hash(const void *);
-guint iaid_hash(const void *);
-void *iaid_findkey(const void *);
-gint iaid_key_compare(const void *, const void *);
-void *lease_findkey(const void *);
-gint lease_key_compare(const void *, const void *);
-void *v6addr_findkey(const void *);
-gint v6addr_key_compare(const void *, const void *);
-gint client6_ifaddrconf(ifaddrconf_cmd_t, dhcp6_addr_t *);
-gint dhcp6_get_prefixlen(struct in6_addr *, dhcp6_if_t *);
+FILE *init_leases(const gchar *);
 gint prefixcmp(struct in6_addr *, struct in6_addr *, gint);
+gint get_linklocal(const gchar *, struct in6_addr *);
+gint dhcp6_get_prefixlen(struct in6_addr *, dhcp6_if_t *);
 gint addr_on_addrlist(GSList *, dhcp6_addr_t *);
-gint dhcp6_create_prefixlist(ia_t *, ia_t *, const dhcp6_iaidaddr_t *,
-                             const link_decl_t *, guint16 *);
-gint dhcp6_create_addrlist(ia_t *, ia_t *, const dhcp6_iaidaddr_t *,
-                           const link_decl_t *, guint16 *);
-gint dad_parse(const gchar *, GSList *);
+guint32 get_min_preferlifetime(dhcp6_iaidaddr_t *);
+guint32 get_max_validlifetime(dhcp6_iaidaddr_t *);
+dhcp6_lease_t *dhcp6_find_lease(dhcp6_iaidaddr_t *, dhcp6_addr_t *);
 
 #endif /* __LEASE_H_DEFINED */

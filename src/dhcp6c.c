@@ -84,17 +84,7 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
-#include "common.h"
-#include "timer.h"
-#include "server6_conf.h"
-#include "lease.h"
-#include "str.h"
-#include "log.h"
-#include "gfunc.h"
-#include "client6_addr.h"
+#include "dhcp6c.h"
 
 /* External globals */
 extern gchar *raproc_file;
@@ -130,15 +120,6 @@ static gchar leasename[MAXPATHLEN];
 static gchar *path_client6_lease = PATH_CLIENT6_LEASE;
 static gchar *pidfile = DHCP6C_PIDFILE;
 static gchar *duidfile = DHCP6C_DUID_FILE;
-
-/* Prototypes */
-dhcp6_timer_t *client6_timo(void *);
-void run_script(dhcp6_if_t *, gint, gint, guint32);
-gint client6_send_newstate(dhcp6_if_t *, gint);
-void free_servers(dhcp6_if_t *);
-void client6_send(dhcp6_event_t *);
-gint get_if_rainfo(dhcp6_if_t *);
-gint client6_init(gchar *);
 
 /* BEGIN STATIC FUNCTIONS */
 

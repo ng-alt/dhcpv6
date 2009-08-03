@@ -57,12 +57,7 @@
 #include <netdb.h>
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
-#include "common.h"
 #include "str.h"
-#include "gfunc.h"
 
 gchar *addr2str(struct sockaddr *sa, socklen_t salen) {
     static gchar addrbuf[8][NI_MAXHOST + 1];

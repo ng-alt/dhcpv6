@@ -1,5 +1,5 @@
 /*
- * client6_addr.h
+ * dhcp6s.h
  *
  * Copyright (C) 2009  Red Hat, Inc.
  *
@@ -19,21 +19,13 @@
  * Author(s): David Cantrell <dcantrell@redhat.com>
  */
 
-#ifndef __CLIENT6_ADDR_H_DEFINED
-#define __CLIENT6_ADDR_H_DEFINED
+#ifndef __DHCP6S_H_DEFINED
+#define __DHCP6S_H_DEFINED
 
+#include "constants.h"
 #include "types.h"
+#include "macros.h"
 
-void dhcp6_init_iaidaddr(void);
-gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *, ia_t *);
-gint dhcp6_add_lease(dhcp6_addr_t *);
-gint dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *);
-gint dhcp6c_remove_lease(dhcp6_lease_t *);
-gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *, ia_t *, gint);
-dhcp6_timer_t *dhcp6_iaidaddr_timo(void *);
-dhcp6_timer_t *dhcp6_lease_timo(void *);
-gint client6_ifaddrconf(ifaddrconf_cmd_t, dhcp6_addr_t *);
-gint get_iaid(const gchar *, const iaid_table_t *, gint);
-gint create_iaid(iaid_table_t *, gint);
+void server6_init(void);
 
-#endif /* __CLIENT6_ADDR_H_DEFINED */
+#endif /* __DHCP6S_H_DEFINED */

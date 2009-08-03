@@ -404,4 +404,23 @@ enum {
 #define MARK_CLEAR 0x00
 #define MARK_REMOVE 0x01
 
+enum {
+    DHCPOPTCODE_SEND,
+    DHCPOPTCODE_REQUEST,
+    DHCPOPTCODE_ALLOW
+};
+
+#define DAD_FLAGS 0xC0
+
+#define DHCP6R_PIDFILE PID_FILE_PATH"/dhcp6r.pid"
+
+#define DUID_FILE DB_FILE_PATH"/dhcp6s_duid"
+#define DHCP6S_PIDFILE PID_FILE_PATH"/dhcp6s.pid"
+
+#ifndef IPV6_2292PKTINFO
+#define IPV6_2292PKTINFO IPV6_PKTINFO
+#endif
+
+#define MILLION 1000000
+
 #endif /* __CONSTANTS_H_DEFINED */

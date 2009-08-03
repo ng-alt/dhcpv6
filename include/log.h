@@ -54,14 +54,7 @@
 #ifndef __LOG_H_DEFINED
 #define __LOG_H_DEFINED
 
-typedef struct _log_properties {
-    gboolean foreground;
-    gboolean verbose;
-    gboolean debug;
-    GLogLevelFlags threshold;
-    gchar *progname;
-    pid_t pid;
-} log_properties_t;
+#include "types.h"
 
 void setup_logging(gchar *, log_properties_t *);
 void log_handler(const gchar *, GLogLevelFlags, const gchar *, gpointer);

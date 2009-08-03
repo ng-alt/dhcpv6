@@ -30,23 +30,10 @@
 #ifndef __DHCP6R_H_DEFINED
 #define __DHCP6R_H_DEFINED
 
-#define MAX_DHCP_MSG_LENGTH        1400
-#define MESSAGE_HEADER_LENGTH      4
-#define ALL_DHCP_SERVERS           "FF05::1:3"
-#define ALL_DHCP_RELAY_AND_SERVERS "FF02::1:2"
-#define INET6_LEN                  16
-#define OPAQ                       5000    // opaq value for interface id
-#define HEAD_SIZE                  400
-#define HOP_COUNT_LIMIT            30
-#define INTERFACEINFO              "/proc/net/if_inet6"
-#define MAXHOPCOUNT                32
-#define SERVER_PORT                547
-#define CLIENT_PORT                546
+#include "constants.h"
 
-#define OPTION_RELAY_MSG    9
-#define OPTION_INTERFACE_ID 18
-
+void command_text(void);
 gchar *dhcp6r_clock(void);
-void handler(gint signo);
+void handler(gint);
 
 #endif /* __DHCP6R_H_DEFINED */

@@ -1,3 +1,24 @@
+/*
+ * timer.h
+ *
+ * Copyright (C) 2009  Red Hat, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation; either version 2.1 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author(s): David Cantrell <dcantrell@redhat.com>
+ */
+
 /* ported from KAME: timer.h,v 1.1 2002/05/16 06:04:08 jinmei Exp */
 
 /*
@@ -32,32 +53,15 @@
 #ifndef __TIMER_H_DEFINED
 #define __TIMER_H_DEFINED
 
-/* a < b */
-#define TIMEVAL_LT(a, b)           \
-    (((a).tv_sec < (b).tv_sec) ||  \
-    (((a).tv_sec == (b).tv_sec) && \
-    ((a).tv_usec < (b).tv_usec)))
+#include "constants.h"
+#include "macros.h"
 
-/* a <= b */
-#define TIMEVAL_LEQ(a, b)          \
-    (((a).tv_sec < (b).tv_sec) ||  \
-    (((a).tv_sec == (b).tv_sec) && \
-    ((a).tv_usec <= (b).tv_usec)))
-
-/* a == b */
-#define TIMEVAL_EQUAL(a, b)      \
-    ((a).tv_sec == (b).tv_sec && \
-    (a).tv_usec == (b).tv_usec)
-
-#define MARK_CLEAR 0x00
-#define MARK_REMOVE 0x01
-
+void timeval_sub(struct timeval *, struct timeval *, struct timeval *);
 void dhcp6_timer_init(void);
-dhcp6_timer_t *dhcp6_add_timer(dhcp6_timer_t * (*)(void *), void *);
-void dhcp6_set_timer(struct timeval *, dhcp6_timer_t *);
+dhcp6_timer_t *dhcp6_add_timer(dhcp6_timer_t *(*timeout) (void *), void *);
 void dhcp6_remove_timer(dhcp6_timer_t *);
+void dhcp6_set_timer(struct timeval *, dhcp6_timer_t *);
 struct timeval *dhcp6_check_timer(void);
 struct timeval *dhcp6_timer_rest(dhcp6_timer_t *);
-void timeval_sub(struct timeval *, struct timeval *, struct timeval *);
 
 #endif /* __TIMER_H_DEFINED */

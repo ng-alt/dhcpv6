@@ -37,14 +37,7 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
-#include "common.h"
-#include "dhcp6r.h"
-#include "relay6_parser.h"
 #include "relay6_database.h"
-#include "gfunc.h"
 
 void init_relay(void) {
     nr_of_uni_addr = 0;

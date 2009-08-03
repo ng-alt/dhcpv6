@@ -1,4 +1,25 @@
 /*
+ * relay6_socket.h
+ *
+ * Copyright (C) 2009  Red Hat, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation; either version 2.1 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author(s): David Cantrell <dcantrell@redhat.com>
+ */
+
+/*
  * Copyright (C) NEC Europe Ltd., 2003
  * All rights reserved.
  * 
@@ -30,34 +51,21 @@
 #ifndef __RELAY6_SOCKET_H_DEFINED
 #define __RELAY6_SOCKET_H_DEFINED
 
+#include "constants.h"
+#include "types.h"
+
 fd_set readfd;
 gint fdmax;
 
-typedef struct _relay_socket_t {
-    struct msghdr msg;
-    struct iovec iov[1];
-    struct cmsghdr *cmsgp;
-    struct sockaddr_in6 sin6;   /* my address information */
-    struct sockaddr_in6 from;
-    gint recvmsglen;
-    gchar *recvp;
-    gchar src_addr[INET6_ADDRSTRLEN];
-    gint pkt_interface;
-    gint buflength;
-    gint dst_addr_type;
-    gchar *databuf;
-    gint sock_desc;
-} relay_socket_t;
-
 relay_socket_t *relaysock;
 
-gint send_message(void);
-gint fill_addr_struct(void);
-gint set_sock_opt(void);
-gint recv_data(void);
-gint check_select(void);
-gint get_recv_data(void);
-gint get_interface_info(void);
 void init_socket(void);
+gint get_recv_data(void);
+gint check_select(void);
+gint set_sock_opt(void);
+gint fill_addr_struct(void);
+gint recv_data(void);
+gint get_interface_info(void);
+gint send_message(void);
 
 #endif /* __RELAY6_SOCKET_H_DEFINED */

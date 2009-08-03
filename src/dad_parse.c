@@ -65,27 +65,9 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
-#include "common.h"
-#include "server6_conf.h"
-#include "lease.h"
-#include "str.h"
+#include "dad_parse.h"
 
 extern dhcp6_if_t *dhcp6_if;
-
-#define DAD_FLAGS 0xC0
-
-struct ifproc_info {
-    struct ifproc_info *next;
-    struct in6_addr addr;
-    gchar name[IF_NAMESIZE];
-    gint index;
-    gint plen;
-    gint scope;
-    gint flags;
-};
 
 gint dad_parse(const gchar *file, GSList *dad_list) {
     gint i = 0;
@@ -96,7 +78,7 @@ gint dad_parse(const gchar *file, GSList *dad_list) {
     gchar addrbuf[64];
     gchar *tmp = NULL;
     struct in6_addr addr6;
-    struct ifproc_info *ifinfo = NULL;
+    ifproc_info_t *ifinfo = NULL;
 
     if (file == NULL) {
         g_error("dad_parse: NULL filename");

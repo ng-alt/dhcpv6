@@ -24,11 +24,7 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
 #include "gfunc.h"
-#include "str.h"
 
 /* FIXME: convert to IN6_ARE_ADDR_EQUAL */
 gint _find_in6_addr(gconstpointer a, gconstpointer b) {

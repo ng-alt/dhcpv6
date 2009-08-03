@@ -63,8 +63,6 @@
 #include <glib.h>
 
 #include "duid.h"
-#include "dhcp6.h"
-#include "str.h"
 
 gint configure_duid(const gchar *str, duid_t *duid) {
     const gchar *cp;

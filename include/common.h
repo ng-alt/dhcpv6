@@ -29,57 +29,34 @@
  * SUCH DAMAGE.
  */
 
-#ifndef COMMON_H_DEFINED
+#ifndef __COMMON_H_DEFINED
+#define __COMMON_H_DEFINED
 
-#define COMMON_H_DEFINED 1
+#include "constants.h"
+#include "types.h"
+#include "macros.h"
 
-#define IN6_IFF_INVALID -1
-
-#define DPRINT_STATUS_CODE(object, num, optp, optlen) \
-do { \
-    g_message("status code of this %s is: %d - %s", \
-              (object), (num), dhcp6_stcodestr((num))); \
-    if ((optp) != NULL && (optlen) > sizeof(guint16)) { \
-        g_message("status message of this %s is: %-*s", \
-                  (object), \
-                  (optlen) - (gint) sizeof(guint16), \
-                  (gchar *) (optp) + sizeof(guint16)); \
-    } \
-} while (0)
-
-#define COPY_OPTION(t, l, v, p) do { \
-    if ((void *)(ep) - (void *)(p) < (l) + sizeof(dhcp6opt_t)) { \
-        g_message("%s: option buffer short for %s", \
-                  __func__, dhcp6optstr((t))); \
-        goto fail; \
-    } \
-    opth.dh6opt_type = htons((t)); \
-    opth.dh6opt_len = htons((l)); \
-    memcpy((p), &opth, sizeof(opth)); \
-    if ((l)) \
-        memcpy((p) + 1, (v), (l)); \
-    (p) = (dhcp6opt_t *)((gchar *)((p) + 1) + (l)); \
-    (len) += sizeof(dhcp6opt_t) + (l); \
-    g_debug("%s: set %s", __func__, dhcp6optstr((t))); \
-} while (0)
-
-/* common.c */
+dhcp6_if_t *find_ifconfbyname(const gchar *);
+dhcp6_if_t *find_ifconfbyid(guint);
+host_conf_t *find_hostconf(const duid_t *);
+void ifinit(const gchar *);
 gint dhcp6_copy_list(GSList *, const GSList *);
 dhcp6_value_t *dhcp6_find_listval(GSList *, void *, dhcp6_listval_type_t);
 dhcp6_value_t *dhcp6_add_listval(GSList *, void *, dhcp6_listval_type_t);
-ia_t *ia_create_listval();
+ia_t *ia_create_listval(void);
 void ia_clear_list(GSList *);
 gint ia_copy_list(GSList *, GSList *);
 ia_t *ia_find_listval(GSList *, iatype_t, guint32);
 dhcp6_event_t *dhcp6_create_event(dhcp6_if_t *, gint);
 void dhcp6_remove_event(gpointer, gpointer);
-gint getifaddr(struct in6_addr *, gchar *, struct in6_addr *, gint, gint, gint);
+gint getifaddr(struct in6_addr *, gchar *, struct in6_addr *,
+               gint, gint, gint);
+gint in6_addrscopebyif(struct in6_addr *, gchar *);
+const gchar *getdev(struct sockaddr_in6 *);
 gint transmit_sa(gint, struct sockaddr_in6 *, gchar *, size_t);
 glong random_between(glong, glong);
 gint prefix6_mask(struct in6_addr *, gint);
 gint sa6_plen2mask(struct sockaddr_in6 *, gint);
-const gchar *getdev(struct sockaddr_in6 *);
-gint in6_addrscopebyif(struct in6_addr *, gchar *);
 gint in6_scope(struct in6_addr *);
 void dhcp6_init_options(dhcp6_optinfo_t *);
 void dhcp6_clear_options(dhcp6_optinfo_t *);
@@ -88,10 +65,5 @@ gint dhcp6_get_options(dhcp6opt_t *, dhcp6opt_t *, dhcp6_optinfo_t *);
 gint dhcp6_set_options(dhcp6opt_t *, dhcp6opt_t *, dhcp6_optinfo_t *);
 void dhcp6_set_timeoparam(dhcp6_event_t *);
 void dhcp6_reset_timer(dhcp6_event_t *);
-void ifinit(const gchar *);
-dhcp6_if_t *find_ifconfbyname(const gchar *);
-dhcp6_if_t *find_ifconfbyid(guint);
-prefix_ifconf_t *find_prefixifconf(const gchar *);
-host_conf_t *find_hostconf(const duid_t *);
 
-#endif
+#endif /* __COMMON_H_INCLUDE */

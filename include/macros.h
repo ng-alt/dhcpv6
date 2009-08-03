@@ -118,5 +118,11 @@ do { \
     ((a).tv_sec == (b).tv_sec && \
     (a).tv_usec == (b).tv_usec)
 
+#define DH6_VALID_MESSAGE(a) \
+    (a == DH6_SOLICIT || a == DH6_REQUEST || a == DH6_RENEW || \
+     a == DH6_REBIND || a == DH6_CONFIRM || a == DH6_RELEASE || \
+     a == DH6_DECLINE || a == DH6_INFORM_REQ) 
+
+#define NMASK(n) htonl((1<<(n))-1)
 
 #endif /* __MACROS_H_DEFINED */

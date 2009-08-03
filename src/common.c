@@ -59,15 +59,7 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
 #include "common.h"
-#include "timer.h"
-#include "server6_conf.h"
-#include "lease.h"
-#include "gfunc.h"
-#include "str.h"
 
 extern gchar *script;
 
@@ -802,7 +794,7 @@ ia_t *ia_find_listval(GSList *head, iatype_t type, guint32 iaid) {
     return NULL;
 }
 
-dhcp6_event_t *dhcp6_create_event(dhcp6_if_t *ifp, int state) {
+dhcp6_event_t *dhcp6_create_event(dhcp6_if_t *ifp, gint state) {
     dhcp6_event_t *ev;
 
     static guint32 counter = 0;
@@ -850,12 +842,12 @@ void dhcp6_remove_event(gpointer data, gpointer user_data) {
     return;
 }
 
-int getifaddr(struct in6_addr *addr, gchar *ifnam, struct in6_addr *prefix,
-              int plen, int strong, int ignoreflags) {
+gint getifaddr(struct in6_addr *addr, gchar *ifnam, struct in6_addr *prefix,
+               gint plen, gint strong, gint ignoreflags) {
     struct ifaddrs *ifap, *ifa;
     struct sockaddr_in6 sin6;
 
-    int error = -1;
+    gint error = -1;
 
     if (getifaddrs(&ifap) != 0) {
         err(1, "getifaddr: getifaddrs");
@@ -924,7 +916,7 @@ int getifaddr(struct in6_addr *addr, gchar *ifnam, struct in6_addr *prefix,
     return error;
 }
 
-int in6_addrscopebyif(struct in6_addr *addr, gchar *ifnam) {
+gint in6_addrscopebyif(struct in6_addr *addr, gchar *ifnam) {
     guint ifindex;
 
     if ((ifindex = if_nametoindex(ifnam)) == 0) {
@@ -981,8 +973,8 @@ const gchar *getdev(struct sockaddr_in6 *addr) {
     return (ifa ? ret_ifname : NULL);
 }
 
-int transmit_sa(int s, struct sockaddr_in6 *sa, gchar *buf, size_t len) {
-    int error;
+gint transmit_sa(gint s, struct sockaddr_in6 *sa, gchar *buf, size_t len) {
+    gint error;
 
     error = sendto(s, buf, len, MSG_DONTROUTE, (struct sockaddr *) sa,
                    sizeof(*sa));
@@ -990,8 +982,8 @@ int transmit_sa(int s, struct sockaddr_in6 *sa, gchar *buf, size_t len) {
     return (error != len) ? -1 : 0;
 }
 
-long random_between(long x, long y) {
-    long ratio;
+glong random_between(glong x, glong y) {
+    glong ratio;
 
     ratio = 1 << 16;
 
@@ -1002,10 +994,9 @@ long random_between(long x, long y) {
     return x + ((y - x) * (ratio - 1) / random() & (ratio - 1));
 }
 
-int prefix6_mask(struct in6_addr *in6, int plen) {
+gint prefix6_mask(struct in6_addr *in6, gint plen) {
     struct sockaddr_in6 mask6;
-
-    int i;
+    gint i;
 
     if (sa6_plen2mask(&mask6, plen)) {
         return -1;
@@ -1018,7 +1009,7 @@ int prefix6_mask(struct in6_addr *in6, int plen) {
     return 0;
 }
 
-int sa6_plen2mask(struct sockaddr_in6 *sa6, int plen) {
+gint sa6_plen2mask(struct sockaddr_in6 *sa6, gint plen) {
     guchar *cp;
 
     if (plen < 0 || plen > 128) {
@@ -1037,8 +1028,8 @@ int sa6_plen2mask(struct sockaddr_in6 *sa6, int plen) {
 }
 
 /* return IPv6 address scope type. caller assumes that smaller is narrower. */
-int in6_scope(struct in6_addr *addr) {
-    int scope;
+gint in6_scope(struct in6_addr *addr) {
+    gint scope;
 
     if (addr->s6_addr[0] == 0xfe) {
         scope = addr->s6_addr[1] & 0xc0;
@@ -1112,7 +1103,7 @@ void dhcp6_clear_options(dhcp6_optinfo_t *optinfo) {
     dhcp6_init_options(optinfo);
 }
 
-int dhcp6_copy_options(dhcp6_optinfo_t *dst, dhcp6_optinfo_t *src) {
+gint dhcp6_copy_options(dhcp6_optinfo_t *dst, dhcp6_optinfo_t *src) {
     if (duidcpy(&dst->clientID, &src->clientID)) {
         goto fail;
     }
@@ -1147,8 +1138,8 @@ fail:
     return -1;
 }
 
-int dhcp6_get_options(dhcp6opt_t *p, dhcp6opt_t *ep,
-                      dhcp6_optinfo_t *optinfo) {
+gint dhcp6_get_options(dhcp6opt_t *p, dhcp6opt_t *ep,
+                       dhcp6_optinfo_t *optinfo) {
     dhcp6opt_t *np, opth;
     ia_t *ia;
     gint i, opt, optlen, reqopts, num;
@@ -1439,8 +1430,8 @@ fail:
     return -1;
 }
 
-int dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
-                      dhcp6_optinfo_t *optinfo) {
+gint dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
+                       dhcp6_optinfo_t *optinfo) {
     dhcp6opt_t *p = bp, opth;
     gint len = 0, optlen = 0;
     guchar *tmpbuf = NULL;

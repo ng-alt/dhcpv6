@@ -50,13 +50,52 @@
 #include <glib.h>
 
 #include "dhcp6r.h"
-#include "relay6_parser.h"
-#include "relay6_socket.h"
-#include "relay6_database.h"
-
-#define DHCP6R_PIDFILE PID_FILE_PATH"/dhcp6r.pid"
 
 static gchar pidfile[MAXPATHLEN];
+
+void command_text(void) {
+    printf("Usage:\n");
+    printf
+        ("       dhcp6r [-p pidfile] [-d] [-cu] [-cm <interface>] [-sm <interface>] "
+         "[-su <address>] [-sf <interface>+<address>] \n");
+    exit(1);
+}
+
+gchar *dhcp6r_clock(void) {
+    time_t tim;
+    gchar *s, *p;
+
+    time(&tim);
+    s = ctime(&tim);
+
+    p = s;
+    do {
+        p = strstr(p, " ");
+
+        if (p != NULL) {
+            if (*(p - 1) == '/') {
+                *p = '0';
+            } else {
+                *p = '/';
+            }
+        }
+    } while (p != NULL);
+
+    p = strstr(s, "\n");
+    if (p != NULL) {
+        *p = '\0';
+    }
+
+    return s;
+}
+
+void handler(gint signo) {
+    close(relaysock->sock_desc);
+    g_debug("%s: relay agent stopping", __func__);
+    unlink(pidfile);
+
+    exit(0);
+}
 
 gint main(gint argc, gchar **argv) {
     gint err = 0, i;
@@ -272,48 +311,4 @@ ERROR:
     }
 
     exit(1);
-}
-
-void command_text(void) {
-    printf("Usage:\n");
-    printf
-        ("       dhcp6r [-p pidfile] [-d] [-cu] [-cm <interface>] [-sm <interface>] "
-         "[-su <address>] [-sf <interface>+<address>] \n");
-    exit(1);
-}
-
-gchar *dhcp6r_clock(void) {
-    time_t tim;
-    gchar *s, *p;
-
-    time(&tim);
-    s = ctime(&tim);
-
-    p = s;
-    do {
-        p = strstr(p, " ");
-
-        if (p != NULL) {
-            if (*(p - 1) == '/') {
-                *p = '0';
-            } else {
-                *p = '/';
-            }
-        }
-    } while (p != NULL);
-
-    p = strstr(s, "\n");
-    if (p != NULL) {
-        *p = '\0';
-    }
-
-    return s;
-}
-
-void handler(gint signo) {
-    close(relaysock->sock_desc);
-    g_debug("%s: relay agent stopping", __func__);
-    unlink(pidfile);
-
-    exit(0);
 }

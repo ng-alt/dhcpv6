@@ -1,5 +1,5 @@
 /*
- * client6_addr.h
+ * dhcp6c.h
  *
  * Copyright (C) 2009  Red Hat, Inc.
  *
@@ -19,21 +19,18 @@
  * Author(s): David Cantrell <dcantrell@redhat.com>
  */
 
-#ifndef __CLIENT6_ADDR_H_DEFINED
-#define __CLIENT6_ADDR_H_DEFINED
+#ifndef __DHCP6C_H_DEFINED
+#define __DHCP6C_H_DEFINED
 
+#include "constants.h"
 #include "types.h"
 
-void dhcp6_init_iaidaddr(void);
-gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *, ia_t *);
-gint dhcp6_add_lease(dhcp6_addr_t *);
-gint dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *);
-gint dhcp6c_remove_lease(dhcp6_lease_t *);
-gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *, ia_t *, gint);
-dhcp6_timer_t *dhcp6_iaidaddr_timo(void *);
-dhcp6_timer_t *dhcp6_lease_timo(void *);
-gint client6_ifaddrconf(ifaddrconf_cmd_t, dhcp6_addr_t *);
-gint get_iaid(const gchar *, const iaid_table_t *, gint);
-gint create_iaid(iaid_table_t *, gint);
+gint client6_init(gchar *);
+gint get_if_rainfo(dhcp6_if_t *);
+void client6_send(dhcp6_event_t *);
+void free_servers(dhcp6_if_t *);
+gint client6_send_newstate(dhcp6_if_t *, gint);
+void run_script(dhcp6_if_t *, gint, gint, guint32);
+dhcp6_timer_t *client6_timo(void *);
 
-#endif /* __CLIENT6_ADDR_H_DEFINED */
+#endif /* __DHCP6C_H_DEFINED */

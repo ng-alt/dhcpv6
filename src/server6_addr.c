@@ -48,29 +48,12 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
-#include "server6_conf.h"
-#include "lease.h"
-#include "common.h"
-#include "timer.h"
-#include "str.h"
 #include "server6_addr.h"
-#include "gfunc.h"
 
 extern FILE *server6_lease_file;
 extern GHashTable *host_addr_hash_table;
 extern GHashTable *lease_hash_table;
 extern GHashTable *server6_hash_table;
-
-link_decl_t *dhcp6_allocate_link(dhcp6_if_t *, rootgroup_t *,
-                                 struct in6_addr *);
-host_decl_t *dhcp6_allocate_host(dhcp6_if_t *, rootgroup_t *,
-                                 dhcp6_optinfo_t *);
-gint dhcp6_get_hostconf(ia_t *, ia_t *, dhcp6_iaidaddr_t *, host_decl_t *);
-gint dhcp6_add_lease(dhcp6_iaidaddr_t *, dhcp6_addr_t *);
-gint dhcp6_update_lease(dhcp6_addr_t *, dhcp6_lease_t *);
 
 /* BEGIN STATIC FUNCTIONS */
 

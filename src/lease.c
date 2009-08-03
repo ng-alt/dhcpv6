@@ -55,13 +55,7 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
-#include "common.h"
-#include "server6_conf.h"
 #include "lease.h"
-#include "str.h"
 
 extern dhcp6_iaidaddr_t client6_iaidaddr;
 extern FILE *server6_lease_file;

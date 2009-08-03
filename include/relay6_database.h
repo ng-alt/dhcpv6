@@ -30,16 +30,7 @@
 #ifndef __RELAY6_DATABASE_H_DEFINED
 #define __RELAY6_DATABASE_H_DEFINED
 
-typedef struct _relay_interface_t {
-    GSList *sname;
-    GSList *ipv6addr;
-
-    gint got_addr;
-    gchar *ifname;
-    guint32 devindex;
-    gchar *link_local;
-    gint opaq;
-} relay_interface_t;
+#include "types.h"
 
 GSList *cifaces_list;
 GSList *sifaces_list;
@@ -49,19 +40,17 @@ GSList *IPv6_address_list;
 GSList *IPv6_uniaddr_list;
 GSList *relay_interface_list;
 
-gint process_RELAY_FORW(relay_msg_parser_t * msg);
-gint process_RELAY_REPL(relay_msg_parser_t * msg);
-relay_msg_parser_t *get_send_messages_out(void);
-gint check_interface_semafor(gint index);
-relay_interface_t *get_interface(gint if_index);
-relay_interface_t *get_interface_s(gchar *s);
-
 gint nr_of_devices;
 gint nr_of_uni_addr;
 gint max_count;
 gint multicast_off;
 
 void init_relay(void);
-void command_text(void);
+gint check_interface_semafor(gint);
+relay_interface_t *get_interface(gint);
+relay_interface_t *get_interface_s(gchar *);
+relay_msg_parser_t *get_send_messages_out(void);
+gint process_RELAY_FORW(relay_msg_parser_t *);
+gint process_RELAY_REPL(relay_msg_parser_t *);
 
 #endif /* __RELAY6_DATABASE_H_DEFINED */

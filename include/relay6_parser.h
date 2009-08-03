@@ -1,4 +1,25 @@
 /*
+ * relay6_parser.h
+ *
+ * Copyright (C) 2009  Red Hat, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation; either version 2.1 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author(s): David Cantrell <dcantrell@redhat.com>
+ */
+
+/*
  * Copyright (C) NEC Europe Ltd., 2003
  * All rights reserved.
  * 
@@ -30,28 +51,12 @@
 #ifndef __RELAY6_PARSER_H_DEFINED
 #define __RELAY6_PARSER_H_DEFINED
 
-typedef struct _relay_msg_parser_t {
-    gint if_index;
-    guint8 msg_type;
-    guint8 hop;
-    guint8 *buffer;
-    guint8 *ptomsg;
-    guint8 *pstart, *pointer_start, *hc_pointer;
-    guint32 datalength;        /* the length of the DHCPv6 message */
-    gint dst_addr_type;
-    gchar src_addr[INET6_ADDRSTRLEN];    /* source address from the UDP packet 
-                                          */
-    gchar peer_addr[INET6_ADDRSTRLEN];
-    gchar link_addr[INET6_ADDRSTRLEN];
-    gint interface_in, hop_count;
-    gint sent;
-    gint isRF;
-} relay_msg_parser_t;
+#include "types.h"
 
 GSList *relay_msg_parser_list;
 
 relay_msg_parser_t *create_parser_obj(void);
-gint put_msg_in_store(relay_msg_parser_t *mesg);
-gint check_buffer(gint ref, relay_msg_parser_t *mesg);
+gint check_buffer(gint ref, relay_msg_parser_t *);
+gint put_msg_in_store(relay_msg_parser_t *);
 
 #endif /* __RELAY6_PARSER_H_DEFINED */

@@ -71,20 +71,9 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
-#include "common.h"
-#include "timer.h"
-#include "server6_conf.h"
-#include "lease.h"
-#include "str.h"
-#include "gfunc.h"
 #include "client6_addr.h"
 
 extern void run_script(dhcp6_if_t *, gint, gint, guint32);
-
-gint dhcp6_add_lease(dhcp6_addr_t *);
 
 extern dhcp6_iaidaddr_t client6_iaidaddr;
 extern dhcp6_timer_t *client6_timo(void *);

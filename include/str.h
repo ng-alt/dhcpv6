@@ -54,8 +54,10 @@
 #ifndef __STR_H_DEFINED
 #define __STR_H_DEFINED
 
+#include "types.h"
+
 gchar *addr2str(struct sockaddr *, socklen_t);
-gchar *in6addr2str(struct in6_addr *in6, gint);
+gchar *in6addr2str(struct in6_addr *, gint);
 gchar *dhcp6optstr(gint);
 GString *dhcp6_options2str(GSList *);
 gchar *dhcp6msgstr(gint);

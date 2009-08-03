@@ -45,13 +45,7 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
-#include "common.h"
 #include "timer.h"
-
-#define MILLION 1000000
 
 GSList *timer_list = NULL;
 static struct timeval tm_sentinel;
@@ -61,8 +55,8 @@ static struct timeval tm_max = { 0x7fffffff, 0x7fffffff };
 
 /* result = a + b */
 static void _timeval_add(struct timeval *a, struct timeval *b,
-                        struct timeval *result) {
-    long l;
+                         struct timeval *result) {
+    glong l;
 
     if ((l = a->tv_usec + b->tv_usec) < MILLION) {
         result->tv_usec = l;
@@ -80,7 +74,7 @@ static void _timeval_add(struct timeval *a, struct timeval *b,
  * XXX: this function assumes that a >= b.
  */
 void timeval_sub(struct timeval *a, struct timeval *b, struct timeval *result) {
-    long l;
+    glong l;
 
     if ((l = a->tv_usec - b->tv_usec) >= 0) {
         result->tv_usec = l;

@@ -40,22 +40,7 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "dhcp6r.h"
 #include "relay6_socket.h"
-#include "relay6_parser.h"
-#include "relay6_database.h"
-#include "gfunc.h"
-
-#ifndef IPV6_2292PKTINFO
-#define IPV6_2292PKTINFO IPV6_PKTINFO
-#endif
-
-typedef struct _relay_forw_data_t {
-    relay_msg_parser_t *mesg;
-    gboolean hit;
-} relay_forw_data_t;
 
 /* BEGIN STATIC FUNCTIONS */
 

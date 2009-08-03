@@ -39,23 +39,13 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
 #include "confdata.h"
-#include "common.h"
-#include "str.h"
 
 extern gint errno;
 
 static dhcp6_ifconf_t *dhcp6_ifconflist;
 static host_conf_t *host_conflist0, *host_conflist;
 static GSList *dnslist0;
-
-enum {
-    DHCPOPTCODE_SEND,
-    DHCPOPTCODE_REQUEST,
-    DHCPOPTCODE_ALLOW
-};
 
 /* BEGIN STATIC FUNCTIONS */
 

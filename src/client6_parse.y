@@ -46,10 +46,7 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
-#include "common.h"
+#include "types.h"
 
 extern gint client6lex (void);
 

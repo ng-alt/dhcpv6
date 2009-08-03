@@ -38,12 +38,7 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "dhcp6r.h"
 #include "relay6_parser.h"
-#include "relay6_database.h"
-#include "relay6_socket.h"
 
 relay_msg_parser_t *create_parser_obj(void) {
     relay_msg_parser_t *msg;

@@ -54,18 +54,7 @@
 #ifndef __DUID_H_DEFINED
 #define __DUID_H_DEFINED
 
-typedef struct _duid_t {
-    guint8 duid_len;            /* length */
-    guchar *duid_id;            /* variable length ID value (must be opaque) */
-} duid_t;
-
-/* DUID type 1 */
-typedef struct _dhcp6_duid_type1_t {
-    guint16 dh6duid1_type;
-    guint16 dh6duid1_hwtype;
-    guint32 dh6duid1_time;
-    /* link-layer address follows */
-} dhcp6_duid_type1_t;
+#include "types.h"
 
 gint configure_duid(const gchar *, duid_t *);
 gint duid_match_llt(duid_t *, duid_t *);

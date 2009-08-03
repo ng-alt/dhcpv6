@@ -585,4 +585,33 @@ typedef struct _v6prefix_t {
     scope_t parainfo;
 } v6prefix_t;
 
+typedef struct _ifproc_info_t {
+    struct _ifproc_info_t *next;
+    struct in6_addr addr;
+    gchar name[IF_NAMESIZE];
+    gint index;
+    gint plen;
+    gint scope;
+    gint flags;
+} ifproc_info_t;
+
+typedef enum {
+    DHCP6_CONFINFO_PREFIX,
+    DHCP6_CONFINFO_ADDRS
+} dhcp6_conftype_t;
+
+typedef struct _dhcp6_binding_t {
+    dhcp6_conftype_t type;
+    duid_t clientid; 
+    void *val;
+
+    guint32 duration;
+    dhcp6_timer_t *timer;
+} dhcp6_binding_t;
+
+typedef struct _relay_forw_data_t {
+    relay_msg_parser_t *mesg;
+    gboolean hit;
+} relay_forw_data_t;
+
 #endif /* __TYPES_H_DEFINED */
