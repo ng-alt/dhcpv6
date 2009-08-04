@@ -316,7 +316,7 @@ gint is_anycast(struct in6_addr *in, gint plen) {
 
     wc = plen / 32;
     if (plen) {
-        if (in->s6_addr32[wc] != NMASK(32 - (plen % 32))) {
+        if (in->s6_addr32[wc] != htonl((1 << (32 - (plen % 32))) -1)) {
             return 0;
         }
 

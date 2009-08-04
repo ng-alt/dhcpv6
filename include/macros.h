@@ -95,8 +95,6 @@
      a == DH6_REBIND || a == DH6_CONFIRM || a == DH6_RELEASE || \
      a == DH6_DECLINE || a == DH6_INFORM_REQ) 
 
-#define NMASK(n) htonl((1<<(n))-1)
-
 #define VALID_LEASE_FLAG(a) \
     ((a & LEASE_ADDR_FLAG) && (a & LEASE_SDATE_FLAG) && \
      (a & LEASE_VTIME_FLAG) && (a & LEASE_PTIME_FLAG) && \
