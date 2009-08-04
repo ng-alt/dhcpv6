@@ -1,3 +1,19 @@
+- Eliminate global variables where possible.
+
+- Eliminate extern prototype statements.
+
+- Remove remaining non-glib linked list structures.  cf_list_t will
+  likely be the most annoying.
+
+- Remove unused types.
+
+- Remove unused macros.
+
+- Condense similar constants.
+
+- For functions returing ints to indicate success or failure, switch
+  return type to gboolean and use TRUE and FALSE.
+
 paths to make command line options:
     server
         conf file
@@ -11,8 +27,6 @@ paths to make command line options:
 - Reorganize headers:
       types.h
       constants.h
-
-- Remove unused types.
 
 - Add long options to dhcp6c, dhcp6s, and dhcp6r (glib option parser)
 
