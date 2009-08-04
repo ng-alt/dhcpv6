@@ -46,7 +46,6 @@
 #include <glib.h>
 
 #include "constants.h"
-#include "macros.h"
 #include "duid.h"
 #include "confdata.h"
 #include "common.h"
