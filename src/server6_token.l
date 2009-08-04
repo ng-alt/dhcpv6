@@ -46,7 +46,6 @@
 #include <glib.h>
 
 #include "duid.h"
-#include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
 #include "server6_conf.h"

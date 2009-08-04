@@ -71,6 +71,11 @@
 
 #include <glib.h>
 
+/* XXX: need to include netinet/in.h for this, but that requires replacing
+ * struct in6_ifreq with something else
+ */
+#define INET6_ADDRSTRLEN 46
+
 #include "client6_addr.h"
 
 extern void run_script(dhcp6_if_t *, gint, gint, guint32);

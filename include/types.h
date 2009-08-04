@@ -46,64 +46,58 @@ typedef struct _dhcp6_option_t {
     void *val;
 } dhcp6_option_t;
 
-typedef struct _dhcp6_serverinfo_t {
-    struct _dhcp6_serverinfo_t *next;
+typedef struct _dhcp6_timer_t {
+    struct timeval tm;
+    gint flag;
 
-    /* option information provided in the advertisement */
-    dhcp6_optinfo_t optinfo;
-    struct in6_addr server_addr;
-    guint8 pref;                 /* preference */
-    gint active;                 /* bool; if this server is active or not */
-    /* TODO: remember available information from the server */
-} dhcp6_serverinfo_t;
+    struct _dhcp6_timer_t *(*expire)(void *);
+    void *expire_data;
+} dhcp6_timer_t;
 
-/* per-interface information */
-typedef struct _dhcp6_if_t {
-    struct _dhcp6_if_t *next;
+/*
+ * DNS information structure.  This structure contains two linked lists,
+ * one holding server addresses and one holding domain names to add to the
+ * resolver search path.
+ */
+typedef struct _dns_info_t {
+    /*
+     * singly linked list of DNS server addresses
+     * each element is a (struct in6_addr *)
+     */
+    GSList *servers;
 
-    gint outsock;
+    /*
+     * singly linked list of DNS domain names for the resolver
+     * each element is a gchar[MAXDNAME]
+     */
+    GSList *domains;
+} dns_info_t;
 
-    /* timer for the interface to sync file every 5 mins */
-    dhcp6_timer_t *sync_timer;
+typedef struct _duid_t {
+    guint8 duid_len;            /* length */
+    guchar *duid_id;            /* variable length ID value (must be opaque) */
+} duid_t;
 
-    /* timer to check interface off->on link to send confirm message */
-    dhcp6_timer_t *link_timer;
+/* DUID type 1 */
+typedef struct _dhcp6_duid_type1_t {
+    guint16 dh6duid1_type;
+    guint16 dh6duid1_hwtype;
+    guint32 dh6duid1_time;
+    /* link-layer address follows */
+} dhcp6_duid_type1_t;
 
-    dhcp6_timer_t *dad_timer;
+/* iaid info for the IA_NA */
+typedef struct _dhcp6_iaid_info_t {
+    guint32 iaid;
+    guint32 renewtime;
+    guint32 rebindtime;
+} dhcp6_iaid_info_t;
 
-    /* timer to refresh information */
-    dhcp6_timer_t *info_refresh_timer;
-
-    /* event queue */
-    GSList *event_list;
-
-    /* static parameters of the interface */
-    gchar *ifname;
-    guint ifid;
-    GSList *ralist;
-    dns_info_t dnsinfo;
-    guint32 linkid;           /* to send link-local packets */
-    dhcp6_iaid_info_t iaidinfo;
-
-    guint16 ra_flag;
-    guint16 link_flag;
-    /* configuration parameters */
-    gulong send_flags;
-    gulong allow_flags;
-
-    struct in6_addr linklocal;
-    gint server_pref;            /* server preference (server only) */
-    guint32 default_irt;  /* default information refresh time (client only) */
-    guint32 maximum_irt;  /* maximum information refresh time (client only) */
-    GSList *reqopt_list;
-
-    /* request specific addresses list from client */
-    GSList *addr_list;
-    GSList *prefix_list;
-    GSList *option_list;
-    dhcp6_serverinfo_t *current_server;
-    dhcp6_serverinfo_t *servers;
-} dhcp6_if_t;
+typedef enum {
+    IANA = 1,
+    IATA,
+    IAPD
+} iatype_t;
 
 typedef struct _client6_if_t {
     iatype_t type;
@@ -112,74 +106,24 @@ typedef struct _client6_if_t {
     duid_t serverid;
 } client6_if_t;
 
-typedef struct _dhcp6_iaidaddr_t {
-    client6_if_t client6_info;
-    time_t start_date;
-    state_t state;
-    dhcp6_if_t *ifp;
-    dhcp6_timer_t *timer;
-    /* list of client leases */
-    GSList *lease_list;
-} dhcp6_iaidaddr_t;
-
-typedef struct _dhcp6_lease_t {
-    gchar hostname[1024];
-    struct in6_addr linklocal;
-    dhcp6_addr_t lease_addr;
-    iatype_t addr_type;
-    state_t state;
-    dhcp6_iaidaddr_t *iaidaddr;
-    time_t start_date;
-    /* address assigned on the interface */
-    dhcp6_timer_t *timer;
-} dhcp6_lease_t;
-
-typedef struct _dhcp6_value_t {
-    union {
-        gint uv_num;
-        struct in6_addr uv_addr6;
-        dhcp6_addr_t uv_dhcp6_addr;
-        dhcp6_lease_t uv_dhcp6_lease;
-    } uv;
-} dhcp6_value_t;
-
-#define val_num uv.uv_num
-#define val_addr6 uv.uv_addr6
-#define val_dhcp6addr uv.uv_dhcp6_addr
-#define val_dhcp6lease uv.uv_dhcp6_lease
-
-typedef struct _dhcp6_event_t {
-    dhcp6_if_t *ifp;
-    dhcp6_timer_t *timer;
-
-    duid_t serverid;
-
-    /* internal timer parameters */
-    struct timeval start_time;
-    glong retrans;
-    glong init_retrans;
-    glong max_retrans_cnt;
-    glong max_retrans_time;
-    glong max_retrans_dur;
-    gint timeouts;               /* number of timeouts */
-
-    guint32 xid;              /* current transaction ID */
-    guint32 uuid;             /* unique ID of this event */
-    gint state;
-
-    GSList *data_list;
-} dhcp6_event_t;
-
 typedef enum {
-    DHCP6_DATA_PREFIX,
-    DHCP6_DATA_ADDR
-} dhcp6_eventdata_type;
+    ACTIVE = 1,
+    RENEW,
+    REBIND,
+    EXPIRED,
+    INVALID
+} state_t;
 
-typedef struct _dhcp6_eventdata_t {
-    dhcp6_event_t *event;
-    dhcp6_eventdata_type type;
-    void *data;
-} dhcp6_eventdata_t;
+/* dhcpv6 addr */
+typedef struct _dhcp6_addr_t {
+    guint32 validlifetime;
+    guint32 preferlifetime;
+    struct in6_addr addr;
+    guint8 plen;
+    iatype_t type;
+    guint16 status_code;
+    gchar *status_msg;
+} dhcp6_addr_t;
 
 typedef struct _dhcp6_ifconf_t {
     struct _dhcp6_ifconf_t *next;
@@ -255,52 +199,12 @@ typedef enum {
     DHCP6_MODE_RELAY
 } dhcp6_mode_t;
 
-typedef enum {
-    IANA = 1,
-    IATA,
-    IAPD
-} iatype_t;
-
-typedef enum {
-    ACTIVE = 1,
-    RENEW,
-    REBIND,
-    EXPIRED,
-    INVALID
-} state_t;
-
 /* Internal data structures */
-
-typedef struct _dhcp6_timer_t {
-    struct timeval tm;
-    gint flag;
-
-    struct _dhcp6_timer_t *(*expire)(void *);
-    void *expire_data;
-} dhcp6_timer_t;
 
 typedef struct _intf_id_t {
     guint16 intf_len;           /* length */
     gchar *intf_id;             /* variable length ID value (must be opaque) */
 } intf_id_t;
-
-/* iaid info for the IA_NA */
-typedef struct _dhcp6_iaid_info_t {
-    guint32 iaid;
-    guint32 renewtime;
-    guint32 rebindtime;
-} dhcp6_iaid_info_t;
-
-/* dhcpv6 addr */
-typedef struct _dhcp6_addr_t {
-    guint32 validlifetime;
-    guint32 preferlifetime;
-    struct in6_addr addr;
-    guint8 plen;
-    iatype_t type;
-    guint16 status_code;
-    gchar *status_msg;
-} dhcp6_addr_t;
 
 typedef enum {
     DHCP6_LISTVAL_NUM,
@@ -318,25 +222,6 @@ typedef struct _ia_t {
     guint16 status_code;                /* status code */
     gchar *status_msg;                  /* status message */
 } ia_t;
-
-/*
- * DNS information structure.  This structure contains two linked lists,
- * one holding server addresses and one holding domain names to add to the
- * resolver search path.
- */
-typedef struct _dns_info_t {
-    /*
-     * singly linked list of DNS server addresses
-     * each element is a (struct in6_addr *)
-     */
-    GSList *servers;
-
-    /*
-     * singly linked list of DNS domain names for the resolver
-     * each element is a gchar[MAXDNAME]
-     */
-    GSList *domains;
-} dns_info_t;
 
 typedef struct _dhcp6opt_t {
     guint16 dh6opt_type;
@@ -378,6 +263,134 @@ typedef struct _dhcp6_optinfo_t {
     gchar *status_msg;             /* status message */
 } dhcp6_optinfo_t;
 
+typedef struct _dhcp6_serverinfo_t {
+    struct _dhcp6_serverinfo_t *next;
+
+    /* option information provided in the advertisement */
+    dhcp6_optinfo_t optinfo;
+    struct in6_addr server_addr;
+    guint8 pref;                 /* preference */
+    gint active;                 /* bool; if this server is active or not */
+    /* TODO: remember available information from the server */
+} dhcp6_serverinfo_t;
+
+/* per-interface information */
+typedef struct _dhcp6_if_t {
+    struct _dhcp6_if_t *next;
+
+    gint outsock;
+
+    /* timer for the interface to sync file every 5 mins */
+    dhcp6_timer_t *sync_timer;
+
+    /* timer to check interface off->on link to send confirm message */
+    dhcp6_timer_t *link_timer;
+
+    dhcp6_timer_t *dad_timer;
+
+    /* timer to refresh information */
+    dhcp6_timer_t *info_refresh_timer;
+
+    /* event queue */
+    GSList *event_list;
+
+    /* static parameters of the interface */
+    gchar *ifname;
+    guint ifid;
+    GSList *ralist;
+    dns_info_t dnsinfo;
+    guint32 linkid;           /* to send link-local packets */
+    dhcp6_iaid_info_t iaidinfo;
+
+    guint16 ra_flag;
+    guint16 link_flag;
+    /* configuration parameters */
+    gulong send_flags;
+    gulong allow_flags;
+
+    struct in6_addr linklocal;
+    gint server_pref;            /* server preference (server only) */
+    guint32 default_irt;  /* default information refresh time (client only) */
+    guint32 maximum_irt;  /* maximum information refresh time (client only) */
+    GSList *reqopt_list;
+
+    /* request specific addresses list from client */
+    GSList *addr_list;
+    GSList *prefix_list;
+    GSList *option_list;
+    dhcp6_serverinfo_t *current_server;
+    dhcp6_serverinfo_t *servers;
+} dhcp6_if_t;
+
+typedef struct _dhcp6_event_t {
+    dhcp6_if_t *ifp;
+    dhcp6_timer_t *timer;
+
+    duid_t serverid;
+
+    /* internal timer parameters */
+    struct timeval start_time;
+    glong retrans;
+    glong init_retrans;
+    glong max_retrans_cnt;
+    glong max_retrans_time;
+    glong max_retrans_dur;
+    gint timeouts;               /* number of timeouts */
+
+    guint32 xid;              /* current transaction ID */
+    guint32 uuid;             /* unique ID of this event */
+    gint state;
+
+    GSList *data_list;
+} dhcp6_event_t;
+
+typedef enum {
+    DHCP6_DATA_PREFIX,
+    DHCP6_DATA_ADDR
+} dhcp6_eventdata_type;
+
+typedef struct _dhcp6_eventdata_t {
+    dhcp6_event_t *event;
+    dhcp6_eventdata_type type;
+    void *data;
+} dhcp6_eventdata_t;
+
+typedef struct _dhcp6_iaidaddr_t {
+    client6_if_t client6_info;
+    time_t start_date;
+    state_t state;
+    dhcp6_if_t *ifp;
+    dhcp6_timer_t *timer;
+    /* list of client leases */
+    GSList *lease_list;
+} dhcp6_iaidaddr_t;
+
+typedef struct _dhcp6_lease_t {
+    gchar hostname[1024];
+    struct in6_addr linklocal;
+    dhcp6_addr_t lease_addr;
+    iatype_t addr_type;
+    state_t state;
+    dhcp6_iaidaddr_t *iaidaddr;
+    time_t start_date;
+    /* address assigned on the interface */
+    dhcp6_timer_t *timer;
+} dhcp6_lease_t;
+
+typedef struct _dhcp6_value_t {
+    union {
+        gint uv_num;
+        struct in6_addr uv_addr6;
+        dhcp6_addr_t uv_dhcp6_addr;
+        dhcp6_lease_t uv_dhcp6_lease;
+    } uv;
+} dhcp6_value_t;
+
+#define val_num uv.uv_num
+#define val_addr6 uv.uv_addr6
+#define val_dhcp6addr uv.uv_dhcp6_addr
+#define val_dhcp6lease uv.uv_dhcp6_lease
+
 /* DHCP6 base packet format */
 typedef struct _dhcp6_t {
     union {
@@ -416,19 +429,6 @@ typedef struct _dhcp6_addr_info_t {
     guint32 preferlifetime;
     guint32 validlifetime;
 } dhcp6_addr_info_t;
-
-typedef struct _duid_t {
-    guint8 duid_len;            /* length */
-    guchar *duid_id;            /* variable length ID value (must be opaque) */
-} duid_t;
-
-/* DUID type 1 */
-typedef struct _dhcp6_duid_type1_t {
-    guint16 dh6duid1_type;
-    guint16 dh6duid1_hwtype;
-    guint32 dh6duid1_time;
-    /* link-layer address follows */
-} dhcp6_duid_type1_t;
 
 typedef enum {
     IFADDRCONF_ADD,
@@ -588,7 +588,7 @@ typedef struct _v6prefix_t {
 typedef struct _ifproc_info_t {
     struct _ifproc_info_t *next;
     struct in6_addr addr;
-    gchar name[IF_NAMESIZE];
+    gchar name[IFNAMSIZ];
     gint index;
     gint plen;
     gint scope;

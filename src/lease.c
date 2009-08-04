@@ -67,6 +67,11 @@ GHashTable *host_addr_hash_table = NULL;
 GHashTable *lease_hash_table = NULL;
 GHashTable *server6_hash_table = NULL;
 
+dhcp6_iaidaddr_t client6_iaidaddr;
+FILE *server6_lease_file = NULL;
+FILE *client6_lease_file = NULL;
+FILE *sync_file = NULL;
+
 /* BEGIN STATIC FUNCTIONS */
 
 static gint _init_lease_hashes(void) {

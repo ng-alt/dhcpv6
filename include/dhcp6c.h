@@ -24,6 +24,21 @@
 
 #include "constants.h"
 #include "types.h"
+#include "duid.h"
+#include "timer.h"
+#include "str.h"
+#include "common.h"
+#include "client6_addr.h"
+#include "log.h"
+
+/* XXX: global from common.c */
+extern dhcp6_if_t *dhcp6_if;
+
+/* XXX: from resolv_token.l */
+extern gint resolv_parse(dns_info_t *);
+
+/* XXX: from client6_token.l */
+extern gint cfparse(const gchar *);
 
 gint client6_init(gchar *);
 gint get_if_rainfo(dhcp6_if_t *);

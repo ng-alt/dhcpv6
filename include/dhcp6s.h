@@ -25,6 +25,20 @@
 #include "constants.h"
 #include "types.h"
 #include "macros.h"
+#include "str.h"
+#include "common.h"
+#include "server6_addr.h"
+#include "duid.h"
+#include "gfunc.h"
+#include "timer.h"
+#include "lease.h"
+#include "log.h"
+
+/* XXX: from server6_token.l */
+extern gint sfparse(const gchar *);
+
+/* XXX: from common.c */
+extern dns_info_t dnsinfo;
 
 void server6_init(void);
 

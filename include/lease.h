@@ -55,12 +55,19 @@
 
 #include "constants.h"
 #include "types.h"
+#include "str.h"
 
-dhcp6_iaidaddr_t client6_iaidaddr;
-FILE *server6_lease_file;
-FILE *client6_lease_file;
-FILE *lease_file;
-FILE *sync_file;
+/* XXX: defined in both client6_token.l and server6_token.l */
+extern const gchar *configfilename;
+
+/* XXX: defined in client6_parse.y */
+extern cf_list_t *cf_dns_list;
+
+/* XXX: this is a global that needs to be removed */
+extern const dhcp6_mode_t dhcp6_mode;
+
+/* XXX: from lease_token.l */
+extern void lease_parse(FILE *);
 
 gint write_lease(const dhcp6_lease_t *, FILE *);
 FILE *sync_leases(FILE *, const gchar *, gchar *);

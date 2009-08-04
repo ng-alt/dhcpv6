@@ -54,6 +54,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <syslog.h>
+#include <net/if.h>
+#include <netinet/in.h>
 #include <glib.h>
 
 #include "log.h"

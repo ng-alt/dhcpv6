@@ -40,16 +40,14 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
+#include <net/if.h>
 #include <resolv.h>
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
-#include "common.h"
+#include "types.h"
+#include "constants.h"
 #include "str.h"
-#include "gfunc.h"
 
 #undef yywrap
 
@@ -74,13 +72,15 @@ static gint num_lines = 0;
 static dns_info_t *new_dnsinfo;
 static FILE *dhcp6_resolv_file;
 static gint oldfd, newfd;
+static gchar resolv_dhcpv6_file[PATH_MAX];
 
 static void _check_existing_dns_servers(gpointer, gpointer);
 static void _check_existing_dns_domains(gpointer, gpointer);
 static void _print_to_search_line(gpointer, gpointer);
 static gint yywrap();
-gint resolv_parse(dns_info_t *);
 static gint update_resolver(dns_info_t *);
+
+gint resolv_parse(dns_info_t *);
 
 %}
 

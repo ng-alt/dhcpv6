@@ -54,7 +54,9 @@
 #ifndef __STR_H_DEFINED
 #define __STR_H_DEFINED
 
+#include "constants.h"
 #include "types.h"
+#include "gfunc.h"
 
 gchar *addr2str(struct sockaddr *, socklen_t);
 gchar *in6addr2str(struct in6_addr *, gint);

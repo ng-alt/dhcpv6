@@ -45,33 +45,15 @@
 
 #include <glib.h>
 
+#include "constants.h"
+#include "macros.h"
 #include "duid.h"
-#include "dhcp6.h"
 #include "confdata.h"
 #include "common.h"
 #include "server6_conf.h"
 #include "lease.h"
 #include "timer.h"
 #include "str.h"
-
-#define LEASE_ADDR_FLAG 0x01
-#define LEASE_DUID_FLAG 0x02
-#define LEASE_IAID_FLAG 0x04
-#define LEASE_SDATE_FLAG 0x08
-
-#define LEASE_VTIME_FLAG 0x10
-#define LEASE_PTIME_FLAG 0x20
-#define LEASE_RNTIME_FLAG 0x40
-#define LEASE_RBTIME_FLAG 0x80
-
-#define LEASE_HNAME_FLAG 0x100
-#define LEASE_LL_FLAG 0x200
-
-#define VALID_LEASE_FLAG(a) 					\
-	((a & LEASE_ADDR_FLAG) && (a & LEASE_SDATE_FLAG) && 	\
-	 (a & LEASE_VTIME_FLAG) && (a & LEASE_PTIME_FLAG) &&	\
-	 (a & LEASE_IAID_FLAG) && (a & LEASE_RNTIME_FLAG) &&	\
-	 (a & LEASE_RBTIME_FLAG) && (a & LEASE_DUID_FLAG))
 
 #define YY_NO_UNPUT 1
 #define YY_NO_INPUT 1
@@ -88,6 +70,9 @@
 
 extern dhcp6_timer_t *dhcp6_lease_timo(void *);
 
+/* XXX: this is provided by client6_addr.c and server6_addr.c */
+extern dhcp6_timer_t *dhcp6_iaidaddr_timo(void *);
+
 extern dhcp6_iaidaddr_t client6_iaidaddr;
 extern GHashTable *lease_hash_table;
 extern GHashTable *server6_hash_table;
@@ -100,6 +85,7 @@ static u_int16_t lease_flags = 0;
 
 static gint add_lease(dhcp6_iaidaddr_t *, dhcp6_lease_t *);
 static gint remove_lease(dhcp6_lease_t *);
+gint do_iaidaddr_hash(dhcp6_lease_t *, client6_if_t *);
 
 %}
 
@@ -247,11 +233,7 @@ comment		\#.*
 %%
 
 
-void
-lease_parse(file)
-        FILE *file;
-{
-	
+void lease_parse(FILE *file) {
 	fseek(file, 0, 0);
 	yyin = file;
 	yy_start = 0;
@@ -259,11 +241,7 @@ lease_parse(file)
 	return;
 }
 
-gint 
-do_iaidaddr_hash(lease_rec, key) 
-	dhcp6_lease_t *lease_rec;
-	client6_if_t *key;
-{
+gint do_iaidaddr_hash(dhcp6_lease_t *lease_rec, client6_if_t *key) {
 	dhcp6_iaidaddr_t *iaidaddr = NULL;
 	dhcp6_lease_t *found_lease = NULL;
 	struct timeb now;

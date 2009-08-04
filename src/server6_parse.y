@@ -43,13 +43,12 @@
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
-#include "server6_conf.h"
+#include "constants.h"
+#include "types.h"
 #include "common.h"
-#include "lease.h"
-#include "str.h"
+#include "server6_conf.h"
+
+extern rootgroup_t *globalgroup;
 
 extern gint server6lex (void);
 extern void server6error(gchar *, ...) __attribute__((__format__(__printf__, 1, 2)));

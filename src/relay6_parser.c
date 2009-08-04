@@ -34,11 +34,14 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <net/if.h>
 #include <string.h>
 
 #include <glib.h>
 
 #include "relay6_parser.h"
+
+GSList *relay_msg_parser_list = NULL;
 
 relay_msg_parser_t *create_parser_obj(void) {
     relay_msg_parser_t *msg;

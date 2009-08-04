@@ -31,10 +31,12 @@
 
 #include "config.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 #include <netinet/in.h>
+#include <net/if.h>
 #include <sys/types.h>
 
 #include <glib.h>

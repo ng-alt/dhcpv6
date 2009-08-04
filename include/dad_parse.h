@@ -24,6 +24,7 @@
 
 #include "constants.h"
 #include "types.h"
+#include "str.h"
 
 gint dad_parse(const gchar *, GSList *);
 

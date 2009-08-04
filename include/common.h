@@ -35,6 +35,13 @@
 #include "constants.h"
 #include "types.h"
 #include "macros.h"
+#include "str.h"
+#include "duid.h"
+#include "timer.h"
+#include "lease.h"
+
+/* XXX: this is a global that needs to go */
+extern const dhcp6_mode_t dhcp6_mode;
 
 dhcp6_if_t *find_ifconfbyname(const gchar *);
 dhcp6_if_t *find_ifconfbyid(guint);

@@ -55,6 +55,7 @@
 #define __DUID_H_DEFINED
 
 #include "types.h"
+#include "str.h"
 
 gint configure_duid(const gchar *, duid_t *);
 gint duid_match_llt(duid_t *, duid_t *);

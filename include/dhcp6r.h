@@ -31,6 +31,10 @@
 #define __DHCP6R_H_DEFINED
 
 #include "constants.h"
+#include "types.h"
+#include "relay6_database.h"
+#include "relay6_socket.h"
+#include "relay6_parser.h"
 
 void command_text(void);
 gchar *dhcp6r_clock(void);

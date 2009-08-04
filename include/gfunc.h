@@ -23,6 +23,9 @@
 #ifndef __GFUNC_H_DEFINED
 #define __GFUNC_H_DEFINED
 
+#include "types.h"
+#include "str.h"
+
 gint _find_in6_addr(gconstpointer, gconstpointer);
 gint _find_string(gconstpointer, gconstpointer);
 void _print_in6_addr(gpointer, gpointer);

@@ -35,6 +35,7 @@
 #include <string.h>
 #include <syslog.h>
 #include <netinet/in.h>
+#include <net/if.h>
 
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>

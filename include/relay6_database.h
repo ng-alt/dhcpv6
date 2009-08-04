@@ -30,20 +30,23 @@
 #ifndef __RELAY6_DATABASE_H_DEFINED
 #define __RELAY6_DATABASE_H_DEFINED
 
+#include "constants.h"
 #include "types.h"
+#include "gfunc.h"
 
-GSList *cifaces_list;
-GSList *sifaces_list;
+/* XXX: from relay6_parser.c */
+extern GSList *relay_msg_parser_list;
 
-GSList *relay_server_list;
-GSList *IPv6_address_list;
-GSList *IPv6_uniaddr_list;
-GSList *relay_interface_list;
-
-gint nr_of_devices;
-gint nr_of_uni_addr;
-gint max_count;
-gint multicast_off;
+/* XXX: from dhcp6r.c */
+extern GSList *cifaces_list;
+extern GSList *relay_server_list;
+extern GSList *IPv6_address_list;
+extern GSList *IPv6_uniaddr_list;
+extern GSList *relay_interface_list;
+extern gint nr_of_devices;
+extern gint nr_of_uni_addr;
+extern gint max_count;
+extern gint multicast_off;
 
 void init_relay(void);
 gint check_interface_semafor(gint);

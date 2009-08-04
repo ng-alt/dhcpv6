@@ -54,6 +54,7 @@
 #define __TIMER_H_DEFINED
 
 #include "constants.h"
+#include "types.h"
 #include "macros.h"
 
 void timeval_sub(struct timeval *, struct timeval *, struct timeval *);

@@ -41,13 +41,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <net/if.h>
 
 #include <glib.h>
 
-#include "duid.h"
-#include "dhcp6.h"
-#include "confdata.h"
-#include "common.h"
+#include "types.h"
 #include "client6_parse.h"
 
 const gchar *configfilename;

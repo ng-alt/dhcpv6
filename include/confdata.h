@@ -35,15 +35,8 @@
 #include "constants.h"
 #include "types.h"
 #include "macros.h"
-
-extern const dhcp6_mode_t dhcp6_mode;
-extern cf_list_t *cf_dns_list;
-extern const gchar *configfilename;
-
-extern dhcp6_if_t *dhcp6_if;
-extern dhcp6_ifconf_t *dhcp6_iflist;
-extern prefix_ifconf_t *prefix_ifconflist;
-extern dns_info_t dnsinfo;
+#include "str.h"
+#include "common.h"
 
 gint configure_interface(const cf_namelist_t *);
 gint configure_host(const cf_namelist_t *);

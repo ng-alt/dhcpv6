@@ -194,7 +194,7 @@ gint dad_parse(const gchar *file, GSList *dad_list) {
         } else {
             dhcp6_value_t *lv;
 
-            strncpy(ifinfo->name, tmp, IF_NAMESIZE);
+            strncpy(ifinfo->name, tmp, IFNAMSIZ);
             ifinfo->next = NULL;
 
             /* check address on client6_iaidaddr list */

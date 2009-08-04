@@ -51,9 +51,12 @@
 #ifndef __RELAY6_PARSER_H_DEFINED
 #define __RELAY6_PARSER_H_DEFINED
 
+#include "constants.h"
 #include "types.h"
+#include "relay6_database.h"
 
-GSList *relay_msg_parser_list;
+/* XXX: from relay6_socket.c */
+extern relay_socket_t *relaysock;
 
 relay_msg_parser_t *create_parser_obj(void);
 gint check_buffer(gint ref, relay_msg_parser_t *);

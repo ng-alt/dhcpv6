@@ -22,7 +22,13 @@
 #ifndef __CLIENT6_ADDR_H_DEFINED
 #define __CLIENT6_ADDR_H_DEFINED
 
+#include "constants.h"
 #include "types.h"
+#include "duid.h"
+#include "common.h"
+
+/* XXX: global from common.c */
+extern dhcp6_if_t *dhcp6_if;
 
 void dhcp6_init_iaidaddr(void);
 gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *, ia_t *);

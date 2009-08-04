@@ -42,6 +42,10 @@
 
 #include "relay6_socket.h"
 
+fd_set readfd;
+gint fdmax;
+relay_socket_t *relaysock = NULL;
+
 /* BEGIN STATIC FUNCTIONS */
 
 static void _send_relay_forw(gpointer data, gpointer user_data) {

@@ -57,9 +57,6 @@
 #include "types.h"
 #include "macros.h"
 
-/* FIXME: remove this global */
-rootgroup_t *globalgroup;
-
 gint ipv6addrcmp(struct in6_addr *, struct in6_addr *);
 struct in6_addr *inc_ipv6addr(struct in6_addr *);
 v6addr_t *getprefix(struct in6_addr *, gint);

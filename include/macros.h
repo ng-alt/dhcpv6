@@ -125,4 +125,10 @@ do { \
 
 #define NMASK(n) htonl((1<<(n))-1)
 
+#define VALID_LEASE_FLAG(a) \
+    ((a & LEASE_ADDR_FLAG) && (a & LEASE_SDATE_FLAG) && \
+     (a & LEASE_VTIME_FLAG) && (a & LEASE_PTIME_FLAG) && \
+     (a & LEASE_IAID_FLAG) && (a & LEASE_RNTIME_FLAG) && \
+     (a & LEASE_RBTIME_FLAG) && (a & LEASE_DUID_FLAG))
+
 #endif /* __MACROS_H_DEFINED */

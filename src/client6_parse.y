@@ -36,6 +36,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <net/if.h>
 
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -46,7 +47,9 @@
 
 #include <glib.h>
 
+#include "constants.h"
 #include "types.h"
+#include "confdata.h"
 
 extern gint client6lex (void);
 

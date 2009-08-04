@@ -55,6 +55,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <net/if.h>
 #include <glib.h>
 
 #include "str.h"

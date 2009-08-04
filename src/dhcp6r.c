@@ -36,6 +36,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <net/if.h>
 #include <unistd.h>
 #include <sys/param.h>
 #include <errno.h>
@@ -52,6 +53,19 @@
 #include "dhcp6r.h"
 
 static gchar pidfile[MAXPATHLEN];
+
+GSList *cifaces_list;
+GSList *sifaces_list;
+
+GSList *relay_server_list;
+GSList *IPv6_address_list;
+GSList *IPv6_uniaddr_list;
+GSList *relay_interface_list;
+
+gint nr_of_devices;
+gint nr_of_uni_addr;
+gint max_count;
+gint multicast_off;
 
 void command_text(void) {
     printf("Usage:\n");

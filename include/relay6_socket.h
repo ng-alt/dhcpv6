@@ -53,11 +53,11 @@
 
 #include "constants.h"
 #include "types.h"
+#include "gfunc.h"
+#include "relay6_database.h"
 
-fd_set readfd;
-gint fdmax;
-
-relay_socket_t *relaysock;
+/* XXX: from dhcp6r.c */
+extern GSList *sifaces_list;
 
 void init_socket(void);
 gint get_recv_data(void);

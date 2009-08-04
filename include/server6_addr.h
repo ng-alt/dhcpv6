@@ -23,6 +23,12 @@
 #define __SERVER6_ADDR_H_DEFINED
 
 #include "types.h"
+#include "str.h"
+#include "lease.h"
+#include "server6_conf.h"
+#include "duid.h"
+#include "timer.h"
+#include "common.h"
 
 host_decl_t *find_hostdecl(duid_t *, guint32, GSList *);
 gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *, ia_t *);
