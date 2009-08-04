@@ -47,7 +47,7 @@ dhcp6_if_t *find_ifconfbyname(const gchar *);
 dhcp6_if_t *find_ifconfbyid(guint);
 host_conf_t *find_hostconf(const duid_t *);
 void ifinit(const gchar *);
-gint dhcp6_copy_list(GSList *, const GSList *);
+gint dhcp6_copy_list(GSList *, GSList *);
 dhcp6_value_t *dhcp6_find_listval(GSList *, void *, dhcp6_listval_type_t);
 dhcp6_value_t *dhcp6_add_listval(GSList *, void *, dhcp6_listval_type_t);
 ia_t *ia_create_listval(void);

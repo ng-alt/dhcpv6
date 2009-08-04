@@ -2015,7 +2015,7 @@ void run_script(dhcp6_if_t *ifp, gint old_state, gint new_state, guint32 uuid) {
     GSpawnFlags flags = 0;
     gint status = 0;
     GError *error = NULL;
-    GSList *envvars = NULL;
+    GSList *envvars = NULL, *iterator = NULL;
 
     if (script == NULL) {
         return;
@@ -2084,23 +2084,79 @@ void run_script(dhcp6_if_t *ifp, gint old_state, gint new_state, guint32 uuid) {
         g_error("erroring releasing temporary GString");
     }
 
+    /* dhcp6_address_list */
+    iterator = ifp->addr_list;
+    tmp = g_string_new(NULL);
+
+    while (iterator) {
+        dhcp6_value_t *val = (dhcp6_value_t *) iterator->data;
+        gchar *fmt = NULL;
+
+        if (tmp->str == NULL) {
+            fmt = "%s/%d";
+        } else {
+            fmt = " %s/%d";
+        }
+
+        g_string_printf(tmp, fmt, in6addr2str(&val->val_dhcp6addr.addr, 0),
+                        val->val_dhcp6addr.plen);
+        iterator = g_slist_next(iterator);
+    }
+
+    if (!g_setenv(ADDRESS_LIST, tmp->str, TRUE)) {
+        g_error("could not set %s environment variable", ADDRESS_LIST);
+    } else {
+        envvars = g_slist_append(envvars, ADDRESS_LIST);
+    }
+
+    if (g_string_free(tmp, TRUE) != NULL) {
+        g_error("erroring releasing temporary GString");
+    }
+
+    /* dhcp6_prefix_list */
+    iterator = ifp->prefix_list;
+    tmp = g_string_new(NULL);
+
+    while (iterator) {
+        dhcp6_value_t *val = (dhcp6_value_t *) iterator->data;
+        gchar *fmt = NULL;
+
+        if (tmp->str == NULL) {
+            fmt = "%s/%d";
+        } else {
+            fmt = " %s/%d";
+        }
+
+        g_string_printf(tmp, fmt, in6addr2str(&val->val_dhcp6addr.addr, 0),
+                        val->val_dhcp6addr.plen);
+        iterator = g_slist_next(iterator);
+    }
+
+    if (!g_setenv(PREFIX_LIST, tmp->str, TRUE)) {
+        g_error("could not set %s environment variable", PREFIX_LIST);
+    } else {
+        envvars = g_slist_append(envvars, PREFIX_LIST);
+    }
+
+    if (g_string_free(tmp, TRUE) != NULL) {
+        g_error("erroring releasing temporary GString");
+    }
+
+    /* dhcpv6_option_list */
+
     /*
+     * XXX:
      * set the following information in env vars:
      *
      * what we got from the server:
-     *     address list
-     *     prefix list
      *     option list
      *
      * error code (where the hell is this?)
      */
 
-
     /*
-     * use old_ and new_ variable naming based on the state we're in
+     * XXX: use old_ and new_ variable naming based on the state we're in
      */
-
-
 
     /* run script */
     flags = G_SPAWN_FILE_AND_ARGV_ZERO;

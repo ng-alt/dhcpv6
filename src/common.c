@@ -602,11 +602,11 @@ die:
     exit(1);
 }
 
-gint dhcp6_copy_list(GSList *dst, const GSList *src) {
+gint dhcp6_copy_list(GSList *dst, GSList *src) {
     dhcp6_value_t *ent = NULL, *dent = NULL;
-    GSList *iterator = dst;
+    GSList *iterator = src;
 
-    if (!g_slist_length(iterator)) {
+    if (g_slist_length(dst)) {
         goto fail;
     }
 
