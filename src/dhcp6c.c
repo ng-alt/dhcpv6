@@ -750,6 +750,17 @@ static dhcp6_serverinfo_t *_allocate_newserver(dhcp6_if_t *ifp,
     return newserver;
 }
 
+static gboolean server_valid_reply(gint state) {
+    if ((state == DHCP6S_REQUEST) || (state == DHCP6S_RENEW) ||
+        (state == DHCP6S_REBIND) || (state == DHCP6S_DECLINE) ||
+        (state == DHCP6S_RELEASE) || (state == DHCP6S_CONFIRM) ||
+        (state == DHCP6S_INFOREQ)) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
 static gint _client6_recvreply(dhcp6_if_t *ifp, dhcp6_t *dh6,
                                ssize_t len, dhcp6_optinfo_t *optinfo) {
     ia_t *ia;
@@ -769,7 +780,7 @@ static gint _client6_recvreply(dhcp6_if_t *ifp, dhcp6_t *dh6,
         return -1;
     }
 
-    if (!(DHCP6S_VALID_REPLY(ev->state)) &&
+    if (!server_valid_reply(ev->state) &&
         (ev->state != DHCP6S_SOLICIT ||
          !(optinfo->flags & DHCIFF_RAPID_COMMIT))) {
         g_message("%s: unexpected reply", __func__);

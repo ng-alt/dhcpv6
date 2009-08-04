@@ -67,10 +67,4 @@
     IN6_IS_ADDR_UNSPECIFIED(a)
 #endif
 
-#define DHCP6S_VALID_REPLY(a)                      \
-    (a == DHCP6S_REQUEST || a == DHCP6S_RENEW ||   \
-     a == DHCP6S_REBIND || a == DHCP6S_DECLINE ||  \
-     a == DHCP6S_RELEASE || a == DHCP6S_CONFIRM || \
-     a == DHCP6S_INFOREQ)
-
 #endif /* __MACROS_H_DEFINED */
