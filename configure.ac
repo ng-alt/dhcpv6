@@ -18,7 +18,7 @@ dnl
 dnl Author: David Cantrell <dcantrell@redhat.com>
 
 AC_PREREQ(2.61)
-AC_INIT([dhcpv6], [2.0.0-alpha1], [dcantrell@redhat.com])
+AC_INIT([dhcpv6], [2.0.0-alpha2], [dcantrell@redhat.com])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR([src/dhcp6s.c])
 AC_CONFIG_HEADER([config.h])
@@ -156,5 +156,6 @@ AC_SUBST(DHCP6C_LEASE_PATH, ["$db_file_path/client6.leases*"])
 AC_SUBST(DHCP6S_LEASE_PATH, ["$db_file_path/server6.leases"])
 
 AC_CONFIG_FILES([Makefile include/Makefile src/Makefile man/Makefile \
-                 etc/Makefile etc/sysconfig/Makefile etc/init.d/Makefile])
+                 etc/Makefile etc/sysconfig/Makefile etc/init.d/Makefile \
+                 test/Makefile])
 AC_OUTPUT
