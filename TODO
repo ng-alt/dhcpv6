@@ -1,15 +1,7 @@
 - Eliminate global variables where possible.
 
-- Eliminate extern prototype statements.
-
 - Remove remaining non-glib linked list structures.  cf_list_t will
   likely be the most annoying.
-
-- Remove unused types.
-
-- Remove unused macros.
-
-- Condense similar constants.
 
 - For functions returing ints to indicate success or failure, switch
   return type to gboolean and use TRUE and FALSE.
@@ -23,10 +15,6 @@ paths to make command line options:
 
     relay
         pid
-
-- Reorganize headers:
-      types.h
-      constants.h
 
 - Add long options to dhcp6c, dhcp6s, and dhcp6r (glib option parser)
 
@@ -102,6 +90,3 @@ paths to make command line options:
 - Support ddns updates in dhcp6c somehow (need to figure out how ddns works)
 
 - valgrind and gcc -Wall checks
-
-- For default locations (/var/run files and stuff), inherit the ./configure
-  paths by default.
