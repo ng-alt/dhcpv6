@@ -22,8 +22,6 @@
 #ifndef __CONSTANTS_H_DEFINED
 #define __CONSTANTS_H_DEFINED
 
-#define IN6_IFF_INVALID -1
-
 #define MAX_DEVICE 100
 
 #define DHCP6_SYNCFILE_TIME 60
@@ -50,9 +48,6 @@ enum {
     DHCP6S_RELEASE,
     DHCP6S_IDLE
 };
-
-#define IFID_LEN_DEFAULT 64
-#define SLA_LEN_DEFAULT 16
 
 enum {
     DECL_SEND,
@@ -104,11 +99,13 @@ enum {
 #define DH6_RELAY_FORW  12
 #define DH6_RELAY_REPL  13
 
-/* Predefined addresses */
-#define DH6ADDR_ALLAGENT   "ff02::1:2"
-#define DH6ADDR_ALLSERVER  "ff05::1:3"
-#define DH6PORT_DOWNSTREAM "546"
-#define DH6PORT_UPSTREAM   "547"
+/* Predefined addresses, ports, and services*/
+#define DH6ADDR_ALLAGENT           "ff02::1:2"      /* relays & servers */
+#define DH6ADDR_ALLSERVER          "ff05::1:3"      /* all servers */
+#define DH6PORT_DOWNSTREAM_PORT    546
+#define DH6PORT_DOWNSTREAM_SERVICE "dhcpv6-client"
+#define DH6PORT_UPSTREAM_PORT      547
+#define DH6PORT_UPSTREAM_SERVICE   "dhcpv6-server"
 
 /* Protocol constants */
 
@@ -158,157 +155,6 @@ enum {
 #define CLIENT6_REQUEST_ADDR 0x4
 #define CLIENT6_DECLINE_ADDR 0x8
 #define CLIENT6_INFO_REQ     0x10
-
-/* Default file paths (can be overridden with command line options) */
-#define DHCP6C_PIDFILE PID_FILE_PATH"/dhcp6c.pid"
-#define DHCP6C_DUID_FILE DB_FILE_PATH"/dhcp6c_duid"
-
-/* Resolver configuration file (almost always /etc/resolv.conf) */
-#define RESOLV_CONF_DHCPV6_FILE DB_FILE_PATH"/resolv.conf.dhcpv6"
-#define RESOLV_CONF_BAK_FILE RESOLV_CONF_DHCPV6_FILE".bak"
-
-/* options */
-#define DH6OPT_PREF_UNDEF        0
-#define DH6OPT_CLIENTID          1
-#define DH6OPT_SERVERID          2
-#define DH6OPT_IA_NA             3
-#define DH6OPT_IA_TA             4
-#define DH6OPT_IADDR             5
-#define DH6OPT_ORO               6
-#define DH6OPT_PREFERENCE        7
-#define DH6OPT_ELAPSED_TIME      8
-#define DH6OPT_RELAY_MSG         9
-#define DH6OPT_AUTH              11
-#define DH6OPT_UNICAST           12
-#define DH6OPT_STATUS_CODE       13
-#define DH6OPT_RAPID_COMMIT      14
-#define DH6OPT_USER_CLASS        15
-#define DH6OPT_VENDOR_CLASS      16
-#define DH6OPT_VENDOR_OPTS       17
-#define DH6OPT_INTERFACE_ID      18
-#define DH6OPT_RECONF_MSG        19
-#define DH6OPT_RECONF_ACCEPT     20
-#define DH6OPT_DNS_SERVERS       23
-#define DH6OPT_DOMAIN_LIST       24
-#define DH6OPT_IA_PD             25
-#define DH6OPT_IAPREFIX          26
-#define DH6OPT_INFO_REFRESH_TIME 32
-#define DH6OPT_PREF_MAX          255
-
-#define DH6OPT_STCODE_UNDEFINE      0xffff
-#define DH6OPT_STCODE_SUCCESS       0
-#define DH6OPT_STCODE_UNSPECFAIL    1
-#define DH6OPT_STCODE_NOADDRAVAIL   2
-#define DH6OPT_STCODE_NOBINDING     3
-#define DH6OPT_STCODE_NOTONLINK     4
-#define DH6OPT_STCODE_USEMULTICAST  5
-#define DH6OPT_STCODE_AUTHFAILED    6
-#define DH6OPT_STCODE_ADDRUNAVAIL   7
-#define DH6OPT_STCODE_CONFNOMATCH   8
-#define DH6OPT_STCODE_NOPREFIXAVAIL 10
-
-#define DEFAULT_VALID_LIFE_TIME 720000
-#define DEFAULT_PREFERRED_LIFE_TIME 360000
-
-#define IRT_DEFAULT 86400     /* default refresh time [sec] */
-#define IRT_MINIMUM 600       /* minimum value for the refresh time [sec] */
-
-/* environment variable names for run_script() */
-#define _ENV_VAR_PREFIX   "dhcpv6_"
-#define OLD_STATE         _ENV_VAR_PREFIX"old_state"
-#define NEW_STATE         _ENV_VAR_PREFIX"new_state"
-#define IFACE_NAME        _ENV_VAR_PREFIX"iface_name"
-#define IFACE_INDEX       _ENV_VAR_PREFIX"iface_index"
-#define LINKLOCAL_ADDR    _ENV_VAR_PREFIX"linklocal_address"
-#define REQUESTED_OPTIONS _ENV_VAR_PREFIX"requested_options"
-#define ADDRESS_LIST      _ENV_VAR_PREFIX"address_list"
-#define PREFIX_LIST       _ENV_VAR_PREFIX"prefix_list"
-#define OPTIONS           _ENV_VAR_PREFIX"options"
-
-/* Error Values */
-#define DH6ERR_FAILURE      16
-#define DH6ERR_AUTHFAIL     17
-#define DH6ERR_POORLYFORMED 18
-#define DH6ERR_UNAVAIL      19
-#define DH6ERR_OPTUNAVAIL   20
-
-/* Message type */
-#define DH6_SOLICIT     1
-#define DH6_ADVERTISE   2
-#define DH6_REQUEST     3
-#define DH6_CONFIRM     4
-#define DH6_RENEW       5
-#define DH6_REBIND      6
-#define DH6_REPLY       7
-#define DH6_RELEASE     8
-#define DH6_DECLINE     9
-#define DH6_RECONFIGURE 10
-#define DH6_INFORM_REQ  11
-#define DH6_RELAY_FORW  12
-#define DH6_RELAY_REPL  13
-
-/* Predefined addresses */
-#define DH6ADDR_ALLAGENT   "ff02::1:2"
-#define DH6ADDR_ALLSERVER  "ff05::1:3"
-#define DH6PORT_DOWNSTREAM "546"
-#define DH6PORT_UPSTREAM   "547"
-
-/* Protocol constants */
-
-/* timer parameters (msec, unless explicitly commented) */
-#define MIN_SOL_DELAY 500
-#define MAX_SOL_DELAY 1000
-#define SOL_TIMEOUT   1000
-#define SOL_MAX_RT    120000
-#define INF_TIMEOUT   1000
-#define INF_MAX_DELAY 1000
-#define INF_MAX_RT    120000
-#define REQ_TIMEOUT   1000
-#define REQ_MAX_RT    30000
-#define REQ_MAX_RC    10       /* Max Request retry attempts */
-#define REN_TIMEOUT   10000    /* 10secs */
-#define REN_MAX_RT    600000   /* 600secs */
-#define REB_TIMEOUT   10000    /* 10secs */
-#define REB_MAX_RT    600000   /* 600secs */
-#define DEC_TIMEOUT   1000
-#define DEC_MAX_RC    5
-#define REL_TIMEOUT   1000
-#define REL_MAX_RC    5
-#define REC_TIMEOUT   2000
-#define REC_MAX_RC    8
-#define CNF_TIMEOUT   1000
-#define CNF_MAX_RD    10
-#define CNF_MAX_RT    4000
-
-#define DHCP6_DURATITION_INFINITE 0xffffffff
-#define DHCP6_ELAPSEDTIME_MAX     0xffff
-
-#define IF_RA_OTHERCONF 0x80
-#define IF_RA_MANAGED   0x40
-#define RTM_F_PREFIX    0x800
-
-#ifndef MAXDNAME
-#define MAXDNAME 255
-#endif
-#define MAXDN 100
-
-#define SIGF_TERM 0x1
-#define SIGF_HUP 0x2
-#define SIGF_CLEAN 0x4
-
-#define CLIENT6_RELEASE_ADDR 0x1
-#define CLIENT6_CONFIRM_ADDR 0x2
-#define CLIENT6_REQUEST_ADDR 0x4
-#define CLIENT6_DECLINE_ADDR 0x8
-#define CLIENT6_INFO_REQ     0x10
-
-/* Default file paths (can be overridden with command line options) */
-#define DHCP6C_PIDFILE PID_FILE_PATH"/dhcp6c.pid"
-#define DHCP6C_DUID_FILE DB_FILE_PATH"/dhcp6c_duid"
-
-/* Resolver configuration file (almost always /etc/resolv.conf) */
-#define RESOLV_CONF_DHCPV6_FILE DB_FILE_PATH"/resolv.conf.dhcpv6"
-#define RESOLV_CONF_BAK_FILE RESOLV_CONF_DHCPV6_FILE".bak"
 
 /* options */
 #define DH6OPT_PREF_UNDEF        0
@@ -370,36 +216,18 @@ enum {
 
 #define MAX_DHCP_MSG_LENGTH        1400
 #define MESSAGE_HEADER_LENGTH      4
-#define ALL_DHCP_SERVERS           "FF05::1:3"
-#define ALL_DHCP_RELAY_AND_SERVERS "FF02::1:2"
-#define INET6_LEN                  16
 #define OPAQ                       5000    // opaq value for interface id
 #define HEAD_SIZE                  400
 #define HOP_COUNT_LIMIT            30
-#define INTERFACEINFO              "/proc/net/if_inet6"
 #define MAXHOPCOUNT                32
-#define SERVER_PORT                547
-#define CLIENT_PORT                546
 
-#define OPTION_RELAY_MSG    9
-#define OPTION_INTERFACE_ID 18
-
-#define LEASE_FILENAME_SIZE
 #define ADDR_UPDATE   0
 #define ADDR_REMOVE   1
 #define ADDR_VALIDATE 2
 #define ADDR_ABANDON  3
 
-#define PATH_SERVER6_LEASE DB_FILE_PATH"/server6.leases"
-#define PATH_CLIENT6_LEASE DB_FILE_PATH"/client6.leases"
-
-#define HASH_TABLE_COUNT 4
-
 #define PREFIX_LEN_NOTINRA 64
 #define MAX_FILE_SIZE 512*1024
-
-#define DEFAULT_PREFERRED_LIFE_TIME 360000
-#define DEFAULT_VALID_LIFE_TIME 720000
 
 #define MARK_CLEAR 0x00
 #define MARK_REMOVE 0x01
@@ -412,16 +240,9 @@ enum {
 
 #define DAD_FLAGS 0xC0
 
-#define DHCP6R_PIDFILE PID_FILE_PATH"/dhcp6r.pid"
-
-#define DUID_FILE DB_FILE_PATH"/dhcp6s_duid"
-#define DHCP6S_PIDFILE PID_FILE_PATH"/dhcp6s.pid"
-
 #ifndef IPV6_2292PKTINFO
 #define IPV6_2292PKTINFO IPV6_PKTINFO
 #endif
-
-#define MILLION 1000000
 
 #define LEASE_ADDR_FLAG 0x01
 #define LEASE_DUID_FLAG 0x02
@@ -435,5 +256,22 @@ enum {
 
 #define LEASE_HNAME_FLAG 0x100
 #define LEASE_LL_FLAG 0x200
+
+/* Paths */
+#define INTERFACEINFO "/proc/net/if_inet6"
+
+#define DHCP6C_PIDFILE PID_FILE_PATH"/dhcp6c.pid"
+#define DHCP6C_DUID_FILE DB_FILE_PATH"/dhcp6c_duid"
+
+#define RESOLV_CONF_DHCPV6_FILE DB_FILE_PATH"/resolv.conf.dhcpv6"
+#define RESOLV_CONF_BAK_FILE RESOLV_CONF_DHCPV6_FILE".bak"
+
+#define PATH_SERVER6_LEASE DB_FILE_PATH"/server6.leases"
+#define PATH_CLIENT6_LEASE DB_FILE_PATH"/client6.leases"
+
+#define DHCP6R_PIDFILE PID_FILE_PATH"/dhcp6r.pid"
+
+#define DUID_FILE DB_FILE_PATH"/dhcp6s_duid"
+#define DHCP6S_PIDFILE PID_FILE_PATH"/dhcp6s.pid"
 
 #endif /* __CONSTANTS_H_DEFINED */

@@ -67,7 +67,7 @@ static void _send_relay_forw(gpointer data, gpointer user_data) {
     sin6.sin6_family = AF_INET6;
 
     memset(dest_addr, 0, INET6_ADDRSTRLEN);
-    g_stpcpy(dest_addr, ALL_DHCP_SERVERS);
+    g_stpcpy(dest_addr, DH6ADDR_ALLSERVER);
 
     /* destination address */
     if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
@@ -119,7 +119,7 @@ static void _send_relay_forw(gpointer data, gpointer user_data) {
     g_debug("%s: source address: %s", __func__,
             (gchar *) iface->ipv6addr->data);
 
-    sin6.sin6_port = htons(SERVER_PORT);
+    sin6.sin6_port = htons(DH6PORT_UPSTREAM_PORT);
 
     iov[0].iov_base = relay_forw->mesg->buffer;
     iov[0].iov_len = relay_forw->mesg->datalength;
@@ -291,7 +291,7 @@ gint set_sock_opt(void) {
 
         sock_opt.ipv6mr_interface = device->devindex;
 
-        if (inet_pton(AF_INET6, ALL_DHCP_RELAY_AND_SERVERS,
+        if (inet_pton(AF_INET6, DH6ADDR_ALLAGENT,
                       &sock_opt.ipv6mr_multiaddr) <= 0) {
             g_error("%s: failed to set struct for multicast receive", __func__);
             return 0;
@@ -317,7 +317,7 @@ gint fill_addr_struct(void) {
 
     relaysock->from.sin6_family = AF_INET6;
     relaysock->from.sin6_addr = in6addr_any;
-    relaysock->from.sin6_port = htons(SERVER_PORT);
+    relaysock->from.sin6_port = htons(DH6PORT_UPSTREAM_PORT);
 
     relaysock->iov[0].iov_base = relaysock->databuf;
     relaysock->iov[0].iov_len = MAX_DHCP_MSG_LENGTH;
@@ -523,9 +523,9 @@ gint send_message(void) {
         sin6.sin6_scope_id = relay_forw.mesg->if_index;
 
         if (relay_forw.mesg->hop > 0) {
-            sin6.sin6_port = htons(SERVER_PORT);
+            sin6.sin6_port = htons(DH6PORT_UPSTREAM_PORT);
         } else {
-            sin6.sin6_port = htons(CLIENT_PORT);
+            sin6.sin6_port = htons(DH6PORT_DOWNSTREAM_PORT);
         }
 
         iface = get_interface(relay_forw.mesg->if_index);
@@ -624,7 +624,7 @@ gint send_message(void) {
             }
 
             sin6.sin6_scope_id = 0;
-            sin6.sin6_port = htons(SERVER_PORT);
+            sin6.sin6_port = htons(DH6PORT_UPSTREAM_PORT);
 
             /* the kernel will choose the source address */
             memset(&in6_pkt->ipi6_addr, 0, sizeof(in6_pkt->ipi6_addr));
@@ -713,7 +713,7 @@ gint send_message(void) {
                 g_debug("%s: source address: %s", __func__,
                         (gchar *) iface->ipv6addr->data);
 
-                sin6.sin6_port = htons(SERVER_PORT);
+                sin6.sin6_port = htons(DH6PORT_UPSTREAM_PORT);
 
                 iov[0].iov_base = relay_forw.mesg->buffer;
                 iov[0].iov_len = relay_forw.mesg->datalength;
@@ -760,7 +760,7 @@ gint send_message(void) {
                 sin6.sin6_family = AF_INET6;
 
                 memset(dest_addr, 0, INET6_ADDRSTRLEN);
-                strcpy(dest_addr, ALL_DHCP_SERVERS);
+                strcpy(dest_addr, DH6ADDR_ALLSERVER);
 
                 /* destination address */
                 if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
@@ -790,7 +790,7 @@ gint send_message(void) {
                     return 0;
                 }
 
-                sin6.sin6_port = htons(SERVER_PORT);
+                sin6.sin6_port = htons(DH6PORT_UPSTREAM_PORT);
 
                 in6_pkt->ipi6_ifindex = iface->devindex;
                 sin6.sin6_scope_id = in6_pkt->ipi6_ifindex;

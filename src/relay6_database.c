@@ -189,8 +189,8 @@ gint process_RELAY_FORW(relay_msg_parser_t *msg) {
 
     if ((!IN6_IS_ADDR_LINKLOCAL(&sap.sin6_addr)) && (nr_of_devices == 1)) {
         memset(&sap.sin6_addr, 0, sizeof(sap.sin6_addr));
-        memcpy(pointer, &sap.sin6_addr, INET6_LEN);
-        pointer += INET6_LEN;
+        memcpy(pointer, &sap.sin6_addr, sizeof(sap.sin6_addr));
+        pointer += sizeof(sap.sin6_addr);
     } else {
         check = 0;
         memset(&sap.sin6_addr, 0, sizeof(sap.sin6_addr));
@@ -201,8 +201,8 @@ gint process_RELAY_FORW(relay_msg_parser_t *msg) {
             exit(1);
         }
 
-        memcpy(pointer, &sap.sin6_addr, INET6_LEN);
-        pointer += INET6_LEN;
+        memcpy(pointer, &sap.sin6_addr, sizeof(sap.sin6_addr));
+        pointer += sizeof(sap.sin6_addr);
     }
 
     /* fill in peer-addrees */
@@ -213,12 +213,12 @@ gint process_RELAY_FORW(relay_msg_parser_t *msg) {
         exit(1);
     }
 
-    memcpy(pointer, &sap.sin6_addr, INET6_LEN);
-    pointer += INET6_LEN;
+    memcpy(pointer, &sap.sin6_addr, sizeof(sap.sin6_addr));
+    pointer += sizeof(sap.sin6_addr);
 
     /* Insert Interface_ID option to identify the interface */
     p16 = (uint16_t *) pointer;
-    *p16 = htons(OPTION_INTERFACE_ID);
+    *p16 = htons(DH6OPT_INTERFACE_ID);
     pointer += 2;
     p16 = (uint16_t *) pointer;
     *p16 = htons(4);            /* 4 octeti length */
@@ -228,7 +228,7 @@ gint process_RELAY_FORW(relay_msg_parser_t *msg) {
     pointer += 4;
 
     p16 = (uint16_t *) pointer;
-    *p16 = htons(OPTION_RELAY_MSG);
+    *p16 = htons(DH6OPT_RELAY_MSG);
     pointer += 2;
     optl = (uint16_t *) pointer;
     pointer += 2;
@@ -297,17 +297,17 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
     pointer += 1;               /* hop-count */
     msg->msg_type = DH6_RELAY_REPL;
 
-    if (msg->datalength - (pointer - pstart) < (2 * INET6_LEN)) {
-        g_debug("%s: opt_length has 0 value for INET6_LEN, dropping",
-                __func__);
+    if (msg->datalength - (pointer - pstart) < (2 * sizeof(sap.sin6_addr))) {
+        g_debug("%s: opt_length has 0 value for %lu, dropping",
+                __func__, sizeof(sap.sin6_addr));
         return 0;
     }
 
     /* extract link_address */
     memset(msg->link_addr, 0, INET6_ADDRSTRLEN);
     memset(&sap.sin6_addr, 0, sizeof(sap.sin6_addr));
-    memcpy(&sap.sin6_addr, pointer, INET6_LEN);
-    pointer += INET6_LEN;
+    memcpy(&sap.sin6_addr, pointer, sizeof(sap.sin6_addr));
+    pointer += sizeof(sap.sin6_addr);
 
     if (inet_ntop(AF_INET6, &sap.sin6_addr, msg->link_addr,
                   INET6_ADDRSTRLEN) <= 0) {
@@ -318,8 +318,8 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
     /* extract peer address */
     memset(msg->peer_addr, 0, INET6_ADDRSTRLEN);
     memset(&sap.sin6_addr, 0, sizeof(sap.sin6_addr));
-    memcpy(&sap.sin6_addr, pointer, INET6_LEN);
-    pointer += INET6_LEN;
+    memcpy(&sap.sin6_addr, pointer, sizeof(sap.sin6_addr));
+    pointer += sizeof(sap.sin6_addr);
 
     if (inet_ntop(AF_INET6, &sap.sin6_addr, msg->peer_addr,
                   INET6_ADDRSTRLEN) <= 0) {
@@ -336,7 +336,7 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
     p16 = (uint16_t *) pointer;
     option = ntohs(*p16);
 
-    if (option == OPTION_INTERFACE_ID) {
+    if (option == DH6OPT_INTERFACE_ID) {
         pointer += 2;
         p16 = (uint16_t *) pointer;
         opaqlen = ntohs(*p16);
@@ -361,7 +361,7 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
         p16 = (uint16_t *) pointer;
         option = ntohs(*p16);
 
-        if (option == OPTION_RELAY_MSG) {
+        if (option == DH6OPT_RELAY_MSG) {
             pointer += 2;
             p16 = (uint16_t *) pointer;
             msglen = ntohs(*p16);
@@ -440,15 +440,15 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
                 return 1;
             }
         } else {
-            /* OPTION_RELAY_MSG */
+            /* DH6OPT_RELAY_MSG */
             g_debug("%s: message is malformed, no option relay message found, "
                     "dropping", __func__);
             return 0;
         }
     }
 
-    /* OPTION_INTERFACE_ID */
-    if (option == OPTION_RELAY_MSG) {
+    /* DH6OPT_INTERFACE_ID */
+    if (option == DH6OPT_RELAY_MSG) {
         pointer += 2;
         p16 = (uint16_t *) pointer;
         msglen = ntohs(*p16);
@@ -462,13 +462,13 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
 
         opaq = 0;
         psp = (pointer + msglen);       /* jump over message, seek for
-                                         * OPTION_INTERFACE_ID */
+                                         * DH6OPT_INTERFACE_ID */
 
         p16 = (uint16_t *) psp;
         option = ntohs(*p16);
 
         if (msg->datalength - (psp - pstart) >= MESSAGE_HEADER_LENGTH) {
-            if (option == OPTION_INTERFACE_ID) {
+            if (option == DH6OPT_INTERFACE_ID) {
                 psp += 2;
                 p16 = (uint16_t *) psp;
                 opaqlen = ntohs(*p16);
@@ -550,7 +550,7 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
             return 1;
         }
     } else {
-        /* OPTION_RELAY_MSG */
+        /* DH6OPT_RELAY_MSG */
         g_debug("%s: message is malformed, no option relay message found, "
                 "dropping", __func__);
         return 0;

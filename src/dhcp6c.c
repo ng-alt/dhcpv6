@@ -1422,7 +1422,7 @@ gint client6_init(gchar *device) {
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_protocol = IPPROTO_UDP;
     hints.ai_flags = 0;
-    error = getaddrinfo(linklocal, DH6PORT_DOWNSTREAM, &hints, &res);
+    error = getaddrinfo(linklocal, DH6PORT_DOWNSTREAM_SERVICE, &hints, &res);
 
     if (error) {
         g_error("%s: getaddrinfo: %s", __func__, strerror(error));
@@ -1486,7 +1486,7 @@ gint client6_init(gchar *device) {
 
     /* initiallize socket address structure for outbound packets */
     hints.ai_flags = 0;
-    error = getaddrinfo(linklocal, DH6PORT_UPSTREAM, &hints, &res);
+    error = getaddrinfo(linklocal, DH6PORT_UPSTREAM_SERVICE, &hints, &res);
 
     if (error) {
         g_error("%s: getaddrinfo: %s", __func__, gai_strerror(error));
@@ -1506,7 +1506,8 @@ gint client6_init(gchar *device) {
     hints.ai_family = PF_INET6;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_protocol = IPPROTO_UDP;
-    error = getaddrinfo(DH6ADDR_ALLAGENT, DH6PORT_UPSTREAM, &hints, &res);
+    error = getaddrinfo(DH6ADDR_ALLAGENT, DH6PORT_UPSTREAM_SERVICE,
+                        &hints, &res);
 
     if (error) {
         g_error("%s: getaddrinfo: %s", __func__, gai_strerror(error));
@@ -1921,9 +1922,9 @@ void client6_send(dhcp6_event_t *ev) {
                 hints.ai_socktype = SOCK_DGRAM;
                 hints.ai_protocol = IPPROTO_UDP;
                 error =
-                    getaddrinfo(in6addr2str
-                                (&ifp->current_server->server_addr, 0),
-                                DH6PORT_UPSTREAM, &hints, &res);
+                    getaddrinfo(in6addr2str(&ifp->current_server->server_addr,
+                                            0),
+                                DH6PORT_UPSTREAM_SERVICE, &hints, &res);
 
                 if (error) {
                     g_error("%s: getaddrinfo: %s", __func__,

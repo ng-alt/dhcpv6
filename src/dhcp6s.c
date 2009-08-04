@@ -1313,7 +1313,7 @@ void server6_init(void) {
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_protocol = IPPROTO_UDP;
     hints.ai_flags = AI_PASSIVE;
-    error = getaddrinfo(NULL, DH6PORT_UPSTREAM, &hints, &res);
+    error = getaddrinfo(NULL, DH6PORT_UPSTREAM_SERVICE, &hints, &res);
 
     if (error) {
         g_error("%s: getaddrinfo: %s", __func__, gai_strerror(error));
@@ -1352,7 +1352,7 @@ void server6_init(void) {
     /* initiallize socket address structure for outbound packets */
     hints.ai_flags = AI_PASSIVE;
 
-    error = getaddrinfo(NULL, DH6PORT_DOWNSTREAM, &hints, &res);
+    error = getaddrinfo(NULL, DH6PORT_DOWNSTREAM_SERVICE, &hints, &res);
     if (error) {
         g_error("%s: getaddrinfo: %s", __func__, gai_strerror(error));
         exit(1);
@@ -1442,8 +1442,8 @@ void server6_init(void) {
 
     for (i = 0; i < num_device; i++) {
         hints.ai_flags = 0;
-        error =
-            getaddrinfo(DH6ADDR_ALLAGENT, DH6PORT_UPSTREAM, &hints, &res2);
+        error = getaddrinfo(DH6ADDR_ALLAGENT, DH6PORT_UPSTREAM_SERVICE,
+                            &hints, &res2);
         if (error) {
             g_error("%s: getaddrinfo: %s", __func__, gai_strerror(error));
             exit(1);
@@ -1465,7 +1465,7 @@ void server6_init(void) {
         freeaddrinfo(res2);
 
         hints.ai_flags = 0;
-        error = getaddrinfo(DH6ADDR_ALLSERVER, DH6PORT_UPSTREAM,
+        error = getaddrinfo(DH6ADDR_ALLSERVER, DH6PORT_UPSTREAM_SERVICE,
                             &hints, &res2);
 
         if (error) {

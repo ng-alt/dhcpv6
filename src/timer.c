@@ -59,11 +59,11 @@ static void _timeval_add(struct timeval *a, struct timeval *b,
                          struct timeval *result) {
     glong l;
 
-    if ((l = a->tv_usec + b->tv_usec) < MILLION) {
+    if ((l = a->tv_usec + b->tv_usec) < 1000000) {
         result->tv_usec = l;
         result->tv_sec = a->tv_sec + b->tv_sec;
     } else {
-        result->tv_usec = l - MILLION;
+        result->tv_usec = l - 1000000;
         result->tv_sec = a->tv_sec + b->tv_sec + 1;
     }
 }
@@ -81,7 +81,7 @@ void timeval_sub(struct timeval *a, struct timeval *b, struct timeval *result) {
         result->tv_usec = l;
         result->tv_sec = a->tv_sec - b->tv_sec;
     } else {
-        result->tv_usec = MILLION + l;
+        result->tv_usec = 1000000 + l;
         result->tv_sec = a->tv_sec - b->tv_sec - 1;
     }
 }
