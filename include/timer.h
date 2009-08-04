@@ -64,5 +64,6 @@ void dhcp6_remove_timer(dhcp6_timer_t *);
 void dhcp6_set_timer(struct timeval *, dhcp6_timer_t *);
 struct timeval *dhcp6_check_timer(void);
 struct timeval *dhcp6_timer_rest(dhcp6_timer_t *);
+gboolean is_timeval_leq(struct timeval *, struct timeval *);
 
 #endif /* __TIMER_H_DEFINED */

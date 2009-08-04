@@ -73,16 +73,4 @@
      a == DHCP6S_RELEASE || a == DHCP6S_CONFIRM || \
      a == DHCP6S_INFOREQ)
 
-/* a < b */
-#define TIMEVAL_LT(a, b)           \
-    (((a).tv_sec < (b).tv_sec) ||  \
-    (((a).tv_sec == (b).tv_sec) && \
-    ((a).tv_usec < (b).tv_usec)))
-
-/* a <= b */
-#define TIMEVAL_LEQ(a, b)          \
-    (((a).tv_sec < (b).tv_sec) ||  \
-    (((a).tv_sec == (b).tv_sec) && \
-    ((a).tv_usec <= (b).tv_usec)))
-
 #endif /* __MACROS_H_DEFINED */

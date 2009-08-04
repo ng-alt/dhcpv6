@@ -1146,7 +1146,7 @@ static gint _client6_recvadvert(dhcp6_if_t *ifp, dhcp6_t *dh6,
         tv_irt.tv_usec = (ev->init_retrans * 1000) % 1000000;
         timeval_sub(&tv_rt, rest, &elapsed);
 
-        if (TIMEVAL_LEQ(elapsed, tv_irt)) {
+        if (is_timeval_leq(&elapsed, &tv_irt)) {
             timeval_sub(&tv_irt, &elapsed, &timo);
         } else {
             timo.tv_sec = timo.tv_usec = 0;

@@ -76,6 +76,15 @@ static gboolean is_timeval_equal(struct timeval *a, struct timeval *b) {
     }
 }
 
+static gboolean is_timeval_lt(struct timeval *a, struct timeval *b) {
+    if ((a->tv_sec < b->tv_sec) ||
+        ((a->tv_sec == b->tv_sec) && (a->tv_usec < b->tv_usec))) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
 /* END STATIC FUNCTIONS */
 
 /*
@@ -136,7 +145,7 @@ void dhcp6_set_timer(struct timeval *tm, dhcp6_timer_t *timer) {
     _timeval_add(&now, tm, &timer->tm);
 
     /* update the next expiration time */
-    if (TIMEVAL_LT(timer->tm, tm_sentinel)) {
+    if (is_timeval_lt(&timer->tm, &tm_sentinel)) {
         tm_sentinel = timer->tm;
     }
 
@@ -168,13 +177,13 @@ struct timeval *dhcp6_check_timer(void) {
             continue;
         }
 
-        if (TIMEVAL_LEQ(tm->tm, now)) {
+        if (is_timeval_leq(&tm->tm, &now)) {
             if ((*tm->expire) (tm->expire_data) == NULL) {
                 continue;       /* timer has been freed */
             }
         }
 
-        if (TIMEVAL_LT(tm->tm, tm_sentinel)) {
+        if (is_timeval_lt(&tm->tm, &tm_sentinel)) {
             tm_sentinel = tm->tm;
         }
 
@@ -184,7 +193,7 @@ struct timeval *dhcp6_check_timer(void) {
     if (is_timeval_equal(&tm_max, &tm_sentinel)) {
         /* no need to timeout */
         return NULL;
-    } else if (TIMEVAL_LT(tm_sentinel, now)) {
+    } else if (is_timeval_lt(&tm_sentinel, &now)) {
         /* this may occur when the interval is too small */
         returnval.tv_sec = returnval.tv_usec = 0;
     } else {
@@ -200,7 +209,7 @@ struct timeval *dhcp6_timer_rest(dhcp6_timer_t *timer) {
 
     gettimeofday(&now, NULL);
 
-    if (TIMEVAL_LEQ(timer->tm, now)) {
+    if (is_timeval_leq(&timer->tm, &now)) {
         g_debug("%s: a timer must be expired, but not yet", __func__);
         returnval.tv_sec = returnval.tv_usec = 0;
     } else {
@@ -208,4 +217,13 @@ struct timeval *dhcp6_timer_rest(dhcp6_timer_t *timer) {
     }
 
     return &returnval;
+}
+
+gboolean is_timeval_leq(struct timeval *a, struct timeval *b) {
+    if ((a->tv_sec < b->tv_sec) ||
+        ((a->tv_sec == b->tv_sec) && (a->tv_usec <= b->tv_usec))) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
 }
