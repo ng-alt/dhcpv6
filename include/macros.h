@@ -85,9 +85,4 @@
     (((a).tv_sec == (b).tv_sec) && \
     ((a).tv_usec <= (b).tv_usec)))
 
-/* a == b */
-#define TIMEVAL_EQUAL(a, b)      \
-    ((a).tv_sec == (b).tv_sec && \
-    (a).tv_usec == (b).tv_usec)
-
 #endif /* __MACROS_H_DEFINED */

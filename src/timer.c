@@ -68,6 +68,14 @@ static void _timeval_add(struct timeval *a, struct timeval *b,
     }
 }
 
+static gboolean is_timeval_equal(struct timeval *a, struct timeval *b) {
+    if ((a->tv_sec == b->tv_sec) && (a->tv_usec == b->tv_usec)) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
 /* END STATIC FUNCTIONS */
 
 /*
@@ -173,7 +181,7 @@ struct timeval *dhcp6_check_timer(void) {
         iterator = g_slist_next(iterator);
     }
 
-    if (TIMEVAL_EQUAL(tm_max, tm_sentinel)) {
+    if (is_timeval_equal(&tm_max, &tm_sentinel)) {
         /* no need to timeout */
         return NULL;
     } else if (TIMEVAL_LT(tm_sentinel, now)) {
