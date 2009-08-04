@@ -52,7 +52,7 @@ relay_msg_parser_t *create_parser_obj(void) {
         exit(1);
     }
 
-    msg->buffer = (uint8_t *) g_malloc0(MAX_DHCP_MSG_LENGTH * sizeof(uint8_t));
+    msg->buffer = (guint8 *) g_malloc0(MAX_DHCP_MSG_LENGTH * sizeof(guint8));
     if (msg->buffer == NULL) {
         g_error("%s: memory allocation error", __func__);
         exit(1);
@@ -90,8 +90,8 @@ gint check_buffer(gint ref, relay_msg_parser_t *mesg) {
 }
 
 gint put_msg_in_store(relay_msg_parser_t *mesg) {
-    uint32_t msg_type;
-    uint8_t *hop, msg;
+    guint32 msg_type;
+    guint8 *hop, msg;
 
     /* --------------------------- */
     mesg->pstart = mesg->buffer;
@@ -102,7 +102,7 @@ gint put_msg_in_store(relay_msg_parser_t *mesg) {
         return 0;
     }
 
-    msg_type = *((uint32_t *) mesg->pstart);
+    msg_type = *((guint32 *) mesg->pstart);
     msg_type = (ntohl(msg_type) & 0xFF000000) >> 24;
 
     if (msg_type == DH6_SOLICIT) {

@@ -123,15 +123,15 @@ relay_msg_parser_t *get_send_messages_out(void) {
 }
 
 gint process_RELAY_FORW(relay_msg_parser_t *msg) {
-    uint8_t *head = (uint8_t *) g_malloc0(HEAD_SIZE * sizeof(uint8_t));
-    uint8_t *newbuff =
-        (uint8_t *) g_malloc0(MAX_DHCP_MSG_LENGTH * sizeof(uint8_t));
-    uint8_t *pointer;
+    guint8 *head = (guint8 *) g_malloc0(HEAD_SIZE * sizeof(guint8));
+    guint8 *newbuff =
+        (guint8 *) g_malloc0(MAX_DHCP_MSG_LENGTH * sizeof(guint8));
+    guint8 *pointer;
     relay_interface_t *device = NULL;
     struct sockaddr_in6 sap;
     gint check = 0;
-    uint16_t *p16, *optl;
-    uint32_t *p32;
+    guint16 *p16, *optl;
+    guint32 *p32;
     gint len, hop;
 
     if ((head == NULL) || (newbuff == NULL)) {
@@ -217,20 +217,20 @@ gint process_RELAY_FORW(relay_msg_parser_t *msg) {
     pointer += sizeof(sap.sin6_addr);
 
     /* Insert Interface_ID option to identify the interface */
-    p16 = (uint16_t *) pointer;
+    p16 = (guint16 *) pointer;
     *p16 = htons(DH6OPT_INTERFACE_ID);
     pointer += 2;
-    p16 = (uint16_t *) pointer;
+    p16 = (guint16 *) pointer;
     *p16 = htons(4);            /* 4 octeti length */
     pointer += 2;
-    p32 = (uint32_t *) pointer;
+    p32 = (guint32 *) pointer;
     *p32 = htonl(device->opaq);
     pointer += 4;
 
-    p16 = (uint16_t *) pointer;
+    p16 = (guint16 *) pointer;
     *p16 = htons(DH6OPT_RELAY_MSG);
     pointer += 2;
-    optl = (uint16_t *) pointer;
+    optl = (guint16 *) pointer;
     pointer += 2;
     *optl = htons(msg->datalength);
 
@@ -333,12 +333,12 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
         return 0;
     }
 
-    p16 = (uint16_t *) pointer;
+    p16 = (guint16 *) pointer;
     option = ntohs(*p16);
 
     if (option == DH6OPT_INTERFACE_ID) {
         pointer += 2;
-        p16 = (uint16_t *) pointer;
+        p16 = (guint16 *) pointer;
         opaqlen = ntohs(*p16);
         pointer += 2;
 
@@ -348,7 +348,7 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
             return 0;
         }
 
-        p32 = (uint32_t *) pointer;
+        p32 = (guint32 *) pointer;
         opaq = ntohl(*p32);
         pointer += opaqlen;
 
@@ -358,12 +358,12 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
             return 0;
         }
 
-        p16 = (uint16_t *) pointer;
+        p16 = (guint16 *) pointer;
         option = ntohs(*p16);
 
         if (option == DH6OPT_RELAY_MSG) {
             pointer += 2;
-            p16 = (uint16_t *) pointer;
+            p16 = (guint16 *) pointer;
             msglen = ntohs(*p16);
             pointer += 2;
             if (msg->datalength - (pointer - pstart) < msglen) {
@@ -450,7 +450,7 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
     /* DH6OPT_INTERFACE_ID */
     if (option == DH6OPT_RELAY_MSG) {
         pointer += 2;
-        p16 = (uint16_t *) pointer;
+        p16 = (guint16 *) pointer;
         msglen = ntohs(*p16);
         pointer += 2;
 
@@ -464,13 +464,13 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
         psp = (pointer + msglen);       /* jump over message, seek for
                                          * DH6OPT_INTERFACE_ID */
 
-        p16 = (uint16_t *) psp;
+        p16 = (guint16 *) psp;
         option = ntohs(*p16);
 
         if (msg->datalength - (psp - pstart) >= MESSAGE_HEADER_LENGTH) {
             if (option == DH6OPT_INTERFACE_ID) {
                 psp += 2;
-                p16 = (uint16_t *) psp;
+                p16 = (guint16 *) psp;
                 opaqlen = ntohs(*p16);
                 psp += 2;
 
@@ -480,7 +480,7 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
                     return 0;
                 }
 
-                p32 = (uint32_t *) psp;
+                p32 = (guint32 *) psp;
                 opaq = ntohl(*p32);
                 psp += opaqlen;
             }
