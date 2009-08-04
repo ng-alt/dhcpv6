@@ -40,12 +40,6 @@ typedef struct _ra_info_t {
     gint flags;
 } ra_info_t;
 
-typedef struct _dhcp6_option_t {
-    gint type;
-    gint len;
-    void *val;
-} dhcp6_option_t;
-
 typedef struct _dhcp6_timer_t {
     struct timeval tm;
     gint flag;
@@ -146,15 +140,6 @@ typedef struct _dhcp6_ifconf_t {
     GSList *option_list;
 } dhcp6_ifconf_t;
 
-typedef struct _prefix_ifconf_t {
-    gchar *ifname;               /* interface name such as eth0 */
-    gint sla_len;                /* SLA ID length in bits */
-    guint32 sla_id;              /* need more than 32bits? */
-    gint ifid_len;               /* interface ID length in bits */
-    gint ifid_type;              /* EUI-64 and manual (unused?) */
-    gchar ifid[16];              /* Interface ID, up to 128bits */
-} prefix_ifconf_t;
-
 /* per-host configuration */
 typedef struct _host_conf_t {
     struct _host_conf_t *next;
@@ -198,8 +183,6 @@ typedef enum {
     DHCP6_MODE_CLIENT,
     DHCP6_MODE_RELAY
 } dhcp6_mode_t;
-
-/* Internal data structures */
 
 typedef struct _intf_id_t {
     guint16 intf_len;           /* length */
@@ -348,12 +331,6 @@ typedef enum {
     DHCP6_DATA_PREFIX,
     DHCP6_DATA_ADDR
 } dhcp6_eventdata_type;
-
-typedef struct _dhcp6_eventdata_t {
-    dhcp6_event_t *event;
-    dhcp6_eventdata_type type;
-    void *data;
-} dhcp6_eventdata_t;
 
 typedef struct _dhcp6_iaidaddr_t {
     client6_if_t client6_info;
@@ -599,15 +576,6 @@ typedef enum {
     DHCP6_CONFINFO_PREFIX,
     DHCP6_CONFINFO_ADDRS
 } dhcp6_conftype_t;
-
-typedef struct _dhcp6_binding_t {
-    dhcp6_conftype_t type;
-    duid_t clientid; 
-    void *val;
-
-    guint32 duration;
-    dhcp6_timer_t *timer;
-} dhcp6_binding_t;
 
 typedef struct _relay_forw_data_t {
     relay_msg_parser_t *mesg;
