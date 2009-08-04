@@ -95,10 +95,4 @@
      a == DH6_REBIND || a == DH6_CONFIRM || a == DH6_RELEASE || \
      a == DH6_DECLINE || a == DH6_INFORM_REQ) 
 
-#define VALID_LEASE_FLAG(a) \
-    ((a & LEASE_ADDR_FLAG) && (a & LEASE_SDATE_FLAG) && \
-     (a & LEASE_VTIME_FLAG) && (a & LEASE_PTIME_FLAG) && \
-     (a & LEASE_IAID_FLAG) && (a & LEASE_RNTIME_FLAG) && \
-     (a & LEASE_RBTIME_FLAG) && (a & LEASE_DUID_FLAG))
-
 #endif /* __MACROS_H_DEFINED */

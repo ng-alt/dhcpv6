@@ -81,10 +81,12 @@ static gint num_lines = 1;
 static dhcp6_lease_t *lease_rec;
 static client6_if_t client6_info;
 
-static u_int16_t lease_flags = 0;
+static guint16 lease_flags = 0;
 
 static gint add_lease(dhcp6_iaidaddr_t *, dhcp6_lease_t *);
 static gint remove_lease(dhcp6_lease_t *);
+static gboolean valid_lease_flag(guint16);
+
 gint do_iaidaddr_hash(dhcp6_lease_t *, client6_if_t *);
 
 %}
@@ -249,7 +251,7 @@ gint do_iaidaddr_hash(dhcp6_lease_t *lease_rec, client6_if_t *key) {
 	struct timeval timo;
 	gdouble d;
 
-	if (!VALID_LEASE_FLAG(lease_flags) ||
+	if (!valid_lease_flag(lease_flags) ||
 	    (lease_rec->lease_addr.preferlifetime > lease_rec->lease_addr.validlifetime)) {
 			g_error("parse an invalid lease %s/%d within line %d",
 				in6addr2str(&lease_rec->lease_addr.addr, 0),
@@ -469,4 +471,15 @@ remove_lease(lease)
 	g_free(lease);
 	lease = NULL;
 	return 0;
+}
+
+static gboolean valid_lease_flag(guint16 flags) {
+    if ((flags & LEASE_ADDR_FLAG) && (flags & LEASE_SDATE_FLAG) &&
+        (flags & LEASE_VTIME_FLAG) && (flags & LEASE_PTIME_FLAG) &&
+        (flags & LEASE_IAID_FLAG) && (flags & LEASE_RNTIME_FLAG) &&
+        (flags & LEASE_RBTIME_FLAG) && (flags & LEASE_DUID_FLAG)) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
 }
