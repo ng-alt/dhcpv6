@@ -60,8 +60,9 @@
 const gchar *configfilename;
 gint num_lines = 1;
 gint server6errorcount = 0;
-extern gint server6parse(void);
 extern rootgroup_t *globalgroup;
+
+extern gint server6parse(void);
 
 %}
 

@@ -92,11 +92,6 @@ extern gchar *ifproc_file;
 extern FILE *client6_lease_file;
 extern dhcp6_iaidaddr_t client6_iaidaddr;
 
-/* External prototypes */
-extern gint client6_ifaddrconf(ifaddrconf_cmd_t, dhcp6_addr_t *);
-extern dhcp6_timer_t *syncfile_timo(void *);
-extern gint dad_parse(const gchar *, GSList *);
-
 /* Globals */
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_CLIENT;
 gint iosock = -1;                /* inbound/outbound udp port */

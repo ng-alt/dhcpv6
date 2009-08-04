@@ -87,13 +87,6 @@ link_decl_t *subnet = NULL;
 host_decl_t *host = NULL;
 rootgroup_t *globalgroup = NULL;
 
-extern link_decl_t *dhcp6_allocate_link(dhcp6_if_t *, rootgroup_t *,
-                                        struct in6_addr *);
-extern host_decl_t *dhcp6_allocate_host(dhcp6_if_t *, rootgroup_t *,
-                                        dhcp6_optinfo_t *);
-extern gint dhcp6_get_hostconf(ia_t *, ia_t *, dhcp6_iaidaddr_t *,
-                               host_decl_t *);
-
 /* BEGIN STATIC FUNCTIONS */
 
 static void _random_init(void) {

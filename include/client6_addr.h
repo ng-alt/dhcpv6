@@ -26,6 +26,7 @@
 #include "types.h"
 #include "duid.h"
 #include "common.h"
+#include "dhcp6c.h"
 
 /* XXX: global from common.c */
 extern dhcp6_if_t *dhcp6_if;

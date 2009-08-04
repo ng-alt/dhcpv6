@@ -78,12 +78,7 @@
 
 #include "client6_addr.h"
 
-extern void run_script(dhcp6_if_t *, gint, gint, guint32);
-
 extern dhcp6_iaidaddr_t client6_iaidaddr;
-extern dhcp6_timer_t *client6_timo(void *);
-extern void client6_send(dhcp6_event_t *);
-extern void free_servers(dhcp6_if_t *);
 
 extern gint nlsock;
 extern FILE *client6_lease_file;

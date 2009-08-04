@@ -30,6 +30,7 @@
 #include "common.h"
 #include "client6_addr.h"
 #include "log.h"
+#include "dad_parse.h"
 
 /* XXX: global from common.c */
 extern dhcp6_if_t *dhcp6_if;
