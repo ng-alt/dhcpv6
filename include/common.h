@@ -34,7 +34,6 @@
 
 #include "constants.h"
 #include "types.h"
-#include "macros.h"
 #include "str.h"
 #include "duid.h"
 #include "timer.h"

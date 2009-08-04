@@ -24,7 +24,6 @@
 
 #include "constants.h"
 #include "types.h"
-#include "macros.h"
 #include "str.h"
 #include "common.h"
 #include "server6_addr.h"

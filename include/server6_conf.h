@@ -55,7 +55,6 @@
 
 #include "constants.h"
 #include "types.h"
-#include "macros.h"
 
 gint ipv6addrcmp(struct in6_addr *, struct in6_addr *);
 struct in6_addr *inc_ipv6addr(struct in6_addr *);
