@@ -1105,6 +1105,17 @@ fail:
     return -1;
 }
 
+static gboolean dh6_valid_message(guint8 type) {
+    if ((type == DH6_SOLICIT) || (type == DH6_REQUEST) ||
+        (type == DH6_RENEW) || (type == DH6_REBIND) ||
+        (type == DH6_CONFIRM) || (type == DH6_RELEASE) ||
+        (type == DH6_DECLINE) || (type == DH6_INFORM_REQ)) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
 static gint _server6_recv(gint s) {
     ssize_t len;
     struct sockaddr_storage from;
@@ -1219,7 +1230,7 @@ static gint _server6_recv(gint s) {
         subnet = dhcp6_allocate_link(ifp, globalgroup, &relay);
     }
 
-    if (!(DH6_VALID_MESSAGE(dh6->dh6_msgtype))) {
+    if (!dh6_valid_message(dh6->dh6_msgtype)) {
         g_message("%s: unknown or unsupported msgtype %s",
                   __func__, dhcp6msgstr(dh6->dh6_msgtype));
     } else {
