@@ -204,7 +204,7 @@ static gint _add_address(GSList *addr_list, dhcp6_addr_t *v6addr) {
     GSList *iterator = addr_list;
 
     /* avoid invalid addresses */
-    if (IN6_IS_ADDR_RESERVED(&v6addr->addr)) {
+    if (is_in6_addr_reserved(&v6addr->addr)) {
         g_error("%s: invalid address: %s", __func__,
                 in6addr2str(&v6addr->addr, 0));
         return -1;

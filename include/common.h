@@ -75,5 +75,6 @@ void dhcp6_set_timeoparam(dhcp6_event_t *);
 void dhcp6_reset_timer(dhcp6_event_t *);
 gboolean copy_option(gint, guint8, void *, dhcp6opt_t *, dhcp6opt_t *,
                      dhcp6opt_t *);
+gboolean is_in6_addr_reserved(struct in6_addr *);
 
 #endif /* __COMMON_H_INCLUDE */

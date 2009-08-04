@@ -812,7 +812,7 @@ gint dhcp6_create_addrlist(ia_t *ria, ia_t *ia,
                 continue;
             }
 
-            if (IN6_IS_ADDR_RESERVED(&lv->val_dhcp6addr.addr) ||
+            if (is_in6_addr_reserved(&lv->val_dhcp6addr.addr) ||
                 is_anycast(&lv->val_dhcp6addr.addr, seg->prefix.plen)) {
                 numaddr += 1;
                 lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
@@ -955,7 +955,7 @@ gint dhcp6_create_prefixlist(ia_t *ria, ia_t *ia,
         while (iterator) {
             lv = (dhcp6_value_t *) iterator->data;
 
-            if (IN6_IS_ADDR_RESERVED(&lv->val_dhcp6addr.addr) ||
+            if (is_in6_addr_reserved(&lv->val_dhcp6addr.addr) ||
                 is_anycast(&lv->val_dhcp6addr.addr, prefix6->prefix.plen) ||
                 !addr_on_addrlist(reply_list, &lv->val_dhcp6addr)) {
                 lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;

@@ -1816,3 +1816,9 @@ gboolean copy_option(gint option, guint8 len, void *data, dhcp6opt_t *p,
 
     return TRUE;
 }
+
+gboolean is_in6_addr_reserved(struct in6_addr *addr) {
+    return (IN6_IS_ADDR_MULTICAST(addr) ||
+            IN6_IS_ADDR_LOOPBACK(addr) ||
+            IN6_IS_ADDR_UNSPECIFIED(addr));
+}

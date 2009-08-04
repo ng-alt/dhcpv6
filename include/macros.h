@@ -22,49 +22,4 @@
 #ifndef __MACROS_H_DEFINED
 #define __MACROS_H_DEFINED
 
-/* Some systems define thes in in.h */
-#ifndef IN6_IS_ADDR_UNSPECIFIED
-#define IN6_IS_ADDR_UNSPECIFIED(a)           \
-    (((__const guint32 *) (a))[0] == 0     \
-     && ((__const guint32 *) (a))[1] == 0  \
-     && ((__const guint32 *) (a))[2] == 0  \
-     && ((__const guint32 *) (a))[3] == 0)
-#endif
-
-#ifndef IN6_IS_ADDR_LOOPBACK
-#define IN6_IS_ADDR_LOOPBACK(a)                      \
-    (((__const guint32 *) (a))[0] == 0             \
-     && ((__const guint32 *) (a))[1] == 0          \
-     && ((__const guint32 *) (a))[2] == 0          \
-     && ((__const guint32 *) (a))[3] == htonl (1))
-#endif
-
-#ifndef IN6_IS_ADDR_MULTICAST
-#define IN6_IS_ADDR_MULTICAST(a) (((__const guint8 *) (a))[0] == 0xff)
-#endif
-
-#ifndef IN6_IS_ADDR_LINKLOCAL
-#define IN6_IS_ADDR_LINKLOCAL(a) \
-    ((((__const guint32 *) (a))[0] & htonl(0xffc00000)) == htonl(0xfe800000))
-#endif
-
-#ifndef IN6_IS_ADDR_SITELOCAL
-#define IN6_IS_ADDR_SITELOCAL(a) \
-    ((((__const guint32 *) (a))[0] & htonl(0xffc00000)) == htonl(0xfec00000))
-#endif
-
-#ifndef IN6_ARE_ADDR_EQUAL
-#define IN6_ARE_ADDR_EQUAL(a,b)                                             \
-    ((((__const guint32 *) (a))[0] == ((__const guint32 *) (b))[0])     \
-     && (((__const guint32 *) (a))[1] == ((__const guint32 *) (b))[1])  \
-     && (((__const guint32 *) (a))[2] == ((__const guint32 *) (b))[2])  \
-     && (((__const guint32 *) (a))[3] == ((__const guint32 *) (b))[3]))
-#endif
-
-#ifndef IN6_IS_ADDR_RESERVED
-#define IN6_IS_ADDR_RESERVED(a)                            \
-    IN6_IS_ADDR_MULTICAST(a) || IN6_IS_ADDR_LOOPBACK(a) || \
-    IN6_IS_ADDR_UNSPECIFIED(a)
-#endif
-
 #endif /* __MACROS_H_DEFINED */

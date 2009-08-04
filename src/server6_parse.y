@@ -432,7 +432,7 @@ prefixdef
           }
 
           /* check the assigned prefix is not reserved pv6 addresses */
-          if (IN6_IS_ADDR_RESERVED(prefix)) {
+          if (is_in6_addr_reserved(&prefix->addr)) {
               g_error("config reserved prefix");
               ABORT;
           }
@@ -497,8 +497,8 @@ rangedef
           }
 
           /* check the assigned addresses are not reserved ipv6 addresses */
-          if (IN6_IS_ADDR_RESERVED(&seg->max) ||
-              IN6_IS_ADDR_RESERVED(&seg->max)) {
+          if (is_in6_addr_reserved(&seg->max) ||
+              is_in6_addr_reserved(&seg->max)) {
               g_error("config reserved ipv6address");
               ABORT;
           }
