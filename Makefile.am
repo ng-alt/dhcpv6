@@ -5,7 +5,7 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = include src man etc
+SUBDIRS = include src man etc test
 
 EXTRA_DIST = AUTHORS LICENSE README TODO ChangeLog \
              RFC3315 RFC3633 RFC3646 RFC4242
