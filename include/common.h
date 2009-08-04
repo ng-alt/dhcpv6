@@ -39,6 +39,7 @@
 #include "duid.h"
 #include "timer.h"
 #include "lease.h"
+#include "log.h"
 
 /* XXX: this is a global that needs to go */
 extern const dhcp6_mode_t dhcp6_mode;

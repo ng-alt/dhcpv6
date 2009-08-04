@@ -67,18 +67,6 @@
     IN6_IS_ADDR_UNSPECIFIED(a)
 #endif
 
-#define DPRINT_STATUS_CODE(object, num, optp, optlen) \
-do { \
-    g_message("status code of this %s is: %d - %s", \
-              (object), (num), dhcp6_stcodestr((num))); \
-    if ((optp) != NULL && (optlen) > sizeof(guint16)) { \
-        g_message("status message of this %s is: %-*s", \
-                  (object), \
-                  (optlen) - (gint) sizeof(guint16), \
-                  (gchar *) (optp) + sizeof(guint16)); \
-    } \
-} while (0)
-
 #define COPY_OPTION(t, l, v, p) do { \
     if ((void *)(ep) - (void *)(p) < (l) + sizeof(dhcp6opt_t)) { \
         g_message("%s: option buffer short for %s", \

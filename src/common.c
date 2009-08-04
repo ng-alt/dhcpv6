@@ -147,7 +147,7 @@ static gint _get_assigned_ipv6addrs(guchar *p, guchar *ep, ia_t *ia) {
 
                 memcpy(&val16, cp, sizeof(val16));
                 num = ntohs(val16);
-                DPRINT_STATUS_CODE("IA", num, p, optlen);
+                print_status_code("IA", num, p, optlen);
                 ia->status_code = num;
                 break;
             case DH6OPT_IADDR:
@@ -193,7 +193,7 @@ static gint _get_assigned_ipv6addrs(guchar *p, guchar *ep, ia_t *ia) {
                             memcpy(&val16, p + sizeof(ai) + sizeof(opth),
                                    sizeof(val16));
                             num = ntohs(val16);
-                            DPRINT_STATUS_CODE("address", num, p, optlen);
+                            print_status_code("address", num, p, optlen);
                             addr6.status_code = num;
                             break;
                         default:
@@ -249,7 +249,7 @@ static gint _get_assigned_ipv6addrs(guchar *p, guchar *ep, ia_t *ia) {
                             memcpy(&val16, p + sizeof(pi) + sizeof(opth),
                                    sizeof(val16));
                             num = ntohs(val16);
-                            DPRINT_STATUS_CODE("prefix", num, p, optlen);
+                            print_status_code("prefix", num, p, optlen);
                             addr6.status_code = num;
                             break;
                         default:
@@ -376,9 +376,9 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
                         status.dh6_status_code =
                             htons(dp->val_dhcp6addr.status_code);
                         memcpy(tp, &status, sizeof(status));
-                        DPRINT_STATUS_CODE("address",
-                                           dp->val_dhcp6addr.status_code,
-                                           NULL, 0);
+                        print_status_code("address",
+                                          dp->val_dhcp6addr.status_code,
+                                          NULL, 0);
                         *optlen += sizeof(status);
                         tp += sizeof(status);
                         g_debug("set IADDR status len %d optlen: %d",
@@ -402,7 +402,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
                 status.dh6_status_len = htons(sizeof(status.dh6_status_code));
                 status.dh6_status_code = htons(num);
                 memcpy(tp, &status, sizeof(status));
-                DPRINT_STATUS_CODE("IA", num, NULL, 0);
+                print_status_code("IA", num, NULL, 0);
                 *optlen += sizeof(status);
                 tp += sizeof(status);
                 g_debug("set IA status len %d optlen: %d",
@@ -474,9 +474,9 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
                         status.dh6_status_code =
                             htons(dp->val_dhcp6addr.status_code);
                         memcpy(tp, &status, sizeof(status));
-                        DPRINT_STATUS_CODE("prefix",
-                                           dp->val_dhcp6addr.status_code,
-                                           NULL, 0);
+                        print_status_code("prefix",
+                                          dp->val_dhcp6addr.status_code,
+                                          NULL, 0);
                         *optlen += sizeof(status);
                         tp += sizeof(status);
                         g_debug("set IAPREFIX status len %d optlen: %d",
@@ -500,7 +500,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
                 status.dh6_status_len = htons(sizeof(status.dh6_status_code));
                 status.dh6_status_code = htons(num);
                 memcpy(tp, &status, sizeof(status));
-                DPRINT_STATUS_CODE("IA", num, NULL, 0);
+                print_status_code("IA", num, NULL, 0);
                 *optlen += sizeof(status);
                 tp += sizeof(status);
                 g_debug("set IA status len %d optlen: %d",
@@ -1217,7 +1217,7 @@ gint dhcp6_get_options(dhcp6opt_t *p, dhcp6opt_t *ep,
 
                 memcpy(&val16, cp, sizeof(val16));
                 num = ntohs(val16);
-                DPRINT_STATUS_CODE("message", num, p, optlen);
+                print_status_code("message", num, p, optlen);
                 optinfo->status_code = num;
                 break;
             case DH6OPT_ORO:

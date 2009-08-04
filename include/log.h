@@ -55,8 +55,10 @@
 #define __LOG_H_DEFINED
 
 #include "types.h"
+#include "str.h"
 
 void setup_logging(gchar *, log_properties_t *);
 void log_handler(const gchar *, GLogLevelFlags, const gchar *, gpointer);
+void print_status_code(gchar *, gint, void *, gint);
 
 #endif /* __LOG_H_DEFINED */
