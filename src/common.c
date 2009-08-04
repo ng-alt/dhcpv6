@@ -1438,28 +1438,39 @@ gint dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
     ia_t *ia;
 
     if (optinfo->clientID.duid_len) {
-        COPY_OPTION(DH6OPT_CLIENTID, optinfo->clientID.duid_len,
-                    optinfo->clientID.duid_id, p);
+        if (!copy_option(DH6OPT_CLIENTID, optinfo->clientID.duid_len,
+                         optinfo->clientID.duid_id, p, ep, &opth)) {
+            goto fail;
+        }
     }
 
     if (optinfo->serverID.duid_len) {
-        COPY_OPTION(DH6OPT_SERVERID, optinfo->serverID.duid_len,
-                    optinfo->serverID.duid_id, p);
+        if (!copy_option(DH6OPT_SERVERID, optinfo->serverID.duid_len,
+                         optinfo->serverID.duid_id, p, ep, &opth)) {
+            goto fail;
+        }
     }
 
     if (dhcp6_mode == DHCP6_MODE_CLIENT) {
-        COPY_OPTION(DH6OPT_ELAPSED_TIME, 2, &optinfo->elapsed_time, p);
+        if (!copy_option(DH6OPT_ELAPSED_TIME, 2, &optinfo->elapsed_time, p,
+                         ep, &opth)) {
+            goto fail;
+        }
     }
 
     if (optinfo->flags & DHCIFF_RAPID_COMMIT) {
-        COPY_OPTION(DH6OPT_RAPID_COMMIT, 0, "", p);
+        if (!copy_option(DH6OPT_RAPID_COMMIT, 0, "", p, ep, &opth)) {
+            goto fail;
+        }
     }
 
-    if ((dhcp6_mode == DHCP6_MODE_SERVER)
-        && (optinfo->flags & DHCIFF_UNICAST)) {
+    if ((dhcp6_mode == DHCP6_MODE_SERVER) &&
+        (optinfo->flags & DHCIFF_UNICAST)) {
         if (!IN6_IS_ADDR_UNSPECIFIED(&optinfo->server_addr)) {
-            COPY_OPTION(DH6OPT_UNICAST, sizeof(optinfo->server_addr),
-                        &optinfo->server_addr, p);
+            if (!copy_option(DH6OPT_UNICAST, sizeof(optinfo->server_addr),
+                             &optinfo->server_addr, p, ep, &opth)) {
+                goto fail;
+            }
         }
     }
 
@@ -1477,13 +1488,25 @@ gint dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
             if (tmpbuf != NULL) {
                 switch (ia->type) {
                     case IANA:
-                        COPY_OPTION(DH6OPT_IA_NA, optlen, tmpbuf, p);
+                        if (!copy_option(DH6OPT_IA_NA, optlen, tmpbuf, p,
+                                         ep, &opth)) {
+                            goto fail;
+                        }
+
                         break;
                     case IATA:
-                        COPY_OPTION(DH6OPT_IA_TA, optlen, tmpbuf, p);
+                        if (!copy_option(DH6OPT_IA_TA, optlen, tmpbuf, p,
+                                         ep, &opth)) {
+                            goto fail;
+                        }
+
                         break;
                     case IAPD:
-                        COPY_OPTION(DH6OPT_IA_PD, optlen, tmpbuf, p);
+                        if (!copy_option(DH6OPT_IA_PD, optlen, tmpbuf, p,
+                                         ep, &opth)) {
+                            goto fail;
+                        }
+
                         break;
                 }
 
@@ -1496,16 +1519,20 @@ gint dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
 
     if (dhcp6_mode == DHCP6_MODE_SERVER && optinfo->pref != DH6OPT_PREF_UNDEF) {
         guint8 p8 = (guint8) optinfo->pref;
-
         g_debug("server preference %2x", optinfo->pref);
-        COPY_OPTION(DH6OPT_PREFERENCE, sizeof(p8), &p8, p);
+
+        if (!copy_option(DH6OPT_PREFERENCE, sizeof(p8), &p8, p, ep, &opth)) {
+            goto fail;
+        }
     }
 
     if (optinfo->status_code != DH6OPT_STCODE_UNDEFINE) {
-        guint16 code;
+        guint16 code = htons(optinfo->status_code);
 
-        code = htons(optinfo->status_code);
-        COPY_OPTION(DH6OPT_STATUS_CODE, sizeof(code), &code, p);
+        if (!copy_option(DH6OPT_STATUS_CODE, sizeof(code), &code,
+                         p, ep, &opth)) {
+            goto fail;
+        }
     }
 
     if (g_slist_length(optinfo->reqopt_list)) {
@@ -1530,7 +1557,10 @@ gint dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
             iterator = g_slist_next(iterator);
         }
 
-        COPY_OPTION(DH6OPT_ORO, optlen, tmpbuf, p);
+        if (!copy_option(DH6OPT_ORO, optlen, tmpbuf, p, ep, &opth)) {
+            goto fail;
+        }
+
         g_free(tmpbuf);
     }
 
@@ -1557,23 +1587,9 @@ gint dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
             iterator = g_slist_next(iterator);
         }
 
-        if (((void *) ep - (void *) p) < optlen + sizeof(dhcp6opt_t)) {
-            g_message("%s: option buffer short for %s",
-                      __func__, dhcp6optstr(DH6OPT_DNS_SERVERS));
+        if (!copy_option(DH6OPT_DNS_SERVERS, optlen, tmpbuf, p, ep, &opth)) {
             goto fail;
         }
-
-        opth.dh6opt_type = htons(DH6OPT_DNS_SERVERS);
-        opth.dh6opt_len = htons(optlen);
-        memcpy(p, &opth, sizeof(opth));
-
-        if (optlen) {
-            memcpy(p + 1, tmpbuf, optlen);
-        }
-
-        p = (dhcp6opt_t *) ((gchar *) (p + 1) + optlen);
-        len += sizeof(dhcp6opt_t) + optlen;
-        g_debug("%s: set %s", __func__, dhcp6optstr(DH6OPT_DNS_SERVERS));
 
         g_free(tmpbuf);
     }
@@ -1613,32 +1629,20 @@ gint dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
             iterator = g_slist_next(iterator);
         }
 
-        if (((void *) ep - (void *) p) < optlen + sizeof(dhcp6opt_t)) {
-            g_message("%s: option buffer short for %s",
-                      __func__, dhcp6optstr(DH6OPT_DOMAIN_LIST));
+        if (!copy_option(DH6OPT_DOMAIN_LIST, optlen, tmpbuf, p, ep, &opth)) {
             goto fail;
         }
-
-        opth.dh6opt_type = htons(DH6OPT_DOMAIN_LIST);
-        opth.dh6opt_len = htons(optlen);
-        memcpy(p, &opth, sizeof(opth));
-
-        if (optlen) {
-            memcpy(p + 1, tmpbuf, optlen);
-        }
-
-        p = (dhcp6opt_t *) ((gchar *) (p + 1) + optlen);
-        len += sizeof(dhcp6opt_t) + optlen;
-        g_debug("%s: set %s", __func__, dhcp6optstr(DH6OPT_DOMAIN_LIST));
 
         g_free(tmpbuf);
     }
 
     if (dhcp6_mode == DHCP6_MODE_SERVER && optinfo->irt) {
-        guint32 irt;
+        guint32 irt = htonl(optinfo->irt);
 
-        irt = htonl(optinfo->irt);
-        COPY_OPTION(DH6OPT_INFO_REFRESH_TIME, sizeof(irt), &irt, p);
+        if (!copy_option(DH6OPT_INFO_REFRESH_TIME, sizeof(irt), &irt, p,
+                         ep, &opth)) {
+            goto fail;
+        }
     }
 
     return len;
@@ -1788,4 +1792,27 @@ void dhcp6_reset_timer(dhcp6_event_t *ev) {
     g_debug("%s: reset a timer on %s, state=%s, timeo=%d, retrans=%ld",
             __func__, ev->ifp->ifname, statestr, ev->timeouts,
             (glong) ev->retrans);
+}
+
+gboolean copy_option(gint option, guint8 len, void *data, dhcp6opt_t *p,
+                     dhcp6opt_t *ep, dhcp6opt_t *opth) {
+    if (((void *) ep - (void *) p) < (len + sizeof(dhcp6opt_t))) {
+        g_message("%s: option buffer short for %s", __func__,
+                  dhcp6optstr(option));
+        return FALSE;
+    }
+
+    opth->dh6opt_type = htons(option);
+    opth->dh6opt_len = htons(len);
+    memcpy(p, opth, sizeof(*opth));
+
+    if (len) {
+        memcpy(p + 1, data, len);
+    }
+
+    p = (dhcp6opt_t *) ((gchar *) (p + 1) + len);
+    len += sizeof(dhcp6opt_t) + len;
+    g_debug("%s: set %s", __func__, dhcp6optstr(option));
+
+    return TRUE;
 }

@@ -67,22 +67,6 @@
     IN6_IS_ADDR_UNSPECIFIED(a)
 #endif
 
-#define COPY_OPTION(t, l, v, p) do { \
-    if ((void *)(ep) - (void *)(p) < (l) + sizeof(dhcp6opt_t)) { \
-        g_message("%s: option buffer short for %s", \
-                  __func__, dhcp6optstr((t))); \
-        goto fail; \
-    } \
-    opth.dh6opt_type = htons((t)); \
-    opth.dh6opt_len = htons((l)); \
-    memcpy((p), &opth, sizeof(opth)); \
-    if ((l)) \
-        memcpy((p) + 1, (v), (l)); \
-    (p) = (dhcp6opt_t *)((gchar *)((p) + 1) + (l)); \
-    (len) += sizeof(dhcp6opt_t) + (l); \
-    g_debug("%s: set %s", __func__, dhcp6optstr((t))); \
-} while (0)
-
 #define DHCP6S_VALID_REPLY(a)                      \
     (a == DHCP6S_REQUEST || a == DHCP6S_RENEW ||   \
      a == DHCP6S_REBIND || a == DHCP6S_DECLINE ||  \

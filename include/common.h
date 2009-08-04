@@ -73,5 +73,7 @@ gint dhcp6_get_options(dhcp6opt_t *, dhcp6opt_t *, dhcp6_optinfo_t *);
 gint dhcp6_set_options(dhcp6opt_t *, dhcp6opt_t *, dhcp6_optinfo_t *);
 void dhcp6_set_timeoparam(dhcp6_event_t *);
 void dhcp6_reset_timer(dhcp6_event_t *);
+gboolean copy_option(gint, guint8, void *, dhcp6opt_t *, dhcp6opt_t *,
+                     dhcp6opt_t *);
 
 #endif /* __COMMON_H_INCLUDE */
