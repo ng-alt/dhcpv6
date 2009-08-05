@@ -16,7 +16,7 @@ paths to make command line options:
     relay
         pid
 
-- Add long options to dhcp6c, dhcp6s, and dhcp6r (glib option parser)
+- Add long options to dhcp6r (glib option parser)
 
 - Run autoscan and update configure.ac if needed
 
@@ -33,8 +33,6 @@ paths to make command line options:
 - Replace strcpy() with strncpy() if necessary.
 
 - Replace sprintf() with asprintf().  (better, use GString)
-
-- Clean up function prototypes (put them in header files).
 
 - Make sure O_CLOEXEC is used on open files to keep SELinux happy
 
@@ -80,8 +78,6 @@ paths to make command line options:
   don't allow it
 
 - dhcp6s does not work multiple relay servers, only one
-
-- Use getopt() in dhcp6r, update usage() screen to match client and server
 
 - Update dhcp6r man page after usage() screen update
 
