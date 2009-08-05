@@ -111,9 +111,9 @@ static const struct sockaddr_in6 *sa6_allagent;
 static socklen_t sa6_alen;
 static duid_t client_duid;
 static gchar leasename[MAXPATHLEN];
-static gchar *path_client6_lease = PATH_CLIENT6_LEASE;
-static gchar *pidfile = DHCP6C_PIDFILE;
-static gchar *duidfile = DHCP6C_DUID_FILE;
+static gchar *path_client6_lease = NULL;
+static gchar *pidfile = NULL;
+static gchar *duidfile = NULL;
 
 /* BEGIN STATIC FUNCTIONS */
 
@@ -2319,7 +2319,8 @@ gint main(gint argc, gchar **argv, gchar **envp) {
     GError *error = NULL;
     GOptionContext *context = NULL;
     GOptionEntry entries[] = {
-        { "conf-file", 'c', 0, G_OPTION_ARG_STRING, &conffile,
+        { "conf-file", 'c', 0, G_OPTION_ARG_STRING,
+              &conffile,
               "Client configuration file",
               "PATH" },
         { "pid-file", 'p', 0, G_OPTION_ARG_STRING,
@@ -2386,6 +2387,22 @@ gint main(gint argc, gchar **argv, gchar **envp) {
     if (!g_option_context_parse(context, &argc, &argv, &error)) {
         g_error("option parsing failed: %s", error->message);
         return EXIT_FAILURE;
+    }
+
+    if (conffile == NULL) {
+        conffile = DHCP6C_CONF;
+    }
+
+    if (pidfile == NULL) {
+        pidfile = DHCP6C_PIDFILE;
+    }
+
+    if (path_client6_lease == NULL) {
+        path_client6_lease = PATH_CLIENT6_LEASE;
+    }
+
+    if (duidfile == NULL) {
+        duidfile = DHCP6C_DUID_FILE;
     }
 
     if (release_addrs != NULL) {
