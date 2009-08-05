@@ -37,7 +37,9 @@
 #include <string.h>
 #include <syslog.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
+#include <fcntl.h>
 #include <err.h>
 #include <errno.h>
 #include <net/if_arp.h>
