@@ -66,7 +66,7 @@
 
 #include "dhcp6s.h"
 
-static gchar pidfile[MAXPATHLEN];
+static gchar *pidfile = NULL;
 static gchar *device[MAX_DEVICE];
 static gint num_device = 0;
 static const struct sockaddr_in6 *sa6_any_downstream;
@@ -104,21 +104,6 @@ static void _server6_sighandler(gint sig) {
             break;
     }
 
-    return;
-}
-
-static void _usage(gchar *name) {
-    fprintf(stderr, "Usage: %s [options] [interface]\n", name);
-    fprintf(stderr, "Options:\n");
-    fprintf(stderr,
-            "    -c PATH        Configuration file (e.g., /etc/dhcp6s.conf\n");
-    fprintf(stderr, "    -p PATH        PID file name (default: %s)\n",
-            DHCP6S_PIDFILE);
-    fprintf(stderr, "    -v             Verbose log output\n");
-    fprintf(stderr, "    -d             Debugging log output (implies -v)\n");
-    fprintf(stderr,
-            "    -f             Run server as a foreground process\n");
-    fflush(stderr);
     return;
 }
 
@@ -1498,52 +1483,68 @@ void server6_init(void) {
 }
 
 gint main(gint argc, gchar **argv) {
-    gint ch;
     gchar *progname = basename(argv[0]);
-    gchar *conffile = DHCP6S_CONF;
+    gint i;
+    gchar *conffile = NULL;
     FILE *pidfp = NULL;
     server_interface_t *ifnetwork = NULL;
     log_properties_t log_props;
     GSList *iterator = NULL;
-
-    memset(&pidfile, '\0', sizeof(pidfile));
-    strcpy(pidfile, DHCP6S_PIDFILE);
+    GError *error = NULL;
+    GOptionContext *context = NULL;
+    GOptionEntry entries[] = {
+        { "conf-file", 'c', 0, G_OPTION_ARG_STRING,
+              &conffile,
+              "Server configuration file",
+              "PATH" },
+        { "pid-file", 'p', 0, G_OPTION_ARG_STRING,
+              &pidfile,
+              "PID file",
+              "PATH" },
+        { "foreground", 'f', 0, G_OPTION_ARG_NONE,
+              &log_props.foreground,
+              "Run server in the foreground",
+              NULL },
+        { "verbose", 'v', 0, G_OPTION_ARG_NONE,
+              &log_props.verbose,
+              "Verbose log output",
+              NULL },
+        { "debug", 'd', 0, G_OPTION_ARG_NONE,
+              &log_props.debug,
+              "Debugging log output (implies -v)",
+              NULL },
+        { NULL }
+    };
 
     arg_dnsinfo.servers = NULL;
     arg_dnsinfo.domains = NULL;
 
     random_init();
 
-    while ((ch = getopt(argc, argv, "c:vfdn:p:")) != -1) {
-        switch (ch) {
-            case 'p':
-                if (strlen(optarg) >= MAXPATHLEN) {
-                    g_error("pid file name is too long");
-                    exit(1);
-                }
+    context = g_option_context_new("[interface]");
+    g_option_context_set_summary(context, "DHCPv6 server daemon");
+    g_option_context_set_description(context,
+       "PATH is a valid path specification for the system.\n\n"
+       "For more details on the dhcp6s program, see the dhcp6s(8) man page.\n\n"
+       "Please report bugs at http://fedorahosted.org/dhcpv6/");
+    g_option_context_add_main_entries(context, entries, NULL);
 
-                memset(&pidfile, '\0', sizeof(pidfile));
-                strcpy(pidfile, optarg);
-                break;
-            case 'c':
-                conffile = optarg;
-                break;
-            case 'v':
-                log_props.verbose = TRUE;
-                break;
-            case 'f':
-                log_props.foreground = TRUE;
-                break;
-            case 'd':
-                log_props.debug = TRUE;
-            default:
-                _usage(progname);
-                exit(0);
-        }
+    if (!g_option_context_parse(context, &argc, &argv, &error)) {
+        g_error("option parsing failed: %s", error->message);
+        return EXIT_FAILURE;
     }
 
-    while (optind < argc) {
-        device[num_device] = argv[optind++];
+    if (conffile == NULL) {
+        conffile = DHCP6S_CONF;
+    }
+
+    if (pidfile == NULL) {
+        pidfile = DHCP6S_PIDFILE;
+    }
+
+    i = 1;
+    while (i < argc) {
+        device[num_device] = argv[i++];
         num_device += 1;
     }
 
