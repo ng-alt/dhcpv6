@@ -96,9 +96,9 @@ extern dhcp6_iaidaddr_t client6_iaidaddr;
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_CLIENT;
 gint iosock = -1;                /* inbound/outbound udp port */
 gint nlsock = -1;
-FILE *dhcp6_resolv_file;
+FILE *dhcp6_resolv_file = NULL;
 gchar client6_lease_temp[256];
-GSList *request_list;
+GSList *request_list = NULL;
 gchar *script = NULL;
 
 /* Static globals */
@@ -118,44 +118,50 @@ static gchar *duidfile = DHCP6C_DUID_FILE;
 
 /* BEGIN STATIC FUNCTIONS */
 
-static void _usage(gchar *name) {
-    fprintf(stdout, "Usage: %s [options] interface\n", name);
-    fprintf(stdout, "Options:\n");
-    fprintf(stdout,
-            "    -c PATH        Configuration file\n"
-            "                       (default: %s)\n", DHCP6C_CONF);
-    fprintf(stdout, "    -p PATH        PID file name\n"
-                    "                       (default: %s)\n",
-            DHCP6C_PIDFILE);
-    fprintf(stdout,
-            "    -r ADDR...     Release the specified addresses (either \"all\" or\n                    named addresses)\n");
-    fprintf(stdout,
-            "    -R ADDR...     Request the specified IANA address(es)\n");
-    fprintf(stdout,
-            "    -P ADDR...     Request the specified IAPD address(es)\n");
-    fprintf(stdout,
-            "    -s PATH        Script executed on state changes to which "
-                                "configuration\n                   is "
-                                "delegated\n");
-    fprintf(stdout,
-            "    -l PATH        Path to lease database\n"
-            "                       (default: %s)\n",
-            path_client6_lease);
-    fprintf(stdout,
-            "    -i PATH        Path to client DUID file\n"
-            "                       (default: %s)\n",
-            duidfile);
-    fprintf(stdout,
-            "    -I             Request only information from the server\n");
-    fprintf(stdout,
-            "    -f             Run client as a foreground process\n");
-    fprintf(stdout, "    -v             Verbose log output\n");
-    fprintf(stdout, "    -d             Debugging log output (implies -v)\n");
-    fprintf(stdout, "    -?             Display this screen\n");
-    fprintf(stdout, "IANA is identiy association named address.\n");
-    fprintf(stdout, "IAPD is identiy association prefix delegation.\n");
-    fflush(stdout);
-    return;
+static gboolean _get_cmdline_addrspecs(gchar *addrs, GSList *list,
+                                       iatype_t type, gchar *op) {
+    gchar *field = NULL, *fieldptr = NULL, *splitptr = NULL;
+    gchar *addr = NULL, *prefix = NULL;
+    dhcp6_value_t *lv = NULL;
+
+    field = strtok_r(addrs, " ", &fieldptr);
+    while (field) {
+        lv = (dhcp6_value_t *) g_malloc0(sizeof(*lv));
+        if (lv == NULL) {
+            g_error("failed to allocate memory");
+            return FALSE;
+        }
+
+        if (strstr(field, "/")) {
+            addr = strtok_r(field, "/", &splitptr);
+            prefix = strtok_r(NULL, "/", &splitptr);
+
+            if (inet_pton(AF_INET6, addr, &lv->val_dhcp6addr.addr) < 1) {
+                g_error("invalid IPv6 address for %s: %s", op, addr);
+                return FALSE;
+            }
+
+            errno = 0;
+            lv->val_dhcp6addr.plen = strtol(prefix, NULL, 10);
+            if (errno == ERANGE || errno == EINVAL) {
+                g_error("invalid IPv6 prefix length for %s: %s", op, prefix);
+                return FALSE;
+            }
+        } else {
+            if (inet_pton(AF_INET6, addr, &lv->val_dhcp6addr.addr) < 1) {
+                g_error("invalid IPv6 address for %s: %s", op, addr);
+                return FALSE;
+            }
+        }
+
+        lv->val_dhcp6addr.type = type;
+        lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
+        list = g_slist_append(list, lv);
+
+        field = strtok_r(NULL, " ", &fieldptr);
+    }
+
+    return TRUE;
 }
 
 static void _ev_set_state(dhcp6_event_t *ev, gint new_state) {
@@ -2304,179 +2310,123 @@ dhcp6_timer_t *client6_timo(void *arg) {
 }
 
 gint main(gint argc, gchar **argv, gchar **envp) {
-    gint ch;
     gchar *progname = basename(argv[0]);
-    gchar *conffile = DHCP6C_CONF;
+    gchar *conffile = NULL;
+    gchar *request_iana = NULL, *request_iapd = NULL;
+    gchar *release_addrs = NULL;
+    gboolean info_only = FALSE;
     FILE *pidfp;
-    gchar *addr;
     log_properties_t log_props;
+    GError *error = NULL;
+    GOptionContext *context = NULL;
+    GOptionEntry entries[] = {
+        { "conf-file", 'c', 0, G_OPTION_ARG_STRING, &conffile,
+              "Client configuration file",
+              "PATH" },
+        { "pid-file", 'p', 0, G_OPTION_ARG_STRING,
+              &pidfile,
+              "PID file",
+              "PATH" },
+        { "release-address", 'r', 0, G_OPTION_ARG_STRING,
+              &release_addrs,
+              "Release address(es)",
+              "['all' | ADDR...]" },
+        { "request-named-address", 'R', 0, G_OPTION_ARG_STRING,
+              &request_iana,
+              "Request IA named address(es)",
+              "ADDR..." },
+        { "request-prefix-delegation", 'P', 0, G_OPTION_ARG_STRING,
+              &request_iapd,
+              "Request IA prefix delegation",
+              "ADDR..." },
+        { "request-info-only", 'I', 0, G_OPTION_ARG_NONE,
+              &info_only,
+              "Request information only",
+              NULL },
+        { "script", 's', 0, G_OPTION_ARG_STRING,
+              &script,
+              "Script to execute on state changes",
+              "PATH" },
+        { "lease-database", 'l', 0, G_OPTION_ARG_STRING,
+              &path_client6_lease,
+              "Lease database",
+              "PATH" },
+        { "duid-file", 'i', 0, G_OPTION_ARG_STRING,
+              &duidfile,
+              "Client DUID file",
+              "PATH" },
+        { "foreground", 'f', 0, G_OPTION_ARG_NONE,
+              &log_props.foreground,
+              "Run client in the foreground",
+              NULL },
+        { "verbose", 'v', 0, G_OPTION_ARG_NONE,
+              &log_props.verbose,
+              "Verbose log output",
+              NULL },
+        { "debug", 'd', 0, G_OPTION_ARG_NONE,
+              &log_props.debug,
+              "Debugging log output (implies -v)",
+              NULL },
+        { NULL }
+    };
 
     pid = getpid();
     srandom(time(NULL) & pid);
 
-    request_list = NULL;
-    while ((ch = getopt(argc, argv, "c:r:R:P:vfdIp:l:s:i:?")) != -1) {
-        switch (ch) {
-            case 'p':
-                if (strlen(optarg) >= MAXPATHLEN) {
-                    g_error("pid filename is too long");
-                    exit(1);
-                }
+    context = g_option_context_new("[interface]");
+    g_option_context_set_summary(context, "DHCPv6 client daemon");
+    g_option_context_set_description(context,
+       "PATH is a valid path specification for the system.  ADDR is a valid\n"
+       "IPv6 address specification in human readable format "
+       "(e.g., 47::1:2::31/64).\nADDR... is a list of IPv6 addresses, "
+       "separated by spaces.  IA stands for\nidentity association and is "
+       "defined in more detail in RFC 3315.\n\nFor more details on the "
+       "dhcp6c program, see the dhcp6c(8) man page.\n\nPlease report bugs at "
+       "http://fedorahosted.org/dhcpv6/");
+    g_option_context_add_main_entries(context, entries, NULL);
 
-                pidfile = optarg;
-                break;
-            case 'c':
-                if (strlen(optarg) >= MAXPATHLEN) {
-                    g_error("configuration filename is too long");
-                    exit(1);
-                }
+    if (!g_option_context_parse(context, &argc, &argv, &error)) {
+        g_error("option parsing failed: %s", error->message);
+        return EXIT_FAILURE;
+    }
 
-                conffile = optarg;
-                break;
-            case 'P':
-                client6_request_flag |= CLIENT6_REQUEST_ADDR;
+    if (release_addrs != NULL) {
+        client6_request_flag |= CLIENT6_RELEASE_ADDR;
 
-                for (addr = strtok(optarg, " "); addr;
-                     addr = strtok(NULL, " ")) {
-                    dhcp6_value_t *lv;
-
-                    if ((lv = (dhcp6_value_t *) g_malloc0(sizeof(*lv)))
-                        == NULL) {
-                        g_error("failed to allocate memory");
-                        exit(1);
-                    }
-
-                    if (inet_pton(AF_INET6, strtok(addr, "/"),
-                                  &lv->val_dhcp6addr.addr) < 1) {
-                        g_error("invalid ipv6address for release");
-                        _usage(progname);
-                        exit(1);
-                    }
-
-                    lv->val_dhcp6addr.type = IAPD;
-                    lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
-
-                    errno = 0;
-                    lv->val_dhcp6addr.plen = strtol(strtok(NULL, "/"),
-                                                    NULL, 10);
-                    if ((errno == ERANGE &&
-                        (lv->val_dhcp6addr.plen == LONG_MIN ||
-                         lv->val_dhcp6addr.plen == LONG_MAX)) ||
-                        (errno != 0 && lv->val_dhcp6addr.plen == 0)) {
-                        g_error("invalid ipv6 prefix length");
-                        _usage(progname);
-                        exit(1);
-                    }
-
-                    request_list = g_slist_append(request_list, lv);
-                }
-
-                break;
-            case 'R':
-                client6_request_flag |= CLIENT6_REQUEST_ADDR;
-
-                for (addr = strtok(optarg, " "); addr;
-                     addr = strtok(NULL, " ")) {
-                    dhcp6_value_t *lv;
-
-                    if ((lv = (dhcp6_value_t *) g_malloc0(sizeof(*lv)))
-                        == NULL) {
-                        g_error("failed to allocate memory");
-                        exit(1);
-                    }
-
-                    if (inet_pton(AF_INET6, addr, &lv->val_dhcp6addr.addr) <
-                        1) {
-                        g_error("invalid ipv6address for release");
-                        _usage(progname);
-                        exit(1);
-                    }
-
-                    lv->val_dhcp6addr.type = IANA;
-                    lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
-                    request_list = g_slist_append(request_list, lv);
-                }
-
-                break;
-            case 'r':
-                client6_request_flag |= CLIENT6_RELEASE_ADDR;
-
-                if (g_strcmp0(optarg, "all")) {
-                    for (addr = strtok(optarg, " "); addr;
-                         addr = strtok(NULL, " ")) {
-                        dhcp6_value_t *lv;
-
-                        lv = (dhcp6_value_t *) g_malloc0(sizeof(*lv));
-                        if (lv == NULL) {
-                            g_error("failed to allocate memory");
-                            exit(1);
-                        }
-
-                        if (inet_pton(AF_INET6, addr,
-                                      &lv->val_dhcp6addr.addr) < 1) {
-                            g_error("invalid ipv6address for release");
-                            _usage(progname);
-                            exit(1);
-                        }
-
-                        lv->val_dhcp6addr.type = IANA;
-                        request_list = g_slist_append(request_list, lv);
-                    }
-                }
-
-                break;
-            case 'I':
-                client6_request_flag |= CLIENT6_INFO_REQ;
-                break;
-            case 'l':
-                if (strlen(optarg) >= MAXPATHLEN) {
-                    g_error("lease database filename is too long");
-                    exit(1);
-                }
-
-                path_client6_lease = optarg;
-                break;
-            case 's':
-                if (strlen(optarg) >= MAXPATHLEN) {
-                    g_error("script filename is too long");
-                    exit(1);
-                }
-
-                script = optarg;
-                break;
-            case 'i':
-                if (strlen(optarg) >= MAXPATHLEN) {
-                    g_error("DUID filename is too long");
-                    exit(1);
-                }
-
-                duidfile = optarg;
-                break;
-            case 'v':
-                log_props.verbose = TRUE;
-                break;
-            case 'f':
-                log_props.foreground = TRUE;
-                break;
-            case 'd':
-                log_props.debug = TRUE;
-                break;
-            case '?':
-            default:
-                _usage(progname);
-                exit(0);
+        if (g_strcmp0(optarg, "all")) {
+            if (!_get_cmdline_addrspecs(release_addrs, request_list,
+                                        IANA, "release")) {
+                g_error("failure reading addresses for release");
+                return EXIT_FAILURE;
+            }
         }
     }
 
-    argc -= optind;
-    argv += optind;
+    if (request_iana != NULL) {
+        client6_request_flag |= CLIENT6_REQUEST_ADDR;
 
-    if (argc != 1) {
-        _usage(progname);
-        exit(0);
+        if (!_get_cmdline_addrspecs(request_iana, request_list,
+                                    IANA, "request")) {
+            g_error("failure reading addresses for request");
+            return EXIT_FAILURE;
+        }
     }
 
-    device = argv[0];
+    if (request_iapd != NULL) {
+        client6_request_flag |= CLIENT6_REQUEST_ADDR;
+
+        if (!_get_cmdline_addrspecs(request_iapd, request_list,
+                                    IAPD, "prefix delegation")) {
+            g_error("failure reading addresses for prefix delegation");
+            return EXIT_FAILURE;
+        }
+    }
+
+    if (info_only) {
+        client6_request_flag |= CLIENT6_INFO_REQ;
+    }
+
+    device = argv[argc - 1];
 
     log_props.pid = pid;
     setup_logging(progname, &log_props);
