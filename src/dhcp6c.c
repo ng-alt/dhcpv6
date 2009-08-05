@@ -110,7 +110,6 @@ static guint8 client6_request_flag = 0;
 static const struct sockaddr_in6 *sa6_allagent;
 static socklen_t sa6_alen;
 static duid_t client_duid;
-static gint pid;
 static gchar leasename[MAXPATHLEN];
 static gchar *path_client6_lease = PATH_CLIENT6_LEASE;
 static gchar *pidfile = DHCP6C_PIDFILE;
@@ -2370,8 +2369,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
         { NULL }
     };
 
-    pid = getpid();
-    srandom(time(NULL) & pid);
+    random_init();
 
     context = g_option_context_new("[interface]");
     g_option_context_set_summary(context, "DHCPv6 client daemon");
@@ -2428,12 +2426,12 @@ gint main(gint argc, gchar **argv, gchar **envp) {
 
     device = argv[argc - 1];
 
-    log_props.pid = pid;
+    log_props.pid = getpid();
     setup_logging(progname, &log_props);
 
     /* dump current PID */
     if ((pidfp = fopen(pidfile, "w")) != NULL) {
-        fprintf(pidfp, "%d\n", pid);
+        fprintf(pidfp, "%d\n", getpid());
         fclose(pidfp);
     } else {
         fprintf(stderr, "Unable to write to %s: %s\n", pidfile,

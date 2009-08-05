@@ -89,27 +89,6 @@ rootgroup_t *globalgroup = NULL;
 
 /* BEGIN STATIC FUNCTIONS */
 
-static void _random_init(void) {
-    gint f, n;
-    guint seed = time(NULL) & getpid();
-    gchar rand_state[256];
-
-    f = open("/dev/urandom", O_RDONLY);
-
-    if (f > 0) {
-        n = read(f, rand_state, sizeof(rand_state));
-        close(f);
-
-        if (n > 32) {
-            initstate(seed, rand_state, n);
-            return;
-        }
-    }
-
-    srandom(seed);
-    return;
-}
-
 static void _server6_sighandler(gint sig) {
     g_message("%s: received a signal (%d)", __func__, sig);
 
@@ -1533,7 +1512,8 @@ gint main(gint argc, gchar **argv) {
     arg_dnsinfo.servers = NULL;
     arg_dnsinfo.domains = NULL;
 
-    _random_init();
+    random_init();
+
     while ((ch = getopt(argc, argv, "c:vfdn:p:")) != -1) {
         switch (ch) {
             case 'p':

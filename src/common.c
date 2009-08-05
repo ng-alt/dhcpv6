@@ -1822,3 +1822,24 @@ gboolean is_in6_addr_reserved(struct in6_addr *addr) {
             IN6_IS_ADDR_LOOPBACK(addr) ||
             IN6_IS_ADDR_UNSPECIFIED(addr));
 }
+
+void random_init(void) {
+    gint f, n;
+    guint seed = time(NULL) & getpid();
+    gchar rand_state[256];
+
+    f = open("/dev/urandom", O_RDONLY);
+
+    if (f > 0) {
+        n = read(f, rand_state, sizeof(rand_state));
+        close(f);
+
+        if (n > 32) {
+            initstate(seed, rand_state, n);
+            return;
+        }
+    }
+
+    srandom(seed);
+    return;
+}
