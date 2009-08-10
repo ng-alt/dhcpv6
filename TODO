@@ -1,3 +1,5 @@
+- In dhcpv6 there is multicast_off which should be reversed as a gboolean
+
 - Eliminate global variables where possible.
 
 - Remove remaining non-glib linked list structures.  cf_list_t will

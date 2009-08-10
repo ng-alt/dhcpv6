@@ -290,7 +290,8 @@ ssize_t gethwid(guchar *buf, gint len, const gchar *ifname,
         return -1;
     }
 
-    strcpy(if_hwaddr.ifr_name, ifname);
+    memset(&if_hwaddr.ifr_name, '\0', sizeof(if_hwaddr.ifr_name));
+    strncpy(if_hwaddr.ifr_name, ifname, IFNAMSIZ);
 
 #if defined(__linux__)
     if (ioctl(skfd, SIOCGIFHWADDR, &if_hwaddr) < 0) {
