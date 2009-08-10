@@ -78,6 +78,8 @@ static gchar *rmsgctlbuf;
 static duid_t server_duid;
 static dns_info_t arg_dnsinfo;
 static dhcp6_timer_t *sync_lease_timer;
+static gchar *server6_lease_path = NULL;
+static gchar *duidfile = NULL;
 
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_SERVER;
 gint iosock = -1;                /* inbound/outbound udp port */
@@ -1244,13 +1246,13 @@ static dhcp6_timer_t *_check_lease_file_timo(void *arg) {
     struct stat buf;
     FILE *file;
 
-    strcpy(server6_lease_temp, PATH_SERVER6_LEASE);
+    strcpy(server6_lease_temp, server6_lease_path);
     strcat(server6_lease_temp, "XXXXXX");
 
-    if (!stat(PATH_SERVER6_LEASE, &buf)) {
+    if (!stat(server6_lease_path, &buf)) {
         if (buf.st_size > MAX_FILE_SIZE) {
             file =
-                sync_leases(server6_lease_file, PATH_SERVER6_LEASE,
+                sync_leases(server6_lease_file, server6_lease_path,
                             server6_lease_temp);
             if (file != NULL) {
                 server6_lease_file = file;
@@ -1362,12 +1364,12 @@ void server6_init(void) {
             ifinit(device[i]);
         }
 
-        if (get_duid(DUID_FILE, device[0], &server_duid)) {
+        if (get_duid(duidfile, device[0], &server_duid)) {
             g_error("%s: failed to get a DUID", __func__);
             exit(1);
         }
 
-        if (save_duid(DUID_FILE, device[0], &server_duid)) {
+        if (save_duid(duidfile, device[0], &server_duid)) {
             g_error("%s: failed to save server ID", __func__);
         }
     } else {
@@ -1400,12 +1402,12 @@ void server6_init(void) {
 
             if (g_strcmp0(ifr->ifr_name, "lo")) {
                 /* get our DUID */
-                if (get_duid(DUID_FILE, ifr->ifr_name, &server_duid)) {
+                if (get_duid(duidfile, ifr->ifr_name, &server_duid)) {
                     g_error("%s: failed to get a DUID", __func__);
                     exit(1);
                 }
 
-                if (save_duid(DUID_FILE, ifr->ifr_name, &server_duid)) {
+                if (save_duid(duidfile, ifr->ifr_name, &server_duid)) {
                     g_error("%s: failed to save server ID", __func__);
                 }
             }
@@ -1501,6 +1503,14 @@ gint main(gint argc, gchar **argv) {
               &pidfile,
               "PID file",
               "PATH" },
+        { "lease-database", 'l', 0, G_OPTION_ARG_STRING,
+              &server6_lease_path,
+              "Lease database",
+              "PATH" },
+        { "duid-file", 'i', 0, G_OPTION_ARG_STRING,
+              &duidfile,
+              "Server DUID file",
+              "PATH" },
         { "foreground", 'f', 0, G_OPTION_ARG_NONE,
               &log_props.foreground,
               "Run server in the foreground",
@@ -1542,6 +1552,14 @@ gint main(gint argc, gchar **argv) {
         pidfile = DHCP6S_PIDFILE;
     }
 
+    if (server6_lease_path == NULL) {
+        server6_lease_path = PATH_SERVER6_LEASE;
+    }
+
+    if (duidfile == NULL) {
+        duidfile = DHCP6S_DUID_FILE;
+    }
+
     i = 1;
     while (i < argc) {
         device[num_device] = argv[i++];
@@ -1559,15 +1577,15 @@ gint main(gint argc, gchar **argv) {
 
     server6_init();
 
-    if ((server6_lease_file = init_leases(PATH_SERVER6_LEASE)) == NULL) {
+    if ((server6_lease_file = init_leases(server6_lease_path)) == NULL) {
         g_error("%s: failed to parse lease file", __func__);
         exit(1);
     }
 
-    strcpy(server6_lease_temp, PATH_SERVER6_LEASE);
+    strcpy(server6_lease_temp, server6_lease_path);
     strcat(server6_lease_temp, "XXXXXX");
     server6_lease_file =
-        sync_leases(server6_lease_file, PATH_SERVER6_LEASE,
+        sync_leases(server6_lease_file, server6_lease_path,
                     server6_lease_temp);
 
     if (server6_lease_file == NULL) {

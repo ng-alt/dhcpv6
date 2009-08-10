@@ -271,7 +271,7 @@ enum {
 
 #define DHCP6R_PIDFILE PID_FILE_PATH"/dhcp6r.pid"
 
-#define DUID_FILE DB_FILE_PATH"/dhcp6s_duid"
+#define DHCP6S_DUID_FILE DB_FILE_PATH"/dhcp6s_duid"
 #define DHCP6S_PIDFILE PID_FILE_PATH"/dhcp6s.pid"
 
 #endif /* __CONSTANTS_H_DEFINED */
