@@ -85,7 +85,7 @@ GSList *relay_interface_list;
 
 gint nr_of_devices;
 gint max_count;
-gboolean multicast_off;
+gboolean multicast;
 
 /* BEGIN STATIC FUNCTIONS */
 
@@ -277,10 +277,10 @@ void handler(gint signo) {
 
 gint main(gint argc, gchar **argv) {
     gchar *progname = basename(argv[0]);
-    gint sw = 0;
     relay_msg_parser_t *mesg = NULL;
     FILE *pidfp = NULL;
     log_properties_t log_props;
+    gboolean unicast;
     gchar *client_multicast = NULL, *forward = NULL;
     gchar *server_unicast = NULL, *server_multicast = NULL;
     GError *error = NULL;
@@ -291,7 +291,7 @@ gint main(gint argc, gchar **argv) {
               "PID file",
               "PATH" },
         { "client-unicast", 'c', 0, G_OPTION_ARG_NONE,
-              &multicast_off,
+              &unicast,
               "Receive client messages by unicast only",
               NULL },
         { "client-multicast", 'C', 0, G_OPTION_ARG_STRING,
@@ -340,13 +340,17 @@ gint main(gint argc, gchar **argv) {
 
     g_option_context_free(context);
 
+    if (unicast) {
+        multicast = FALSE;
+    }
+
     if (pidfile == NULL) {
         pidfile = DHCP6R_PIDFILE;
     };
 
     if (client_multicast) {
         _get_multicast_ifaces(client_multicast, cifaces_list, "client");
-        sw = 1;
+        multicast = TRUE;
     }
 
     if (server_multicast) {
@@ -368,10 +372,6 @@ gint main(gint argc, gchar **argv) {
 
     if (!get_interface_info()) {
         abort();
-    }
-
-    if (sw == 1) {
-        multicast_off = FALSE;
     }
 
     init_socket();

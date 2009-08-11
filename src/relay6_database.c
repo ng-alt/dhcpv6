@@ -41,7 +41,7 @@
 #include "relay6_database.h"
 
 void init_relay(void) {
-    multicast_off = 0;
+    multicast = TRUE;
     nr_of_devices = 0;
     max_count = 0;
 

@@ -206,7 +206,7 @@ gint get_recv_data(void) {
             } else if (IN6_IS_ADDR_MULTICAST(&dst.sin6_addr)) {
                 relaysock->dst_addr_type = 2;
 
-                if (multicast_off == 1) {
+                if (!multicast) {
                     g_error("%s: received multicast packet is dropped, "
                             "only unicast is allowed", __func__);
                     return 0;

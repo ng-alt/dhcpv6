@@ -46,7 +46,7 @@ extern GSList *relay_interface_list;
 extern gint nr_of_devices;
 extern gint nr_of_uni_addr;
 extern gint max_count;
-extern gint multicast_off;
+extern gboolean multicast;
 
 void init_relay(void);
 gint check_interface_semafor(gint);
