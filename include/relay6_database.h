@@ -43,8 +43,6 @@ extern GSList *relay_server_list;
 extern GSList *IPv6_address_list;
 extern GSList *IPv6_uniaddr_list;
 extern GSList *relay_interface_list;
-extern gint nr_of_devices;
-extern gint nr_of_uni_addr;
 extern gint max_count;
 extern gboolean multicast;
 

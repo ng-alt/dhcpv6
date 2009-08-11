@@ -42,7 +42,6 @@
 
 void init_relay(void) {
     multicast = TRUE;
-    nr_of_devices = 0;
     max_count = 0;
 
     relay_server_list = NULL;
@@ -186,7 +185,8 @@ gint process_RELAY_FORW(relay_msg_parser_t *msg) {
         exit(1);
     }
 
-    if ((!IN6_IS_ADDR_LINKLOCAL(&sap.sin6_addr)) && (nr_of_devices == 1)) {
+    if ((!IN6_IS_ADDR_LINKLOCAL(&sap.sin6_addr)) &&
+        g_slist_length(relay_interface_list) == 1) {
         memset(&sap.sin6_addr, 0, sizeof(sap.sin6_addr));
         memcpy(pointer, &sap.sin6_addr, sizeof(sap.sin6_addr));
         pointer += sizeof(sap.sin6_addr);

@@ -83,7 +83,6 @@ GSList *IPv6_address_list;
 GSList *IPv6_uniaddr_list;
 GSList *relay_interface_list;
 
-gint nr_of_devices;
 gint max_count;
 gboolean multicast;
 

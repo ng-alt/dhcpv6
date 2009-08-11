@@ -423,7 +423,6 @@ gint get_interface_info(void) {
             device->ifname = strdup(devname);
             device->devindex = if_idx;
             device->ipv6addr = NULL;
-            nr_of_devices += 1;
 
             relay_interface_list = g_slist_append(relay_interface_list, device);
         }
@@ -447,7 +446,6 @@ gint get_interface_info(void) {
         if (!g_slist_length(device->ipv6addr)) {
             g_debug("%s: remove interface %s as it does not have any "
                     "global address", __func__, device->ifname);
-            nr_of_devices--;
             remove = iterator;
             relay_interface_list = g_slist_remove_all(relay_interface_list,
                                                       remove);
