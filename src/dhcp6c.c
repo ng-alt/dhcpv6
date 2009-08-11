@@ -97,7 +97,6 @@ const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_CLIENT;
 gint iosock = -1;                /* inbound/outbound udp port */
 gint nlsock = -1;
 FILE *dhcp6_resolv_file = NULL;
-gchar client6_lease_temp[256];
 GSList *request_list = NULL;
 gchar *script = NULL;
 
@@ -394,12 +393,13 @@ static dhcp6_timer_t *_check_lease_file_timo(void *arg) {
     struct stat buf;
     FILE *file;
 
-    stat(leasename, &buf);
-    strcpy(client6_lease_temp, leasename);
-    strcat(client6_lease_temp, "XXXXXX");
+    if (stat(leasename, &buf) == -1) {
+        g_error("%s: stat failure on %s", __func__, leasename);
+        abort();
+    }
 
     if (buf.st_size > MAX_FILE_SIZE) {
-        file = sync_leases(client6_lease_file, leasename, client6_lease_temp);
+        file = sync_leases(client6_lease_file, leasename);
         if (file != NULL) {
             client6_lease_file = file;
         }
@@ -536,10 +536,7 @@ static gint _client6_ifinit(gchar *device) {
             return -1;
         }
 
-        strcpy(client6_lease_temp, leasename);
-        strcat(client6_lease_temp, "XXXXXX");
-        client6_lease_file = sync_leases(client6_lease_file,
-                                         leasename, client6_lease_temp);
+        client6_lease_file = sync_leases(client6_lease_file, leasename);
 
         if (client6_lease_file == NULL) {
             return -1;

@@ -84,7 +84,6 @@ static gchar *duidfile = NULL;
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_SERVER;
 gint iosock = -1;                /* inbound/outbound udp port */
 extern FILE *server6_lease_file;
-gchar server6_lease_temp[100];
 link_decl_t *subnet = NULL;
 host_decl_t *host = NULL;
 rootgroup_t *globalgroup = NULL;
@@ -1246,14 +1245,10 @@ static dhcp6_timer_t *_check_lease_file_timo(void *arg) {
     struct stat buf;
     FILE *file;
 
-    strcpy(server6_lease_temp, server6_lease_path);
-    strcat(server6_lease_temp, "XXXXXX");
-
     if (!stat(server6_lease_path, &buf)) {
         if (buf.st_size > MAX_FILE_SIZE) {
             file =
-                sync_leases(server6_lease_file, server6_lease_path,
-                            server6_lease_temp);
+                sync_leases(server6_lease_file, server6_lease_path);
             if (file != NULL) {
                 server6_lease_file = file;
             }
@@ -1585,11 +1580,7 @@ gint main(gint argc, gchar **argv) {
         exit(1);
     }
 
-    strcpy(server6_lease_temp, server6_lease_path);
-    strcat(server6_lease_temp, "XXXXXX");
-    server6_lease_file =
-        sync_leases(server6_lease_file, server6_lease_path,
-                    server6_lease_temp);
+    server6_lease_file = sync_leases(server6_lease_file, server6_lease_path);
 
     if (server6_lease_file == NULL) {
         exit(1);

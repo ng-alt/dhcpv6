@@ -70,7 +70,7 @@ extern const dhcp6_mode_t dhcp6_mode;
 extern void lease_parse(FILE *);
 
 gint write_lease(const dhcp6_lease_t *, FILE *);
-FILE *sync_leases(FILE *, const gchar *, gchar *);
+FILE *sync_leases(FILE *, const gchar *);
 dhcp6_timer_t *syncfile_timo(void *);
 FILE *init_leases(const gchar *);
 gint prefixcmp(struct in6_addr *, struct in6_addr *, gint);

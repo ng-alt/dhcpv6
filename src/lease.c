@@ -180,15 +180,22 @@ gint write_lease(const dhcp6_lease_t *lease_ptr, FILE *file) {
     return 0;
 }
 
-FILE *sync_leases(FILE * file, const gchar *original, gchar *template) {
+FILE *sync_leases(FILE * file, const gchar *original) {
     gint fd;
     dhcp6_lease_t *lease = NULL;
     GSList *iterator = client6_iaidaddr.lease_list;
+    GString *tmp = g_string_new(NULL);
 
-    fd = mkstemp(template);
+    g_string_printf(tmp, "%s.XXXXXX", original);
+    fd = mkstemp(tmp->str);
 
     if (fd < 0 || (sync_file = fdopen(fd, "w")) == NULL) {
         g_error("%s: could not open sync file", __func__);
+
+        if (g_string_free(tmp, TRUE) != NULL) {
+            g_error("%s: erroring releasing temporary GString", __func__);
+        }
+
         return NULL;
     }
 
@@ -209,14 +216,28 @@ FILE *sync_leases(FILE * file, const gchar *original, gchar *template) {
     fclose(sync_file);
     fclose(file);
 
-    if (rename(template, original) < 0) {
+    if (rename(tmp->str, original) < 0) {
         g_error("%s: Could not rename sync file", __func__);
+
+        if (g_string_free(tmp, TRUE) != NULL) {
+            g_error("%s: erroring releasing temporary GString", __func__);
+        }
+
         return NULL;
     }
 
     if ((file = fopen(original, "a+")) == NULL) {
         g_error("%s: could not open sync file", __func__);
+
+        if (g_string_free(tmp, TRUE) != NULL) {
+            g_error("%s: erroring releasing temporary GString", __func__);
+        }
+
         return NULL;
+    }
+
+    if (g_string_free(tmp, TRUE) != NULL) {
+        g_error("%s: erroring releasing temporary GString", __func__);
     }
 
     return file;
