@@ -1544,6 +1544,8 @@ gint main(gint argc, gchar **argv) {
         return EXIT_FAILURE;
     }
 
+    g_option_context_free(context);
+
     if (conffile == NULL) {
         conffile = DHCP6S_CONF;
     }

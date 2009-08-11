@@ -2389,6 +2389,8 @@ gint main(gint argc, gchar **argv, gchar **envp) {
         return EXIT_FAILURE;
     }
 
+    g_option_context_free(context);
+
     if (conffile == NULL) {
         conffile = DHCP6C_CONF;
     }
