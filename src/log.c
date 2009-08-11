@@ -61,7 +61,7 @@
 #include "log.h"
 
 void setup_logging(gchar *ident, log_properties_t *props) {
-    openlog(ident, LOG_CONS | LOG_NDELAY | LOG_PID, LOG_DAEMON);
+    openlog(ident, LOG_NDELAY | LOG_PID, LOG_DAEMON);
 
     props->threshold = G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL |
                        G_LOG_LEVEL_WARNING;
