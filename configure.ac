@@ -150,6 +150,8 @@ AC_DEFINE_UNQUOTED([DB_FILE_PATH], ["$db_file_path"],
 AC_SUBST(DHCP6C_CONF_PATH, ["$sysconfdir/dhcp6c.conf"])
 AC_SUBST(DHCP6S_CONF_PATH, ["$sysconfdir/dhcp6s.conf"])
 AC_SUBST(DHCP6C_PID_PATH, ["$pid_file_path/dhcp6c.pid"])
+AC_SUBST(DHCP6S_PID_PATH, ["$pid_file_path/dhcp6s.pid"])
+AC_SUBST(DHCP6R_PID_PATH, ["$pid_file_path/dhcp6r.pid"])
 AC_SUBST(DHCP6C_DUID_PATH, ["$db_file_path/dhcp6c_duid"])
 AC_SUBST(DHCP6S_DUID_PATH, ["$db_file_path/dhcp6s_duid"])
 AC_SUBST(DHCP6C_LEASE_PATH, ["$db_file_path/client6.leases*"])

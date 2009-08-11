@@ -1,3 +1,23 @@
+.\" dhcp6c.man.in
+.\" DHCPv6 client man page template.
+.\"
+.\" Copyright (C) 2009  Red Hat, Inc.
+.\"
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU Lesser General Public License as published
+.\" by the Free Software Foundation; either version 2.1 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU Lesser General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU Lesser General Public License
+.\" along with this program.  If not, see <http://www.gnu.org/licenses/>.
+.\"
+.\" Author(s): David Cantrell <dcantrell@redhat.com>
+
 .\" Copyright (C) International Business Machines  Corp., 2003
 .\" All rights reserved.
 .\"
@@ -33,34 +53,7 @@ dhcp6c \- DHCPv6 client daemon
 .SH SYNOPSIS
 .B dhcp6c
 [
-.B -c
-.I <pathspec>
-] [
-.B -p
-.I <pathspec>
-] [
-[
-.B -r
-.I all
-|
-.I <address...>
-] [
-.B -R
-.I <address...>
-] [
-.B -P
-.I <address...>
-] [
-.B -s
-.I <pathspec>
-] [
-.B -l
-.I <pathspec>
-] [
-.B -d
-.I <pathspec>
-] [
-.B -Ifv
+.I options
 ]
 .I <interface>
 
@@ -90,85 +83,85 @@ conventions.  On Linux, this is typically eth0, eth1, and so on.
 
 .SH OPTIONS
 .TP
-.BI \-c\ <pathspec>
+.B -c\ PATH,\ --conf-file=PATH
 Specifies the location of the configuration file for
 .B dhcp6c.
 The default is %DHCP6C_CONF_PATH%.
 
 .TP
-.BI \-p\ <pathspec>
+.B -p\ PATH,\ --pid-file=PATH
 Specifies the location of the dhcp6c PID file.  The default is
 %DHCP6C_PID_PATH%.
 
 .TP
-.BI \-r\ all\ |\ <addresses...>
+.B -r\ ['all'\ |\ ADDR...\],\ --release-address=['all'\ |\ ADDR...\]
 Allows
 .B dhcp6c
 to release the addresses specified.
 This option is used only when releasing addresses explicitly.
 
 .TP
-.BI \-R\ <addresses...>
+.B -R\ [ADDR...\],\ --request-named-address=[ADDR...\]
 Allows
 .B dhcp6c
 to request the specified named addresses.
 
 .TP
-.BI \-P\ <addresses...>
+.B -P\ [ADDR...\],\ --request-prefix-delegation=[ADDR...\]
 Allows
 .B dhcp6c
 to request the specified prefix delegation addresses.
 
 .TP
-.BI \-I
+.B -I,\ --request-info-only
 Allows
 .B dhcp6c
 to request network information only.  Do not configure the interface.
 
 .TP
-.BI \-s\ <pathspec>
+.B -s\ PATH,\ --script=PATH
 Specifies an executable script or program to execute on dhcp6c state changes.
 If provided, this file must handle all DHCPv6 client states, handle interface
 configuration, and handle DHCPv6 options.  The default is for dhcp6c to
 handle all state changes and interface configuration internally.
 
 .TP
-.BI \-l\ <pathspec>
+.B -l\ PATH,\ --lease-database=PATH
 Specifies the location of the dhcp6c lease database.  The default is
 %DHCP6C_LEASE_PATH%.
 
 .TP
-.BI \-d\ <pathspec>
+.B -i\ PATH,\ --duid-file=PATH
 Specifies the location of the dhcp6c DUID file.  The default is
 %DHCP6C_DUID_PATH%.
 
 .TP
-.BI \-v
-Enables
-.B dhcp6c
-to print debugging messages.
+.B -f,\ --foreground
+Run the client in the foreground.  All log messages will go to the console.
 
 .TP
-.BI \-f
-Enables
-.B dhcp6c
-to work as a foreground application.  This option is helpful for debugging.
+.B -v,\ --verbose
+Enable verbose log output.
+
+.TP
+.B -d,\ --debug
+Enable debugging log output (implies verbose log output).
 
 .SH FILES
 .TP
-.BI %DHCP6C_CONF_PATH%
+.B %DHCP6C_CONF_PATH%
 Contains DHCPv6 client configuration information.
 
 .TP
-.BI %DHCP6C_PID_PATH%
+.B %DHCP6C_PID_PATH%
 Contains the dhcp6c process ID.
 
 .TP
-.BI %DHCP6C_LEASE_PATH%
+.B %DHCP6C_LEASE_PATH%
 Contains DHCPv6 client assigned IPv6 addresses and prefixes.
 
 .TP
-.BI %DHCP6C_DUID_PATH%
+.B %DHCP6C_DUID_PATH%
 Contains DHCPv6 client DUID.
 
 .SH ERRORS
