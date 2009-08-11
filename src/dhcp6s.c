@@ -1566,7 +1566,7 @@ gint main(gint argc, gchar **argv) {
         num_device += 1;
     }
 
-    if (log_props.foreground) {
+    if (!log_props.foreground) {
         if (daemon(0, 0) < 0) {
             err(1, "daemon");
         }
