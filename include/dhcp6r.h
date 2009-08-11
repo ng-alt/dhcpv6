@@ -36,7 +36,6 @@
 #include "relay6_socket.h"
 #include "relay6_parser.h"
 
-void command_text(void);
 gchar *dhcp6r_clock(void);
 void handler(gint);
 

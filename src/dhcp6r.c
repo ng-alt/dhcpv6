@@ -1,4 +1,25 @@
 /*
+ * dhcp6r.c
+ *
+ * Copyright (C) 2009  Red Hat, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published
+ * by the Free Software Foundation; either version 2.1 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author(s): David Cantrell <dcantrell@redhat.com>
+ */
+
+/*
  * Copyright (C) NEC Europe Ltd., 2003
  * All rights reserved.
  * 
@@ -52,7 +73,7 @@
 
 #include "dhcp6r.h"
 
-static gchar pidfile[MAXPATHLEN];
+static gchar *pidfile = NULL;
 
 GSList *cifaces_list;
 GSList *sifaces_list;
@@ -63,17 +84,160 @@ GSList *IPv6_uniaddr_list;
 GSList *relay_interface_list;
 
 gint nr_of_devices;
-gint nr_of_uni_addr;
 gint max_count;
-gint multicast_off;
+gboolean multicast_off;
 
-void command_text(void) {
-    printf("Usage:\n");
-    printf
-        ("       dhcp6r [-p pidfile] [-d] [-cu] [-cm <interface>] [-sm <interface>] "
-         "[-su <address>] [-sf <interface>+<address>] \n");
-    exit(1);
+/* BEGIN STATIC FUNCTIONS */
+
+static void _get_multicast_ifaces(gchar *multicast, GSList *list, gchar *log) {
+    gchar **ifaces = NULL, **iterator = NULL;
+
+    if (!multicast || !log) {
+        return;
+    }
+
+    ifaces = g_strsplit_set(multicast, "\" ", -1);
+    iterator = ifaces;
+
+    while (*iterator) {
+        if (!g_strcmp0(*iterator, "")) {
+            iterator++;
+            continue;
+        }
+
+        if (get_interface_s(*iterator)) {
+            gchar *iface = g_strdup(*iterator);
+            list = g_slist_append(list, iface);
+            g_debug("%s: setting up %s interface: %s", __func__, log, iface);
+        }
+
+        iterator++;
+    }
+
+    g_strfreev(ifaces);
+    g_free(multicast);
+    return;
 }
+
+static void _get_server_unicast(gchar *unicast, GSList *list) {
+    gchar **fields = NULL, **iterator = NULL;
+
+    if (!unicast) {
+        return;
+    }
+
+    fields = g_strsplit_set(unicast, "\" ", -1);
+    iterator = fields;
+
+    while (*iterator) {
+        struct sockaddr_in6 sin6;
+        gchar *addr = NULL;
+
+        if (!g_strcmp0(*iterator, "")) {
+            iterator++;
+            continue;
+        }
+
+        memset(&sin6, 0, sizeof(sin6));
+
+        /* destination address */
+        if (inet_pton(AF_INET6, *iterator, &sin6.sin6_addr) <= 0) {
+            g_error("%s: malformed address: %s", __func__, *iterator);
+            iterator++;
+            continue;
+        }
+
+        if (IN6_IS_ADDR_UNSPECIFIED(&sin6.sin6_addr)) {
+            g_error("%s: malformed address: %s", __func__, *iterator);
+            iterator++;
+            continue;
+        }
+
+        addr = g_strdup(*iterator);
+        list = g_slist_append(list, addr);
+        g_debug("%s: setting up server address: %s", __func__, addr);
+        iterator++;
+    }
+
+    g_strfreev(fields);
+    g_free(unicast);
+    return;
+}
+
+static void _get_forward(gchar *forward) {
+    gchar **fields = NULL, **iterator = NULL;
+
+    if (!forward) {
+        return;
+    }
+
+    fields = g_strsplit_set(forward, "\" ", -1);
+    iterator = fields;
+
+    while (*iterator) {
+        gchar **parts = NULL, **subpart = NULL;
+        gchar *eth = NULL, *addr = NULL;
+        struct sockaddr_in6 sin6;
+        relay_interface_t *iface = NULL;
+
+        if (!g_strcmp0(*iterator, "")) {
+            iterator++;
+            continue;
+        }
+
+        parts = g_strsplit_set(*iterator, "+", -1);
+        subpart = parts;
+
+        eth = *subpart;
+        subpart++;
+        addr = *subpart;
+
+        if (eth == NULL || addr == NULL) {
+            g_error("%s: option %s not recognized", __func__, *iterator);
+            g_strfreev(parts);
+            iterator++;
+            continue;
+        }
+
+        memset(&sin6, 0, sizeof(sin6));
+
+        /* destination address */
+        if (inet_pton(AF_INET6, addr, &sin6.sin6_addr) <= 0) {
+            g_error("%s: malformed address: %s", __func__, *iterator);
+            g_strfreev(parts);
+            iterator++;
+            continue;
+        }
+
+        if (IN6_IS_ADDR_UNSPECIFIED(&sin6.sin6_addr)) {
+            g_error("%s: malformed address: %s", __func__, *iterator);
+            g_strfreev(parts);
+            iterator++;
+            continue;
+        }
+
+        if ((iface = get_interface_s(eth)) != NULL) {
+            gchar *sa = g_strdup(addr);
+            iface->sname = g_slist_append(iface->sname, sa);
+            g_debug("%s: setting up server address: %s for interface: %s",
+                    __func__, addr, eth);
+        } else {
+            g_error("%s: interface %s not found", __func__, eth);
+            g_strfreev(parts);
+            iterator++;
+            continue;
+        }
+
+        g_strfreev(parts);
+        iterator++;
+    }
+
+    g_strfreev(fields);
+    g_free(forward);
+    return;
+}
+
+/* END STATIC FUNCTIONS */
 
 gchar *dhcp6r_clock(void) {
     time_t tim;
@@ -108,175 +272,122 @@ void handler(gint signo) {
     g_debug("%s: relay agent stopping", __func__);
     unlink(pidfile);
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 gint main(gint argc, gchar **argv) {
-    gint err = 0, i;
+    gchar *progname = basename(argv[0]);
     gint sw = 0;
-    gint du = 0;
-    relay_interface_t *iface = NULL;
-    struct sockaddr_in6 sin6;
-    gchar *sf = NULL, *eth = NULL, *addr = NULL;
     relay_msg_parser_t *mesg = NULL;
     FILE *pidfp = NULL;
+    log_properties_t log_props;
+    gchar *client_multicast = NULL, *forward = NULL;
+    gchar *server_unicast = NULL, *server_multicast = NULL;
+    GError *error = NULL;
+    GOptionContext *context = NULL;
+    GOptionEntry entries[] = {
+        { "pid-file", 'p', 0, G_OPTION_ARG_STRING,
+              &pidfile,
+              "PID file",
+              "PATH" },
+        { "client-unicast", 'c', 0, G_OPTION_ARG_NONE,
+              &multicast_off,
+              "Receive client messages by unicast only",
+              NULL },
+        { "client-multicast", 'C', 0, G_OPTION_ARG_STRING,
+              &client_multicast,
+              "Receive client messages by multicast on specific interfaces",
+              "INTERFACE" },
+        { "server-unicast", 's', 0, G_OPTION_ARG_STRING,
+              &server_unicast,
+              "Forward client messages by unicast to named address(es)",
+              "ADDRESS(ES)" },
+        { "server-multicast", 'S', 0, G_OPTION_ARG_STRING,
+              &server_multicast,
+              "Forward client messages by multicast on named interface(s)",
+              "INTERFACE(S)" },
+        { "forward", 'F', 0, G_OPTION_ARG_STRING,
+              &forward,
+              "Forward all messages by unicast to address via interface",
+              "INTERFACE+ADDRESS" },
+        { "foreground", 'f', 0, G_OPTION_ARG_NONE,
+              &log_props.foreground,
+              "Run relay server in the foreground",
+              NULL },
+        { NULL }
+    };
 
-    memset(&pidfile, '\0', sizeof(pidfile));
-    strcpy(pidfile, DHCP6R_PIDFILE);
+    context = g_option_context_new(NULL);
+    g_option_context_set_summary(context, "DHCPv6 relay agent");
+    g_option_context_set_description(context,
+        "PATH is a valid path specification for the system.  ADDRESS is a "
+        "valid IPv6\naddress specification in human readable format (e.g., "
+        "47::1:2::31/64).\nINTERFACE is a valid network interface name "
+        "(e.g., eth0).\n\n"
+        "Multiple ADDRESS, INTERFACE, and INTERFACE+ADDRESS parameters may "
+        "specified for\nthe appropriate option.  To specify more than one, "
+        "enclose the values in double\nquotes and separate them by spaces.\n\n"
+        "For more details on the dhcp6r program, see the dhcp6r(8) man "
+        "page.\n\n"
+        "Please report bugs at http://fedorahosted.org/dhcpv6/");
+
+    g_option_context_add_main_entries(context, entries, NULL);
+
+    if (!g_option_context_parse(context, &argc, &argv, &error)) {
+        g_error("option parsing failed: %s", error->message);
+        return EXIT_FAILURE;
+    }
+
+    g_option_context_free(context);
+
+    if (pidfile == NULL) {
+        pidfile = DHCP6R_PIDFILE;
+    };
+
+    if (client_multicast) {
+        _get_multicast_ifaces(client_multicast, cifaces_list, "client");
+        sw = 1;
+    }
+
+    if (server_multicast) {
+        _get_multicast_ifaces(server_multicast, sifaces_list, "server");
+    }
+
+    if (server_unicast) {
+        _get_server_unicast(server_unicast, IPv6_uniaddr_list);
+    }
+
+    if (forward) {
+        _get_forward(forward);
+    }
 
     signal(SIGINT, handler);
     signal(SIGTERM, handler);
     signal(SIGHUP, handler);
     init_relay();
 
-    /* Specify a file stream for logging */
-    if (argc > 1) {
-        for (i = 1; i < argc; ++i) {
-            if (g_strcmp0(argv[i], "-d") == 0) {
-                du = 1;
-            }
-        }
-    }
-
-    if (get_interface_info() == 0) {
-        goto ERROR;
-    }
-
-    for (i = 1; i < argc; ++i) {
-        if (g_strcmp0(argv[i], "-d") == 0) {
-            continue;
-        } else if (g_strcmp0(argv[i], "-p") == 0) {
-            i++;
-
-            if (i < argc) {
-                if (strlen(argv[i]) >= MAXPATHLEN) {
-                    g_error("%s: pid filename is too long", __func__);
-                    exit(1);
-                }
-
-                memset(&pidfile, '\0', sizeof(pidfile));
-                strcpy(pidfile, argv[i]);
-            } else {
-                command_text();
-            }
-        } else if (g_strcmp0(argv[i], "-cm") == 0) {
-            i++;
-
-            if (get_interface_s(argv[i]) == NULL) {
-                err = 5;
-                goto ERROR;
-            }
-
-            sw = 1;
-            cifaces_list = g_slist_append(cifaces_list, g_strdup(argv[i]));
-            g_debug("%s: setting up client interface: %s", __func__, argv[i]);
-            continue;
-        } else if (g_strcmp0(argv[i], "-cu") == 0) {
-            multicast_off = 1;
-        } else if (g_strcmp0(argv[i], "-sm") == 0) {
-            i++;
-
-            if (get_interface_s(argv[i]) == NULL) {
-                err = 5;
-                goto ERROR;
-            }
-
-            sifaces_list = g_slist_append(sifaces_list, g_strdup(argv[i]));
-            g_debug("%s: setting up server interface: %s", __func__, argv[i]);
-            continue;
-        } else if (g_strcmp0(argv[i], "-su") == 0) {
-            i++;
-
-            /* destination address */
-            if (inet_pton(AF_INET6, argv[i], &sin6.sin6_addr) <= 0) {
-                err = 3;
-                goto ERROR;
-            }
-
-            if (IN6_IS_ADDR_UNSPECIFIED(&sin6.sin6_addr)) {
-                err = 3;
-                goto ERROR;
-            }
-
-            gchar *uniaddr = g_strdup(argv[i]);
-            IPv6_uniaddr_list = g_slist_append(IPv6_uniaddr_list, uniaddr);
-
-            g_debug("%s: setting up server address: %s", __func__, argv[i]);
-            nr_of_uni_addr += 1;
-
-            continue;
-        } else if (g_strcmp0(argv[i], "-sf") == 0) {
-            i++;
-            sf = strdup(argv[i]);
-            eth = strtok(sf, "+");
-
-            if (eth == NULL) {
-                err = 4;
-                goto ERROR;
-            }
-
-            addr = strtok((sf + strlen(eth) + 1), "\0");
-
-            if (addr == NULL) {
-                err = 4;
-                goto ERROR;
-            }
-
-            /* destination address */
-            if (inet_pton(AF_INET6, addr, &sin6.sin6_addr) <= 0) {
-                err = 3;
-                goto ERROR;
-            }
-
-            if (IN6_IS_ADDR_UNSPECIFIED(&sin6.sin6_addr)) {
-                err = 3;
-                goto ERROR;
-            }
-
-            if ((iface = get_interface_s(eth)) != NULL) {
-                gchar *sa = g_strdup(addr);
-                iface->sname = g_slist_append(iface->sname, sa);
-
-                g_debug("%s: setting up server address: %s for interface: %s",
-                        __func__, addr, eth);
-            } else {
-                err = 5;
-                goto ERROR;
-            }
-
-            continue;
-        } else if ((g_strcmp0(argv[i], "-h") == 0) ||
-                   (g_strcmp0(argv[i], "--help") == 0)) {
-            command_text();
-        } else {
-            err = 4;
-            goto ERROR;
-        }
+    if (!get_interface_info()) {
+        abort();
     }
 
     if (sw == 1) {
-        multicast_off = 0;
+        multicast_off = FALSE;
     }
 
     init_socket();
 
-    if (set_sock_opt() == 0) {
-        goto ERROR;
+    if (!set_sock_opt()) {
+        abort();
     }
 
-    if (fill_addr_struct() == 0) {
-        goto ERROR;
+    if (!fill_addr_struct()) {
+        abort();
     }
 
-    if (du == 0) {
-        switch (fork()) {
-            case 0:
-                break;
-            case -1:
-                perror("fork");
-                exit(1);
-            default:
-                exit(0);
+    if (!log_props.foreground) {
+        if (daemon(0, 0) < 0) {
+            g_error("error backgrounding %s", progname);
+            abort();
         }
     }
 
@@ -307,22 +418,5 @@ gint main(gint argc, gchar **argv) {
         relay_msg_parser_list = NULL;
     }
 
-ERROR:
-
-    if (err == 3) {
-        g_error("%s: malformed address: %s", __func__, argv[i]);
-        exit(1);
-    }
-
-    if (err == 4) {
-        g_error("%s: option %s not recognized", __func__, argv[i]);
-        exit(1);
-    }
-
-    if (err == 5) {
-        g_error("%s: interface %s not found", __func__, argv[i]);
-        exit(1);
-    }
-
-    exit(1);
+    return EXIT_SUCCESS;
 }
