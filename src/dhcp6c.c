@@ -2391,6 +2391,13 @@ gint main(gint argc, gchar **argv, gchar **envp) {
 
     g_option_context_free(context);
 
+    if (!log_props.foreground) {
+        if (daemon(0, 0) < 0) {
+            g_error("error backgrounding %s", progname);
+            abort();
+        }
+    }
+
     if (conffile == NULL) {
         conffile = DHCP6C_CONF;
     }
