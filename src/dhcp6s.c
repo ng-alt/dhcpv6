@@ -1570,7 +1570,8 @@ gint main(gint argc, gchar **argv) {
 
     if (!log_props.foreground) {
         if (daemon(0, 0) < 0) {
-            err(1, "daemon");
+            g_error("error backgrounding %s", progname);
+            abort();
         }
     }
 
