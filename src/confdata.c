@@ -617,9 +617,6 @@ void configure_commit(void) {
             ifp->prefix_list = ifc->prefix_list;
             ifc->prefix_list = NULL;
 
-            g_slist_free(ifp->option_list);
-            ifp->option_list = NULL;
-
             ifp->server_pref = ifc->server_pref;
 
             ifp->default_irt = ifc->default_irt;

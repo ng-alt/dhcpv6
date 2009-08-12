@@ -300,9 +300,9 @@ typedef struct _dhcp6_if_t {
     /* request specific addresses list from client */
     GSList *addr_list;
     GSList *prefix_list;
-    GSList *option_list;
     dhcp6_serverinfo_t *current_server;
     dhcp6_serverinfo_t *servers;
+    dhcp6_optinfo_t *optinfo;
 } dhcp6_if_t;
 
 typedef struct _dhcp6_event_t {
