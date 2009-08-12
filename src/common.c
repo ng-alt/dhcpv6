@@ -1103,6 +1103,7 @@ void dhcp6_clear_options(dhcp6_optinfo_t *optinfo) {
 
     optinfo->dnsinfo.domains = NULL;
     dhcp6_init_options(optinfo);
+    return;
 }
 
 gint dhcp6_copy_options(dhcp6_optinfo_t *dst, dhcp6_optinfo_t *src) {
@@ -1709,7 +1710,6 @@ void dhcp6_set_timeoparam(dhcp6_event_t *ev) {
 
 void dhcp6_reset_timer(dhcp6_event_t *ev) {
     gdouble n, r;
-    gchar *statestr;
     struct timeval interval;
 
     switch (ev->state) {
@@ -1725,7 +1725,7 @@ void dhcp6_reset_timer(dhcp6_event_t *ev) {
             break;
         default:
             if (ev->timeouts == 0) {
-                /* 
+                /*
                  * The first RT MUST be selected to be strictly
                  * greater than IRT by choosing RAND to be strictly
                  * greater than 0.
@@ -1751,49 +1751,14 @@ void dhcp6_reset_timer(dhcp6_event_t *ev) {
             break;
     }
 
-    switch (ev->state) {
-        case DHCP6S_INIT:
-            statestr = "INIT";
-            break;
-        case DHCP6S_SOLICIT:
-            statestr = "SOLICIT";
-            break;
-        case DHCP6S_INFOREQ:
-            statestr = "INFOREQ";
-            break;
-        case DHCP6S_REQUEST:
-            statestr = "REQUEST";
-            break;
-        case DHCP6S_RENEW:
-            statestr = "RENEW";
-            break;
-        case DHCP6S_REBIND:
-            statestr = "REBIND";
-            break;
-        case DHCP6S_CONFIRM:
-            statestr = "CONFIRM";
-            break;
-        case DHCP6S_DECLINE:
-            statestr = "DECLINE";
-            break;
-        case DHCP6S_RELEASE:
-            statestr = "RELEASE";
-            break;
-        case DHCP6S_IDLE:
-            statestr = "IDLE";
-            break;
-        default:
-            statestr = "???";   /* XXX */
-            break;
-    }
-
     interval.tv_sec = (ev->retrans * 1000) / 1000000;
     interval.tv_usec = (ev->retrans * 1000) % 1000000;
     dhcp6_set_timer(&interval, ev->timer);
 
     g_debug("%s: reset a timer on %s, state=%s, timeo=%d, retrans=%ld",
-            __func__, ev->ifp->ifname, statestr, ev->timeouts,
+            __func__, ev->ifp->ifname, dhcp6msgstr(ev->state), ev->timeouts,
             (glong) ev->retrans);
+    return;
 }
 
 gboolean copy_option(gint option, guint8 len, void *data, dhcp6opt_t *p,
