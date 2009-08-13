@@ -1,0 +1,2 @@
+sudo rm -f core.*
+sudo ./dhcp6c -c /home/dcantrel/scm/git.fedorahosted.org/dhcpv6/src/../test/dhcp6c.conf -s /home/dcantrel/scm/git.fedorahosted.org/dhcpv6/src/dhcp6c-debug-script -f -v eth0 2>&1 | tee log
