@@ -1146,7 +1146,7 @@ static gint _client6_recvadvert(dhcp6_if_t *ifp, dhcp6_t *dh6,
     } else if (ifp->servers->next == NULL) {
         struct timeval *rest, elapsed, tv_rt, tv_irt, timo;
 
-        /* 
+        /*
          * If this is the first advertise, adjust the timer so that
          * the client can collect other servers until IRT elapses.
          * XXX: we did not want to do such "low level" timer
@@ -2025,7 +2025,6 @@ gint client6_send_newstate(dhcp6_if_t *ifp, gint state) {
 
 /* XXX: use old_ and new_ variable naming based on the state we're in */
 void run_script(dhcp6_if_t *ifp, gint old_state, gint new_state, guint32 uuid) {
-    gint i = 0;
     GString *tmp = g_string_new(NULL);
     gchar tmpaddr[INET6_ADDRSTRLEN];
     gboolean fail = FALSE;
@@ -2175,54 +2174,37 @@ void run_script(dhcp6_if_t *ifp, gint old_state, gint new_state, guint32 uuid) {
 
     /* dhcpv6_options */
     if (ifp->optinfo) {
-/*
-        tmp = dhcp6_options2str(ifp->optinfo->reqopt_list);
+        iterator = ifp->optinfo->opt_list;
 
-        if (!g_setenv(OPTIONS, tmp->str, TRUE)) {
-            g_error("could not set %s environment variable", OPTIONS);
+        while (iterator) {
+            gint *option = (gint *) iterator->data;
+            GSList *pair = dhcp6_option2envvar(ifp->optinfo, *option);
+
+            if (g_slist_length(pair) == 2) {
+                gchar *var = (gchar *) g_slist_nth_data(pair, 0);
+                gchar *val = (gchar *) g_slist_nth_data(pair, 1);
+
+                if (!g_setenv(var, val, TRUE)) {
+                    g_error("could not set %s environment variable", var);
+                } else {
+                    envvars = g_slist_append(envvars, var);
+                }
+            }
+
+            if (pair != NULL) {
+                g_slist_free(pair);
+            }
+
+            iterator = g_slist_next(iterator);
+        }
+
+        /* dhcpv6_status_msg */
+        if (!g_setenv(STATUS_MSG, ifp->optinfo->status_msg, TRUE)) {
+            g_error("could not set %s environment variable", STATUS_MSG);
         } else {
-            envvars = g_slist_append(envvars, OPTIONS);
-        }
-
-        if (g_string_free(tmp, TRUE) != NULL) {
-            g_error("erroring releasing temporary GString");
-        }
-*/
-
-        for (i = FIRST_DH6OPT; i <= LAST_DH6OPT; i++) {
-            GSList *pair = dhcp6_option2str(ifp->optinfo->reqopt_list, i);
-
-            /* if pair contains two members:
-             * 1) append pair[0] to envvars
-             * 2) set an environment variable named pair[0] with value pair[1]
-             * 3) free pair
-             */
+            envvars = g_slist_append(envvars, STATUS_MSG);
         }
     }
-
-    /* dhcpv6_status_code */
-/*
-    g_string_printf(tmp, "%s", dhcp6_statuscode2str(ifp->optinfo->status_code));
-
-    if (!g_setenv(STATUS_CODE, tmp->str, TRUE)) {
-        g_error("could not set %s environment variable", STATUS_CODE);
-    } else {
-        envvars = g_slist_append(envvars, STATUS_CODE);
-    }
-
-    if (g_string_free(tmp, TRUE) != NULL) {
-        g_error("erroring releasing temporary GString");
-    }
-*/
-
-    /* dhcpv6_status_msg */
-/*
-    if (!g_setenv(STATUS_MSG, ifp->optinfo->status_msg, TRUE)) {
-        g_error("could not set %s environment variable", STATUS_MSG);
-    } else {
-        envvars = g_slist_append(envvars, STATUS_MSG);
-    }
-*/
 
     /* run script */
     flags = G_SPAWN_FILE_AND_ARGV_ZERO;

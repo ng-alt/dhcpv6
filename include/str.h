@@ -65,5 +65,6 @@ GString *dhcp6_options2str(GSList *);
 gchar *dhcp6msgstr(gint);
 gchar *dhcp6_statuscode2str(gint);
 gchar *duidstr(const duid_t *);
+GSList *dhcp6_option2envvar(dhcp6_optinfo_t *, gint);
 
 #endif /* __STR_H_DEFINED */

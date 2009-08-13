@@ -152,7 +152,7 @@ static gint _get_assigned_ipv6addrs(guchar *p, guchar *ep, ia_t *ia) {
                 print_status_code("IA", num, p, optlen);
                 ia->status_code = num;
                 break;
-            case DH6OPT_IADDR:
+            case DH6OPT_IAADDR:
                 if (optlen < sizeof(ai) - sizeof(guint32)) {
                     goto malformed;
                 }
@@ -353,7 +353,7 @@ static gint _dhcp6_set_ia_options(guchar **tmpbuf, gint *optlen, ia_t *ia) {
                     }
 
                     memset(&ai, 0, sizeof(ai));
-                    ai.dh6_ai_type = htons(DH6OPT_IADDR);
+                    ai.dh6_ai_type = htons(DH6OPT_IAADDR);
                     ai.dh6_ai_len = htons(iaddr_len);
                     ai.preferlifetime =
                         htonl(dp->val_dhcp6addr.preferlifetime);
@@ -1080,6 +1080,7 @@ void dhcp6_init_options(dhcp6_optinfo_t *optinfo) {
     optinfo->dnsinfo.domains = NULL;
     optinfo->status_code = DH6OPT_STCODE_UNDEFINE;
     optinfo->status_msg = NULL;
+    optinfo->opt_list = NULL;
     return;
 }
 
@@ -1102,6 +1103,10 @@ void dhcp6_clear_options(dhcp6_optinfo_t *optinfo) {
     }
 
     optinfo->dnsinfo.domains = NULL;
+
+    g_slist_free(optinfo->opt_list);
+    optinfo->opt_list = NULL;
+
     dhcp6_init_options(optinfo);
     return;
 }
@@ -1153,7 +1158,7 @@ gint dhcp6_get_options(dhcp6opt_t *p, dhcp6opt_t *ep,
     for (; p + 1 <= ep; p = np) {
         duid_t duid0;
 
-        /* 
+        /*
          * get the option header.  XXX: since there is no guarantee
          * about the header alignment, we need to make a local copy.
          */
@@ -1172,6 +1177,8 @@ gint dhcp6_get_options(dhcp6opt_t *p, dhcp6opt_t *ep,
             g_message("%s: malformed DHCP options", __func__);
             return -1;
         }
+
+        optinfo->opt_list = g_slist_append(optinfo->opt_list, &opt);
 
         switch (opt) {
             case DH6OPT_CLIENTID:
@@ -1212,6 +1219,7 @@ gint dhcp6_get_options(dhcp6opt_t *p, dhcp6opt_t *ep,
                 memcpy(&val16, cp, sizeof(val16));
                 num = ntohs(val16);
                 g_debug(" this message elapsed time is: %d", num);
+                optinfo->elapsed_time = num;
                 break;
             case DH6OPT_STATUS_CODE:
                 if (optlen < sizeof(guint16)) {
@@ -1415,6 +1423,26 @@ gint dhcp6_get_options(dhcp6opt_t *p, dhcp6opt_t *ep,
                 optinfo->irt = ntohl(val32);
                 g_debug("information refresh time is %u", optinfo->irt);
                 break;
+            case DH6OPT_IAADDR:
+                /* XXX: unhandled option */
+            case DH6OPT_RELAY_MSG:
+                /* XXX: unhandled option */
+            case DH6OPT_AUTH:
+                /* XXX: unhandled option */
+            case DH6OPT_USER_CLASS:
+                /* XXX: unhandled option */
+            case DH6OPT_VENDOR_CLASS:
+                /* XXX: unhandled option */
+            case DH6OPT_VENDOR_OPTS:
+                /* XXX: unhandled option */
+            case DH6OPT_INTERFACE_ID:
+                /* XXX: unhandled option */
+            case DH6OPT_RECONF_MSG:
+                /* XXX: unhandled option */
+            case DH6OPT_RECONF_ACCEPT:
+                /* XXX: unhandled option */
+            case DH6OPT_IAPREFIX:
+                /* XXX: unhandled option */
             default:
                 /* no option specific behavior */
                 g_message("%s: unknown or unexpected DHCP6 option %s, len %d",

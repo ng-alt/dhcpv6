@@ -244,6 +244,7 @@ typedef struct _dhcp6_optinfo_t {
                                       passed through on to the server */
     guint16 status_code;           /* status code */
     gchar *status_msg;             /* status message */
+    GSList *opt_list;              /* options actually sent or received */
 } dhcp6_optinfo_t;
 
 typedef struct _dhcp6_serverinfo_t {

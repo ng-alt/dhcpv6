@@ -162,7 +162,7 @@ enum {
 #define DH6OPT_SERVERID          2
 #define DH6OPT_IA_NA             3
 #define DH6OPT_IA_TA             4
-#define DH6OPT_IADDR             5
+#define DH6OPT_IAADDR            5
 #define DH6OPT_ORO               6
 #define DH6OPT_PREFERENCE        7
 #define DH6OPT_ELAPSED_TIME      8

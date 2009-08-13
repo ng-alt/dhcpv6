@@ -87,64 +87,61 @@ gchar *in6addr2str(struct in6_addr *in6, gint scopeid) {
     return (addr2str((struct sockaddr *) &sa6, sizeof(sa6)));
 }
 
-gchar *dhcp6optstr(gint type) {
-    gchar *ret = NULL;
-    GString *tmp = g_string_new(NULL);
-
-    if (type > 65535) {
+gchar *dhcp6optstr(gint code) {
+    if (code > 65535) {
         return "OPTION_INVALID";
     }
 
-    if (type == DH6OPT_CLIENTID) {
+    if (code == DH6OPT_CLIENTID) {
         return "OPTION_CLIENTID";
-    } else if (type == DH6OPT_SERVERID) {
+    } else if (code == DH6OPT_SERVERID) {
         return "OPTION_SERVERID";
-    } else if (type == DH6OPT_IA_NA) {
+    } else if (code == DH6OPT_IA_NA) {
         return "OPTION_IA_NA";
-    } else if (type == DH6OPT_IA_TA) {
+    } else if (code == DH6OPT_IA_TA) {
         return "OPTION_IA_TA";
-    } else if (type == DH6OPT_IADDR) {
+    } else if (code == DH6OPT_IAADDR) {
         return "OPTION_IAADDR";
-    } else if (type == DH6OPT_ORO) {
+    } else if (code == DH6OPT_ORO) {
         return "OPTION_ORO";
-    } else if (type == DH6OPT_PREFERENCE) {
+    } else if (code == DH6OPT_PREFERENCE) {
         return "OPTION_PREFERENCE";
-    } else if (type == DH6OPT_ELAPSED_TIME) {
+    } else if (code == DH6OPT_ELAPSED_TIME) {
         return "OPTION_ELAPSED_TIME";
-    } else if (type == DH6OPT_RELAY_MSG) {
+    } else if (code == DH6OPT_RELAY_MSG) {
         return "OPTION_RELAY_MSG";
-    } else if (type == DH6OPT_AUTH) {
+    } else if (code == DH6OPT_AUTH) {
         return "OPTION_AUTH";
-    } else if (type == DH6OPT_UNICAST) {
+    } else if (code == DH6OPT_UNICAST) {
         return "OPTION_UNICAST";
-    } else if (type == DH6OPT_STATUS_CODE) {
+    } else if (code == DH6OPT_STATUS_CODE) {
         return "OPTION_STATUS_CODE";
-    } else if (type == DH6OPT_RAPID_COMMIT) {
+    } else if (code == DH6OPT_RAPID_COMMIT) {
         return "OPTION_RAPID_COMMIT";
-    } else if (type == DH6OPT_USER_CLASS) {
+    } else if (code == DH6OPT_USER_CLASS) {
         return "OPTION_USER_CLASS";
-    } else if (type == DH6OPT_VENDOR_CLASS) {
+    } else if (code == DH6OPT_VENDOR_CLASS) {
         return "OPTION_VENDOR_CLASS";
-    } else if (type == DH6OPT_VENDOR_OPTS) {
+    } else if (code == DH6OPT_VENDOR_OPTS) {
         return "OPTION_VENDOR_OPTS";
-    } else if (type == DH6OPT_INTERFACE_ID) {
+    } else if (code == DH6OPT_INTERFACE_ID) {
         return "OPTION_INTERFACE_ID";
-    } else if (type == DH6OPT_RECONF_MSG) {
+    } else if (code == DH6OPT_RECONF_MSG) {
         return "OPTION_RECONF_MSG";
-    } else if (type == DH6OPT_RECONF_ACCEPT) {
+    } else if (code == DH6OPT_RECONF_ACCEPT) {
         return "OPTION_RECONF_ACCEPT";
-    } else if (type == DH6OPT_DNS_SERVERS) {
+    } else if (code == DH6OPT_DNS_SERVERS) {
         return "OPTION_DNS_SERVERS";
-    } else if (type == DH6OPT_DOMAIN_LIST) {
+    } else if (code == DH6OPT_DOMAIN_LIST) {
         return "OPTION_DOMAIN_LIST";
-    } else if (type == DH6OPT_IA_PD) {
+    } else if (code == DH6OPT_IA_PD) {
         return "OPTION_IA_PD";
-    } else if (type == DH6OPT_IAPREFIX) {
+    } else if (code == DH6OPT_IAPREFIX) {
         return "OPTION_IAPREFIX";
-    } else if (type == DH6OPT_INFO_REFRESH_TIME) {
+    } else if (code == DH6OPT_INFO_REFRESH_TIME) {
         return "OPTION_INFORMATION_REFRESH_TIME";
     } else {
-        g_debug("%s: unknown option: %d", __func__, type);
+        g_debug("%s: unknown option: %d", __func__, code);
         return "OPTION_UNKNOWN";
     }
 }
@@ -168,8 +165,8 @@ GString *dhcp6_options2str(GSList *options) {
         g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_IA_TA));
     }
 
-    if (dhcp6_has_option(options, DH6OPT_IADDR)) {
-        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_IADDR));
+    if (dhcp6_has_option(options, DH6OPT_IAADDR)) {
+        g_string_append_printf(ret, "%s ", dhcp6optstr(DH6OPT_IAADDR));
     }
 
     if (dhcp6_has_option(options, DH6OPT_ORO)) {
@@ -254,9 +251,6 @@ GString *dhcp6_options2str(GSList *options) {
 }
 
 gchar *dhcp6msgstr(gint type) {
-    gchar *ret = NULL;
-    GString *tmp = g_string_new(NULL);
-
     if (type > 255) {
         return "INVALID msg";
     }
@@ -347,4 +341,74 @@ gchar *duidstr(const duid_t *duid) {
     }
 
     return duidstr;
+}
+
+GSList *dhcp6_option2envvar(dhcp6_optinfo_t *optinfo, gint code) {
+    GSList *pair = NULL;
+    GString *tmp = g_string_new(NULL);
+    gchar *option_name = g_strdup(dhcp6optstr(code));
+    gchar *val = NULL;
+
+    if (code == DH6OPT_CLIENTID) {
+        val = g_strdup(duidstr(&optinfo->clientID));
+    } else if (code == DH6OPT_SERVERID) {
+        val = g_strdup(duidstr(&optinfo->serverID));
+    } else if (code == DH6OPT_IA_NA) {
+        /* XXX */
+    } else if (code == DH6OPT_IA_TA) {
+        /* XXX */
+    } else if (code == DH6OPT_IAADDR) {
+        /* XXX: unhandled option */
+    } else if (code == DH6OPT_ORO) {
+        /* XXX */
+    } else if (code == DH6OPT_PREFERENCE) {
+        g_string_printf(tmp, "%d", optinfo->pref);
+        val = g_strdup(tmp->str);
+    } else if (code == DH6OPT_ELAPSED_TIME) {
+        g_string_printf(tmp, "%d", optinfo->elapsed_time);
+        val = g_strdup(tmp->str);
+    } else if (code == DH6OPT_RELAY_MSG) {
+        /* XXX: unhandled option */
+    } else if (code == DH6OPT_AUTH) {
+        /* XXX: unhandled option */
+    } else if (code == DH6OPT_STATUS_CODE) {
+        g_string_printf(tmp, "%i", optinfo->status_code);
+        val = g_strdup(tmp->str);
+    } else if (code == DH6OPT_USER_CLASS) {
+        /* XXX: unhandled option */
+    } else if (code == DH6OPT_VENDOR_CLASS) {
+        /* XXX: unhandled option */
+    } else if (code == DH6OPT_VENDOR_OPTS) {
+        /* XXX: unhandled option */
+    } else if (code == DH6OPT_INTERFACE_ID) {
+        /* XXX: unhandled option */
+    } else if (code == DH6OPT_RECONF_MSG) {
+        /* XXX: unhandled option */
+    } else if (code == DH6OPT_RECONF_ACCEPT) {
+        /* XXX: unhandled option */
+    } else if (code == DH6OPT_DNS_SERVERS) {
+        /* XXX */
+    } else if (code == DH6OPT_DOMAIN_LIST) {
+        /* XXX */
+    } else if (code == DH6OPT_IA_PD) {
+        /* XXX */
+    } else if (code == DH6OPT_IAPREFIX) {
+        /* XXX: unhandled option */
+    } else if (code == DH6OPT_INFO_REFRESH_TIME) {
+        g_string_printf(tmp, "%i", optinfo->irt);
+        val = g_strdup(tmp->str);
+    } else if (code == DH6OPT_UNICAST || code == DH6OPT_RAPID_COMMIT) {
+        val = g_strdup("yes");
+    }
+
+    if (g_string_free(tmp, TRUE) != NULL) {
+        g_error("%s: erroring releasing temporary GString", __func__);
+    }
+
+    if (option_name && val) {
+        pair = g_slist_append(pair, option_name);
+        pair = g_slist_append(pair, val);
+    }
+
+    return pair;
 }
