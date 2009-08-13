@@ -568,40 +568,38 @@ void ifinit(const gchar *ifname) {
 
     if ((ifp = g_malloc0(sizeof(*ifp))) == NULL) {
         g_error("%s: memory allocation failure", __func__);
-        goto die;
+        exit(1);
     }
 
     ifp->event_list = NULL;
 
     if ((ifp->ifname = strdup((gchar *) ifname)) == NULL) {
         g_error("%s: failed to copy ifname", __func__);
-        goto die;
+        exit(1);
     }
 
     if ((ifp->ifid = if_nametoindex(ifname)) == 0) {
         g_error("%s: invalid interface(%s): %s", __func__,
                 ifname, strerror(errno));
-        goto die;
+        exit(1);
     }
+
 #ifdef HAVE_SCOPELIB
     if (inet_zoneid(AF_INET6, 2, ifname, &ifp->linkid)) {
         g_error("%s: failed to get link ID for %s", __func__, ifname);
-        goto die;
+        exit(1);
     }
 #else
     ifp->linkid = ifp->ifid;    /* XXX */
 #endif
 
     if (get_linklocal(ifname, &ifp->linklocal) < 0) {
-        goto die;
+        exit(1);
     }
 
     ifp->next = dhcp6_if;
     dhcp6_if = ifp;
     return;
-
-die:
-    exit(1);
 }
 
 gint dhcp6_copy_list(GSList *dst, GSList *src) {
@@ -1251,7 +1249,7 @@ gint dhcp6_get_options(dhcp6opt_t *p, dhcp6opt_t *ep,
                                            &num, DHCP6_LISTVAL_NUM)) {
                         g_message("%s: duplicated option type (%s)", __func__,
                                   dhcp6optstr(opttype));
-                        goto nextoption;
+                        continue;
                     }
 
                     if (dhcp6_add_listval(optinfo->reqopt_list,
@@ -1260,7 +1258,6 @@ gint dhcp6_get_options(dhcp6opt_t *p, dhcp6opt_t *ep,
                                 __func__);
                         goto fail;
                     }
-                  nextoption:;
                 }
 
                 break;

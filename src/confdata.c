@@ -100,6 +100,8 @@ static gint _add_options(gint opcode, dhcp6_ifconf_t *ifc, cf_list_t *cfl0) {
     GSList *iterator = NULL;
 
     for (cfl = cfl0; cfl; cfl = cfl->next) {
+        gboolean c = FALSE;
+
         if (opcode == DHCPOPTCODE_REQUEST) {
             iterator = ifc->reqopt_list;
 
@@ -109,10 +111,15 @@ static gint _add_options(gint opcode, dhcp6_ifconf_t *ifc, cf_list_t *cfl0) {
                 if (opt->val_num == cfl->type) {
                     g_message("%s: duplicated requested option: %s",
                               __func__, dhcp6optstr(cfl->type));
-                    goto next;  /* ignore it */
+                    c = TRUE;
+                    break;
                 }
 
                 iterator = g_slist_next(iterator);
+            }
+
+            if (c) {
+                continue;
             }
         }
 
@@ -192,8 +199,6 @@ static gint _add_options(gint opcode, dhcp6_ifconf_t *ifc, cf_list_t *cfl0) {
                 g_error("%s: unknown option type: %d", __func__, cfl->type);
                 return -1;
         }
-
-      next:;
     }
 
     return 0;
@@ -435,7 +440,7 @@ gint configure_host(const cf_namelist_t *hostlist) {
         if ((hconf = g_malloc0(sizeof(*hconf))) == NULL) {
             g_error("%s: memory allocation failed for host %s",
                     __func__, host->name);
-            goto bad;
+            return -1;
         }
 
         hconf->addr_list = NULL;
@@ -447,7 +452,7 @@ gint configure_host(const cf_namelist_t *hostlist) {
 
         if ((hconf->name = strdup(host->name)) == NULL) {
             g_error("%s: failed to copy host name: %s", __func__, host->name);
-            goto bad;
+            return -1;
         }
 
         for (cfl = host->params; cfl; cfl = cfl->next) {
@@ -457,7 +462,7 @@ gint configure_host(const cf_namelist_t *hostlist) {
                         g_error("%s: %s:%d duplicated DUID for %s",
                                 __func__, configfilename,
                                 cfl->line, host->name);
-                        goto bad;
+                        return -1;
                     }
 
                     if ((configure_duid((gchar *) cfl->ptr,
@@ -465,7 +470,7 @@ gint configure_host(const cf_namelist_t *hostlist) {
                         g_error("%s: %s:%d failed to configure DUID for %s",
                                 __func__, configfilename, cfl->line,
                                 host->name);
-                        goto bad;
+                        return -1;
                     }
 
                     g_debug("%s: configure DUID for %s: %s", __func__,
@@ -475,7 +480,7 @@ gint configure_host(const cf_namelist_t *hostlist) {
                     if (_add_address(hconf->prefix_list, cfl->ptr)) {
                         g_error("%s: failed to configure prefix for %s",
                                 __func__, host->name);
-                        goto bad;
+                        return -1;
                     }
 
                     break;
@@ -484,7 +489,7 @@ gint configure_host(const cf_namelist_t *hostlist) {
                         g_error("%s: %s:%d duplicated IAID for %s",
                                 __func__, configfilename,
                                 cfl->line, host->name);
-                        goto bad;
+                        return -1;
                     } else {
                         hconf->iaidinfo.iaid = (guint32) cfl->num;
                     }
@@ -495,7 +500,7 @@ gint configure_host(const cf_namelist_t *hostlist) {
                         g_error("%s: %s:%d duplicated renewtime for %s",
                                 __func__, configfilename,
                                 cfl->line, host->name);
-                        goto bad;
+                        return -1;
                     } else {
                         hconf->iaidinfo.renewtime = (guint32) cfl->num;
                     }
@@ -506,7 +511,7 @@ gint configure_host(const cf_namelist_t *hostlist) {
                         g_error("%s: %s:%d duplicated rebindtime for %s",
                                 __func__, configfilename,
                                 cfl->line, host->name);
-                        goto bad;
+                        return -1;
                     } else {
                         hconf->iaidinfo.rebindtime = (guint32) cfl->num;
                     }
@@ -516,7 +521,7 @@ gint configure_host(const cf_namelist_t *hostlist) {
                     if (_add_address(hconf->addr_list, cfl->ptr)) {
                         g_error("%s: failed to configure ipv6address for %s",
                                 __func__, host->name);
-                        goto bad;
+                        return -1;
                     }
 
                     break;
@@ -525,7 +530,7 @@ gint configure_host(const cf_namelist_t *hostlist) {
                         g_error("%s: %s:%d duplicated linklocal for %s",
                                 __func__, configfilename,
                                 cfl->line, host->name);
-                        goto bad;
+                        return -1;
                     } else {
                         memcpy(&hconf->linklocal, cfl->ptr,
                                sizeof(hconf->linklocal));
@@ -535,16 +540,12 @@ gint configure_host(const cf_namelist_t *hostlist) {
                 default:
                     g_error("%s: %d invalid host configuration for %s",
                             configfilename, cfl->line, host->name);
-                    goto bad;
+                    return -1;
             }
         }
     }
 
     return 0;
-
-bad:
-    /* there is currently nothing special to recover the error */
-    return -1;
 }
 
 gint configure_global_option(void) {
@@ -554,7 +555,7 @@ gint configure_global_option(void) {
     if (cf_dns_list && dhcp6_mode != DHCP6_MODE_SERVER) {
         g_message("%s: %s:%d server-only configuration",
                   __func__, configfilename, cf_dns_list->line);
-        goto bad;
+        return -1;
     }
 
     dnslist0 = NULL;
@@ -565,20 +566,17 @@ gint configure_global_option(void) {
             g_message("%s: %s:%d duplicated DNS server: %s", __func__,
                       configfilename, cl->line,
                       in6addr2str((struct in6_addr *) cl->ptr, 0));
-            goto bad;
+            return -1;
         }
 
         if (dhcp6_add_listval(dnslist0, cl->ptr,
                               DHCP6_LISTVAL_ADDR6) == NULL) {
             g_error("%s: failed to add a DNS server", __func__);
-            goto bad;
+            return -1;
         }
     }
 
     return 0;
-
-bad:
-    return -1;
 }
 
 void configure_cleanup(void) {
