@@ -76,7 +76,6 @@ gint dad_parse(const gchar *file, GSList *dad_list) {
     FILE *fp = NULL;
     gchar buf[55];               /* max line length in /proc/net/if_inet6 */
     gchar addrbuf[64];
-    gchar *tmp = NULL;
     struct in6_addr addr6;
     ifproc_info_t *ifinfo = NULL;
 
@@ -98,15 +97,20 @@ gint dad_parse(const gchar *file, GSList *dad_list) {
     }
 
     while (fgets(buf, sizeof(buf), fp) != NULL) {
+        gchar **tokens = g_strsplit_set(buf, " \n", -1);
+        gchar **token = tokens;
+
         /* read address */
-        if ((tmp = strtok(buf, " \n")) == NULL) {
+        if (*token == NULL) {
+            g_strfreev(tokens);
             continue;
         }
 
         len = 0;
 
         for (i = 0; i < 32; i += 4) {
-            strncpy(addrbuf + len, &tmp[i], 4);
+            gchar *tokentmp = *token;
+            strncpy(addrbuf + len, &tokentmp[i], 4);
             len += 4;
 
             if (i < 28) {
@@ -128,48 +132,63 @@ gint dad_parse(const gchar *file, GSList *dad_list) {
         }
 
         memcpy(&ifinfo->addr, &addr6, sizeof(ifinfo->addr));
+        token++;
 
         /* read the index */
-        if ((tmp = strtok(NULL, " \n")) == NULL) {
+        if (*token == NULL) {
+            g_strfreev(tokens);
             continue;
         }
 
-        ifinfo->index = strtol(tmp, NULL, 16);
+        ifinfo->index = strtol(*token, NULL, 16);
         if ((errno == EINVAL) || (errno == ERANGE)) {
             g_error("error reading index from %s", file);
+            g_strfreev(tokens);
             goto fail;
         }
+
+        token++;
 
         /* read the prefix length */
-        if ((tmp = strtok(NULL, " \n")) == NULL) {
+        if (*token == NULL) {
+            g_strfreev(tokens);
             continue;
         }
 
-        ifinfo->plen = strtol(tmp, NULL, 16);
+        ifinfo->plen = strtol(*token, NULL, 16);
         if ((errno == EINVAL) || (errno == ERANGE)) {
             g_error("error reading prefix length from %s", file);
+            g_strfreev(tokens);
             goto fail;
         }
+
+        token++;
 
         /* read the scope */
-        if ((tmp = strtok(NULL, " \n")) == NULL) {
+        if (*token == NULL) {
+            g_strfreev(tokens);
             continue;
         }
 
-        ifinfo->scope = strtol(tmp, NULL, 16);
+        ifinfo->scope = strtol(*token, NULL, 16);
         if ((errno == EINVAL) || (errno == ERANGE)) {
             g_error("error reading scope from %s", file);
+            g_strfreev(tokens);
             goto fail;
         }
 
+        token++;
+
         /* read the flags */
-        if ((tmp = strtok(NULL, " \n")) == NULL) {
+        if (*token == NULL) {
+            g_strfreev(tokens);
             continue;
         }
 
-        ifinfo->flags = strtol(tmp, NULL, 16);
+        ifinfo->flags = strtol(*token, NULL, 16);
         if ((errno == EINVAL) || (errno == ERANGE)) {
             g_error("error reading flags from %s", file);
+            g_strfreev(tokens);
             goto fail;
         }
 
@@ -179,22 +198,29 @@ gint dad_parse(const gchar *file, GSList *dad_list) {
         } else {
             g_free(ifinfo);
             ifinfo = NULL;
+
+            g_strfreev(tokens);
             continue;
         }
+
+        token++;
 
         /* read the interface name */
-        if ((tmp = strtok(NULL, " \n")) == NULL) {
+        if (*token == NULL) {
+            g_strfreev(tokens);
             continue;
         }
 
-        if (g_strcmp0(tmp, dhcp6_if->ifname)) {
+        if (g_strcmp0(*token, dhcp6_if->ifname)) {
             g_free(ifinfo);
             ifinfo = NULL;
+
+            g_strfreev(tokens);
             continue;
         } else {
             dhcp6_value_t *lv;
 
-            strncpy(ifinfo->name, tmp, IFNAMSIZ);
+            strncpy(ifinfo->name, *token, IFNAMSIZ);
             ifinfo->next = NULL;
 
             /* check address on client6_iaidaddr list */
@@ -212,6 +238,8 @@ gint dad_parse(const gchar *file, GSList *dad_list) {
             lv->val_dhcp6addr.validlifetime = 0;
             dad_list = g_slist_append(dad_list, lv);
         }
+
+        g_strfreev(tokens);
     }
 
 out:

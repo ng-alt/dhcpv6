@@ -118,24 +118,33 @@ static gchar *duidfile = NULL;
 
 static gboolean _get_cmdline_addrspecs(gchar *addrs, GSList *list,
                                        iatype_t type, gchar *op) {
-    gchar *field = NULL, *fieldptr = NULL, *splitptr = NULL;
+    gchar **fields = NULL, **field = NULL;
     gchar *addr = NULL, *prefix = NULL;
     dhcp6_value_t *lv = NULL;
 
-    field = strtok_r(addrs, " ", &fieldptr);
-    while (field) {
+    fields = g_strsplit_set(addrs, " ", -1);
+    field = fields;
+
+    while (*field) {
         lv = (dhcp6_value_t *) g_malloc0(sizeof(*lv));
         if (lv == NULL) {
             g_error("failed to allocate memory");
+            g_strfreev(fields);
             return FALSE;
         }
 
-        if (g_strstr_len(field, -1, "/")) {
-            addr = strtok_r(field, "/", &splitptr);
-            prefix = strtok_r(NULL, "/", &splitptr);
+        if (g_strstr_len(*field, -1, "/")) {
+            gchar **subfields = g_strsplit_set(*fields, "/", -1);
+            gchar **subfield = subfields;
+
+            addr = *subfield;
+            subfield++;
+            prefix = *subfield;
 
             if (inet_pton(AF_INET6, addr, &lv->val_dhcp6addr.addr) < 1) {
                 g_error("invalid IPv6 address for %s: %s", op, addr);
+                g_strfreev(subfields);
+                g_strfreev(fields);
                 return FALSE;
             }
 
@@ -143,11 +152,14 @@ static gboolean _get_cmdline_addrspecs(gchar *addrs, GSList *list,
             lv->val_dhcp6addr.plen = strtol(prefix, NULL, 10);
             if (errno == ERANGE || errno == EINVAL) {
                 g_error("invalid IPv6 prefix length for %s: %s", op, prefix);
+                g_strfreev(subfields);
+                g_strfreev(fields);
                 return FALSE;
             }
         } else {
-            if (inet_pton(AF_INET6, addr, &lv->val_dhcp6addr.addr) < 1) {
-                g_error("invalid IPv6 address for %s: %s", op, addr);
+            if (inet_pton(AF_INET6, *field, &lv->val_dhcp6addr.addr) < 1) {
+                g_error("invalid IPv6 address for %s: %s", op, *field);
+                g_strfreev(fields);
                 return FALSE;
             }
         }
@@ -156,9 +168,10 @@ static gboolean _get_cmdline_addrspecs(gchar *addrs, GSList *list,
         lv->val_dhcp6addr.status_code = DH6OPT_STCODE_UNDEFINE;
         list = g_slist_append(list, lv);
 
-        field = strtok_r(NULL, " ", &fieldptr);
+        field++;
     }
 
+    g_strfreev(fields);
     return TRUE;
 }
 
