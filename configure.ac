@@ -28,6 +28,7 @@ AC_DEFINE_UNQUOTED([BUILD_DATE], ["`date +%m%d%Y`"], [Date of dhcpv6 build])
 
 AC_PROG_CPP
 AC_PROG_CC
+AC_PROG_MAKE_SET
 AC_PROG_LEX
 AC_PROG_YACC
 AC_PROG_LIBTOOL
@@ -44,9 +45,9 @@ AC_CHECK_HEADERS([sys/types.h sys/socket.h], [],
                  [])
 
 # Check for headers we must have on the system
-AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h \
-                  libgen.h net/if.h net/if_arp.h netdb.h netinet/in.h \
-                  sys/ioctl.h sys/timeb.h syslog.h],
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h \
+                  string.h sys/ioctl.h sys/param.h sys/time.h sys/timeb.h \
+                  syslog.h unistd.h],
                  [],
                  [AC_MSG_FAILURE([*** Header file $ac_header not found.])],
                  [[#ifdef HAVE_SYS_TYPES_H
@@ -57,29 +58,14 @@ AC_CHECK_HEADERS([arpa/inet.h err.h errno.h getopt.h fcntl.h ifaddrs.h \
                    #endif
                  ]])
 
-# Check for headers that are nice, but we don't absolutely have to have
-AC_CHECK_HEADERS([sys/queue.h linux/ipv6.h],
-                 [], [],
-                 [[#ifdef HAVE_SYS_TYPES_H
-                   # include <sys/types.h>
-                   #endif
-                   #ifdef HAVE_SYS_SOCKET_H
-                   # include <sys/socket.h>
-                   #endif
-                 ]])
-
 AC_HEADER_STDBOOL
 AC_C_CONST
-AC_TYPE_INT32_T
-AC_TYPE_INT8_T
+AC_TYPE_MODE_T
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 AC_TYPE_SSIZE_T
 AC_HEADER_TIME
 AC_STRUCT_TM
-AC_TYPE_UINT16_T
-AC_TYPE_UINT32_T
-AC_TYPE_UINT8_T
 
 AC_CHECK_MEMBERS([struct in6_ifreq.ifr6_addr],,,
     [AC_INCLUDES_DEFAULT()
@@ -90,37 +76,30 @@ AC_CHECK_MEMBERS([struct in6_ifreq.ifr6_addr],,,
 # check for required library functions
 AC_FUNC_FORK
 AC_PROG_GCC_TRADITIONAL
-AC_FUNC_LSTAT
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
-AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
-AC_FUNC_REALLOC
-AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_FUNC_STAT
-# XXX: this should check memset, strdup, strstr as well, but that's failing right now
-AC_CHECK_FUNCS([ftime gettimeofday select socket \
-                strerror strtol strtoul],
+AC_CHECK_FUNCS([ftime gettimeofday select socket strerror strtol \
+                strtoll strtoul],
                [],
                [AC_MSG_FAILURE([*** Required function $ac_func not found.])])
 
-# We need libnl -- NOTE: this is a Linux-only library, so we'll need something
-# else on other platforms.  Will have to create platform-specific tests later.
-PKG_CHECK_MODULES(LIBNL, libnl-1 >= 1.1)
-AC_SUBST(LIBNL_CFLAGS)
-AC_SUBST(LIBNL_LIBS)
+PKG_PROG_PKG_CONFIG([0.23])
+PKG_CHECK_MODULES(LIBNL, [libnl-1 >= 1.1])
+PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.20])
 
 # find dn_comp() and dn_expand()
 AM_CHECK_RESOLVER
+
+# check string.h functions
+AM_CHECK_STRING_H
 
 # Check for headers that are platform dependent
 AM_CHECK_LINUX_HEADERS
 AM_PROG_CC_C_O
 
 AM_FEDORA_NETWORK_FUNCTIONS
-
-PKG_PROG_PKG_CONFIG([0.23])
-PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.20])
 
 dnl Define paths used in the program, set at compile time
 AM_CONF_PATH([DHCP6C_CONF], [dhcp6c.conf], [Client configuration file.])
