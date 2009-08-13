@@ -1761,7 +1761,7 @@ void client6_send(dhcp6_event_t *ev) {
             etime = DHCP6_ELAPSEDTIME_MAX;
         }
 
-        optinfo.elapsed_time = htons((uint16_t) etime);
+        optinfo.elapsed_time = htons((guint16) etime);
     }
 
     dh6->dh6_xid &= ~ntohl(DH6_XIDMASK);
