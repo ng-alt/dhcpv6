@@ -31,18 +31,4 @@ AC_CHECK_DECL(
     [AC_MSG_FAILURE([*** Symbol memset is not declared])],
     [#include <string.h>]
 )
-
-AC_CHECK_DECL(
-    [strstr],
-    AC_LINK_IFELSE(
-        [AC_LANG_PROGRAM(
-            [#include <string.h>],
-            [char *p = strstr(NULL, NULL);]
-        )],
-        [],
-        [AC_MSG_FAILURE([*** Unable to find strstr()])]
-    ),
-    [AC_MSG_FAILURE([*** Symbol strstr is not declared])],
-    [#include <string.h>]
-)
 ])

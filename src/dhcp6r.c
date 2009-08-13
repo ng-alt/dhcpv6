@@ -247,7 +247,7 @@ gchar *dhcp6r_clock(void) {
 
     p = s;
     do {
-        p = strstr(p, " ");
+        p = g_strstr_len(p, -1, " ");
 
         if (p != NULL) {
             if (*(p - 1) == '/') {
@@ -258,7 +258,7 @@ gchar *dhcp6r_clock(void) {
         }
     } while (p != NULL);
 
-    p = strstr(s, "\n");
+    p = g_strstr_len(s, -1, "\n");
     if (p != NULL) {
         *p = '\0';
     }

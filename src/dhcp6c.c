@@ -130,7 +130,7 @@ static gboolean _get_cmdline_addrspecs(gchar *addrs, GSList *list,
             return FALSE;
         }
 
-        if (strstr(field, "/")) {
+        if (g_strstr_len(field, -1, "/")) {
             addr = strtok_r(field, "/", &splitptr);
             prefix = strtok_r(NULL, "/", &splitptr);
 
