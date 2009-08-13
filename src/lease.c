@@ -319,7 +319,7 @@ gint get_linklocal(const gchar *ifname, struct in6_addr *linklocal) {
 
     /* ifa->ifa_addr is sockaddr_in6 */
     for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-        if (strcmp(ifa->ifa_name, ifname)) {
+        if (g_strcmp0(ifa->ifa_name, ifname)) {
             continue;
         }
 

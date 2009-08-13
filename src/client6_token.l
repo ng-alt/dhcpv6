@@ -120,7 +120,7 @@ ecl       \}
 <S_CNF>interface { DECHO; BEGIN S_IFACE; return (INTERFACE); }
 <S_IFACE>{ifname} {
     DECHO;
-    client6lval.str = strdup(client6text);
+    client6lval.str = g_strdup(client6text);
     BEGIN S_CNF;
     return (IFNAME);
 }
@@ -184,7 +184,7 @@ ecl       \}
     /* generic string */
 {string} {
         DECHO;
-        client6lval.str = strdup(client6text);
+        client6lval.str = g_strdup(client6text);
         return (STRING);
 }
 

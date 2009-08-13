@@ -431,7 +431,7 @@ gint get_interface_info(void) {
             }
 
             device->opaq = opaq;
-            device->ifname = strdup(devname);
+            device->ifname = g_strdup(devname);
             device->devindex = if_idx;
             device->ipv6addr = NULL;
 
@@ -439,7 +439,7 @@ gint get_interface_info(void) {
         }
 
         if (IN6_IS_ADDR_LINKLOCAL(&sap.sin6_addr)) {
-            device->link_local = strdup(src_addr);
+            device->link_local = g_strdup(src_addr);
             g_debug("%s: devname: %s, index: %d, link local addr: %s",
                     __func__, devname, if_idx, src_addr);
         } else {

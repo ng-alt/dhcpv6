@@ -91,7 +91,7 @@ ifname		({string})+
 group		{ return GROUP; }
 
 interface	{ BEGIN S_IFACE; return INTERFACE; }
-<S_IFACE>{ifname} 	{ BEGIN INITIAL; server6lval.str = strdup(yytext); return IFNAME;}
+<S_IFACE>{ifname} 	{ BEGIN INITIAL; server6lval.str = g_strdup(yytext); return IFNAME;}
 
 link		{ return LINK; }
 relay		{ return RELAY; }
@@ -104,7 +104,7 @@ iaid		{ return IAID; }
 iaidinfo 	{ return IAIDINFO; }
 
 duid		{ BEGIN S_DUID; return DUID; }
-<S_DUID>{duid_id} { BEGIN INITIAL; server6lval.str = strdup(yytext); return DUID_ID; } 
+<S_DUID>{duid_id} { BEGIN INITIAL; server6lval.str = g_strdup(yytext); return DUID_ID; } 
 
 prefix		{ return PREFIX; }
 address		{ return ADDRESS;}

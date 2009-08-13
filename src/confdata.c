@@ -257,7 +257,7 @@ gint configure_interface(const cf_namelist_t *iflist) {
         ifc->next = dhcp6_ifconflist;
         dhcp6_ifconflist = ifc;
 
-        if ((ifc->ifname = strdup(ifp->name)) == NULL) {
+        if ((ifc->ifname = g_strdup(ifp->name)) == NULL) {
             g_error("%s: failed to copy ifname", __func__);
             goto bad;
         }
@@ -450,7 +450,7 @@ gint configure_host(const cf_namelist_t *hostlist) {
         hconf->next = host_conflist0;
         host_conflist0 = hconf;
 
-        if ((hconf->name = strdup(host->name)) == NULL) {
+        if ((hconf->name = g_strdup(host->name)) == NULL) {
             g_error("%s: failed to copy host name: %s", __func__, host->name);
             return -1;
         }

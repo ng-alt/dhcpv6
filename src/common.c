@@ -573,7 +573,7 @@ void ifinit(const gchar *ifname) {
 
     ifp->event_list = NULL;
 
-    if ((ifp->ifname = strdup((gchar *) ifname)) == NULL) {
+    if ((ifp->ifname = g_strdup((gchar *) ifname)) == NULL) {
         g_error("%s: failed to copy ifname", __func__);
         exit(1);
     }
