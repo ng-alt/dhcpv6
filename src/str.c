@@ -144,14 +144,8 @@ gchar *dhcp6optstr(gint type) {
     } else if (type == DH6OPT_INFO_REFRESH_TIME) {
         return "OPTION_INFORMATION_REFRESH_TIME";
     } else {
-        g_string_printf(tmp, "OPTION_%d", type);
-        ret = g_strdup(tmp->str);
-
-        if (g_string_free(tmp, TRUE) != NULL) {
-            g_error("%s: erroring releasing temporary GString", __func__);
-        }
-
-        return ret;
+        g_debug("%s: unknown option: %d", __func__, type);
+        return "OPTION_UNKNOWN";
     }
 }
 
@@ -300,21 +294,12 @@ gchar *dhcp6msgstr(gint type) {
     } else if (type == DH6_RELAY_REPL) {
         return "RELAY-REPL";
     } else {
-        g_string_printf(tmp, "UNKNOWN_MESSAGE_ID_%d", type);
-        ret = g_strdup(tmp->str);
-
-        if (g_string_free(tmp, TRUE) != NULL) {
-            g_error("%s: erroring releasing temporary GString", __func__);
-        }
-
-        return ret;
+        g_error("%s: unknown message id: %d", __func__, type);
+        return "UNKNOWN_MESSAGE_ID";
     }
 }
 
-gchar *dhcp6_stcodestr(gint code) {
-    gchar *ret = NULL;
-    GString *tmp = g_string_new(NULL);
-
+gchar *dhcp6_statuscode2str(gint code) {
     if (code > 255) {
         return "STATUS_INVALID";
     }
@@ -338,14 +323,8 @@ gchar *dhcp6_stcodestr(gint code) {
     } else if (code == DH6OPT_STCODE_USEMULTICAST) {
         return "UseMulticast";
     } else {
-        g_string_printf(tmp, "STATUS_CODE_%d", code);
-        ret = g_strdup(tmp->str);
-
-        if (g_string_free(tmp, TRUE) != NULL) {
-            g_error("%s: erroring releasing temporary GString", __func__);
-        }
-
-        return ret;
+        g_error("%s: unknown status code: %d", __func__, code);
+        return "STATUS_UNKNOWN";
     }
 }
 
