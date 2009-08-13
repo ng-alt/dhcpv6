@@ -14,11 +14,8 @@
 
 - Update LICENSE document and make sure current files are listed.
 
-- Check memset() and memcpy() calls.
-
-- Check str*() calls and make sure they are safe.
-
-- Replace strcpy() with strncpy() if necessary.
+- Check string.h calls and replace with glib routines where appropriate:
+      strcpy, strncpy, strstr, strtok
 
 - Fix RESOLV_CONF_DHCPV6_FILE and RESOLV_CONF_BAK_FILE so they use
   mkstemp() or something a little safer.
@@ -43,8 +40,6 @@
 
 - Add command line switches to the server and client to define an alternate
   config file path, lease database path, and so on (like ISC software)
-
-- Output timestamps using this format: http://www.w3.org/TR/NOTE-datetime
 
 - Support information refresh time option in client and server
 
