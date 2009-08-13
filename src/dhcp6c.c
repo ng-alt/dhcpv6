@@ -109,7 +109,7 @@ static guint8 client6_request_flag = 0;
 static const struct sockaddr_in6 *sa6_allagent;
 static socklen_t sa6_alen;
 static duid_t client_duid;
-static gchar leasename[MAXPATHLEN];
+static gchar *leasename = NULL;
 static gchar *path_client6_lease = NULL;
 static gchar *pidfile = NULL;
 static gchar *duidfile = NULL;
@@ -491,7 +491,6 @@ static gint _client6_ifinit(gchar *device) {
     gint err = 0;
     dhcp6_if_t *ifp = dhcp6_if;
     dhcp6_event_t *ev;
-    gchar iaidstr[20];
 
     dhcp6_init_iaidaddr();
     /* get iaid for each interface */
@@ -526,10 +525,13 @@ static gint _client6_ifinit(gchar *device) {
         ((ifp->ra_flag & IF_RA_MANAGED) ||
          !(ifp->ra_flag & IF_RA_OTHERCONF))) {
         /* parse the lease file */
-        memset(&leasename, '\0', sizeof(leasename));
-        strcpy(leasename, path_client6_lease);
-        sprintf(iaidstr, "%u", ifp->iaidinfo.iaid);
-        strcat(leasename, iaidstr);
+        GString *tmp = g_string_new(NULL);
+        g_string_printf(tmp, "%s.%u", path_client6_lease, ifp->iaidinfo.iaid);
+        leasename = g_strdup(tmp->str);
+
+        if (g_string_free(tmp, TRUE) != NULL) {
+            g_error("%s: erroring releasing temporary GString", __func__);
+        }
 
         if ((client6_lease_file = init_leases(leasename)) == NULL) {
             g_error("%s: failed to parse lease file", __func__);

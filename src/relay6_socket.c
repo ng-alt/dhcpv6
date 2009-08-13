@@ -356,8 +356,9 @@ gint recv_data(void) {
 }
 
 gint get_interface_info(void) {
-    FILE *f;
-    gchar addr6[40], devname[20];
+    FILE *f = NULL;
+    gchar *addr6 = NULL;
+    gchar devname[20];
     struct sockaddr_in6 sap;
     gint plen, scope, dad_status, if_idx;
     gchar addr6p[8][5];
@@ -376,23 +377,33 @@ gint get_interface_info(void) {
                   addr6p[0], addr6p[1], addr6p[2], addr6p[3], addr6p[4],
                   addr6p[5], addr6p[6], addr6p[7], &if_idx, &plen, &scope,
                   &dad_status, devname) != EOF) {
+        GString *tmp = g_string_new(NULL);
+        g_string_printf(tmp, "%s:%s:%s:%s:%s:%s:%s:%s", addr6p[0],
+                        addr6p[1], addr6p[2], addr6p[3], addr6p[4],
+                        addr6p[5], addr6p[6], addr6p[7]);
+        addr6 = g_strdup(tmp->str);
+
+        if (g_string_free(tmp, TRUE) != NULL) {
+            g_error("%s: erroring releasing temporary GString", __func__);
+        }
+
         memset(src_addr, 0, INET6_ADDRSTRLEN);
-        sprintf(addr6, "%s:%s:%s:%s:%s:%s:%s:%s", addr6p[0], addr6p[1],
-                addr6p[2], addr6p[3], addr6p[4], addr6p[5], addr6p[6],
-                addr6p[7]);
         sap.sin6_family = AF_INET6;
         sap.sin6_port = 0;
 
         if (inet_pton(AF_INET6, addr6, sap.sin6_addr.s6_addr) <= 0) {
+            g_free(addr6);
             return 0;
         }
 
         if (inet_ntop(AF_INET6, &sap.sin6_addr, src_addr,
                       sizeof(src_addr)) <= 0) {
+            g_free(addr6);
             return 0;
         }
 
         if (IN6_IS_ADDR_LOOPBACK(&sap.sin6_addr)) {
+            g_free(addr6);
             continue;
         }
 
@@ -434,6 +445,11 @@ gint get_interface_info(void) {
         } else {
             device->ipv6addr = g_slist_append(device->ipv6addr,
                                               g_strdup(src_addr));
+        }
+
+        if (addr6) {
+            g_free(addr6);
+            addr6 = NULL;
         }
     }
 

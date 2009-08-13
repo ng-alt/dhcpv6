@@ -69,10 +69,10 @@
 
 extern dhcp6_if_t *dhcp6_if;
 static gint num_lines = 0;
-static dns_info_t *new_dnsinfo;
-static FILE *dhcp6_resolv_file;
+static dns_info_t *new_dnsinfo = NULL;
+static FILE *dhcp6_resolv_file = NULL;
 static gint oldfd, newfd;
-static gchar resolv_dhcpv6_file[PATH_MAX];
+static gchar *resolv_dhcpv6_file = NULL;
 
 static void _check_existing_dns_servers(gpointer, gpointer);
 static void _check_existing_dns_domains(gpointer, gpointer);
@@ -335,10 +335,15 @@ gint backup_resolv_conf(void) {
  */
 gint resolv_parse(dns_info_t *dnsinfo) {
     struct stat buf;
-    gchar pidstr[128];
-    sprintf(pidstr, "%d", getpid());
-    strcpy(resolv_dhcpv6_file, RESOLV_CONF_DHCPV6_FILE);
-    strcat(resolv_dhcpv6_file, pidstr);
+    GString *pidtmp = g_string_new(NULL);
+
+    g_string_printf(pidtmp, "%s.%d", RESOLV_CONF_DHCPV6_FILE, getpid());
+    resolv_dhcpv6_file = g_strdup(pidtmp->str);
+
+    if (g_string_free(pidtmp, TRUE) != NULL) {
+        g_error("%s: erroring releasing temporary GString", __func__);
+    }
+
     dhcp6_if->dnsinfo.servers = NULL;
     dhcp6_if->dnsinfo.domains = NULL;
     new_dnsinfo = dnsinfo;
@@ -473,8 +478,15 @@ static gint update_resolver(dns_info_t *dnsinfo) {
 #endif
 
 out:
-    if (!lstat(resolv_dhcpv6_file, &buf))
+    if (!lstat(resolv_dhcpv6_file, &buf)) {
         unlink(resolv_dhcpv6_file);
+    }
+
+    if (resolv_dhcpv6_file) {
+        g_free(resolv_dhcpv6_file);
+        resolv_dhcpv6_file = NULL;
+    }
+
     return ret;
 }
 

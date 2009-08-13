@@ -361,4 +361,5 @@ void duidfree(duid_t *duid) {
     }
 
     duid->duid_len = 0;
+    return;
 }

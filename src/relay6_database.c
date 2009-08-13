@@ -262,7 +262,7 @@ gint process_RELAY_FORW(relay_msg_parser_t *msg) {
 }
 
 gint process_RELAY_REPL(relay_msg_parser_t *msg) {
-    guint8 *newbuff = (guint8 *) g_malloc(MAX_DHCP_MSG_LENGTH * sizeof(guint8));
+    guint8 *newbuff = (guint8 *) g_malloc0(MAX_DHCP_MSG_LENGTH * sizeof(guint8));
     guint8 *pointer, *pstart, *psp;
     relay_interface_t *device = NULL;
     struct sockaddr_in6 sap;

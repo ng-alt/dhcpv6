@@ -57,6 +57,7 @@
 #include <netdb.h>
 #include <net/if.h>
 #include <glib.h>
+#include <glib/gprintf.h>
 
 #include "str.h"
 
@@ -332,12 +333,12 @@ gchar *duidstr(const duid_t *duid) {
     cp = duidstr;
 
     for (i = 0; i < duid->duid_len && i <= 256; i++) {
-        cp += sprintf(cp, "%s%02x", i == 0 ? "" : ":",
-                      duid->duid_id[i] & 0xff);
+        cp += g_sprintf(cp, "%s%02x", i == 0 ? "" : ":",
+                        duid->duid_id[i] & 0xff);
     }
 
     if (i < duid->duid_len) {
-        sprintf(cp, "%s", "...");
+        g_sprintf(cp, "%s", "...");
     }
 
     return duidstr;
