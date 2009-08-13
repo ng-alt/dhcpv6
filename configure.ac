@@ -37,7 +37,8 @@ AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_HEADER_TIME
 
-# These headers may be available.  If so, we need them defined for later header tests.
+# These headers may be available.
+# If so, we need them defined for later header tests.
 AC_CHECK_HEADERS([sys/types.h sys/socket.h], [],
                  [AC_MSG_FAILURE([*** Header file $ac_header not found.])],
                  [])
@@ -97,8 +98,9 @@ AC_FUNC_REALLOC
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_FUNC_STAT
-AC_CHECK_FUNCS([ftime gettimeofday memset select socket strchr strdup \
-                strerror strrchr strstr strtol strtoul],
+# XXX: this should check memset, strdup, strstr as well, but that's failing right now
+AC_CHECK_FUNCS([ftime gettimeofday select socket \
+                strerror strtol strtoul],
                [],
                [AC_MSG_FAILURE([*** Required function $ac_func not found.])])
 
