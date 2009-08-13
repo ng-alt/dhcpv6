@@ -1708,7 +1708,7 @@ void dhcp6_set_timeoparam(dhcp6_event_t *ev) {
     }
 }
 
-void dhcp6_reset_timer(dhcp6_event_t *ev) {
+dhcp6_event_t *dhcp6_reset_timer(dhcp6_event_t *ev) {
     gdouble n, r;
     struct timeval interval;
 
@@ -1758,7 +1758,8 @@ void dhcp6_reset_timer(dhcp6_event_t *ev) {
     g_debug("%s: reset a timer on %s, state=%s, timeo=%d, retrans=%ld",
             __func__, ev->ifp->ifname, dhcp6msgstr(ev->state), ev->timeouts,
             (glong) ev->retrans);
-    return;
+
+    return ev;
 }
 
 gboolean copy_option(gint option, guint8 len, void *data, dhcp6opt_t *p,
