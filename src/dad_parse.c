@@ -114,10 +114,10 @@ gint dad_parse(const gchar *file, GSList *dad_list) {
             len += 4;
 
             if (i < 28) {
-                strcpy(addrbuf + len, ":");
+                g_stpcpy(addrbuf + len, ":");
                 len += 1;
             } else {
-                strcpy(addrbuf + len, "\0");
+                g_stpcpy(addrbuf + len, "\0");
             }
         }
 

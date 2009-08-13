@@ -774,7 +774,7 @@ gint send_message(void) {
                 sin6.sin6_family = AF_INET6;
 
                 memset(dest_addr, 0, INET6_ADDRSTRLEN);
-                strcpy(dest_addr, DH6ADDR_ALLSERVER);
+                g_stpcpy(dest_addr, DH6ADDR_ALLSERVER);
 
                 /* destination address */
                 if (inet_pton(AF_INET6, dest_addr, &sin6.sin6_addr) <= 0) {
