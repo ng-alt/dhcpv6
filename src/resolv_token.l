@@ -270,13 +270,13 @@ gint backup_resolv_conf(void) {
 
     st_mode = buf.st_mode;
 
-    if ((oldfd = open(_PATH_RESCONF, O_RDONLY)) < 0) {
+    if ((oldfd = open(_PATH_RESCONF, O_RDONLY | O_CLOEXEC)) < 0) {
         g_error("%s: Failed to open %s : %s",
                 __func__, _PATH_RESCONF, strerror(errno));
         return -1;
     }
 
-    newfd = open(resolv_dhcpv6_file, O_WRONLY | O_CREAT | O_EXCL, st_mode);
+    newfd = open(resolv_dhcpv6_file, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, st_mode);
     if (newfd < 0) {
         g_error("%s: Failed to open %s : %s",
                 __func__, resolv_dhcpv6_file, strerror(errno));
@@ -356,12 +356,12 @@ gint resolv_parse(dns_info_t *dnsinfo) {
         }
     }
 
-    while ((oldfd = open(RESOLV_CONF_BAK_FILE, O_EXCL)) < 0) {
+    while ((oldfd = open(RESOLV_CONF_BAK_FILE, O_EXCL | O_CLOEXEC)) < 0) {
         switch (errno) {
             case ENOENT:
                 /* exclusive open of new resolv.conf.dhcpv6 file */
                 newfd = open(resolv_dhcpv6_file,
-                             O_CREAT|O_EXCL|O_WRONLY|O_TRUNC, 0644);
+                             O_CREAT|O_EXCL|O_WRONLY|O_TRUNC|O_CLOEXEC, 0644);
                 if (newfd < 0) {
                     g_error("%s: failed to open %s file",
                             __func__, resolv_dhcpv6_file);
@@ -397,7 +397,7 @@ gint resolv_parse(dns_info_t *dnsinfo) {
     }
 
     /* exclusive open of new resolv.conf.dhcpv6 file */
-    newfd = open(resolv_dhcpv6_file, O_CREAT|O_EXCL|O_WRONLY|O_TRUNC,
+    newfd = open(resolv_dhcpv6_file, O_CREAT|O_EXCL|O_WRONLY|O_TRUNC|O_CLOEXEC,
                  buf.st_mode);
     if (newfd < 0) {
         g_error("%s: failed to open resolv.conf.dhcpv6 file", __func__);

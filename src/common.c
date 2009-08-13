@@ -1821,7 +1821,7 @@ void random_init(void) {
     guint seed = time(NULL) & getpid();
     gchar rand_state[256];
 
-    f = open("/dev/urandom", O_RDONLY);
+    f = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
 
     if (f > 0) {
         n = read(f, rand_state, sizeof(rand_state));
