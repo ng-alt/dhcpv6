@@ -95,7 +95,7 @@ static gint _dhcp6_update_lease(dhcp6_addr_t *addr, dhcp6_lease_t *sp) {
         addr->status_code != DH6OPT_STCODE_UNDEFINE) {
         g_error("%s: not successful status code for %s is %s", __func__,
                 in6addr2str(&addr->addr, 0),
-                dhcp6_stcodestr(addr->status_code));
+                dhcp6_statuscode2str(addr->status_code));
         dhcp6c_remove_lease(sp);
         return 0;
     }
@@ -300,7 +300,7 @@ gint dhcp6_add_lease(dhcp6_addr_t *addr) {
         addr->status_code != DH6OPT_STCODE_UNDEFINE) {
         g_error("%s: not successful status code for %s is %s", __func__,
                 in6addr2str(&addr->addr, 0),
-                dhcp6_stcodestr(addr->status_code));
+                dhcp6_statuscode2str(addr->status_code));
         return 0;
     }
 
@@ -723,7 +723,7 @@ dhcp6_timer_t *dhcp6_iaidaddr_timo(void *arg) {
 
     ev->timeouts = 0;
     dhcp6_set_timeoparam(ev);
-    dhcp6_reset_timer(ev);
+    ev = dhcp6_reset_timer(ev);
     client6_send(ev);
 
     return sp->timer;

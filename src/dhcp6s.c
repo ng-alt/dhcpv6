@@ -1056,7 +1056,7 @@ static gint _server6_react_message(dhcp6_if_t *ifp, struct in6_pktinfo *pi,
 
     /* add address status code */
 send:
-    g_debug(" status code: %s", dhcp6_stcodestr(num));
+    g_debug(" status code: %s", dhcp6_statuscode2str(num));
     roptinfo.status_code = num;
 
     /* send a reply message. */

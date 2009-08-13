@@ -109,7 +109,7 @@ void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 
 void print_status_code(gchar *object, gint num, void *optp, gint optlen) {
     g_message("status code of this %s is: %d - %s", object, num,
-              dhcp6_stcodestr(num));
+              dhcp6_statuscode2str(num));
 
     if ((optp != NULL) && (optlen > sizeof(guint16))) {
         g_message("status message of this %s is: %-*s", object,
