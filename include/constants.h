@@ -184,6 +184,9 @@ enum {
 #define DH6OPT_INFO_REFRESH_TIME 32
 #define DH6OPT_PREF_MAX          255
 
+#define FIRST_DH6OPT             1
+#define LAST_DH6OPT              32
+
 #define DH6OPT_STCODE_UNDEFINE      0xffff
 #define DH6OPT_STCODE_SUCCESS       0
 #define DH6OPT_STCODE_UNSPECFAIL    1
@@ -213,6 +216,9 @@ enum {
 #define ADDRESS_LIST      _ENV_VAR_PREFIX"address_list"
 #define PREFIX_LIST       _ENV_VAR_PREFIX"prefix_list"
 #define OPTIONS           _ENV_VAR_PREFIX"options"
+#define STATUS_CODE       _ENV_VAR_PREFIX"status_code"
+#define STATUS_MSG        _ENV_VAR_PREFIX"status_msg"
+#define UUID              _ENV_VAR_PREFIX"uuid"
 
 #define MAX_DHCP_MSG_LENGTH        1400
 #define MESSAGE_HEADER_LENGTH      4

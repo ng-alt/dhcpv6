@@ -617,7 +617,7 @@ static gint _client6_ifinit(gchar *device) {
         return -1;
     }
 
-    dhcp6_reset_timer(ev);
+    ev = dhcp6_reset_timer(ev);
     return 0;
 }
 
@@ -843,7 +843,7 @@ static gint _client6_recvreply(dhcp6_if_t *ifp, dhcp6_t *dh6,
      */
     if (optinfo->status_code != DH6OPT_STCODE_UNDEFINE) {
         g_message("%s: status code of message: %s",
-                  __func__, dhcp6_stcodestr(optinfo->status_code));
+                  __func__, dhcp6_statuscode2str(optinfo->status_code));
     }
 
     ia = ia_find_listval(optinfo->ia_list, _iatype_of_if(ifp),
@@ -853,7 +853,7 @@ static gint _client6_recvreply(dhcp6_if_t *ifp, dhcp6_t *dh6,
         g_message("%s: no IA option", __func__);
     } else if (ia->status_code != DH6OPT_STCODE_UNDEFINE) {
         g_message("%s: status code of IA: %s",
-                  __func__, dhcp6_stcodestr(ia->status_code));
+                  __func__, dhcp6_statuscode2str(ia->status_code));
     }
 
     switch (optinfo->status_code) {
@@ -1073,7 +1073,7 @@ static gint _client6_recvreply(dhcp6_if_t *ifp, dhcp6_t *dh6,
 }
 
 static gint _client6_recvadvert(dhcp6_if_t *ifp, dhcp6_t *dh6,
-                                ssize_t len, dhcp6_optinfo_t *optinfo0) {
+                                ssize_t len, dhcp6_optinfo_t *optinfo) {
     ia_t *ia;
     dhcp6_serverinfo_t *newserver;
     dhcp6_event_t *ev;
@@ -1093,20 +1093,20 @@ static gint _client6_recvadvert(dhcp6_if_t *ifp, dhcp6_t *dh6,
     }
 
     /* packet validation based on Section 15.3 of dhcpv6-26. */
-    if (optinfo0->serverID.duid_len == 0) {
+    if (optinfo->serverID.duid_len == 0) {
         g_message("%s: no server ID option", __func__);
         return -1;
     } else {
         g_debug("%s: server ID: %s, pref=%2x", __func__,
-                duidstr(&optinfo0->serverID), optinfo0->pref);
+                duidstr(&optinfo->serverID), optinfo->pref);
     }
 
-    if (optinfo0->clientID.duid_len == 0) {
+    if (optinfo->clientID.duid_len == 0) {
         g_message("%s: no client ID option", __func__);
         return -1;
     }
 
-    if (duidcmp(&optinfo0->clientID, &client_duid)) {
+    if (duidcmp(&optinfo->clientID, &client_duid)) {
         g_message("%s: client DUID mismatch", __func__);
         return -1;
     }
@@ -1116,20 +1116,20 @@ static gint _client6_recvadvert(dhcp6_if_t *ifp, dhcp6_t *dh6,
      * Code option containing any error.
      */
     g_message("%s: status code: %s", __func__,
-              dhcp6_stcodestr(optinfo0->status_code));
-    if (optinfo0->status_code != DH6OPT_STCODE_SUCCESS &&
-        optinfo0->status_code != DH6OPT_STCODE_UNDEFINE) {
+              dhcp6_statuscode2str(optinfo->status_code));
+    if (optinfo->status_code != DH6OPT_STCODE_SUCCESS &&
+        optinfo->status_code != DH6OPT_STCODE_UNDEFINE) {
         return -1;
     }
 
     /* ignore the server if it is known */
-    if (_find_server(ifp, &optinfo0->serverID)) {
+    if (_find_server(ifp, &optinfo->serverID)) {
         g_message("%s: duplicated server (ID: %s)",
-                  __func__, duidstr(&optinfo0->serverID));
+                  __func__, duidstr(&optinfo->serverID));
         return -1;
     }
 
-    newserver = _allocate_newserver(ifp, optinfo0);
+    newserver = _allocate_newserver(ifp, optinfo);
 
     if (newserver == NULL) {
         return -1;
@@ -1141,7 +1141,7 @@ static gint _client6_recvadvert(dhcp6_if_t *ifp, dhcp6_t *dh6,
         _ev_set_state(ev, DHCP6S_REQUEST);
         ifp->current_server = newserver;
         dhcp6_set_timeoparam(ev);
-        dhcp6_reset_timer(ev);
+        ev = dhcp6_reset_timer(ev);
         client6_send(ev);
     } else if (ifp->servers->next == NULL) {
         struct timeval *rest, elapsed, tv_rt, tv_irt, timo;
@@ -1173,7 +1173,7 @@ static gint _client6_recvadvert(dhcp6_if_t *ifp, dhcp6_t *dh6,
 
     /* if the client send preferred addresses reqeust in SOLICIT */
     /* XXX: client might have some local policy to select the addresses */
-    if ((ia = ia_find_listval(optinfo0->ia_list, _iatype_of_if(ifp),
+    if ((ia = ia_find_listval(optinfo->ia_list, _iatype_of_if(ifp),
                               ifp->iaidinfo.iaid)) != NULL) {
         dhcp6_copy_list(request_list, ia->addr_list);
     }
@@ -1248,6 +1248,8 @@ static void _client6_recv(void) {
     if (dhcp6_get_options(p, ep, &optinfo) < 0) {
         g_message("%s: failed to parse options", __func__);
     }
+
+    ifp->optinfo = &optinfo;
 
     switch (dh6->dh6_msgtype) {
         case DH6_ADVERTISE:
@@ -1466,7 +1468,7 @@ gint client6_init(gchar *device) {
     g_debug("res addr is %s/%d", addr2str(res->ai_addr, res->ai_addrlen),
             res->ai_addrlen);
 
-    /* 
+    /*
      * If the interface has JUST been brought up, the kernel may not have
      * enough time to allow the bind to the linklocal address - it will
      * then return EADDRNOTAVAIL. The bind will succeed if we try again.
@@ -1735,7 +1737,7 @@ void client6_send(dhcp6_event_t *ev) {
     if (ev->timeouts == 0) {
         gettimeofday(&ev->start_time, NULL);
         optinfo.elapsed_time = 0;
-        /* 
+        /*
          * A client SHOULD generate a random number that cannot easily
          * be guessed or predicted to use as the transaction ID for
          * each new message it sends.
@@ -1914,7 +1916,7 @@ void client6_send(dhcp6_event_t *ev) {
 
     len += optlen;
 
-    /* 
+    /*
      * Unless otherwise specified, a client sends DHCP messages to the
      * All_DHCP_Relay_Agents_and_Servers or the DHCP_Anycast address.
      * [dhcpv6-26 Section 13.]
@@ -2015,14 +2017,16 @@ gint client6_send_newstate(dhcp6_if_t *ifp, gint state) {
     ifp->event_list = g_slist_append(ifp->event_list, ev);
     ev->timeouts = 0;
     dhcp6_set_timeoparam(ev);
-    dhcp6_reset_timer(ev);
+    ev = dhcp6_reset_timer(ev);
     client6_send(ev);
 
     return 0;
 }
 
+/* XXX: use old_ and new_ variable naming based on the state we're in */
 void run_script(dhcp6_if_t *ifp, gint old_state, gint new_state, guint32 uuid) {
-    GString *tmp = NULL;
+    gint i = 0;
+    GString *tmp = g_string_new(NULL);
     gchar tmpaddr[INET6_ADDRSTRLEN];
     gboolean fail = FALSE;
     gchar *argv[] = { script, NULL };
@@ -2036,6 +2040,19 @@ void run_script(dhcp6_if_t *ifp, gint old_state, gint new_state, guint32 uuid) {
     }
 
     /* set environment variables for the program we are calling */
+
+    /* dhcpv6_uuid */
+    g_string_printf(tmp, "%i", uuid);
+
+    if (!g_setenv(UUID, tmp->str, TRUE)) {
+        g_error("could not set %s environment variable", UUID);
+    } else {
+        envvars = g_slist_append(envvars, UUID);
+    }
+
+    if (g_string_free(tmp, TRUE) != NULL) {
+        g_error("erroring releasing temporary GString");
+    }
 
     /* dhcpv6_old_state */
     if (!g_setenv(OLD_STATE, dhcp6msgstr(old_state), TRUE)) {
@@ -2156,21 +2173,56 @@ void run_script(dhcp6_if_t *ifp, gint old_state, gint new_state, guint32 uuid) {
         g_error("erroring releasing temporary GString");
     }
 
-    /* dhcpv6_option_list */
+    /* dhcpv6_options */
+    if (ifp->optinfo) {
+/*
+        tmp = dhcp6_options2str(ifp->optinfo->reqopt_list);
 
-    /*
-     * XXX:
-     * set the following information in env vars:
-     *
-     * what we got from the server:
-     *     option list
-     *
-     * error code (where the hell is this?)
-     */
+        if (!g_setenv(OPTIONS, tmp->str, TRUE)) {
+            g_error("could not set %s environment variable", OPTIONS);
+        } else {
+            envvars = g_slist_append(envvars, OPTIONS);
+        }
 
-    /*
-     * XXX: use old_ and new_ variable naming based on the state we're in
-     */
+        if (g_string_free(tmp, TRUE) != NULL) {
+            g_error("erroring releasing temporary GString");
+        }
+*/
+
+        for (i = FIRST_DH6OPT; i <= LAST_DH6OPT; i++) {
+            GSList *pair = dhcp6_option2str(ifp->optinfo->reqopt_list, i);
+
+            /* if pair contains two members:
+             * 1) append pair[0] to envvars
+             * 2) set an environment variable named pair[0] with value pair[1]
+             * 3) free pair
+             */
+        }
+    }
+
+    /* dhcpv6_status_code */
+/*
+    g_string_printf(tmp, "%s", dhcp6_statuscode2str(ifp->optinfo->status_code));
+
+    if (!g_setenv(STATUS_CODE, tmp->str, TRUE)) {
+        g_error("could not set %s environment variable", STATUS_CODE);
+    } else {
+        envvars = g_slist_append(envvars, STATUS_CODE);
+    }
+
+    if (g_string_free(tmp, TRUE) != NULL) {
+        g_error("erroring releasing temporary GString");
+    }
+*/
+
+    /* dhcpv6_status_msg */
+/*
+    if (!g_setenv(STATUS_MSG, ifp->optinfo->status_msg, TRUE)) {
+        g_error("could not set %s environment variable", STATUS_MSG);
+    } else {
+        envvars = g_slist_append(envvars, STATUS_MSG);
+    }
+*/
 
     /* run script */
     flags = G_SPAWN_FILE_AND_ARGV_ZERO;
@@ -2206,7 +2258,7 @@ dhcp6_timer_t *client6_timo(void *arg) {
          >= ev->max_retrans_dur)) {
         /* XXX: check up the duration time for renew & rebind */
         g_message("%s: no responses were received", __func__);
-        dhcp6_remove_event(ev, NULL); /* XXX: should free event data? */
+        dhcp6_remove_event(ev, NULL);
         return NULL;
     }
 
@@ -2301,7 +2353,7 @@ dhcp6_timer_t *client6_timo(void *arg) {
             break;
     }
 
-    dhcp6_reset_timer(ev);
+    ev = dhcp6_reset_timer(ev);
     return ev->timer;
 }
 
