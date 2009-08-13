@@ -156,6 +156,8 @@ static gboolean _get_cmdline_addrspecs(gchar *addrs, GSList *list,
                 g_strfreev(fields);
                 return FALSE;
             }
+
+            g_strfreev(subfields);
         } else {
             if (inet_pton(AF_INET6, *field, &lv->val_dhcp6addr.addr) < 1) {
                 g_error("invalid IPv6 address for %s: %s", op, *field);
