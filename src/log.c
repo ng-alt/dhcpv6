@@ -81,8 +81,8 @@ void setup_logging(gchar *ident, log_properties_t *props) {
 void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
                  const gchar *message, gpointer user_data) {
     log_properties_t *props = (log_properties_t *) user_data;
-    GDate *stamp = NULL;
-    GTimeVal timeval;
+    time_t t;
+    struct tm *stamp = NULL;
     gchar stampbuf[64];
 
     if (!(log_level & props->threshold)) {
@@ -90,13 +90,19 @@ void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
     }
 
     if (props->foreground) {
-        stamp = g_date_new();
-        g_get_current_time(&timeval);
-        g_date_set_time_val(stamp, &timeval);
+        t = time(NULL);
 
+        if (t == ((time_t) -1)) {
+            return;
+        }
+
+        stamp = localtime(&t);
         memset(&stampbuf, '\0', sizeof(stampbuf));
-        g_date_strftime(stampbuf, sizeof(stampbuf), "%Y-%m-%dT%T%z", stamp);
-        g_date_free(stamp);
+
+        if (strftime(stampbuf, sizeof(stampbuf),
+                     "%Y-%m-%dT%T%z", stamp) == 0) {
+            return;
+        }
 
         fprintf(stderr, "%s %s[%d]: %s\n", stampbuf, props->progname,
                 props->pid, message);
