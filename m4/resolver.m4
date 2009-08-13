@@ -42,7 +42,7 @@ AC_CHECK_DECL(
     AC_LINK_IFELSE(
         [AC_LANG_PROGRAM(
             [#include <resolv.h>],
-            [int i = dn_expand(NULL, NULL, 0, NULL, NULL);]
+            [int i = dn_expand(NULL, NULL, NULL, NULL, 0);]
         )],
         [],
         [AC_MSG_FAILURE([*** Unable to find dn_expand() in libresolv])]
