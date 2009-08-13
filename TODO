@@ -6,16 +6,11 @@
 - For functions returing ints to indicate success or failure, switch
   return type to gboolean and use TRUE and FALSE.
 
-- Run autoscan and update configure.ac if needed
-
 - Use glib types for common things, and glib functions where appropriate
 
 - Clean up log messages on dhcp6r
 
 - Update LICENSE document and make sure current files are listed.
-
-- Check string.h calls and replace with glib routines where appropriate:
-      strcpy, strncpy, strstr, strtok
 
 - Fix RESOLV_CONF_DHCPV6_FILE and RESOLV_CONF_BAK_FILE so they use
   mkstemp() or something a little safer.
@@ -37,9 +32,6 @@
 
 - Define all DHCPv6 options and states more clearly.  Fix up server component
   to handle all possible options.
-
-- Add command line switches to the server and client to define an alternate
-  config file path, lease database path, and so on (like ISC software)
 
 - Support information refresh time option in client and server
 
