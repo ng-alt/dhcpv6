@@ -79,10 +79,8 @@
 #include "client6_addr.h"
 
 extern dhcp6_iaidaddr_t client6_iaidaddr;
-
 extern gint nlsock;
 extern FILE *client6_lease_file;
-extern dhcp6_iaidaddr_t client6_iaidaddr;
 extern GSList *request_list;
 
 /* BEGIN STATIC FUNCTIONS */

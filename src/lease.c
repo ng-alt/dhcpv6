@@ -57,7 +57,6 @@
 
 #include "lease.h"
 
-extern dhcp6_iaidaddr_t client6_iaidaddr;
 extern FILE *server6_lease_file;
 extern gchar *server6_lease_temp;
 extern FILE *client6_lease_file;
