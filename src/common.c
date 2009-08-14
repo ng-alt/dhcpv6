@@ -51,6 +51,7 @@
 #include <arpa/nameser.h>
 #include <resolv.h>
 #include <unistd.h>
+#include <math.h>
 
 #ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -795,21 +796,32 @@ ia_t *ia_find_listval(GSList *head, iatype_t type, guint32 iaid) {
 }
 
 dhcp6_event_t *dhcp6_create_event(dhcp6_if_t *ifp, gint state) {
-    dhcp6_event_t *ev;
+    dhcp6_event_t *ev = NULL;
 
     static guint32 counter = 0;
 
-    if ((ev = g_malloc0(sizeof(*ev))) == NULL) {
+    if ((ev = g_malloc0(sizeof(dhcp6_event_t))) == NULL) {
         g_error("%s: failed to allocate memory for an event", __func__);
         return NULL;
     }
 
-    /* for safety */
-    ev->serverid.duid_id = NULL;
     ev->ifp = ifp;
-    ev->state = state;
+    ev->timer = NULL;
+    ev->serverid.duid_len = 0;
+    ev->serverid.duid_id = NULL;
+    ev->start_time.tv_sec = 0;
+    ev->start_time.tv_usec = 0;
+    ev->retrans = 0;
+    ev->init_retrans = 0;
+    ev->max_retrans_cnt = 0;
+    ev->max_retrans_time = 0;
+    ev->max_retrans_dur = 0;
+    ev->timeouts = 0;
+    ev->xid = 0;
     ev->uuid = counter++;
+    ev->state = state;
     ev->data_list = NULL;
+
     g_debug("%s: create an event %p uuid %u for state %d",
             __func__, ev, ev->uuid, ev->state);
 
@@ -980,18 +992,6 @@ gint transmit_sa(gint s, struct sockaddr_in6 *sa, gchar *buf, size_t len) {
                    sizeof(*sa));
 
     return (error != len) ? -1 : 0;
-}
-
-glong random_between(glong x, glong y) {
-    glong ratio;
-
-    ratio = 1 << 16;
-
-    while ((y - x) * ratio < (y - x)) {
-        ratio = ratio / 2;
-    }
-
-    return x + ((y - x) * (ratio - 1) / random() & (ratio - 1));
 }
 
 gint prefix6_mask(struct in6_addr *in6, gint plen) {
@@ -1733,7 +1733,7 @@ void dhcp6_set_timeoparam(dhcp6_event_t *ev) {
     }
 }
 
-dhcp6_event_t *dhcp6_reset_timer(dhcp6_event_t *ev) {
+void dhcp6_reset_timer(dhcp6_event_t *ev) {
     gdouble n, r;
     struct timeval interval;
 
@@ -1745,8 +1745,8 @@ dhcp6_event_t *dhcp6_reset_timer(dhcp6_event_t *ev) {
              * MIN_SOL_DELAY and MAX_SOL_DELAY.
              * [dhcpv6-28 14.]
              */
-            ev->retrans = (random() % (MAX_SOL_DELAY - MIN_SOL_DELAY)) +
-                MIN_SOL_DELAY;
+            ev->retrans = g_random_int() % (MAX_SOL_DELAY - MIN_SOL_DELAY);
+            ev->retrans += MIN_SOL_DELAY;
             break;
         default:
             if (ev->timeouts == 0) {
@@ -1756,10 +1756,10 @@ dhcp6_event_t *dhcp6_reset_timer(dhcp6_event_t *ev) {
                  * greater than 0.
                  * [dhcpv6-28 14.]
                  */
-                r = (gdouble) ((random() % 1000) + 1) / 10000;
+                r = (fmod(g_random_double(), 1000.0) + 1.0) / 10000.0;
                 n = ev->init_retrans + r * ev->init_retrans;
             } else {
-                r = (gdouble) ((random() % 2000) - 1000) / 10000;
+                r = (fmod(g_random_double(), 2000.0) - 1000.0) / 10000.0;
 
                 if (ev->timeouts == 0) {
                     n = ev->init_retrans + r * ev->init_retrans;
@@ -1784,7 +1784,7 @@ dhcp6_event_t *dhcp6_reset_timer(dhcp6_event_t *ev) {
             __func__, ev->ifp->ifname, dhcp6msgstr(ev->state), ev->timeouts,
             (glong) ev->retrans);
 
-    return ev;
+    return;
 }
 
 gboolean copy_option(gint option, guint8 len, void *data, dhcp6opt_t *p,
@@ -1817,22 +1817,8 @@ gboolean is_in6_addr_reserved(struct in6_addr *addr) {
 }
 
 void random_init(void) {
-    gint f, n;
-    guint seed = time(NULL) & getpid();
-    gchar rand_state[256];
+    guint32 seed = time(NULL) & getpid();
 
-    f = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
-
-    if (f > 0) {
-        n = read(f, rand_state, sizeof(rand_state));
-        close(f);
-
-        if (n > 32) {
-            initstate(seed, rand_state, n);
-            return;
-        }
-    }
-
-    srandom(seed);
+    g_random_set_seed(seed);
     return;
 }

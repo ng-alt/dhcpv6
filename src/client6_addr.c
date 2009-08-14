@@ -721,7 +721,7 @@ dhcp6_timer_t *dhcp6_iaidaddr_timo(void *arg) {
 
     ev->timeouts = 0;
     dhcp6_set_timeoparam(ev);
-    ev = dhcp6_reset_timer(ev);
+    dhcp6_reset_timer(ev);
     client6_send(ev);
 
     return sp->timer;

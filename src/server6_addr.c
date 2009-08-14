@@ -89,7 +89,7 @@ static void _get_random_bytes(guint8 seed[], gint num) {
     gint i;
 
     for (i = 0; i < num; i++) {
-        seed[i] = random();
+        seed[i] = g_random_int();
     }
 
     return;

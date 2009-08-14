@@ -266,7 +266,7 @@ static gint _set_info_refresh_timer(dhcp6_if_t *ifp, guint32 offered_irt) {
      * a random amount of time between 0 and INF_MAX_DELAY
      * [RFC4242 3.2.]
      */
-    rval = (gdouble) random() / RAND_MAX * INF_MAX_DELAY * 1000;
+    rval = g_random_double() / RAND_MAX * INF_MAX_DELAY * 1000;
     timo.tv_sec = irt + (glong) (rval / 1000000);
     timo.tv_usec = (glong) rval % 1000000;
     dhcp6_set_timer(&timo, ifp->info_refresh_timer);
@@ -634,7 +634,7 @@ static gint _client6_ifinit(gchar *device) {
         return -1;
     }
 
-    ev = dhcp6_reset_timer(ev);
+    dhcp6_reset_timer(ev);
     return 0;
 }
 
@@ -1158,7 +1158,7 @@ static gint _client6_recvadvert(dhcp6_if_t *ifp, dhcp6_t *dh6,
         _ev_set_state(ev, DHCP6S_REQUEST);
         ifp->current_server = newserver;
         dhcp6_set_timeoparam(ev);
-        ev = dhcp6_reset_timer(ev);
+        dhcp6_reset_timer(ev);
         client6_send(ev);
     } else if (ifp->servers->next == NULL) {
         struct timeval *rest, elapsed, tv_rt, tv_irt, timo;
@@ -1762,7 +1762,7 @@ void client6_send(dhcp6_event_t *ev) {
          * A client MUST leave the transaction-ID unchanged in
          * retransmissions of a message. [dhcpv6-26 15.1]
          */
-        ev->xid = random() & DH6_XIDMASK;
+        ev->xid = g_random_int() & DH6_XIDMASK;
         g_debug("%s: ifp %p event %p a new XID (%x) is generated",
                 __func__, ifp, ev, ev->xid);
     } else {
@@ -2034,7 +2034,7 @@ gint client6_send_newstate(dhcp6_if_t *ifp, gint state) {
     ifp->event_list = g_slist_append(ifp->event_list, ev);
     ev->timeouts = 0;
     dhcp6_set_timeoparam(ev);
-    ev = dhcp6_reset_timer(ev);
+    dhcp6_reset_timer(ev);
     client6_send(ev);
 
     return 0;
@@ -2352,7 +2352,7 @@ dhcp6_timer_t *client6_timo(void *arg) {
             break;
     }
 
-    ev = dhcp6_reset_timer(ev);
+    dhcp6_reset_timer(ev);
     return ev->timer;
 }
 
@@ -2362,7 +2362,7 @@ gint main(gint argc, gchar **argv, gchar **envp) {
     gchar *request_iana = NULL, *request_iapd = NULL;
     gchar *release_addrs = NULL;
     gboolean info_only = FALSE;
-    FILE *pidfp;
+    FILE *pidfp = NULL;
     log_properties_t log_props;
     GError *error = NULL;
     GOptionContext *context = NULL;
