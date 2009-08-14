@@ -681,21 +681,26 @@ static void _free_resources(dhcp6_if_t *ifp) {
 }
 
 static void _process_signals(void) {
-    if ((sig_flags & SIGF_TERM)) {
+    if (nlsock != -1) {
+        close(nlsock);
+        nlsock = -1;
+    }
+
+    _free_resources(dhcp6_if);
+    closelog();
+
+    if (sig_flags & SIGF_TERM) {
         g_message("%s: exiting", __func__);
-        _free_resources(dhcp6_if);
         unlink(pidfile);
         exit(0);
     }
 
-    if ((sig_flags & SIGF_HUP)) {
+    if (sig_flags & SIGF_HUP) {
         g_message("%s: restarting", __func__);
-        _free_resources(dhcp6_if);
         _client6_ifinit(device);
     }
 
-    if ((sig_flags & SIGF_CLEAN)) {
-        _free_resources(dhcp6_if);
+    if (sig_flags & SIGF_CLEAN) {
         unlink(pidfile);
         exit(0);
     }
@@ -1343,12 +1348,14 @@ static void _client6_signal(gint sig) {
     g_message("%s: received a signal (%d)", __func__, sig);
 
     switch (sig) {
+        case SIGABRT:
         case SIGTERM:
             sig_flags |= SIGF_TERM;
             break;
         case SIGHUP:
             sig_flags |= SIGF_HUP;
             break;
+        case SIGQUIT:
         case SIGINT:
         case SIGKILL:
             sig_flags |= SIGF_CLEAN;
@@ -1559,17 +1566,8 @@ gint client6_init(gchar *device) {
 
     ifp->outsock = iosock;
 
-    if (signal(SIGHUP, _client6_signal) == SIG_ERR) {
-        g_warning("%s: failed to set signal: %s", __func__, strerror(errno));
-        return -1;
-    }
-
-    if (signal(SIGTERM | SIGKILL, _client6_signal) == SIG_ERR) {
-        g_warning("%s: failed to set signal: %s", __func__, strerror(errno));
-        return -1;
-    }
-
-    if (signal(SIGINT, _client6_signal) == SIG_ERR) {
+    if (signal(SIGHUP | SIGTERM | SIGKILL | SIGINT | SIGQUIT | SIGABRT,
+               _client6_signal) == SIG_ERR) {
         g_warning("%s: failed to set signal: %s", __func__, strerror(errno));
         return -1;
     }
