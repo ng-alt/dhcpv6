@@ -41,3 +41,11 @@ dhcp6c_SOURCES = dhcp6c.c confdata.c client6_addr.c client6_parse.y \
 CLEANFILES = $(BUILT_SOURCES)
 
 MAINTAINERCLEANFILES = Makefile.in
+
+VALGRIND = valgrind --tool=memcheck -v --track-fds=yes --log-file=valgrind.log
+
+valgrind-client: dhcp6c
+	$(VALGRIND) ./dhcp6c -c $(top_srcdir)/test/dhcp6c.conf -f -d eth0
+
+valgrind-server: dhcp6s
+	$(VALGRIND) ./dhcp6s -c $(top_srcdir)/test/dhcp6s.conf -f -d
