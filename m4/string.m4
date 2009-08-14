@@ -1,4 +1,4 @@
-dnl string.m4 - autoconf checks for memset(), strstr()
+dnl string.m4 - autoconf checks for memset()
 dnl
 dnl Copyright (C) 2009  Red Hat, Inc.
 dnl

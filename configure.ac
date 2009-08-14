@@ -95,6 +95,9 @@ AM_CHECK_RESOLVER
 # check string.h functions
 AM_CHECK_STRING_H
 
+# check math.h functions
+AM_CHECK_MATH_H
+
 # Check for headers that are platform dependent
 AM_CHECK_LINUX_HEADERS
 AM_PROG_CC_C_O

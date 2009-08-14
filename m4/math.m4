@@ -1,6 +1,6 @@
-dnl resolver.m4 - autoconf checks for dn_expand() and dn_comp()
+dnl math.m4 - autoconf checks for fmod()
 dnl
-dnl Copyright (C) 2007, 2008  Red Hat, Inc.
+dnl Copyright (C) 2009  Red Hat, Inc.
 dnl
 dnl This program is free software; you can redistribute it and/or modify
 dnl it under the terms of the GNU Lesser General Public License as published
@@ -17,41 +17,27 @@ dnl along with this program.  If not, see <http://www.gnu.org/licenses/>.
 dnl
 dnl Author(s): David Cantrell <dcantrell@redhat.com>
 
-AC_DEFUN([AM_CHECK_RESOLVER],[
+AC_DEFUN([AM_CHECK_MATH_H],[
 saved_LIBS="$LIBS"
-LIBS="-lresolv"
+LIBS="-lm"
 
 AC_CHECK_DECL(
-    [dn_comp],
+    [fmod],
     AC_LINK_IFELSE(
         [AC_LANG_PROGRAM(
-            [#include <resolv.h>],
-            [int i = dn_comp(NULL, NULL, 0, NULL, NULL);]
+            [#include <math.h>],
+            [double r = fmod(0.0, 0.0);]
         )],
         [],
-        [AC_MSG_FAILURE([*** Unable to find dn_comp() in libresolv])]
+        [AC_MSG_FAILURE([*** Unable to find fmod()])]
     ),
-    [AC_MSG_FAILURE([*** Symbol dn_comp is not declared])],
-    [#include <resolv.h>]
-)
-
-AC_CHECK_DECL(
-    [dn_expand],
-    AC_LINK_IFELSE(
-        [AC_LANG_PROGRAM(
-            [#include <resolv.h>],
-            [int i = dn_expand(NULL, NULL, NULL, NULL, 0);]
-        )],
-        [],
-        [AC_MSG_FAILURE([*** Unable to find dn_expand() in libresolv])]
-    ),
-    [AC_MSG_FAILURE([*** Symbol dn_expand is not declared])],
-    [#include <resolv.h>]
+    [AC_MSG_FAILURE([*** Symbol fmod is not declared])],
+    [#include <math.h>]
 )
 
 LIBS="$saved_LIBS"
-RESOLV_LIBS="-lresolv"
+MATH_LIBS="-lm"
 
 AC_SUBST(LIBS)
-AC_SUBST(RESOLV_LIBS)
+AC_SUBST(MATH_LIBS)
 ])
