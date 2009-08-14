@@ -137,8 +137,8 @@ gint duid_match_llt(duid_t *client, duid_t *server) {
 gint get_duid(const gchar *idfile, const gchar *ifname, duid_t *duid) {
     FILE *fp = NULL;
     guint16 len = 0, hwtype;
-    dhcp6_duid_type1_t *dp;        /* we only support the type1 DUID */
-    guchar tmpbuf[256];  /* DUID should be no more than 256 bytes */
+    dhcp6_duid_type1_t *dp;       /* we only support the type1 DUID */
+    guchar tmpbuf[256];           /* DUID should be no more than 256 bytes */
 
     if ((fp = fopen(idfile, "r")) == NULL && errno != ENOENT) {
         g_message("%s: failed to open DUID file: %s", __func__, idfile);
