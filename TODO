@@ -10,8 +10,6 @@
 
 - Clean up log messages on dhcp6r
 
-- Update LICENSE document and make sure current files are listed.
-
 - Fix RESOLV_CONF_DHCPV6_FILE and RESOLV_CONF_BAK_FILE so they use
   mkstemp() or something a little safer.
 
