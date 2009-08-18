@@ -350,11 +350,8 @@ gint duidcmp(const duid_t *d1, const duid_t *d2) {
 }
 
 void duidfree(duid_t *duid) {
-    g_debug("%s: DUID is %s, DUID_LEN is %d",
-            __func__, duidstr(duid), duid->duid_len);
-
     if (duid->duid_id != NULL && duid->duid_len != 0) {
-        g_debug("%s: removing ID (ID: %s)", __func__, duidstr(duid));
+        g_debug("%s: removing DUID %s", __func__, duidstr(duid));
         g_free(duid->duid_id);
         duid->duid_id = NULL;
         duid->duid_len = 0;
