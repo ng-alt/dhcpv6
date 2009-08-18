@@ -1065,23 +1065,6 @@ gint in6_scope(struct in6_addr *addr) {
     return 14;                  /* global */
 }
 
-void dhcp6_init_options(dhcp6_optinfo_t *optinfo) {
-    memset(optinfo, 0, sizeof(*optinfo));
-    /* for safety */
-    optinfo->clientID.duid_id = NULL;
-    optinfo->serverID.duid_id = NULL;
-    optinfo->pref = DH6OPT_PREF_UNDEF;
-    optinfo->ia_list = NULL;
-    optinfo->reqopt_list = NULL;
-    optinfo->dnsinfo.servers = NULL;
-    optinfo->relay_list = NULL;
-    optinfo->dnsinfo.domains = NULL;
-    optinfo->status_code = DH6OPT_STCODE_UNDEFINE;
-    optinfo->status_msg = NULL;
-    optinfo->opt_list = NULL;
-    return;
-}
-
 void dhcp6_clear_options(dhcp6_optinfo_t *optinfo) {
     duidfree(&optinfo->clientID);
     duidfree(&optinfo->serverID);
@@ -1105,7 +1088,7 @@ void dhcp6_clear_options(dhcp6_optinfo_t *optinfo) {
     g_slist_free(optinfo->opt_list);
     optinfo->opt_list = NULL;
 
-    dhcp6_init_options(optinfo);
+    memset(optinfo, 0, sizeof(*optinfo));
     return;
 }
 
@@ -1460,7 +1443,8 @@ fail:
 
 gint dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
                        dhcp6_optinfo_t *optinfo) {
-    dhcp6opt_t *p = bp, opth;
+    dhcp6opt_t opth;
+    dhcp6opt_t **p = &bp;
     gint len = 0, optlen = 0, tmplen = 0;
     guchar *tmpbuf = NULL;
     ia_t *ia;
@@ -1488,8 +1472,8 @@ gint dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
     }
 
     if (dhcp6_mode == DHCP6_MODE_CLIENT) {
-        tmplen = copy_option(DH6OPT_ELAPSED_TIME, 2, &optinfo->elapsed_time, p,
-                             ep, &opth);
+        tmplen = copy_option(DH6OPT_ELAPSED_TIME, 2, &optinfo->elapsed_time,
+                             p, ep, &opth);
 
         if (tmplen == -1) {
             goto fail;
@@ -1620,6 +1604,8 @@ gint dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
             opt = (dhcp6_value_t *) iterator->data;
 
             *valp = htons((guint16) opt->val_num);
+            valp++;
+
             iterator = g_slist_next(iterator);
         }
 
@@ -1669,8 +1655,7 @@ gint dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
     }
 
     if (g_slist_length(optinfo->dnsinfo.domains)) {
-        gchar *name;
-        guchar *dst;
+        guchar *dst = NULL;
         GSList *iterator = optinfo->dnsinfo.domains;
 
         optlen = 0;
@@ -1686,7 +1671,7 @@ gint dhcp6_set_options(dhcp6opt_t *bp, dhcp6opt_t *ep,
 
         while (iterator) {
             gint n;
-            name = (gchar *) iterator->data;
+            gchar *name = (gchar *) iterator->data;
 
             n = dn_comp(name, dst, MAXDNAME, NULL, NULL);
 
@@ -1840,11 +1825,11 @@ void dhcp6_reset_timer(dhcp6_event_t *ev) {
     return;
 }
 
-gint copy_option(gint option, guint8 len, void *data, dhcp6opt_t *p,
+gint copy_option(gint option, guint8 len, void *data, dhcp6opt_t **p,
                  dhcp6opt_t *ep, dhcp6opt_t *opth) {
     gint optlen = -1;
 
-    if (((void *) ep - (void *) p) < (len + sizeof(dhcp6opt_t))) {
+    if (((void *) ep - (void *) *p) < (len + sizeof(dhcp6opt_t))) {
         g_message("%s: option buffer short for %s", __func__,
                   dhcp6optstr(option));
         return optlen;
@@ -1852,14 +1837,15 @@ gint copy_option(gint option, guint8 len, void *data, dhcp6opt_t *p,
 
     opth->dh6opt_type = htons(option);
     opth->dh6opt_len = htons(len);
-    memcpy(p, opth, sizeof(*opth));
+    optlen = sizeof(*opth);
+    memcpy(*p, opth, optlen);
 
     if (len) {
-        memcpy(p + 1, data, len);
+        memcpy(*p + 1, data, len);
     }
 
-    p = (dhcp6opt_t *) ((gchar *) (p + 1) + len);
-    optlen += sizeof(dhcp6opt_t) + len;
+    *p = (dhcp6opt_t *) ((gchar *) (*p + 1) + len);
+    optlen += len;
     g_debug("%s: set %s", __func__, dhcp6optstr(option));
 
     return optlen;

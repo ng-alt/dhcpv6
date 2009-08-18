@@ -740,7 +740,7 @@ static dhcp6_serverinfo_t *_allocate_newserver(dhcp6_if_t *ifp,
         return NULL;
     }
 
-    dhcp6_init_options(&newserver->optinfo);
+    memset(&newserver->optinfo, 0, sizeof(newserver->optinfo));
 
     if (dhcp6_copy_options(&newserver->optinfo, optinfo)) {
         g_error("%s: failed to copy options", __func__);
@@ -1263,7 +1263,7 @@ static void _client6_recv(void) {
             ((struct sockaddr_in6 *) &from)->sin6_scope_id, ifp->ifname);
 
     /* get options */
-    dhcp6_init_options(&optinfo);
+    memset(&optinfo, 0, sizeof(optinfo));
     p = (dhcp6opt_t *) (dh6 + 1);
     ep = (dhcp6opt_t *) ((gchar *) dh6 + len);
 
@@ -1741,7 +1741,7 @@ void client6_send(dhcp6_event_t *ev) {
     /*
      * construct options
      */
-    dhcp6_init_options(&optinfo);
+    memset(&optinfo, 0, sizeof(optinfo));
 
     if ((ia = ia_create_listval()) == NULL) {
         goto end;
@@ -1869,7 +1869,7 @@ void client6_send(dhcp6_event_t *ev) {
                 ia->type = _iatype_of_if(ifp);
             }
 
-            /* 
+            /*
              * Windows 2008 interoperability fix
              * If IA address is included in the DHCPv6 ADVERTISE (which is
              * what Windows 2008 does), put the IA address into the DHCPv6
@@ -1930,6 +1930,7 @@ void client6_send(dhcp6_event_t *ev) {
     }
 
     len += optlen;
+
 
     /*
      * Unless otherwise specified, a client sends DHCP messages to the

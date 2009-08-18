@@ -64,14 +64,13 @@ gint transmit_sa(gint, struct sockaddr_in6 *, gchar *, size_t);
 gint prefix6_mask(struct in6_addr *, gint);
 gint sa6_plen2mask(struct sockaddr_in6 *, gint);
 gint in6_scope(struct in6_addr *);
-void dhcp6_init_options(dhcp6_optinfo_t *);
 void dhcp6_clear_options(dhcp6_optinfo_t *);
 gint dhcp6_copy_options(dhcp6_optinfo_t *, dhcp6_optinfo_t *);
 gint dhcp6_get_options(dhcp6opt_t *, dhcp6opt_t *, dhcp6_optinfo_t *);
 gint dhcp6_set_options(dhcp6opt_t *, dhcp6opt_t *, dhcp6_optinfo_t *);
 void dhcp6_set_timeoparam(dhcp6_event_t *);
 void dhcp6_reset_timer(dhcp6_event_t *);
-gint copy_option(gint, guint8, void *, dhcp6opt_t *, dhcp6opt_t *,
+gint copy_option(gint, guint8, void *, dhcp6opt_t **, dhcp6opt_t *,
                  dhcp6opt_t *);
 gboolean is_in6_addr_reserved(struct in6_addr *);
 void random_init(void);

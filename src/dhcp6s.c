@@ -773,7 +773,7 @@ static gint _server6_react_message(dhcp6_if_t *ifp, struct in6_pktinfo *pi,
     }
 
     /* configure necessary options based on the options in request. */
-    dhcp6_init_options(&roptinfo);
+    memset(&roptinfo, 0, sizeof(roptinfo));
 
     /* server information option */
     if (duidcpy(&roptinfo.serverID, &server_duid)) {
@@ -1145,7 +1145,7 @@ static gint _server6_recv(gint s) {
     dh6 = (dhcp6_t *) rdatabuf;
     g_debug("%s: received %s from %s", __func__, dhcp6msgstr(dh6->dh6_msgtype),
             addr2str((struct sockaddr *) &from, sizeof(from)));
-    dhcp6_init_options(&optinfo);
+    memset(&optinfo, 0, sizeof(optinfo));
 
     /*
      * If this is a relayed message, parse all of the relay data, storing
