@@ -298,7 +298,7 @@ gint process_RELAY_REPL(relay_msg_parser_t *msg) {
 
     if (msg->datalength - (pointer - pstart) < (2 * sizeof(sap.sin6_addr))) {
         g_debug("%s: opt_length has 0 value for %lu, dropping",
-                __func__, sizeof(sap.sin6_addr));
+                __func__, (gulong) sizeof(sap.sin6_addr));
         return 0;
     }
 
