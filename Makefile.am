@@ -7,7 +7,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = include src man etc test
 
-EXTRA_DIST = AUTHORS LICENSE README TODO ChangeLog \
+EXTRA_DIST = AUTHORS README TODO ChangeLog \
              RFC3315 RFC3633 RFC3646 RFC4242
 
 MAINTAINERCLEANFILES = Makefile.in config.guess config.h.in config.sub \
