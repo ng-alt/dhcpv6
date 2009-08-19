@@ -10,8 +10,12 @@ CLEANFILES = *.man
 
 MAINTAINERCLEANFILES = Makefile.in
 
+sed_verbose = $(sed_verbose_$(V))
+sed_verbose_ = $(sed_verbose_$(AM_DEFAULT_VERBOSITY))
+sed_verbose_0 = @echo "  SED    "$@;
+
 %.man: %.man.in
-	sed \
+	$(sed_verbose)sed \
 		-e 's|%DHCP6C_LEASE_PATH%|$(DHCP6C_LEASE_PATH)|g' \
 		-e 's|%DHCP6C_DUID_PATH%|$(DHCP6C_DUID_PATH)|g' \
 		-e 's|%DHCP6C_CONF_PATH%|$(DHCP6C_CONF_PATH)|g' \

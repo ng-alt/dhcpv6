@@ -26,6 +26,8 @@ AC_CONFIG_MACRO_DIR([m4])
 
 AC_DEFINE_UNQUOTED([BUILD_DATE], ["`date +%m%d%Y`"], [Date of dhcpv6 build])
 
+AM_SILENT_RULES([yes])
+
 AC_PROG_CPP
 AC_PROG_CC
 AC_PROG_MAKE_SET
