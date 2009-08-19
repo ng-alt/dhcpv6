@@ -18,7 +18,7 @@ dnl
 dnl Author: David Cantrell <dcantrell@redhat.com>
 
 AC_PREREQ(2.61)
-AC_INIT([dhcpv6], [2.0.0-alpha2], [dcantrell@redhat.com])
+AC_INIT([dhcpv6], [2.0.0-alpha3], [dcantrell@redhat.com])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR([src/dhcp6s.c])
 AC_CONFIG_HEADER([config.h])
