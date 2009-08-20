@@ -32,14 +32,14 @@
 extern dhcp6_if_t *dhcp6_if;
 
 void dhcp6_init_iaidaddr(void);
-gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *, ia_t *);
-gint dhcp6_add_lease(dhcp6_addr_t *);
-gint dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *);
-gint dhcp6c_remove_lease(dhcp6_lease_t *);
-gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *, ia_t *, gint);
+gboolean dhcp6_add_iaidaddr(dhcp6_optinfo_t *, ia_t *);
+gboolean dhcp6_add_lease(dhcp6_addr_t *);
+gboolean dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *);
+gboolean dhcp6c_remove_lease(dhcp6_lease_t *);
+gboolean dhcp6_update_iaidaddr(dhcp6_optinfo_t *, ia_t *, gint);
 dhcp6_timer_t *dhcp6_iaidaddr_timo(void *);
 dhcp6_timer_t *dhcp6_lease_timo(void *);
-gint client6_ifaddrconf(ifaddrconf_cmd_t, dhcp6_addr_t *);
+gboolean client6_ifaddrconf(ifaddrconf_cmd_t, dhcp6_addr_t *);
 gint get_iaid(const gchar *, const iaid_table_t *, gint);
 gint create_iaid(iaid_table_t *, gint);
 

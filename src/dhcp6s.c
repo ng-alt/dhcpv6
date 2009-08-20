@@ -556,7 +556,7 @@ static gint _handle_addr_request(dhcp6_optinfo_t *roptinfo,
                     ria->status_code = DH6OPT_STCODE_SUCCESS;
                 }
             } else {
-                if (dhcp6_add_iaidaddr(roptinfo, ria) != 0) {
+                if (!dhcp6_add_iaidaddr(roptinfo, ria)) {
                     g_error("assigned ipv6address for client iaid %u failed",
                             ria->iaidinfo.iaid);
                     ria->status_code = DH6OPT_STCODE_UNSPECFAIL;

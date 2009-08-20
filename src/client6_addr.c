@@ -106,7 +106,7 @@ extern GSList *request_list;
 
 /* BEGIN STATIC FUNCTIONS */
 
-static gint _dhcp6_update_lease(dhcp6_addr_t *addr, dhcp6_lease_t *sp) {
+static gboolean _dhcp6_update_lease(dhcp6_addr_t *addr, dhcp6_lease_t *sp) {
     struct timeval timo;
     gdouble d;
 
@@ -115,8 +115,12 @@ static gint _dhcp6_update_lease(dhcp6_addr_t *addr, dhcp6_lease_t *sp) {
         g_error("%s: not successful status code for %s is %s", __func__,
                 in6addr2str(&addr->addr, 0),
                 dhcp6_statuscode2str(addr->status_code));
-        dhcp6c_remove_lease(sp);
-        return 0;
+
+        if (!dhcp6c_remove_lease(sp)) {
+            return FALSE;
+        }
+
+        return TRUE;
     }
 
     /* remove leases with validlifetime == 0, and preferlifetime == 0 */
@@ -124,8 +128,12 @@ static gint _dhcp6_update_lease(dhcp6_addr_t *addr, dhcp6_lease_t *sp) {
         addr->preferlifetime > addr->validlifetime) {
         g_error("%s: invalid address life time for %s",
                 __func__, in6addr2str(&addr->addr, 0));
-        dhcp6c_remove_lease(sp);
-        return 0;
+
+        if (!dhcp6c_remove_lease(sp)) {
+            return FALSE;
+        }
+
+        return TRUE;
     }
 
     memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
@@ -135,7 +143,7 @@ static gint _dhcp6_update_lease(dhcp6_addr_t *addr, dhcp6_lease_t *sp) {
     if (write_lease(sp, client6_lease_file) != 0) {
         g_error("%s: failed to write an updated lease address %s to lease file",
                 __func__, in6addr2str(&sp->lease_addr.addr, 0));
-        return -1;
+        return FALSE;
     }
 
     if (sp->lease_addr.validlifetime == DHCP6_DURATITION_INFINITE ||
@@ -147,14 +155,14 @@ static gint _dhcp6_update_lease(dhcp6_addr_t *addr, dhcp6_lease_t *sp) {
             dhcp6_remove_timer(sp->timer);
         }
 
-        return 0;
+        return TRUE;
     }
 
     if (sp->timer == NULL) {
         if ((sp->timer = dhcp6_add_timer(dhcp6_lease_timo, sp)) == NULL) {
             g_error("%s: failed to add a timer for lease %s",
                     __func__, in6addr2str(&addr->addr, 0));
-            return -1;
+            return FALSE;
         }
     }
 
@@ -163,7 +171,7 @@ static gint _dhcp6_update_lease(dhcp6_addr_t *addr, dhcp6_lease_t *sp) {
     timo.tv_usec = 0;
     dhcp6_set_timer(&timo, sp->timer);
 
-    return 0;
+    return TRUE;
 }
 
 static dhcp6_event_t *_dhcp6_iaidaddr_find_event(dhcp6_iaidaddr_t *sp,
@@ -191,7 +199,7 @@ void dhcp6_init_iaidaddr(void) {
     client6_iaidaddr.lease_list = NULL;
 }
 
-gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia) {
+gboolean dhcp6_add_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia) {
     dhcp6_value_t *lv = NULL;
     struct timeval timo;
     dhcp6_lease_t *cl_lease = NULL;
@@ -201,7 +209,7 @@ gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia) {
     /* ignore IA with T1 > T2 */
     if (ia->iaidinfo.renewtime > ia->iaidinfo.rebindtime) {
         g_message(" renew time is greater than rebind time");
-        return 0;
+        return TRUE;
     }
 
     memcpy(&client6_iaidaddr.client6_info.iaidinfo, &ia->iaidinfo,
@@ -212,7 +220,7 @@ gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia) {
     if (duidcpy(&client6_iaidaddr.client6_info.serverid, &optinfo->serverID)) {
         g_error("%s: failed to copy server ID %s",
                 __func__, duidstr(&optinfo->serverID));
-        return -1;
+        return FALSE;
     }
 
     /* add new address */
@@ -232,11 +240,14 @@ gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia) {
 
         if ((cl_lease = dhcp6_find_lease(&client6_iaidaddr,
                                          &lv->val_dhcp6addr)) != NULL) {
-            _dhcp6_update_lease(&lv->val_dhcp6addr, cl_lease);
+            if (!_dhcp6_update_lease(&lv->val_dhcp6addr, cl_lease)) {
+                return FALSE;
+            }
+
             continue;
         }
 
-        if (dhcp6_add_lease(&lv->val_dhcp6addr)) {
+        if (!dhcp6_add_lease(&lv->val_dhcp6addr)) {
             g_error("%s: failed to add a new addr lease %s",
                     __func__, in6addr2str(&lv->val_dhcp6addr.addr, 0));
             continue;
@@ -246,7 +257,7 @@ gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia) {
     }
 
     if (!g_slist_length(client6_iaidaddr.lease_list)) {
-        return 0;
+        return TRUE;
     }
 
     /* set up renew T1, rebind T2 timer renew/rebind based on iaid */
@@ -278,14 +289,14 @@ gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia) {
               client6_iaidaddr.client6_info.iaidinfo.rebindtime);
 
     if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
-        return 0;
+        return TRUE;
     }
 
     if (client6_iaidaddr.client6_info.iaidinfo.renewtime ==
         DHCP6_DURATITION_INFINITE) {
         client6_iaidaddr.client6_info.iaidinfo.rebindtime =
             DHCP6_DURATITION_INFINITE;
-        return 0;
+        return TRUE;
     }
 
     /* set up start date, and renew timer */
@@ -293,7 +304,7 @@ gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia) {
          dhcp6_add_timer(dhcp6_iaidaddr_timo, &client6_iaidaddr)) == NULL) {
         g_error("%s: failed to add a timer for iaid %u",
                 __func__, client6_iaidaddr.client6_info.iaidinfo.iaid);
-        return -1;
+        return FALSE;
     }
 
     time(&client6_iaidaddr.start_date);
@@ -303,10 +314,10 @@ gint dhcp6_add_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia) {
     timo.tv_usec = 0;
     dhcp6_set_timer(&timo, client6_iaidaddr.timer);
 
-    return 0;
+    return TRUE;
 }
 
-gint dhcp6_add_lease(dhcp6_addr_t *addr) {
+gboolean dhcp6_add_lease(dhcp6_addr_t *addr) {
     dhcp6_lease_t *sp;
     struct timeval timo;
     gdouble d;
@@ -320,25 +331,25 @@ gint dhcp6_add_lease(dhcp6_addr_t *addr) {
         g_error("%s: not successful status code for %s is %s", __func__,
                 in6addr2str(&addr->addr, 0),
                 dhcp6_statuscode2str(addr->status_code));
-        return 0;
+        return TRUE;
     }
 
     if (addr->validlifetime == 0 || addr->preferlifetime == 0 ||
         addr->preferlifetime > addr->validlifetime) {
         g_error("%s: invalid address life time for %s",
                 __func__, in6addr2str(&addr->addr, 0));
-        return 0;
+        return TRUE;
     }
 
     if ((sp = dhcp6_find_lease(&client6_iaidaddr, addr)) != NULL) {
         g_error("%s: duplicated address: %s",
                 __func__, in6addr2str(&addr->addr, 0));
-        return -1;
+        return FALSE;
     }
 
     if ((sp = (dhcp6_lease_t *) g_malloc0(sizeof(*sp))) == NULL) {
         g_error("%s: failed to allocate memory for a addr", __func__);
-        return -1;
+        return FALSE;
     }
 
     memcpy(&sp->lease_addr, addr, sizeof(sp->lease_addr));
@@ -356,13 +367,13 @@ gint dhcp6_add_lease(dhcp6_addr_t *addr) {
 
         g_free(sp);
         sp = NULL;
-        return -1;
+        return FALSE;
     }
 
     if (sp->lease_addr.type == IAPD) {
         g_message("request prefix is %s/%d",
                   in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen);
-    } else if (client6_ifaddrconf(IFADDRCONF_ADD, addr) != 0) {
+    } else if (!client6_ifaddrconf(IFADDRCONF_ADD, addr)) {
         g_error("%s: adding address failed: %s",
                 __func__, in6addr2str(&addr->addr, 0));
 
@@ -372,7 +383,7 @@ gint dhcp6_add_lease(dhcp6_addr_t *addr) {
 
         g_free(sp);
         sp = NULL;
-        return -1;
+        return FALSE;
     }
 
     client6_iaidaddr.lease_list = g_slist_append(client6_iaidaddr.lease_list,
@@ -383,7 +394,7 @@ gint dhcp6_add_lease(dhcp6_addr_t *addr) {
         sp->lease_addr.preferlifetime == DHCP6_DURATITION_INFINITE) {
         g_message("%s: infinity address life time for %s",
                   __func__, in6addr2str(&addr->addr, 0));
-        return 0;
+        return TRUE;
     }
 
     /* set up expired timer for lease */
@@ -392,23 +403,27 @@ gint dhcp6_add_lease(dhcp6_addr_t *addr) {
                 __func__, in6addr2str(&addr->addr, 0));
         g_free(sp);
         sp = NULL;
-        return -1;
+        return FALSE;
     }
 
     d = sp->lease_addr.preferlifetime;
     timo.tv_sec = (long) d;
     timo.tv_usec = 0;
     dhcp6_set_timer(&timo, sp->timer);
-    return 0;
+    return TRUE;
 }
 
-gint dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *iaidaddr) {
+gboolean dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *iaidaddr) {
     dhcp6_lease_t *lv = NULL;
     GSList *iterator = iaidaddr->lease_list;
 
     while (iterator) {
         lv = (dhcp6_lease_t *) iterator->data;
-        dhcp6c_remove_lease(lv);
+
+        if (!dhcp6c_remove_lease(lv)) {
+            return FALSE;
+        }
+
         iterator = g_slist_next(iterator);
     }
 
@@ -422,10 +437,10 @@ gint dhcp6_remove_iaidaddr(dhcp6_iaidaddr_t *iaidaddr) {
 
     g_slist_free(iaidaddr->lease_list);
     iaidaddr->lease_list = NULL;
-    return 0;
+    return TRUE;
 }
 
-gint dhcp6c_remove_lease(dhcp6_lease_t *sp) {
+gboolean dhcp6c_remove_lease(dhcp6_lease_t *sp) {
     g_debug("%s: removing address %s", __func__,
             in6addr2str(&sp->lease_addr.addr, 0));
     sp->state = INVALID;
@@ -433,7 +448,7 @@ gint dhcp6c_remove_lease(dhcp6_lease_t *sp) {
     if (write_lease(sp, client6_lease_file) != 0) {
         g_message("%s: failed to write removed lease address %s to lease file",
                   __func__, in6addr2str(&sp->lease_addr.addr, 0));
-        return -1;
+        return FALSE;
     }
 
     /* XXX: ToDo: prefix delegation for client */
@@ -441,7 +456,7 @@ gint dhcp6c_remove_lease(dhcp6_lease_t *sp) {
         g_message("request prefix is %s/%d",
                   in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen);
         /* XXX: remove from the update prefix list */
-    } else if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
+    } else if (!client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr)) {
         g_message("%s: removing address %s failed",
                   __func__, in6addr2str(&sp->lease_addr.addr, 0));
     }
@@ -456,18 +471,10 @@ gint dhcp6c_remove_lease(dhcp6_lease_t *sp) {
     g_free(sp);
     sp = NULL;
 
-    /* can't remove expired iaidaddr even there is no lease in this iaidaddr
-     * since the rebind->solicit timer uses this iaidaddr
-     *
-     * if (!g_slist_length(client6_iaidaddr.lease_list)) {
-     *     dhcp6_remove_iaidaddr();
-     * }
-     */
-
-    return 0;
+    return TRUE;
 }
 
-gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia, gint flag) {
+gboolean dhcp6_update_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia, gint flag) {
     dhcp6_value_t *lv = NULL;
     dhcp6_lease_t *cl = NULL;
     struct timeval timo;
@@ -477,7 +484,7 @@ gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia, gint flag) {
     if (client6_iaidaddr.client6_info.iaidinfo.renewtime >
         client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
         g_message(" renew time is greater than rebind time");
-        return 0;
+        return TRUE;
     }
 
     if (flag == ADDR_REMOVE) {
@@ -489,13 +496,15 @@ gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia, gint flag) {
 
             if (cl) {
                 /* remove leases */
-                dhcp6c_remove_lease(cl);
+                if (!dhcp6c_remove_lease(cl)) {
+                    return FALSE;
+                }
             }
 
             iterator = g_slist_next(iterator);
         }
 
-        return 0;
+        return TRUE;
     }
 
     /* flag == ADDR_UPDATE */
@@ -517,12 +526,15 @@ gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia, gint flag) {
         if ((cl = dhcp6_find_lease(&client6_iaidaddr,
                                    &lv->val_dhcp6addr)) != NULL) {
             /* update leases */
-            _dhcp6_update_lease(&lv->val_dhcp6addr, cl);
+            if (!_dhcp6_update_lease(&lv->val_dhcp6addr, cl)) {
+                return FALSE;
+            }
+
             continue;
         }
 
         /* need to add the new leases */
-        if (dhcp6_add_lease(&lv->val_dhcp6addr)) {
+        if (!dhcp6_add_lease(&lv->val_dhcp6addr)) {
             g_message("%s: failed to add a new addr lease %s",
                       __func__, in6addr2str(&lv->val_dhcp6addr.addr, 0));
             continue;
@@ -536,12 +548,12 @@ gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia, gint flag) {
         if (duidcpy
             (&client6_iaidaddr.client6_info.serverid, &optinfo->serverID)) {
             g_error("%s: failed to copy server ID", __func__);
-            return -1;
+            return FALSE;
         }
     }
 
     if (!g_slist_length(client6_iaidaddr.lease_list)) {
-        return 0;
+        return TRUE;
     }
 
     /* set up renew T1, rebind T2 timer renew/rebind based on iaid */
@@ -569,7 +581,7 @@ gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia, gint flag) {
               client6_iaidaddr.client6_info.iaidinfo.rebindtime);
 
     if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
-        return 0;
+        return TRUE;
     }
 
     if (client6_iaidaddr.client6_info.iaidinfo.renewtime ==
@@ -581,7 +593,7 @@ gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia, gint flag) {
             dhcp6_remove_timer(client6_iaidaddr.timer);
         }
 
-        return 0;
+        return TRUE;
     }
 
     /* update the start date and timer */
@@ -591,7 +603,7 @@ gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia, gint flag) {
                              &client6_iaidaddr)) == NULL) {
             g_error("%s: failed to add a timer for iaid %u",
                     __func__, client6_iaidaddr.client6_info.iaidinfo.iaid);
-            return -1;
+            return FALSE;
         }
     }
 
@@ -602,7 +614,7 @@ gint dhcp6_update_iaidaddr(dhcp6_optinfo_t *optinfo, ia_t *ia, gint flag) {
     timo.tv_usec = 0;
     dhcp6_set_timer(&timo, client6_iaidaddr.timer);
 
-    return 0;
+    return TRUE;
 }
 
 dhcp6_timer_t *dhcp6_iaidaddr_timo(void *arg) {
@@ -735,7 +747,10 @@ dhcp6_timer_t *dhcp6_iaidaddr_timo(void *arg) {
 
         dhcp6_set_timer(&timeo, sp->timer);
     } else {
-        dhcp6_remove_iaidaddr(&client6_iaidaddr);
+        if (!dhcp6_remove_iaidaddr(&client6_iaidaddr)) {
+            g_error("%s: remove client IA address failure", __func__);
+        }
+
         /* remove event data for that event */
         sp->timer = NULL;
     }
@@ -760,7 +775,11 @@ dhcp6_timer_t *dhcp6_lease_timo(void *arg) {
     if (sp->state == INVALID) {
         g_message("%s: failed to remove an addr %s",
                   __func__, in6addr2str(&sp->lease_addr.addr, 0));
-        dhcp6c_remove_lease(sp);
+
+        if (!dhcp6c_remove_lease(sp)) {
+            return NULL;
+        }
+
         return NULL;
     }
 
@@ -774,7 +793,10 @@ dhcp6_timer_t *dhcp6_lease_timo(void *arg) {
             break;
         case EXPIRED:
             sp->state = INVALID;
-            dhcp6c_remove_lease(sp);
+
+            if (!dhcp6c_remove_lease(sp)) {
+                return NULL;
+            }
         default:
             return NULL;
     }
@@ -782,7 +804,7 @@ dhcp6_timer_t *dhcp6_lease_timo(void *arg) {
     return sp->timer;
 }
 
-gint client6_ifaddrconf(ifaddrconf_cmd_t cmd, dhcp6_addr_t *ifaddr) {
+gboolean client6_ifaddrconf(ifaddrconf_cmd_t cmd, dhcp6_addr_t *ifaddr) {
     struct in6_ifreq req;
     dhcp6_if_t *ifp = client6_iaidaddr.ifp;
     gulong ioctl_cmd;
@@ -799,13 +821,13 @@ gint client6_ifaddrconf(ifaddrconf_cmd_t cmd, dhcp6_addr_t *ifaddr) {
             ioctl_cmd = SIOCDIFADDR;
             break;
         default:
-            return -1;
+            return FALSE;
     }
 
     if ((s = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
         g_error("%s: can't open a temporary socket: %s",
                 __func__, strerror(errno));
-        return -1;
+        return FALSE;
     }
 
     memset(&req, 0, sizeof(req));
@@ -820,14 +842,14 @@ gint client6_ifaddrconf(ifaddrconf_cmd_t cmd, dhcp6_addr_t *ifaddr) {
         g_message("%s: failed to %s an address on %s: %s",
                   __func__, cmdstr, ifp->ifname, strerror(errno));
         close(s);
-        return -1;
+        return FALSE;
     }
 
     g_debug("%s: %s an address %s on %s", __func__, cmdstr,
             in6addr2str(&ifaddr->addr, 0), ifp->ifname);
     close(s);
 
-    return 0;
+    return TRUE;
 }
 
 gint get_iaid(const gchar *ifname, const iaid_table_t *iaidtab,

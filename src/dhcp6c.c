@@ -325,7 +325,7 @@ static gint _create_request_list(gint reboot) {
         /* config the interface for reboot */
         if (reboot && client6_iaidaddr.client6_info.type != IAPD &&
             (client6_request_flag & CLIENT6_CONFIRM_ADDR)) {
-            if (client6_ifaddrconf(IFADDRCONF_ADD, &cl->lease_addr) != 0) {
+            if (!client6_ifaddrconf(IFADDRCONF_ADD, &cl->lease_addr)) {
                 g_message("config address failed: %s",
                           in6addr2str(&cl->lease_addr.addr, 0));
                 return -1;
@@ -484,7 +484,7 @@ static dhcp6_timer_t *_check_dad_timo(void *arg) {
                                    &lv->val_dhcp6addr.addr)) {
                 /* deconfigure the interface's the address assgined by dhcpv6 
                  */
-                if (dhcp6c_remove_lease(cl) != 0) {
+                if (!dhcp6c_remove_lease(cl)) {
                     g_error("remove duplicated address failed: %s",
                             in6addr2str(&cl->lease_addr.addr, 0));
                 } else {
@@ -677,7 +677,7 @@ static void _free_resources(dhcp6_if_t *ifp) {
     while (iterator) {
         sp = (dhcp6_lease_t *) iterator->data;
 
-        if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
+        if (!client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr)) {
             g_message("%s: deconfiging address %s failed",
                       __func__, in6addr2str(&sp->lease_addr.addr, 0));
         }
@@ -952,7 +952,9 @@ static gint _client6_recvreply(dhcp6_if_t *ifp, dhcp6_t *dh6,
                             return -1;
                         }
 
-                        dhcp6_add_iaidaddr(optinfo, ia);
+                        if (!dhcp6_add_iaidaddr(optinfo, ia)) {
+                            return -1;
+                        }
 
                         if (ifp->dad_timer == NULL &&
                             (ifp->dad_timer = dhcp6_add_timer(_check_dad_timo,
@@ -985,7 +987,11 @@ static gint _client6_recvreply(dhcp6_if_t *ifp, dhcp6_t *dh6,
                     newstate = DHCP6S_REQUEST;
                     g_debug("%s: got a NoBinding reply, sending request.",
                             __func__);
-                    dhcp6_remove_iaidaddr(&client6_iaidaddr);
+
+                    if (!dhcp6_remove_iaidaddr(&client6_iaidaddr)) {
+                        return -1;
+                    }
+
                     break;
                 case DH6OPT_STCODE_NOADDRAVAIL:
                 case DH6OPT_STCODE_NOPREFIXAVAIL:
@@ -994,7 +1000,10 @@ static gint _client6_recvreply(dhcp6_if_t *ifp, dhcp6_t *dh6,
                 case DH6OPT_STCODE_SUCCESS:
                 case DH6OPT_STCODE_UNDEFINE:
                 default:
-                    dhcp6_update_iaidaddr(optinfo, ia, ADDR_UPDATE);
+                    if (!dhcp6_update_iaidaddr(optinfo, ia, ADDR_UPDATE)) {
+                        return -1;
+                    }
+
                     break;
             }
 
@@ -1018,8 +1027,12 @@ static gint _client6_recvreply(dhcp6_if_t *ifp, dhcp6_t *dh6,
                             "sending solicit.", __func__);
                     /* remove event data list */
                     free_servers(ifp);
+
                     /* remove the address which is judged NotOnLink */
-                    dhcp6_remove_iaidaddr(&client6_iaidaddr);
+                    if (!dhcp6_remove_iaidaddr(&client6_iaidaddr)) {
+                        return -1;
+                    }
+
                     newstate = DHCP6S_SOLICIT;
                     break;
                 case DH6OPT_STCODE_SUCCESS:
@@ -1931,7 +1944,7 @@ void client6_send(dhcp6_event_t *ev) {
             }
 
             if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
-                if (dhcp6_update_iaidaddr(&optinfo, ia, ADDR_REMOVE)) {
+                if (!dhcp6_update_iaidaddr(&optinfo, ia, ADDR_REMOVE)) {
                     g_message("client release failed");
                     return;
                 }
