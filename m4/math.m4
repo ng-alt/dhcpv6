@@ -18,26 +18,23 @@ dnl
 dnl Author(s): David Cantrell <dcantrell@redhat.com>
 
 AC_DEFUN([AM_CHECK_MATH_H],[
-saved_LIBS="$LIBS"
-LIBS="-lm"
+    saved_LIBS="$LIBS"
+    LIBS="-lm"
 
-AC_CHECK_DECL(
-    [fmod],
-    AC_LINK_IFELSE(
+    AC_MSG_CHECKING([for fmod])
+
+    AC_LANG_CONFTEST(
         [AC_LANG_PROGRAM(
-            [#include <math.h>],
-            [double r = fmod(0.0, 0.0);]
-        )],
-        [],
-        [AC_MSG_FAILURE([*** Unable to find fmod()])]
-    ),
-    [AC_MSG_FAILURE([*** Symbol fmod is not declared])],
-    [#include <math.h>]
-)
+            [[#include <math.h>]],
+            [[fmod(0.0, 0.0);]]
+         )]
+    )
 
-LIBS="$saved_LIBS"
-MATH_LIBS="-lm"
+    AC_MSG_RESULT([yes])
 
-AC_SUBST(LIBS)
-AC_SUBST(MATH_LIBS)
+    LIBS="$saved_LIBS"
+    MATH_LIBS="-lm"
+
+    AC_SUBST(LIBS)
+    AC_SUBST(MATH_LIBS)
 ])

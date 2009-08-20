@@ -18,17 +18,15 @@ dnl
 dnl Author(s): David Cantrell <dcantrell@redhat.com>
 
 AC_DEFUN([AM_CHECK_STRING_H],[
-AC_CHECK_DECL(
-    [memset],
-    AC_LINK_IFELSE(
+    AC_MSG_CHECKING([for memset])
+
+    AC_LANG_CONFTEST(
         [AC_LANG_PROGRAM(
-            [#include <string.h>],
-            [void *p = memset(NULL, 0, 0);]
-        )],
-        [],
-        [AC_MSG_FAILURE([*** Unable to find memset()])]
-    ),
-    [AC_MSG_FAILURE([*** Symbol memset is not declared])],
-    [#include <string.h>]
-)
+            [[#include <string.h>]],
+            [[char tmp[3];]],
+            [[memset(tmp, 0, 3);]]
+         )]
+    )
+
+    AC_MSG_RESULT([yes])
 ])
