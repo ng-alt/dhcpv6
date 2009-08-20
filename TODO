@@ -5,6 +5,23 @@
 
 - For functions returing ints to indicate success or failure, switch
   return type to gboolean and use TRUE and FALSE.
+      common.c
+      confdata.c
+      dad_parse.c
+      dhcp6c.c
+      dhcp6r.c
+      dhcp6s.c
+      duid.c
+      gfunc.c
+      lease.c
+      log.c
+      relay6_database.c
+      relay6_parser.c
+      relay6_socket.c
+      server6_addr.c
+      server6_conf.c
+      str.c
+      timer.c
 
 - Use glib types for common things, and glib functions where appropriate
 
@@ -12,6 +29,8 @@
 
 - Fix RESOLV_CONF_DHCPV6_FILE and RESOLV_CONF_BAK_FILE so they use
   mkstemp() or something a little safer.
+
+- Replace ioctl() calls with libnl calls if possible.
 
 - Support a script-based configuration mode, similar to what dhclient does
 
@@ -45,8 +64,6 @@
   don't allow it
 
 - dhcp6s does not work multiple relay servers, only one
-
-- Fix the debug=1 and debug=2 log output
 
 - Support ddns updates in dhcp6c somehow (need to figure out how ddns works)
 
