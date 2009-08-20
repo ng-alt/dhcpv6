@@ -21,29 +21,31 @@ AC_DEFUN([AM_CHECK_RESOLVER],[
     saved_LIBS="$LIBS"
     LIBS="-lresolv"
 
-    AC_MSG_CHECKING([for dn_comp])
-
-    AC_LANG_CONFTEST(
-        [AC_LANG_PROGRAM(
+    dn_comp=no
+    AC_MSG_CHECKING([for dn_comp in libresolv])
+    AC_LINK_IFELSE([
+        AC_LANG_PROGRAM(
             [[#include <resolv.h>]],
             [[if (dn_comp(NULL, NULL, 0, NULL, NULL) == -1)]],
             [[    return 1;]]
-         )]
+        )],
+        [dn_comp=yes],
+        [AC_MSG_FAILURE([dn_comp() not found])]
     )
+    AC_MSG_RESULT([$dn_comp])
 
-    AC_MSG_RESULT([yes])
-
-    AC_MSG_CHECKING([for dn_expand])
-
-    AC_LANG_CONFTEST(
-        [AC_LANG_PROGRAM(
+    dn_expand=no
+    AC_MSG_CHECKING([for dn_expand in libresolv])
+    AC_LINK_IFELSE([
+        AC_LANG_PROGRAM(
             [[#include <resolv.h>]],
             [[if (dn_expand(NULL, NULL, NULL, NULL, 0) == -1)]],
             [[    return 1;]]
-         )]
+        )],
+        [dn_expand=yes],
+        [AC_MSG_FAILURE([dn_expand() not found])]
     )
-
-    AC_MSG_RESULT([yes])
+    AC_MSG_RESULT([$dn_expand])
 
     LIBS="$saved_LIBS"
     RESOLV_LIBS="-lresolv"

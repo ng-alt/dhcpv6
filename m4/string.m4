@@ -18,15 +18,16 @@ dnl
 dnl Author(s): David Cantrell <dcantrell@redhat.com>
 
 AC_DEFUN([AM_CHECK_STRING_H],[
+    memset=no
     AC_MSG_CHECKING([for memset])
-
-    AC_LANG_CONFTEST(
-        [AC_LANG_PROGRAM(
+    AC_LINK_IFELSE([
+        AC_LANG_PROGRAM(
             [[#include <string.h>]],
             [[char tmp[3];]],
             [[memset(tmp, 0, 3);]]
-         )]
+        )],
+        [memset=yes],
+        [AC_MSG_FAILURE([memset() not found])]
     )
-
-    AC_MSG_RESULT([yes])
+    AC_MSG_RESULT([$memset])
 ])

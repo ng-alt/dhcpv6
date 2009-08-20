@@ -21,16 +21,17 @@ AC_DEFUN([AM_CHECK_MATH_H],[
     saved_LIBS="$LIBS"
     LIBS="-lm"
 
-    AC_MSG_CHECKING([for fmod])
-
-    AC_LANG_CONFTEST(
-        [AC_LANG_PROGRAM(
+    fmod=no
+    AC_MSG_CHECKING([for fmod in libm])
+    AC_LINK_IFELSE([
+        AC_LANG_PROGRAM(
             [[#include <math.h>]],
             [[fmod(0.0, 0.0);]]
-         )]
+        )],
+        [fmod=yes],
+        [AC_MSG_FAILURE([fmod() not found])]
     )
-
-    AC_MSG_RESULT([yes])
+    AC_MSG_RESULT([$fmod])
 
     LIBS="$saved_LIBS"
     MATH_LIBS="-lm"
