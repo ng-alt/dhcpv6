@@ -345,7 +345,7 @@ gchar *duidstr(const duid_t *duid) {
 }
 
 GSList *dhcp6_option2envvar(dhcp6_optinfo_t *optinfo, gint code) {
-    GSList *pair = NULL;
+    GSList *pair = NULL, *iterator = NULL;
     GString *tmp = g_string_new(NULL);
     gchar *option_name = g_strdup(dhcp6optstr(code));
     gchar *val = NULL;
@@ -358,10 +358,25 @@ GSList *dhcp6_option2envvar(dhcp6_optinfo_t *optinfo, gint code) {
         /* XXX */
     } else if (code == DH6OPT_IA_TA) {
         /* XXX */
+    } else if (code == DH6OPT_IA_PD) {
+        /* XXX */
     } else if (code == DH6OPT_IAADDR) {
         /* XXX: unhandled option */
+    } else if (code == DH6OPT_IAPREFIX) {
+        /* XXX: unhandled option */
     } else if (code == DH6OPT_ORO) {
-        /* XXX */
+        if (g_string_free(tmp, TRUE) != NULL) {
+            g_error("%s: erroring releasing temporary GString", __func__);
+        }
+
+        tmp = dhcp6_options2str(optinfo->reqopt_list);
+        val = g_strdup(tmp->str);
+
+        if (g_string_free(tmp, TRUE) != NULL) {
+            g_error("%s: erroring releasing temporary GString", __func__);
+        }
+
+        tmp = g_string_new(NULL);
     } else if (code == DH6OPT_PREFERENCE) {
         g_string_printf(tmp, "%d", optinfo->pref);
         val = g_strdup(tmp->str);
@@ -388,13 +403,38 @@ GSList *dhcp6_option2envvar(dhcp6_optinfo_t *optinfo, gint code) {
     } else if (code == DH6OPT_RECONF_ACCEPT) {
         /* XXX: unhandled option */
     } else if (code == DH6OPT_DNS_SERVERS) {
-        /* XXX */
+        iterator = optinfo->dnsinfo.servers;
+        g_string_erase(tmp, 0, -1);
+
+        while (iterator) {
+            struct in6_addr *server_addr = (struct in6_addr *) iterator->data;
+            gchar *addrstr = in6addr2str(server_addr, 0);
+
+            if (tmp->len > 0) {
+                g_string_append_printf(tmp, " ");
+            }
+
+            g_string_append_printf(tmp, "%s", addrstr);
+            iterator = g_slist_next(iterator);
+        }
+
+        val = g_strdup(tmp->str);
     } else if (code == DH6OPT_DOMAIN_LIST) {
-        /* XXX */
-    } else if (code == DH6OPT_IA_PD) {
-        /* XXX */
-    } else if (code == DH6OPT_IAPREFIX) {
-        /* XXX: unhandled option */
+        iterator = optinfo->dnsinfo.domains;
+        g_string_erase(tmp, 0, -1);
+
+        while (iterator) {
+            gchar *dname = (gchar *) iterator->data;
+
+            if (tmp->len > 0) {
+                g_string_append_printf(tmp, " ");
+            }
+
+            g_string_append_printf(tmp, "%s", dname);
+            iterator = g_slist_next(iterator);
+        }
+
+        val = g_strdup(tmp->str);
     } else if (code == DH6OPT_INFO_REFRESH_TIME) {
         g_string_printf(tmp, "%i", optinfo->irt);
         val = g_strdup(tmp->str);
