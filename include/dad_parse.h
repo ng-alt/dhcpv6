@@ -26,6 +26,6 @@
 #include "types.h"
 #include "str.h"
 
-gint dad_parse(const gchar *, GSList *);
+gint dad_parse(const gchar *, GSList **);
 
 #endif /* __DAD_PARSE_H_DEFINED */

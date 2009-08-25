@@ -369,8 +369,8 @@ static dhcp6_timer_t *_check_link_timo(void *arg) {
                 /* check DAD status of the link-local address */
                 dad_list = NULL;
 
-                if (dad_parse("/proc/net/if_inet6", dad_list) < 0) {
-                    g_error("parse /proc/net/if_inet6 failed");
+                if (dad_parse(INTERFACEINFO, &dad_list) < 0) {
+                    g_error("parse %s failed", INTERFACEINFO);
                     goto settimer;
                 }
 
@@ -462,8 +462,8 @@ static dhcp6_timer_t *_check_dad_timo(void *arg) {
 
     g_debug("enter checking dad ...");
 
-    if (dad_parse("/proc/net/if_inet6", dad_list) < 0) {
-        g_error("parse /proc/net/if_inet6 failed");
+    if (dad_parse(INTERFACEINFO, &dad_list) < 0) {
+        g_error("parse %s failed", INTERFACEINFO);
         goto end;
     }
 
