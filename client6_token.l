@@ -1,4 +1,4 @@
-/*	$Id: client6_token.l,v 1.8 2005/03/10 00:49:26 shemminger Exp $	*/
+/*	$Id: client6_token.l,v 1.1.1.1 2006/12/04 00:45:22 Exp $	*/
 /*	ported from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -155,11 +155,34 @@ ecl		\}
 <S_CNF>rapid-commit { DECHO; return (RAPID_COMMIT); }
 <S_CNF>prefix-delegation { DECHO; return (PREFIX_DELEGATION); }
 <S_CNF>domain-name-servers { DECHO; return (DNS_SERVERS); }
+<S_CNF>sip-servers { DECHO; return (SIP_SERVERS); }
+<S_CNF>ntp-servers { DECHO; return (NTP_SERVERS); }
 	/* generic options */
 <S_CNF>information-only { DECHO; return (INFO_ONLY); }
 <S_CNF>temp-address { DECHO; return (TEMP_ADDR); }
 	/* duration */
 <S_CNF>infinity { DECHO; return (INFINITY); }
+
+	/*  added start pling 08/26/2009 */
+<S_CNF>solicit-only { DECHO; return (SOLICIT_ONLY); }
+	/*  added start pling 08/26/2009 */
+
+    /*  added start pling 09/07/2010 */
+<S_CNF>user-class { DECHO; return (USER_CLASS); }
+    /*  added end pling 09/07/2010 */
+
+	/*  added start pling 09/21/2010 */
+    /* For DHCPv6 readylogo test, to request IANA only or IAPD only */
+<S_CNF>iana-only { DECHO; return (IANA_ONLY); }
+<S_CNF>iapd-only { DECHO; return (IAPD_ONLY); }
+<S_CNF>domain-list { DECHO; return (DOMAIN_LIST); }
+	/*  added end pling 09/21/2010 */
+
+    /*  added start pling 10/07/2010 */
+<S_CNF>xid-sol { DECHO; return (XID_SOL); }
+<S_CNF>xid-req { DECHO; return (XID_REQ); }
+<S_CNF>duid-time { DECHO; return (DUID_TIME); }
+    /*  added end pling 10/07/2010 */
 
 	/* misc */
 {ws}		{ ; }

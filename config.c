@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.11 2005/03/10 00:49:26 shemminger Exp $	*/
+/*	$Id: config.c,v 1.1.1.1 2006/12/04 00:45:20 Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -63,6 +63,23 @@ static int clear_option_list  __P((struct dhcp6_option_list *));
 static void clear_ifconf __P((struct dhcp6_ifconf *));
 static void clear_hostconf __P((struct host_conf *));
 
+/*  added start pling 09/17/2010 */
+static char user_class[MAX_USER_CLASS_LEN];
+int set_dhcpc_user_class(char *str)
+{
+	strcpy(user_class, str);
+    dprintf(LOG_INFO, "Set User-class [%s]", user_class);
+    return 0;
+}
+/*  added end pling 09/17/2010 */
+
+/*  added start pling 10/07/2010 */
+/* For testing purposes */
+extern u_int32_t xid_solicit;
+extern u_int32_t xid_request;
+extern u_int32_t duid_time;
+/*  added end pling 10/07/2010 */
+
 int
 configure_interface(const struct cf_namelist *iflist)
 {
@@ -121,7 +138,12 @@ configure_interface(const struct cf_namelist *iflist)
 				break;
 			case DECL_INFO_ONLY:
 				if (dhcp6_mode == DHCP6_MODE_CLIENT)
+                {
 					ifc->send_flags |= DHCIFF_INFO_ONLY;
+                    /*  added start pling 09/23/2010 */
+                    set_dhcp6c_flags(DHCIFF_INFO_ONLY);
+                    /*  added end pling 09/23/2010 */
+                }
 				break;
 			case DECL_TEMP_ADDR:
 				if (dhcp6_mode == DHCP6_MODE_CLIENT)
@@ -195,6 +217,61 @@ configure_interface(const struct cf_namelist *iflist)
 					goto bad;
 				}
 				break;
+			/*  added start pling 08/26/2009 */
+			/* Add flag to send dhcpv6 solicit only for DHCP client.
+			 * Used by IPv6 auto detection.
+			 */
+			case DECL_SOLICIT_ONLY:
+				if (dhcp6_mode == DHCP6_MODE_CLIENT)
+				{
+					dprintf(LOG_ERR, "Send DHCPC solicit only!");
+					ifc->send_flags |= DHCIFF_SOLICIT_ONLY;
+				}
+				break;
+			/*  added end pling 08/26/2009 */
+			/*  added start pling 09/07/2010 */
+			/* Support user-class for DHCP client */
+			case DECL_USER_CLASS:
+				if (dhcp6_mode == DHCP6_MODE_CLIENT)
+				{
+				    dprintf(LOG_ERR, "%s assign user_class='%s'", FNAME, user_class);
+					if (strlen(user_class))
+						strcpy(ifc->user_class, user_class);
+					else
+						ifc->user_class[0] = '\0';
+				}
+				break;
+			/*  added end pling 09/07/2010 */
+            /*  added start pling 09/21/2010 */
+            /* For DHCPv6 readylogo, need to send IANA and IAPD separately.
+             */
+            case DECL_IANA_ONLY:
+                if (dhcp6_mode == DHCP6_MODE_CLIENT)
+                {
+                    dprintf(LOG_ERR, "Accept IANA only!");
+                    set_dhcp6c_flags(DHCIFF_IANA_ONLY);
+                }
+                break;
+            case DECL_IAPD_ONLY:
+                if (dhcp6_mode == DHCP6_MODE_CLIENT)
+                {
+                    dprintf(LOG_ERR, "Accept IAPD only!");
+                    set_dhcp6c_flags(DHCIFF_IAPD_ONLY);
+                }
+                break;
+            /*  added end pling 09/21/2010 */
+            /*  added start pling 10/07/2010 */
+            /* For Testing purposes */
+            case DECL_XID_SOL:
+                xid_solicit =  (u_int32_t)cfl->num;
+                break;
+            case DECL_XID_REQ:
+                xid_request = (u_int32_t)cfl->num;
+                break;
+            case DECL_DUID_TIME:
+                duid_time = (u_int32_t)cfl->num;
+                break;
+            /*  added end pling 10/07/2010 */
 			default:
 				dprintf(LOG_ERR, "%s" "%s:%d "
 					"invalid interface configuration",
@@ -371,70 +448,6 @@ configure_global_option(void)
 	return -1;
 }
 
-#if 0
-/* we currently only construct EUI-64 based interface ID */
-static int
-get_default_ifid(pif)
-	struct prefix_ifconf *pif;
-{
-	struct ifaddrs *ifa, *ifap;
-	struct sockaddr *sdl;
-
-	if (pif->ifid_len < 64) {
-		dprintf(LOG_NOTICE, "%s" "ID length too short", FNAME);
-		return -1;
-	}
-
-	if (getifaddrs(&ifap) < 0) {
-		dprintf(LOG_ERR, "%s" "getifaddrs failed: %s",
-			FNAME, strerror(errno));
-		return -1;
-	}
-	
-	for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-		char *cp;
-
-		if (strcmp(ifa->ifa_name, pif->ifname) != 0)
-			continue;
-
-		sdl = ifa->ifa_addr;
-		if (sizeof(*sdl) < 6) {
-			dprintf(LOG_NOTICE, "%s"
-				"link layer address is too short (%s)",
-				FNAME, pif->ifname);
-			goto fail;
-		}
-
-		memset(pif->ifid, 0, sizeof(pif->ifid));
-		cp = (char *)(sdl->sa_data + sizeof(*sdl));
-		pif->ifid[8] = cp[0];
-		pif->ifid[8] ^= 0x02; /* reverse the u/l bit*/
-		pif->ifid[9] = cp[1];
-		pif->ifid[10] = cp[2];
-		pif->ifid[11] = 0xff;
-		pif->ifid[12] = 0xfe;
-		pif->ifid[13] = cp[3];
-		pif->ifid[14] = cp[4];
-		pif->ifid[15] = cp[5];
-
-		break;
-	}
-
-	if (ifa == NULL) {
-		dprintf(LOG_INFO, "%s"
-			"cannot find interface information for %s",
-			FNAME, pif->ifname);
-		goto fail;
-	}
-
-	freeifaddrs(ifap);
-	return (0);
-
-  fail:
-	freeifaddrs(ifap);
-	return (-1);
-}
-#endif
 
 void
 configure_cleanup(void)
@@ -477,6 +490,12 @@ configure_commit(void)
 			TAILQ_INIT(&ifc->option_list);
 
 			ifp->server_pref = ifc->server_pref;
+
+			/*  added start pling 09/07/2010 */
+			/* configure user-class */
+			if (dhcp6_mode == DHCP6_MODE_CLIENT)
+			    strcpy(ifp->user_class, ifc->user_class);
+			/*  added end pling 09/07/2010 */
 
 			memcpy(&ifp->iaidinfo, &ifc->iaidinfo, sizeof(ifp->iaidinfo));
 		}
@@ -597,6 +616,29 @@ add_options(int opcode,	struct dhcp6_ifconf *ifc,
 				break;
 			}
 			break;
+
+        /*  added start pling 09/23/2010 */
+        /* To support domain search list for DHCPv6 readylogo tests */
+        case DHCPOPT_DOMAIN_LIST:
+            switch(opcode) {
+                case DHCPOPTCODE_REQUEST:
+                    opttype = DH6OPT_DOMAIN_LIST;
+                    if (dhcp6_add_listval(&ifc->reqopt_list,
+                        &opttype, DHCP6_LISTVAL_NUM) == NULL) {
+                        dprintf(LOG_ERR, "%s" "failed to "
+                            "configure an option", FNAME);
+                        return (-1);
+                    }
+                    break;
+                default:
+                    dprintf(LOG_ERR, "%s" "invalid operation (%d) "
+                        "for option type (%d)",
+                        FNAME, opcode, cfl->type);
+                    break;
+            }
+            break;
+        /*  added end pling 09/23/2010 */
+
 		default:
 			dprintf(LOG_ERR, "%s"
 				"unknown option type: %d", FNAME, cfl->type);

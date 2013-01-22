@@ -1,4 +1,4 @@
-/*	$Id: hash.h,v 1.3 2003/03/01 00:24:49 shemminger Exp $	*/
+/*	$Id: hash.h 241182 2011-02-17 21:50:03Z $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003

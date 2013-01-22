@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c,v 1.25 2007/09/25 07:20:55 shirleyma Exp $	*/
+/*	$Id: server6_addr.c 241182 2011-02-17 21:50:03Z $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -279,10 +279,6 @@ dhcp6_update_iaidaddr(optinfo, flag)
 			lease = dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr);
 			if (lease) {
 				if (flag == ADDR_ABANDON) {
-					/* XXX: preallocate a abandoned duid 
-					 * for maintain abandoned list with
-					 * preferlifetime xxx, validlifetime xxx
-					 */
 				}
 				dhcp6_remove_lease(lease);
 			} else {
@@ -324,7 +320,6 @@ dhcp6_validate_bindings(optinfo, iaidaddr)
 {
 	struct dhcp6_listval *lv;
 
-	/* XXX: confirm needs to update bindings ?? */
 	for (lv = TAILQ_FIRST(&optinfo->addr_list); lv; lv = TAILQ_NEXT(lv, link)) {
 		if (dhcp6_find_lease(iaidaddr, &lv->val_dhcp6addr) == NULL) 
 			return (-1);
@@ -598,8 +593,7 @@ dhcp6_get_hostconf(roptinfo, optinfo, iaidaddr, host)
 }
 
 int
-dhcp6_create_addrlist(msgtype, roptinfo, optinfo, iaidaddr, subnet)
-	int msgtype;
+dhcp6_create_addrlist(roptinfo, optinfo, iaidaddr, subnet)
 	struct dhcp6_optinfo *roptinfo;
 	struct dhcp6_optinfo *optinfo; 
 	const struct dhcp6_iaidaddr *iaidaddr;
@@ -656,20 +650,9 @@ dhcp6_create_addrlist(msgtype, roptinfo, optinfo, iaidaddr, subnet)
 							= DH6OPT_STCODE_NOADDRAVAIL;
 				}
 			} else {
-				if (msgtype == DH6_RENEW) {
-					/* returns with lifetimes of 0
-					 * [RFC3315, Section 18.2.3]
-					 */
-					lv->val_dhcp6addr.validlifetime = 0;
-					lv->val_dhcp6addr.preferlifetime = 0;
-					numaddr += 1;
-					dprintf(LOG_DEBUG, "%s" " %s address not appropriate", FNAME, 
-						in6addr2str(&lv->val_dhcp6addr.addr, 0));
-				} else {
-					lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
-					dprintf(LOG_DEBUG, "%s" " %s address not on link", FNAME, 
-						in6addr2str(&lv->val_dhcp6addr.addr, 0));
-				}
+				lv->val_dhcp6addr.status_code = DH6OPT_STCODE_NOTONLINK;
+				dprintf(LOG_DEBUG, "%s" " %s address not on link", FNAME, 
+					in6addr2str(&lv->val_dhcp6addr.addr, 0));
 			}
 		}
 		if (iaidaddr != NULL) {
@@ -865,7 +848,6 @@ dhcp6_create_prefixlist(roptinfo, optinfo, iaidaddr, subnet)
 	const struct dhcp6_list *req_list = &optinfo->addr_list;
 	struct dhcp6_listval *lv, *lv_next = NULL;
 
-	/* XXX: ToDo check hostdecl first */
 	roptinfo->iaidinfo.renewtime = subnet->linkscope.renew_time;
 	roptinfo->iaidinfo.rebindtime = subnet->linkscope.rebind_time;
 	roptinfo->type = optinfo->type;
@@ -876,7 +858,6 @@ dhcp6_create_prefixlist(roptinfo, optinfo, iaidaddr, subnet)
 			return (-1);
 		}
 		memset(v6addr, 0, sizeof(*v6addr));
-		/* XXX: ToDo: get new paras */
 		memcpy(&v6addr->val_dhcp6addr.addr, &prefix6->prefix.addr, 
 				sizeof(v6addr->val_dhcp6addr.addr));
 		v6addr->val_dhcp6addr.plen = prefix6->prefix.plen;

@@ -1,4 +1,4 @@
-/*	$Id: lease.c,v 1.13 2004/03/03 20:11:16 shirleyma Exp $	*/
+/*	$Id: lease.c 241182 2011-02-17 21:50:03Z $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -172,7 +172,6 @@ sync_leases (FILE *file, const char *original, char *template)
 struct dhcp6_timer *
 syncfile_timo(void *arg)
 {
-	/*XXX: ToDo*/
 	return NULL;
 }
 
@@ -295,7 +294,6 @@ lease_key_compare(const void *data, const void *key)
 	if (IN6_ARE_ADDR_EQUAL(&lease_address->addr, &addr6->addr)) {
 		/* prefix match */
 		if (addr6->type == IAPD) {
-			/* XXX: allow duplicated PD for the same DUID */
 		 	if (lease_address->plen == addr6->plen)
 	       			return MATCH;
 		/* ipv6 address match */

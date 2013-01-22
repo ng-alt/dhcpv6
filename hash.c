@@ -1,4 +1,4 @@
-/*	$Id: hash.c,v 1.8 2004/02/04 23:28:04 shemminger Exp $	*/
+/*	$Id: hash.c 241182 2011-02-17 21:50:03Z $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -170,4 +170,3 @@ int grow_hash(struct hash_table *hash_tbl) {
 	free(new_table);
 	return 0;
 }
-

@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.12 2005/03/10 00:49:25 shemminger Exp $	*/
+/*	$Id: client6_parse.y,v 1.1.1.1 2006/12/04 00:45:21 Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*
@@ -93,9 +93,11 @@ static void cleanup_cflist __P((struct cf_list *));
 
 %token INTERFACE IFNAME IPV6ADDR
 %token REQUEST SEND 
-%token RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS 
-%token INFO_ONLY TEMP_ADDR
-%token ADDRESS PREFIX IAID RENEW_TIME REBIND_TIME V_TIME P_TIME PREFIX_DELEGATION_INTERFACE
+%token RAPID_COMMIT PREFIX_DELEGATION DNS_SERVERS SIP_SERVERS NTP_SERVERS
+%token INFO_ONLY TEMP_ADDR SOLICIT_ONLY
+%token IANA_ONLY IAPD_ONLY DOMAIN_LIST
+%token ADDRESS PREFIX IAID RENEW_TIME REBIND_TIME V_TIME P_TIME PREFIX_DELEGATION_INTERFACE USER_CLASS
+%token XID_SOL XID_REQ DUID_TIME
 %token NUMBER SLASH EOS BCL ECL STRING INFINITY
 %token COMMA OPTION
 
@@ -179,6 +181,31 @@ declaration:
 			/* no value */
 			$$ = l;
 		}
+	|	SOLICIT_ONLY EOS
+		{
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DECL_SOLICIT_ONLY, NULL, NULL);
+			/* no value */
+			$$ = l;
+		}
+	|	IANA_ONLY EOS
+		{
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DECL_IANA_ONLY, NULL, NULL);
+			/* no value */
+			$$ = l;
+		}
+	|	IAPD_ONLY EOS
+		{
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DECL_IAPD_ONLY, NULL, NULL);
+			/* no value */
+			$$ = l;
+		}
+
 	|	REQUEST TEMP_ADDR EOS
 		{
 			struct cf_list *l;
@@ -245,6 +272,42 @@ declaration:
 			
 			$$ = l;
                 }
+	|	USER_CLASS STRING EOS
+		{
+			struct cf_list *l;
+			char *pp = (char*)malloc(strlen($2)+1);
+			strcpy(pp,$2);
+			MAKE_CFLIST(l, DECL_USER_CLASS, pp, NULL );
+			
+			$$ = l;
+		}
+	|	XID_SOL NUMBER EOS 
+		{	
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DECL_XID_SOL, NULL, NULL);
+			l->num = $2;
+		
+			$$ = l;
+		}
+	|	XID_REQ NUMBER EOS 
+		{	
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DECL_XID_REQ, NULL, NULL);
+			l->num = $2;
+		
+			$$ = l;
+		}
+	|	DUID_TIME NUMBER EOS 
+		{	
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DECL_DUID_TIME, NULL, NULL);
+			l->num = $2;
+		
+			$$ = l;
+		}
 	;
 
 dhcpoption:
@@ -269,6 +332,30 @@ dhcpoption:
 			struct cf_list *l;
 
 			MAKE_CFLIST(l, DHCPOPT_DNS, NULL, NULL);
+			/* currently no value */
+			$$ = l;
+		}
+	|	DOMAIN_LIST
+		{
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DHCPOPT_DOMAIN_LIST, NULL, NULL);
+			/* currently no value */
+			$$ = l;
+		}
+	|	SIP_SERVERS	
+		{
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DHCPOPT_SIP, NULL, NULL);
+			/* currently no value */
+			$$ = l;
+		}
+	|	NTP_SERVERS	
+		{
+			struct cf_list *l;
+
+			MAKE_CFLIST(l, DHCPOPT_NTP, NULL, NULL);
 			/* currently no value */
 			$$ = l;
 		}

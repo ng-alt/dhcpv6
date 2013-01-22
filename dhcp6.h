@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.21 2007/09/25 07:28:42 shirleyma Exp $	*/
+/*	$Id: dhcp6.h,v 1.1.1.1 2006/12/04 00:45:22 Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -88,8 +88,11 @@
 #define REC_TIMEOUT	2000
 #define REC_MAX_RC	8
 #define CNF_TIMEOUT	1000
-#define CNF_MAX_RD	10
+#define CNF_MAX_RD	10000
 #define CNF_MAX_RT	4000
+
+#define REQ_MAX_RC_NOTONLINK 3  //  added pling 10//07/2010
+#define SOL_MAX_RC_AUTODETECT   3   //  added pling 10/14/2010 
 
 #define DHCP6_DURATITION_INFINITE 0xffffffff
 #define DHCP6_ELAPSEDTIME_MAX	0xffff
@@ -103,9 +106,9 @@
 #endif
 #define MAXDN 100
 
-#define RESOLV_CONF_FILE "/etc/resolv.conf"
-#define RESOLV_CONF_BAK_FILE "/etc/resolv.conf.dhcpv6.bak"
-#define RESOLV_CONF_DHCPV6_FILE "/etc/resolv.conf.dhcpv6"
+#define RESOLV_CONF_FILE "/tmp/resolv.conf"
+#define RESOLV_CONF_BAK_FILE "/tmp/resolv.conf.dhcpv6.bak"
+#define RESOLV_CONF_DHCPV6_FILE "/tmp/resolv.conf.dhcpv6"
 char resolv_dhcpv6_file[254];
 
 #define RADVD_CONF_FILE "/etc/radvd.conf"
@@ -113,6 +116,11 @@ char resolv_dhcpv6_file[254];
 #define RADVD_CONF_DHCPV6_FILE "/etc/radvd.conf.dhcpv6"
 char radvd_dhcpv6_file[254];
 
+
+/*  added start pling 09/22/2009 */
+#define IANA_IAID		1
+#define IAPD_IAID		11
+/*  added end pling 09/22/2009 */
 
 typedef enum { IANA, IATA, IAPD} iatype_t;
 
@@ -215,20 +223,30 @@ struct relay_listval {
 
 TAILQ_HEAD (relay_list, relay_listval);
 
+/*  added start pling 09/07/2010 */
+/* Currnetly GUI allow 63 chars for user-class. 128 is more than enough */
+#define MAX_USER_CLASS_LEN		128
+/*  added end pling 09/07/2010 */
+
 struct dhcp6_optinfo {
 	struct duid clientID;	/* DUID */
 	struct duid serverID;	/* DUID */
 	u_int16_t elapsed_time;
+	char   user_class[MAX_USER_CLASS_LEN];	/*  added pling 09/07/2010 */
 	struct dhcp6_iaid_info iaidinfo;
-	u_int16_t ia_stcode;	/* status code associated with iaidinfo */
 	iatype_t type;
 	u_int8_t flags;	/* flags for rapid commit, info_only, temp address */
 	u_int8_t pref;		/* server preference */
 	struct in6_addr server_addr;
 	struct dhcp6_list addr_list; /* assigned ipv6 address list */
+	/*  added start pling 09/23/2009, to store server assigned prefix */
+	struct dhcp6_list prefix_list; /* assigned prefix list */
+	/*  added end pling 09/23/2009 */
 	struct dhcp6_list reqopt_list; /*  options in option request */
 	struct dhcp6_list stcode_list; /* status code */
 	struct dns_list dns_list; /* DNS server list */
+	struct dhcp6_list sip_list; /* SIP server list */
+	struct dhcp6_list ntp_list; /* NTP server list */
 	struct relay_list relay_list; /* list of the relays the message 
 					 passed through on to the server */
 };
@@ -294,6 +312,11 @@ struct dhcp6 {
 #define DH6OPT_IA_PD 25
 #define DH6OPT_IAPREFIX 26
 
+/*  added start pling 01/25/2010*/
+#define DH6OPT_SIP_SERVERS 22
+#define DH6OPT_NTP_SERVERS 31
+/*  added end pling 01/25/2010 */
+
 struct dhcp6opt {
 	u_int16_t dh6opt_type;
 	u_int16_t dh6opt_len;
@@ -304,7 +327,10 @@ struct dhcp6opt {
 struct dhcp6_duid_type1 {
 	u_int16_t dh6duid1_type;
 	u_int16_t dh6duid1_hwtype;
-	u_int32_t dh6duid1_time;
+	/*  removed start pling 04/26/2011 */
+	/* Netgear Router Spec requires DUID to be type DUID-LL, not DUID-LLT */
+	/* u_int32_t dh6duid1_time; */
+	/*  removed end pling 04/26/2011 */
 	/* link-layer address follows */
 } __attribute__ ((__packed__));
 

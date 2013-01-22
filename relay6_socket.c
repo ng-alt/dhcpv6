@@ -31,14 +31,9 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <net/if.h>
-#include <errno.h>
 
 #include "relay6_socket.h"
 #include "relay6_database.h"
-
-#ifndef IPV6_2292PKTINFO
-#define IPV6_2292PKTINFO IPV6_PKTINFO
-#endif
 
 void 
 init_socket()
@@ -84,7 +79,7 @@ get_recv_data()
 
 	for(cm = (struct cmsghdr *) CMSG_FIRSTHDR(&recvsock->msg); cm; 
 	    cm = (struct cmsghdr *) CMSG_NXTHDR(&recvsock->msg, cm)) {
-		if ((cm->cmsg_level == IPPROTO_IPV6) && (cm->cmsg_type == IPV6_2292PKTINFO)
+		if ((cm->cmsg_level == IPPROTO_IPV6) && (cm->cmsg_type == IPV6_PKTINFO)
 		    && (cm->cmsg_len == CMSG_LEN(sizeof(struct in6_pktinfo)))) {
 			pi = (struct in6_pktinfo *)(CMSG_DATA(cm));
 			dst.sin6_addr = pi->ipi6_addr;
@@ -163,31 +158,15 @@ int
 set_sock_opt() 
 {
     int on = 1;
-    int hop_limit;
     struct interface *device;
 	int flag; 
 	struct cifaces *iface;
 	struct ipv6_mreq  sock_opt;    
-
-	/* If the relay agent relays messages to the All_DHCP_Servers
-	 * multicast address or other multicast addresses, it sets the
-	 * Hop Limit field to 32.
-	 * [RFC3315 Section 20]
-	 */
-	hop_limit = 32;
-	if (setsockopt(sendsock->send_sock_desc, IPPROTO_IPV6,
-		IPV6_MULTICAST_HOPS, &hop_limit, sizeof(hop_limit)) < 0) {
-		TRACE(dump, "%s - %s, %s\n", dhcp6r_clock(), 
-				"Failed to set socket for IPV6_MULTICAST_HOPS",
-				strerror(errno));
-		return 0;
-	}
-
-	if (setsockopt(recvsock->recv_sock_desc, IPPROTO_IPV6, IPV6_2292PKTINFO,
+   
+	if (setsockopt(recvsock->recv_sock_desc, IPPROTO_IPV6, IPV6_PKTINFO, 
 	               &on, sizeof(on) ) < 0) {
-		TRACE(dump, "%s - %s, %s\n", dhcp6r_clock(), 
-		      "Failed to set socket for IPV6_2292PKTINFO",
-		      strerror(errno));
+		TRACE(dump, "%s - %s", dhcp6r_clock(), 
+		      "Failed to set socket for IPV6_PKTINFO\n");
 		return 0;
 	}
 
@@ -429,7 +408,7 @@ send_message()
 		cmsgp = (struct cmsghdr *) recvp;
 		cmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 		cmsgp->cmsg_level = IPPROTO_IPV6;
-		cmsgp->cmsg_type = IPV6_2292PKTINFO;
+		cmsgp->cmsg_type = IPV6_PKTINFO;
 		in6_pkt = (struct in6_pktinfo *) CMSG_DATA(cmsgp);
 		msg.msg_control = (void *) recvp;
 		msg.msg_controllen = recvmsglen;
@@ -450,21 +429,14 @@ send_message()
 		iface = get_interface(mesg->if_index);
 
 		if (iface != NULL) {
-			char *src_addr;
-
-			if (IN6_IS_ADDR_LINKLOCAL(&sin6.sin6_addr))
-				src_addr = iface->link_local;
-			else
-				src_addr = iface->ipv6addr->gaddr;
-
-			if (inet_pton(AF_INET6, src_addr,
+			if (inet_pton(AF_INET6, iface->ipv6addr->gaddr, 
 			              &in6_pkt->ipi6_addr) <= 0) {  /* source address */
 				TRACE(dump, "%s - %s", dhcp6r_clock(),
 				      "inet_pton failed in send_message()\n");
 				exit(1);
 			}
 			TRACE(dump, "%s - SOURCE ADDRESS: %s\n", dhcp6r_clock(), 
-			      src_addr);
+			      iface->ipv6addr->gaddr);
         }
 		else {
 			/* the kernel will choose the source address */
@@ -530,7 +502,7 @@ send_message()
 			cmsgp = (struct cmsghdr *) recvp;
 			cmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 			cmsgp->cmsg_level = IPPROTO_IPV6;
-			cmsgp->cmsg_type = IPV6_2292PKTINFO;
+			cmsgp->cmsg_type = IPV6_PKTINFO;
 			in6_pkt = (struct in6_pktinfo *) CMSG_DATA(cmsgp);
 			msg.msg_control = (void *) recvp;
 			msg.msg_controllen = recvmsglen;
@@ -600,7 +572,7 @@ send_message()
 				cmsgp = (struct cmsghdr *) recvp;
 				cmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 				cmsgp->cmsg_level = IPPROTO_IPV6;
-				cmsgp->cmsg_type = IPV6_2292PKTINFO;
+				cmsgp->cmsg_type = IPV6_PKTINFO;
 				in6_pkt = (struct in6_pktinfo *) CMSG_DATA(cmsgp);
 				msg.msg_control = (void *) recvp;
 				msg.msg_controllen = recvmsglen;
@@ -679,7 +651,7 @@ send_message()
 			cmsgp = (struct cmsghdr *) recvp;
 			cmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 			cmsgp->cmsg_level = IPPROTO_IPV6;
-			cmsgp->cmsg_type = IPV6_2292PKTINFO;
+			cmsgp->cmsg_type = IPV6_PKTINFO;
 			in6_pkt = (struct in6_pktinfo *) CMSG_DATA(cmsgp);
 			msg.msg_control = (void *) recvp;
 			msg.msg_controllen = recvmsglen;
@@ -768,7 +740,7 @@ send_message()
 				cmsgp = (struct cmsghdr *) recvp;
 				cmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 				cmsgp->cmsg_level = IPPROTO_IPV6;
-				cmsgp->cmsg_type = IPV6_2292PKTINFO;
+				cmsgp->cmsg_type = IPV6_PKTINFO;
 				in6_pkt = (struct in6_pktinfo *) CMSG_DATA(cmsgp);
 				msg.msg_control = (void *) recvp;
 				msg.msg_controllen = recvmsglen;

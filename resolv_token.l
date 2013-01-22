@@ -1,4 +1,4 @@
-/*	$Id: resolv_token.l,v 1.7 2004/04/06 21:18:30 shirleyma Exp $	*/
+/*	$Id: resolv_token.l,v 1.1.1.1 2006/12/04 00:45:33 Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -302,6 +302,8 @@ update_resolver(struct dns_list *dns_list)
 	}
 	fclose(dhcp6_resolv_file);
 	close(newfd);
+	
+	newfd=0;
 	if (!lstat(RESOLV_CONF_FILE, &buf)) {
 		if ((lstat(RESOLV_CONF_BAK_FILE, &buf) < 0) && (errno == ENOENT)) {
 			if (link(RESOLV_CONF_FILE, RESOLV_CONF_BAK_FILE)) {
@@ -315,6 +317,12 @@ update_resolver(struct dns_list *dns_list)
 		dprintf(LOG_ERR, "%s" " rename failed for resolv.conf file", FNAME);
 		return(-1);
 	}
+
+    /*  added start pling 09/30/2009 */
+    /* Signal dnsmasq to reload resolv.conf */
+    system("killall -SIGHUP dnsmasq");
+    /*  added end pling 09/30/2009 */
+
 	return (0);
 }
 
@@ -324,4 +332,5 @@ yywrap()
 	update_resolver(new_dns_list);
 	fclose(yyin);
 	close(oldfd);
+	return 1;
 }

@@ -1,4 +1,4 @@
-/*	$Id: queue.h,v 1.1 2003/01/16 15:41:11 root Exp $	*/
+/*	$Id: queue.h 241182 2011-02-17 21:50:03Z $	*/
 /*	from FreeBSD: src/sys/sys/queue.h,v 1.54 2002/08/05 05:18:43 alfred Exp */
  
 /* Copyright (c) 1991, 1993
@@ -33,7 +33,7 @@
  * SUCH DAMAGE.
  *
  *	@(#)queue.h	8.5 (Berkeley) 8/20/94
- * $FreeBSD: src/sys/sys/queue.h,v 1.54 2002/08/05 05:18:43 alfred Exp $
+ * $FreeBSD: src/sys/sys/queue.h,v 1.54 2002/08/05 05:18:43 $
  */
 
 #ifndef _SYS_QUEUE_H_
@@ -485,10 +485,6 @@ struct {								\
 
 #ifdef _KERNEL
 
-/*
- * XXX insque() and remque() are an old way of handling certain queues.
- * They bogusly assumes that all queue heads look alike.
- */
 
 struct quehead {
 	struct quehead *qh_link;

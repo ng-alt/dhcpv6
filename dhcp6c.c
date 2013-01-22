@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.39 2007/09/25 06:57:35 shirleyma Exp $	*/
+/*	$Id: dhcp6c.c,v 1.1.1.1 2006/12/04 00:45:23 Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -103,7 +103,7 @@ static	char leasename[100];
 #define CLIENT6_INFO_REQ	0x10
 
 int insock;	/* inbound udp port */
-int outsock;	/* outbound udp port */
+//int outsock;	/* outbound udp port */     //  removed pling 08/15/2009
 int nlsock;	
 
 extern char *raproc_file;
@@ -147,13 +147,67 @@ extern int client6_ifaddrconf __P((ifaddrconf_cmd_t, struct dhcp6_addr *));
 extern struct dhcp6_timer *syncfile_timo __P((void *));
 extern int radvd_parse (struct dhcp6_iaidaddr *, int);
 
-#define DHCP6C_CONF "/etc/dhcp6c.conf"
+#define DHCP6C_CONF "/tmp/dhcp6c.conf"
+#define DHCP6C_USER_CONF "/tmp/dhcp6c_user.conf"    //  added pling 09/27/2010
 #define DHCP6C_PIDFILE "/var/run/dhcpv6/dhcp6c.pid"
-#define DUID_FILE "/var/lib/dhcpv6/dhcp6c_duid"
+#define DUID_FILE "/tmp/dhcp6c_duid"
 
 static int pid;
 char client6_lease_temp[256];
 struct dhcp6_list request_list;
+struct dhcp6_list request_prefix_list;  //  added pling 09/24/2009
+
+/*  added start pling 10/07/2010 */
+/* For testing purpose */
+u_int32_t xid_solicit = 0;
+u_int32_t xid_request = 0;
+/*  added end pling 10/07/2010 */
+
+/*  added start pling 09/07/2010 */
+/* User secondary conf file to store info such as user-class */
+int parse_user_file(char *user_file)
+{
+    FILE *fp = NULL;
+    char line[1024];
+    char user_class_key[] = "user_class";
+    char *newline1;
+    char *newline2;
+
+    /* Initial client user class to empty string */
+    set_dhcpc_user_class("");
+
+    fp = fopen(user_file, "r");
+    if (fp != NULL)
+    {
+        while (!feof(fp))
+        {
+            fgets(line, sizeof(line), fp);
+
+            /* Remove trailing newline characters, if any */
+            newline1 = strstr(line, "\r");
+            newline2 = strstr(line, "\n");
+            if (newline1)
+                *newline1 = '\0';
+            if (newline2)
+                *newline2 = '\0';
+
+            /* Extract the key */
+            if (strncmp(line, user_class_key, strlen(user_class_key)) == 0)
+                set_dhcpc_user_class(&line[strlen(user_class_key)+1]);
+        }
+        fclose(fp);
+    }
+    return 0;
+}
+/*  added end pling 09/07/2010 */
+
+/*  added start pling 09/23/2009 */
+/* Return the interface where dhcp is run on */
+char* get_dhcpc_dev_name(void)
+{
+    return device;
+}
+/*  added end pling 09/23/2009 */
 
 int
 main(argc, argv)
@@ -162,6 +216,7 @@ main(argc, argv)
 {
 	int ch;
 	char *progname, *conffile = DHCP6C_CONF;
+    char *user_file = DHCP6C_USER_CONF;
 	FILE *pidfp;
 	char *addr;
 
@@ -174,11 +229,28 @@ main(argc, argv)
 		progname++;
 
 	TAILQ_INIT(&request_list);
-	while ((ch = getopt(argc, argv, "c:r:R:P:dDfI")) != -1) {
+	TAILQ_INIT(&request_prefix_list);	//  added pling 09/23/2009
+ 
+    /*  modified start pling 09/17/2010 */
+    /* Since 'user class' string may contain any printable char.
+     * The current dhcp6s config file parsing (using yyparse)
+     * can't handle this properly.
+     * So we put user-class string in a separate file,
+     *  specified using '-u' option.
+     */
+	//while ((ch = getopt(argc, argv, "c:r:R:P:dDfI")) != -1) {
+	while ((ch = getopt(argc, argv, "c:u:r:R:P:dDfI")) != -1) {
+    /*  modified end pling 09/17/2010 */
 		switch (ch) {
 		case 'c':
 			conffile = optarg;
 			break;
+        /*  added start pling 09/17/2010 */
+        /* Another config file to store info, such as user-class, etc */
+        case 'u':
+            user_file = optarg;
+            break;
+        /*  added end pling 09/17/2010 */
 		case 'P':
 			client6_request_flag |= CLIENT6_REQUEST_ADDR;
 			for (addr = strtok(optarg, " "); addr; addr = strtok(NULL, " ")) {
@@ -286,14 +358,26 @@ main(argc, argv)
 		fprintf(pidfp, "%d\n", pid);
 		fclose(pidfp);
 	}
-
+ 
 	ifinit(device);
+
+    /*  added start pling 09/17/2010 */
+    /* Parse the second conf file, before reading original config file */
+    parse_user_file(user_file);
+    /*  added end pling 09/17/2010 */
 
 	if ((cfparse(conffile)) != 0) {
 		dprintf(LOG_ERR, "%s" "failed to parse configuration file",
 			FNAME);
 		exit(1);
 	}
+
+    /*  added start pling 01/25/2010 */
+    /* Clear SIP and NTP servers params upon restart */
+    system("nvram set ipv6_sip_servers=\"\"");
+    system("nvram set ipv6_ntp_servers=\"\"");
+    /*  added end pling 01/25/2010 */
+
 	client6_init(device);
 	client6_ifinit(device);
 	client6_mainloop();
@@ -391,6 +475,8 @@ client6_init(device)
 			FNAME, gai_strerror(error));
 		exit(1);
 	}
+    /*  removed start pling 08/15/2009 */
+#if 0
 	outsock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if (outsock < 0) {
 		dprintf(LOG_ERR, "%s" "socket(outbound): %s",
@@ -410,6 +496,8 @@ client6_init(device)
 			FNAME, strerror(errno));
 		exit(1);
 	}
+#endif
+    /*  removed end pling 08/15/2009 */
 	freeaddrinfo(res);
 	/* open a socket to watch the off-on link for confirm messages */
 	if ((nlsock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -437,7 +525,7 @@ client6_init(device)
 			FNAME, device);
 		exit(1);
 	}
-	ifp->outsock = outsock;
+	//ifp->outsock = outsock;       //  removed pling 08/15/2009 
 
 	if (signal(SIGHUP, client6_signal) == SIG_ERR) {
 		dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
@@ -468,7 +556,11 @@ client6_ifinit(char *device)
 	if (num_device == 0) {
 		if ((num_device = create_iaid(&iaidtab[0], num_device)) < 0)
 			exit(1);
-		ifp->iaidinfo.iaid = get_iaid(ifp->ifname, &iaidtab[0], num_device);
+        /*  modified start pling 08/20/2009 */
+        /* Per Netgear spec, use 1 as the IAID for IA_NA */
+		//ifp->iaidinfo.iaid = get_iaid(ifp->ifname, &iaidtab[0], num_device);
+		ifp->iaidinfo.iaid = 1; //get_iaid(ifp->ifname, &iaidtab[0], num_device);
+        /*  modified end pling 08/20/2009 */
 		if (ifp->iaidinfo.iaid == 0) {
 			dprintf(LOG_DEBUG, "%s" 
 				"interface %s iaid failed to be created", 
@@ -579,7 +671,6 @@ free_resources(struct dhcp6_if *ifp)
 		ev_next = TAILQ_NEXT(ev, link);
 		dhcp6_remove_event(ev);
 	}
-	/* XXX: check the last dhcpv6 client daemon to restore the original file */
 	{
 		/* restore /etc/radv.conf.bak back to /etc/radvd.conf */
 		if (!lstat(RADVD_CONF_BAK_FILE, &buf))
@@ -598,16 +689,37 @@ process_signals()
 {
 	if ((sig_flags & SIGF_TERM)) {
 		dprintf(LOG_INFO, FNAME "exiting");
+
+        /*  added start pling 09/10/2010 */
+        /* Release IANA/IAPD before exiting */
+        create_request_list(0);
+        client6_send_newstate(dhcp6_if, DHCP6S_RELEASE);
+        /*  added end pling 09/10/2010 */
+
 		free_resources(dhcp6_if);
 		unlink(DHCP6C_PIDFILE);
 		exit(0);
 	}
 	if ((sig_flags & SIGF_HUP)) {
 		dprintf(LOG_INFO, FNAME "restarting");
+
+        /*  added start pling 09/10/2010 */
+        /* Release IANA/IAPD before restarting */
+        create_request_list(0);
+        client6_send_newstate(dhcp6_if, DHCP6S_RELEASE);
+        /*  added end pling 09/10/2010 */
+
 		free_resources(dhcp6_if);
 		client6_ifinit(device);
 	}
 	if ((sig_flags & SIGF_CLEAN)) {
+
+        /*  added start pling 09/10/2010 */
+        /* Release IANA/IAPD before exiting */
+        create_request_list(0);
+        client6_send_newstate(dhcp6_if, DHCP6S_RELEASE);
+        /*  added end pling 09/10/2010 */
+
 		free_resources(dhcp6_if);
 		exit(0);
 	}
@@ -660,9 +772,24 @@ client6_timo(arg)
 	if ((ev->max_retrans_cnt && ev->timeouts >= ev->max_retrans_cnt) ||
 	    (ev->max_retrans_dur && (now.tv_sec - ev->start_time.tv_sec) 
 	     >= ev->max_retrans_dur)) {
-		/* XXX: check up the duration time for renew & rebind */
 		dprintf(LOG_INFO, "%s" "no responses were received", FNAME);
-		dhcp6_remove_event(ev);	/* XXX: should free event data? */
+
+        /*  added start pling 10/07/2010 */
+        /* WNR3500L TD170, after multiple re-transmit of REQUEST 
+         * message, if we did not receive a valid response, 
+         * go back to SOLICIT state */
+        if (ev->state == DHCP6S_REQUEST) {
+            ev->timeouts = 0;
+            free_servers(ifp);
+            ev->state = DHCP6S_SOLICIT;
+            dhcp6_set_timeoparam(ev);
+            client6_send(ev);
+            dhcp6_reset_timer(ev);
+            return (ev->timer);
+        }
+        /*  added end pling 10/07/2010 */
+
+		dhcp6_remove_event(ev);
 		return (NULL);
 	}
 
@@ -684,9 +811,12 @@ client6_timo(arg)
 		 *    and information-only, conmand line -I are not set.
 		 */
 		if ((ifp->send_flags & DHCIFF_INFO_ONLY) || 
-		    (client6_request_flag & CLIENT6_INFO_REQ) ||
-		    (!(ifp->ra_flag & IF_RA_MANAGED) && 
-		     (ifp->ra_flag & IF_RA_OTHERCONF)))
+			/*  modified start pling 09/15/2011 */
+			/* Ignore the "M" and "O" flags in RA. Just send DHCP solicit */
+			(client6_request_flag & CLIENT6_INFO_REQ) /* ||
+			(!(ifp->ra_flag & IF_RA_MANAGED) && 
+			 (ifp->ra_flag & IF_RA_OTHERCONF))*/ )
+			/*  modified end pling 09/15/2011 */
 			ev->state = DHCP6S_INFOREQ;
 		else if (client6_request_flag & CLIENT6_RELEASE_ADDR) 
 			/* do release */
@@ -706,6 +836,18 @@ client6_timo(arg)
 		} else
 			ev->state = DHCP6S_SOLICIT;
 		dhcp6_set_timeoparam(ev);
+
+        /*  added start pling 10/14/2010 */
+        /* In auto-detect mode, we only send the SOLICIT messages
+         * 3 times.
+         */
+        if (ifp->send_flags & DHCIFF_SOLICIT_ONLY) {
+            ev->max_retrans_cnt = SOL_MAX_RC_AUTODETECT;
+			dprintf(LOG_ERR, "%s" "Set SOLICIT message to %d times", 
+                    FNAME, SOL_MAX_RC_AUTODETECT);
+        }
+        /*  added end pling 10/14/2010 */
+
 	case DHCP6S_SOLICIT:
 		if (ifp->servers) {
 			ifp->current_server = select_server(ifp);
@@ -713,7 +855,7 @@ client6_timo(arg)
 				/* this should not happen! */
 				dprintf(LOG_ERR, "%s" "can't find a server",
 					FNAME);
-				exit(1); /* XXX */
+				exit(1);
 			}
 			/* if get the address assginment break */
 			if (!TAILQ_EMPTY(&client6_iaidaddr.lease_list)) {
@@ -724,10 +866,30 @@ client6_timo(arg)
 			ev->state = DHCP6S_REQUEST;
 			dhcp6_set_timeoparam(ev);
 		}
-	case DHCP6S_INFOREQ:
+        /*  added start pling 10/14/2010 */
+        /* In auto-detect mode, we need to send two SOLICIT
+         * messages, one with IANA+IAPD, one with IAPD only.
+         */
+        if (ifp->send_flags & DHCIFF_SOLICIT_ONLY) {
+            client6_send(ev);
+            ifp->send_flags |= DHCIFF_PREFIX_DELEGATION;
+            client6_send(ev);
+            ifp->send_flags &=~ DHCIFF_PREFIX_DELEGATION;
+            break;  /* don't fall through */
+        }
+        /*  added end pling 10/14/2010 */
+	//case DHCP6S_INFOREQ:  //  removed pling 10/05/2010 */
 	case DHCP6S_REQUEST:
 		client6_send(ev);
 		break;
+
+    /*  added start pling 10/05/2010 */
+    /* Use different function to send INFO-REQ */
+    case DHCP6S_INFOREQ:
+        client6_send_info_req(ev);
+        break;
+    /*  added end pling 10/05/2010 */
+
 	case DHCP6S_RELEASE:
 	case DHCP6S_DECLINE:
 	case DHCP6S_CONFIRM:
@@ -756,11 +918,6 @@ select_server(ifp)
 {
 	struct dhcp6_serverinfo *s;
 
-	/*
-	 * pick the best server according to dhcpv6-26 Section 17.1.3
-	 * XXX: we currently just choose the one that is active and has the
-	 * highest preference.
-	 */
 	for (s = ifp->servers; s; s = s->next) {
 		if (s->active) {
 			dprintf(LOG_DEBUG, "%s" "picked a server (ID: %s)",
@@ -819,21 +976,21 @@ client6_send(ev)
 	case DHCP6S_REQUEST:
 		if (ifp->current_server == NULL) {
 			dprintf(LOG_ERR, "%s" "assumption failure", FNAME);
-			exit(1); /* XXX */
+			exit(1);
 		}
 		dh6->dh6_msgtype = DH6_REQUEST;
 		break;
 	case DHCP6S_RENEW:
 		if (ifp->current_server == NULL) {
 			dprintf(LOG_ERR, "%s" "assumption failure", FNAME);
-			exit(1); /* XXX */
+			exit(1);
 		}
 		dh6->dh6_msgtype = DH6_RENEW;
 		break;
 	case DHCP6S_DECLINE:
 		if (ifp->current_server == NULL) {
 			dprintf(LOG_ERR, "%s" "assumption failure", FNAME);
-			exit(1); /* XXX */
+			exit(1);
 		}
 		dh6->dh6_msgtype = DH6_DECLINE;
 		break;
@@ -851,7 +1008,7 @@ client6_send(ev)
 		break;
 	default:
 		dprintf(LOG_ERR, "%s" "unexpected state %d", FNAME, ev->state);
-		exit(1);	/* XXX */
+		exit(1);
 	}
 	/*
 	 * construct options
@@ -869,16 +1026,32 @@ client6_send(ev)
 		 * retransmissions of a message. [dhcpv6-26 15.1]
 		 */
 		ev->xid = random() & DH6_XIDMASK;
+
+        /*  added start pling 10/07/2010 */
+        /* For Testing purposes !!! */
+        if (ev->state == DHCP6S_SOLICIT && xid_solicit) {
+            dprintf(LOG_DEBUG, "%s"
+                "**TESTING** Use user-defined xid_sol %lu", FNAME, xid_solicit);
+            ev->xid = xid_solicit & DH6_XIDMASK;
+        } else if (ev->state == DHCP6S_REQUEST && xid_request) {
+            dprintf(LOG_DEBUG, "%s"
+                "**TESTING** Use user-defined xid_req %lu", FNAME, xid_request);
+            ev->xid = xid_request & DH6_XIDMASK;
+        }
+        /*  added end pling 10/07/2010 */
+
 		dprintf(LOG_DEBUG, "%s" "ifp %p event %p a new XID (%x) is generated",
 			FNAME, ifp, ev, ev->xid);
 	} else {
 		unsigned int etime;
 		gettimeofday(&now, NULL);
 		timeval_sub(&now, &(ev->start_time), &duration);
+		optinfo.elapsed_time = 
 		etime = (duration.tv_sec) * 100 + (duration.tv_usec) / 10000;
 		if (etime > DHCP6_ELAPSEDTIME_MAX)
-			etime = DHCP6_ELAPSEDTIME_MAX;
-		optinfo.elapsed_time = htons((uint16_t)etime);
+			optinfo.elapsed_time = DHCP6_ELAPSEDTIME_MAX;
+		else
+			optinfo.elapsed_time = etime;
 	}
 	dh6->dh6_xid &= ~ntohl(DH6_XIDMASK);
 	dh6->dh6_xid |= htonl(ev->xid);
@@ -914,7 +1087,18 @@ client6_send(ev)
 		goto end;
 	}
 
+	/*  added start pling 09/07/2010 */
+	/* User-class */
+	strcpy(optinfo.user_class, ifp->user_class);
+	/*  added end pling 09/07/2010 */
+
 	/* option request options */
+    /*  added start pling 10/01/2010 */
+    /* DHCPv6 readylogo: DHCP confirm message should not
+     *  have request for DNS/Domain list.
+     */
+    if (ev->state != DHCP6S_CONFIRM)
+    /*  added end pling 10/01/2010 */
 	if (dhcp6_copy_list(&optinfo.reqopt_list, &ifp->reqopt_list)) {
 		dprintf(LOG_ERR, "%s" "failed to copy requested options",
 		    FNAME);
@@ -942,11 +1126,32 @@ client6_send(ev)
 			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
 				goto end;
 		}
+        /*  added start pling 10/14/2010 */
+        /* In auto-detect mode, we need to send two SOLICIT
+         * messages. 2nd one has IAPD only.
+         */
+        if ((ifp->send_flags & DHCIFF_SOLICIT_ONLY) &&
+            (ifp->send_flags & DHCIFF_PREFIX_DELEGATION)) {
+            optinfo.type = IAPD;
+        }
+        /*  added end pling 10/14/2010 */
 		break;
 	case DHCP6S_REQUEST:
 		if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
+            /*  modified start pling 08/20/2009 */
+            /* Should copy 'current_server's addr info */
+#if 0
 			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
 					sizeof(optinfo.iaidinfo));
+#endif
+			memcpy(&optinfo.iaidinfo, &(ifp->current_server->optinfo.iaidinfo),
+                    sizeof(optinfo.iaidinfo));
+			if (dhcp6_copy_list(&optinfo.addr_list, &(ifp->current_server->optinfo.addr_list)))
+                goto end;
+			if (dhcp6_copy_list(&optinfo.prefix_list, 
+						&(ifp->current_server->optinfo.prefix_list)))
+                goto end;
+            /*  modified end pling 08/20/2009 */
 			dprintf(LOG_DEBUG, "%s IAID is %u", FNAME, optinfo.iaidinfo.iaid);
 			if (ifp->send_flags & DHCIFF_TEMP_ADDRS) 
 				optinfo.type = IATA;
@@ -969,7 +1174,6 @@ client6_send(ev)
 			optinfo.iaidinfo.rebindtime = 0;
 		}
 		if (!TAILQ_EMPTY(&request_list)) {
-			/* XXX: ToDo: seperate to prefix list and address list */
 			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
 				goto end;
 		} else {
@@ -977,8 +1181,14 @@ client6_send(ev)
 				dprintf(LOG_INFO, "release empty address list");
 				exit(1);
 			}
-			/* XXX: allow the other emtpy list ?? */
 		}
+        /*  added start pling 09/24/2009 */
+        /* PUt the IAPD prefix in the DHCP packet */
+		if (!TAILQ_EMPTY(&request_prefix_list)) {
+			if (dhcp6_copy_list(&optinfo.prefix_list, &request_prefix_list))
+				goto end;
+        }
+        /*  added end pling 09/24/2009 */
 		if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
 			if (dhcp6_update_iaidaddr(&optinfo, ADDR_REMOVE)) {
 				dprintf(LOG_INFO, "client release failed");
@@ -1036,7 +1246,11 @@ client6_send(ev)
 	dst.sin6_scope_id = ifp->linkid;
 	dprintf(LOG_DEBUG, "send dst if %s addr is %s scope id is %d", 
 		ifp->ifname, addr2str((struct sockaddr *)&dst), ifp->linkid);
-	if (sendto(ifp->outsock, buf, len, MSG_DONTROUTE, (struct sockaddr *)&dst,
+    /*  modified start pling 08/15/2009 */
+    /* why use 'outsock' here? */
+	//if (sendto(ifp->outsock, buf, len, MSG_DONTROUTE, (struct sockaddr *)&dst,
+	if (sendto(insock, buf, len, MSG_DONTROUTE, (struct sockaddr *)&dst,
+    /*  modified end pling 08/15/2009 */
 	    sizeof(dst)) == -1) {
 		dprintf(LOG_ERR, FNAME "transmit failed: %s", strerror(errno));
 		goto end;
@@ -1051,6 +1265,149 @@ client6_send(ev)
 	return;
 }
 	
+/*  added end pling 01/25/2010 */
+void
+client6_send_info_req(ev)
+	struct dhcp6_event *ev;
+{
+	struct dhcp6_if *ifp;
+	char buf[BUFSIZ];
+	struct sockaddr_in6 dst;
+	struct dhcp6 *dh6;
+	struct dhcp6_optinfo optinfo;
+	ssize_t optlen, len;
+	struct timeval duration, now;
+
+	ifp = ev->ifp;
+
+	dh6 = (struct dhcp6 *)buf;
+	memset(dh6, 0, sizeof(*dh6));
+
+	dh6->dh6_msgtype = DH6_INFORM_REQ;
+
+	/*
+	 * construct options
+	 */
+	dhcp6_init_options(&optinfo);
+	if (ev->timeouts == 0) {
+		gettimeofday(&ev->start_time, NULL);
+		optinfo.elapsed_time = 0;
+		/*
+		 * A client SHOULD generate a random number that cannot easily
+		 * be guessed or predicted to use as the transaction ID for
+		 * each new message it sends.
+		 *
+		 * A client MUST leave the transaction-ID unchanged in
+		 * retransmissions of a message. [dhcpv6-26 15.1]
+		 */
+		ev->xid = random() & DH6_XIDMASK;
+		dprintf(LOG_DEBUG, "%s" "ifp %p event %p a new XID (%x) is generated",
+			FNAME, ifp, ev, ev->xid);
+	} else {
+		unsigned int etime;
+		gettimeofday(&now, NULL);
+		timeval_sub(&now, &(ev->start_time), &duration);
+		optinfo.elapsed_time = 
+		etime = (duration.tv_sec) * 100 + (duration.tv_usec) / 10000;
+		if (etime > DHCP6_ELAPSEDTIME_MAX)
+			optinfo.elapsed_time = DHCP6_ELAPSEDTIME_MAX;
+		else
+			optinfo.elapsed_time = etime;
+	}
+	dh6->dh6_xid &= ~ntohl(DH6_XIDMASK);
+	dh6->dh6_xid |= htonl(ev->xid);
+	len = sizeof(*dh6);
+
+	/* client ID */
+	if (duidcpy(&optinfo.clientID, &client_duid)) {
+		dprintf(LOG_ERR, "%s" "failed to copy client ID", FNAME);
+		goto end;
+	}
+
+	/*  added start pling 09/07/2010 */
+	/* User-class */
+	strcpy(optinfo.user_class, ifp->user_class);
+	/*  added end pling 09/07/2010 */
+
+	/* option request options */
+	if (dhcp6_copy_list(&optinfo.reqopt_list, &ifp->reqopt_list)) {
+		dprintf(LOG_ERR, "%s" "failed to copy requested options",
+		    FNAME);
+		goto end;
+	}
+	
+	/* set options in the message */
+	if ((optlen = dhcp6_set_options((struct dhcp6opt *)(dh6 + 1),
+					(struct dhcp6opt *)(buf + sizeof(buf)),
+					&optinfo)) < 0) {
+		dprintf(LOG_INFO, "%s" "failed to construct options", FNAME);
+		goto end;
+	}
+	len += optlen;
+
+    /* Special hack to add SIP server and NTP server options */
+    buf[len-3] += 4;
+    buf[len++] = 0;
+    buf[len++] = DH6OPT_SIP_SERVERS;
+    buf[len++] = 0;
+    buf[len++] = DH6OPT_NTP_SERVERS;
+
+    /*
+	 * Unless otherwise specified, a client sends DHCP messages to the
+	 * All_DHCP_Relay_Agents_and_Servers or the DHCP_Anycast address.
+	 * [dhcpv6-26 Section 13.]
+	 * Our current implementation always follows the case.
+	 */
+	switch(ev->state) {
+	case DHCP6S_REQUEST:
+	case DHCP6S_RENEW:
+	case DHCP6S_DECLINE:
+	case DHCP6S_RELEASE:
+		if (ifp->current_server && 
+		    !IN6_IS_ADDR_UNSPECIFIED(&ifp->current_server->server_addr)) {
+			struct addrinfo hints, *res;
+			int error;
+			memset(&hints, 0, sizeof(hints));
+			hints.ai_family = PF_INET6;
+			hints.ai_socktype = SOCK_DGRAM;
+			hints.ai_protocol = IPPROTO_UDP;
+			error = getaddrinfo(in6addr2str(&ifp->current_server->server_addr,0),
+				DH6PORT_UPSTREAM, &hints, &res);
+			if (error) {
+				dprintf(LOG_ERR, "%s" "getaddrinfo: %s",
+					FNAME, gai_strerror(error));
+				exit(1);
+			}
+			memcpy(&dst, res->ai_addr, res->ai_addrlen);
+			break;
+		}
+	default:
+		dst = *sa6_allagent;
+		break;
+	}
+	dst.sin6_scope_id = ifp->linkid;
+	dprintf(LOG_DEBUG, "send dst if %s addr is %s scope id is %d", 
+		ifp->ifname, addr2str((struct sockaddr *)&dst), ifp->linkid);
+    /*  modified start pling 08/15/2009 */
+    /* why use 'outsock' here? */
+	//if (sendto(ifp->outsock, buf, len, MSG_DONTROUTE, (struct sockaddr *)&dst,
+	if (sendto(insock, buf, len, MSG_DONTROUTE, (struct sockaddr *)&dst,
+    /*  modified end pling 08/15/2009 */
+	    sizeof(dst)) == -1) {
+		dprintf(LOG_ERR, FNAME "transmit failed: %s", strerror(errno));
+		goto end;
+	}
+
+	dprintf(LOG_DEBUG, "%s" "send %s to %s", FNAME,
+		dhcp6msgstr(dh6->dh6_msgtype),
+		addr2str((struct sockaddr *)&dst));
+
+  end:
+	dhcp6_clear_options(&optinfo);
+	return;
+}
+/*  added end pling 01/25/2010 */
+
 static void
 client6_recv()
 {
@@ -1114,7 +1471,21 @@ client6_recv()
 	dhcp6_init_options(&optinfo);
 	p = (struct dhcp6opt *)(dh6 + 1);
 	ep = (struct dhcp6opt *)((char *)dh6 + len);
-	if (dhcp6_get_options(p, ep, &optinfo) < 0) {
+
+    /*  modified start pling 10/04/2010 */
+    /* Pass some extra arguments to 'dhcp6_get_options'
+     * to better determine whether this packet is ok or not.
+     */
+    struct dhcp6_event *ev;
+    ev = find_event_withid(ifp, ntohl(dh6->dh6_xid) & DH6_XIDMASK);
+    if (ev == NULL) {
+        dprintf(LOG_INFO, "%s" "XID mismatch", FNAME);
+        return;
+    }
+    if (dhcp6_get_options(p, ep, &optinfo, dh6->dh6_msgtype, 
+                ev->state, ifp->send_flags) < 0) {
+	//if (dhcp6_get_options(p, ep, &optinfo) < 0) {
+    /*  modified end pling 10/04/2010 */
 		dprintf(LOG_INFO, "%s" "failed to parse options", FNAME);
 #ifdef TEST
 		return;
@@ -1203,10 +1574,40 @@ client6_recvadvert(ifp, dh6, len, optinfo0)
 		return -1;
 	}
 
+    /*  added start pling 08/26/2009 */
+    /* In Ipv6 auto mode, write result to a file */
+	if (ifp->send_flags & DHCIFF_SOLICIT_ONLY) {
+        FILE *fp = NULL;
+        /*  modified start pling 10/14/2010 */
+        /* For auto-detect mode, if recv ADVERTISE mesg with 
+         * IAPD-only, write to different file.
+         */
+        if (optinfo0->type == IAPD)
+            fp = fopen("/tmp/wan_dhcp6c_iapd", "w");
+        else
+            fp = fopen("/tmp/wan_dhcp6c", "w");
+        /*  modified end pling 10/14/2010 */
+        if (fp) {
+            fprintf(fp, "1");
+            fclose(fp);
+        }
+        return 0;
+    }
+    /*  added end pling 08/26/2009 */
+
 	newserver = allocate_newserver(ifp, optinfo0);
 	if (newserver == NULL)
 		return (-1);
 		
+    /*  added start pling 08/21/2009 */
+    /* for some reason, 'allocate_newserver' did not copy
+     * the IAID info. So we do it here...
+     */
+    memcpy(&(newserver->optinfo.iaidinfo),
+           &(optinfo0->iaidinfo),
+           sizeof(struct dhcp6_iaid_info));
+    /*  added end pling 08/21/2009 */
+
 	/* if the server has an extremely high preference, just use it. */
 	if (newserver->pref == DH6OPT_PREF_MAX) {
 		ev->timeouts = 0;
@@ -1219,12 +1620,6 @@ client6_recvadvert(ifp, dh6, len, optinfo0)
 	} else if (ifp->servers->next == NULL) {
 		struct timeval *rest, elapsed, tv_rt, tv_irt, timo;
 
-		/*
-		 * If this is the first advertise, adjust the timer so that
-		 * the client can collect other servers until IRT elapses.
-		 * XXX: we did not want to do such "low level" timer
-		 *      calculation here.
-		 */
 		rest = dhcp6_timer_rest(ev->timer);
 		tv_rt.tv_sec = (ev->retrans * 1000) / 1000000;
 		tv_rt.tv_usec = (ev->retrans * 1000) % 1000000;
@@ -1243,9 +1638,13 @@ client6_recvadvert(ifp, dh6, len, optinfo0)
 		dhcp6_set_timer(&timo, ev->timer);
 	}
 	/* if the client send preferred addresses reqeust in SOLICIT */
-	/* XXX: client might have some local policy to select the addresses */
 	if (!TAILQ_EMPTY(&optinfo0->addr_list))
 		dhcp6_copy_list(&request_list, &optinfo0->addr_list);
+	/*  added start pling 09/23/2009 */
+	/* Store IAPD to the request_prefix_list, for later use by DHCP renew */
+	if (!TAILQ_EMPTY(&optinfo0->prefix_list))
+		dhcp6_copy_list(&request_prefix_list, &optinfo0->prefix_list);
+	/*  added end pling 09/23/2009 */
 	return 0;
 }
 
@@ -1320,6 +1719,8 @@ free_servers(ifp)
 	ifp->servers = NULL;
 	ifp->current_server = NULL;
 }
+
+static int not_on_link_count = 0;    //  added pling 10/07/2010
 
 static int
 client6_recvreply(ifp, dh6, len, optinfo)
@@ -1408,7 +1809,8 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		case DH6OPT_STCODE_NOBINDING:
 		case DH6OPT_STCODE_NOTONLINK:
 		case DH6OPT_STCODE_USEMULTICAST:
-			addr_status_code = lv->val_num;
+            if (addr_status_code == 0)      //  added pling 10/07/2010, don't override error status if already set
+    			addr_status_code = lv->val_num;
 		default:
 			break;
 		}
@@ -1445,30 +1847,63 @@ client6_recvreply(ifp, dh6, len, optinfo)
 			dprintf(LOG_DEBUG, "%s" 
 			    "got a NotOnLink reply for request/rapid commit,"
 			    " sending solicit.", FNAME);
-			newstate = DHCP6S_SOLICIT;
+            /*  modified start pling 10/07/2010 */
+            /* WNR3500L TD170, need to send request without any IP for
+             *  3 times, then back to solicit state.
+             */
+			//newstate = DHCP6S_SOLICIT;
+            not_on_link_count++;
+            if (not_on_link_count <= REQ_MAX_RC_NOTONLINK) {
+                /* Clear the IA / PD address, so they won't appear in the
+                 * request pkt. */
+                dhcp6_clear_list(&(ifp->current_server->optinfo.addr_list));
+                dhcp6_clear_list(&(ifp->current_server->optinfo.prefix_list));
+                newstate = DHCP6S_REQUEST;
+            } else {
+                /* Three times, back to SOLICIT state */
+                not_on_link_count = 0;
+                free_servers(ifp);
+                newstate = DHCP6S_SOLICIT;
+            }
+            /*  modified end pling 10/07/2010 */
 			break;
 		case DH6OPT_STCODE_NOADDRAVAIL:
 		case DH6OPT_STCODE_NOPREFIXAVAIL:
 			dprintf(LOG_DEBUG, "%s" 
 			    "got a NoAddrAvail reply for request/rapid commit,"
 			    " sending inforeq.", FNAME);
+            not_on_link_count = 0;  //  added pling 10/07/2010
 			optinfo->iaidinfo.iaid = 0;
 			newstate = DHCP6S_INFOREQ;
 			break;
 		case DH6OPT_STCODE_SUCCESS:
 		case DH6OPT_STCODE_UNDEFINE:
 		default:
+            not_on_link_count = 0;  //  added pling 10/07/2010
 			if (!TAILQ_EMPTY(&optinfo->addr_list)) {
 				(void)get_if_rainfo(ifp);
 				dhcp6_add_iaidaddr(optinfo);
-				if (optinfo->type == IAPD)
+				if (optinfo->type == IAPD) {
 					radvd_parse(&client6_iaidaddr, ADDR_UPDATE);
+                    /*  added start pling 10/12/2010 */
+                    /* 1. Execute callback now as IAPD only does not need DAD.
+                     * 2. Send Info-req to get additional info
+                     */
+                    dhcp6c_dad_callback();
+                    newstate = DHCP6S_INFOREQ;
+                    /*  added end pling 10/12/2010 */
+                }
 				else if (ifp->dad_timer == NULL && (ifp->dad_timer =
 					  dhcp6_add_timer(check_dad_timo, ifp)) < 0) {
 					dprintf(LOG_INFO, "%s" "failed to create a timer for "
 						" DAD", FNAME); 
 				}
 				setup_check_timer(ifp);
+                /*  removed start pling 10/05/2010 */
+                /* WNR3500L TD#175, send info-req after we complete the 
+                 *  DAD check. */
+                //client6_send_info_req(ev);
+                /*  removed end pling 10/05/2010 */
 			}
 			break;
 		}
@@ -1495,6 +1930,15 @@ client6_recvreply(ifp, dh6, len, optinfo)
 			dhcp6_update_iaidaddr(optinfo, ADDR_UPDATE);
 			if (optinfo->type == IAPD)
 				radvd_parse(&client6_iaidaddr, ADDR_UPDATE);
+			/*  added start pling 12/22/2011 */
+			/* WNDR4500 TD#156: Send signal to radvd to refresh 
+			 * the prefix lifetime */
+			system("killall -SIGUSR1 radvd");
+			/*  added end pling 12/22/2011 */
+            /*  added start pling 01/25/2010 */
+            /* Send info-req to get SIP server and NTP server */
+            client6_send_info_req(ev);
+            /*  added end pling 01/25/2010 */
 			break;
 		}
 		break;
@@ -1516,7 +1960,6 @@ rebind_confirm:	client6_request_flag &= ~CLIENT6_CONFIRM_ADDR;
 			break;
 		case DH6OPT_STCODE_SUCCESS:
 		case DH6OPT_STCODE_UNDEFINE:
-			/* XXX: set up renew/rebind timer */
 			dprintf(LOG_DEBUG, "%s" "got an expected reply for confirm", FNAME);
 			ftime(&now);
 			client6_iaidaddr.state = ACTIVE;
@@ -1557,9 +2000,16 @@ rebind_confirm:	client6_request_flag &= ~CLIENT6_CONFIRM_ADDR;
 		/* send REQUEST message to server with none decline address */
 		dprintf(LOG_DEBUG, "%s" 
 		    "got an expected reply for decline, sending request.", FNAME);
+        /*  modified start pling 10/04/2010 */
+        /* Should restart the 4-packet process, from SOLICIT */
+#if 0
 		create_request_list(0);
 		/* remove event data list */
 		newstate = DHCP6S_REQUEST;
+#endif
+        free_servers(ifp);
+        newstate = DHCP6S_SOLICIT;
+        /*  modified end pling 10/04/2010 */
 		break;
 	case DHCP6S_RELEASE:
 		dprintf(LOG_INFO, "%s" "got an expected release, exit.", FNAME);
@@ -1597,8 +2047,23 @@ client6_send_newstate(ifp, state)
 	TAILQ_INSERT_TAIL(&ifp->event_list, ev, link);
 	ev->timeouts = 0;
 	dhcp6_set_timeoparam(ev);
+    /*  added start pling 10/07/2010 */
+    /* WNR3500L TD170, modify the maximum re-send counter of 
+     *  Request message to 3 if a "NotOnLink" status is
+     *  received. 
+     */
+    if (state == DHCP6S_REQUEST && not_on_link_count)
+        ev->max_retrans_cnt = REQ_MAX_RC_NOTONLINK;
+    /*  added end pling 10/07/2010 */
 	dhcp6_reset_timer(ev);
-	client6_send(ev);
+
+    /*  modified start pling 10/05/2010 */
+    /* Use diff function to send INFO-REQ */
+    if (state == DHCP6S_INFOREQ)
+        client6_send_info_req(ev);
+    else
+        client6_send(ev);
+    /*  modified end pling 10/05/2010 */
 	return 0;
 }
 
@@ -1706,7 +2171,7 @@ static struct dhcp6_timer
 *check_dad_timo(void *arg)
 {
 	struct dhcp6_if *ifp = (struct dhcp6_if *)arg;
-	int newstate;
+	int newstate = DHCP6S_REQUEST;   //  modified pling 10/04/2010
 	if (client6_iaidaddr.client6_info.type == IAPD)
 		goto end;
 	dprintf(LOG_DEBUG, "enter checking dad ...");
@@ -1725,6 +2190,17 @@ end:
 	/* one time check for DAD */	
 	dhcp6_remove_timer(ifp->dad_timer);
 	ifp->dad_timer = NULL;
+
+    /*  added start pling 10/04/2010 */
+    /* Send info-req to get DNS/SIP/NTP, etc, per Netgear spec. */
+    if (newstate != DHCP6S_DECLINE) {
+        dhcp6c_dad_callback();
+        dprintf(LOG_DEBUG, "send info-req");
+        newstate = DHCP6S_INFOREQ;
+        client6_send_newstate(ifp, newstate);
+    }
+    /*  added end pling 10/04/2010 */
+
 	return NULL;
 }
 	
@@ -1754,8 +2230,8 @@ static struct dhcp6_timer
 			 * send confirm for ipv6address or 
 			 * rebind for prefix delegation */
 			dhcp6_remove_timer(client6_iaidaddr.timer);
-			client6_request_flag |= CLIENT6_CONFIRM_ADDR;
-			create_request_list(1);
+			client6_request_flag &= CLIENT6_CONFIRM_ADDR;
+			create_request_list(0);
 			if (client6_iaidaddr.client6_info.type == IAPD)
 				newstate = DHCP6S_REBIND;
 			else
@@ -1807,4 +2283,3 @@ again:
 	}
 	return;
 }
-

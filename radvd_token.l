@@ -1,4 +1,4 @@
-/*	$Id: radvd_token.l,v 1.9 2005/03/10 00:49:26 shemminger Exp $	*/
+/*	$Id: radvd_token.l,v 1.1.1.1 2006/12/04 00:45:31 Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003

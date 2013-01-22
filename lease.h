@@ -1,4 +1,4 @@
-/*	$Id: lease.h,v 1.15 2007/09/25 07:20:55 shirleyma Exp $	*/
+/*	$Id: lease.h 241182 2011-02-17 21:50:03Z $	*/
 /*
  * Copyright (C) International Business Machines  Corp., 2003
  * All rights reserved.
@@ -39,8 +39,8 @@
 #define ADDR_VALIDATE	2
 #define ADDR_ABANDON	3
 
-#define PATH_SERVER6_LEASE "/var/lib/dhcpv6/server6.leases"
-#define PATH_CLIENT6_LEASE "/var/lib/dhcpv6/client6.leases"
+#define PATH_SERVER6_LEASE "/tmp/server6.leases" //Modified. "/var/lib/dhcpv6/server6.leases"
+#define PATH_CLIENT6_LEASE "/tmp/client6.leases" //Modified. "/var/lib/dhcpv6/client6.leases"
 
 #define HASH_TABLE_COUNT 	4
 
@@ -48,7 +48,7 @@ extern struct hash_table **hash_anchors;
 #define server6_hash_table hash_anchors[HT_IAIDADDR]
 #define lease_hash_table hash_anchors[HT_IPV6LEASE]
 #define host_addr_hash_table hash_anchors[HT_IPV6ADDR]
-#define PREFIX_LEN_NOTINRA 64 
+#define PREFIX_LEN_NOTINRA 64
 #define MAX_FILE_SIZE 512*1024
 
 
@@ -92,7 +92,7 @@ extern struct dhcp6_timer *dhcp6_lease_timo __P((void *));
 extern u_int32_t get_min_preferlifetime __P((struct dhcp6_iaidaddr *));
 extern u_int32_t get_max_validlifetime __P((struct dhcp6_iaidaddr *));
 extern struct dhcp6_iaidaddr *dhcp6_find_iaidaddr __P((struct dhcp6_optinfo *));
-extern struct dhcp6_lease *dhcp6_find_lease __P((struct dhcp6_iaidaddr *, 
+extern struct dhcp6_lease *dhcp6_find_lease __P((struct dhcp6_iaidaddr *,
 			struct dhcp6_addr *));
 extern int dhcp6_remove_lease __P((struct dhcp6_lease *));
 extern int dhcp6_validate_bindings __P((struct dhcp6_optinfo *, struct dhcp6_iaidaddr *));
@@ -121,8 +121,7 @@ extern int dhcp6_create_prefixlist __P((struct dhcp6_optinfo *,
 					const struct dhcp6_optinfo *,
 					const struct dhcp6_iaidaddr *,
 					const struct link_decl *));
-extern int dhcp6_create_addrlist __P((	int msgtype,
-					struct dhcp6_optinfo *,
+extern int dhcp6_create_addrlist __P((	struct dhcp6_optinfo *,
 					struct dhcp6_optinfo *,
 					const struct dhcp6_iaidaddr *,
 					const struct link_decl *));

@@ -1,4 +1,4 @@
-/*	$Id: timer.c,v 1.7 2003/03/11 23:52:23 shirleyma Exp $	*/
+/*	$Id: timer.c 241182 2011-02-17 21:50:03Z $	*/
 /*	ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp	*/
 
 /*
@@ -71,10 +71,6 @@ timeval_add(struct timeval *a, struct timeval *b, struct timeval *result)
 	}
 }
 
-/*
- * result = a - b
- * XXX: this function assumes that a >= b.
- */
 void
 timeval_sub(struct timeval *a, struct timeval *b, struct timeval *result)
 {
@@ -193,7 +189,7 @@ struct timeval *
 dhcp6_timer_rest(struct dhcp6_timer *timer)
 {
 	struct timeval now;
-	static struct timeval returnval; /* XXX */
+	static struct timeval returnval;
 
 	gettimeofday(&now, NULL);
 	if (TIMEVAL_LEQ(timer->tm, now)) {
@@ -206,4 +202,3 @@ dhcp6_timer_rest(struct dhcp6_timer *timer)
 
 	return (&returnval);
 }
-

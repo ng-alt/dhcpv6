@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.16 2005/03/10 00:49:26 shemminger Exp $	*/
+/*	$Id: config.h,v 1.1.1.1 2006/12/04 00:45:21 Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -82,6 +82,8 @@ struct dhcp6_if {
 	unsigned int ifid;
 	struct ra_info *ralist;
 	struct dns_list dnslist;
+	struct dhcp6_list siplist;
+	struct dhcp6_list ntplist;
 	u_int32_t linkid;	/* to send link-local packets */
 	struct dhcp6_iaid_info iaidinfo;	
 	
@@ -96,7 +98,9 @@ struct dhcp6_if {
 #define DHCIFF_TEMP_ADDRS 0x4
 #define DHCIFF_PREFIX_DELEGATION 0x8
 #define DHCIFF_UNICAST 0x10
-
+#define DHCIFF_SOLICIT_ONLY 0x20		//  added pling 08/26/2009
+#define DHCIFF_IANA_ONLY    0x40		//  added pling 09/21/2010
+#define DHCIFF_IAPD_ONLY    0x80		//  added pling 09/21/2010
 
 	struct in6_addr linklocal;
 	int server_pref;	/* server preference (server only) */
@@ -108,6 +112,8 @@ struct dhcp6_if {
 	struct dhcp6_option_list option_list;
 	struct dhcp6_serverinfo *current_server;
 	struct dhcp6_serverinfo *servers;
+
+	char user_class[MAX_USER_CLASS_LEN];	//  added pling 09/07/2010
 };
 
 struct dhcp6_event {
@@ -176,6 +182,8 @@ struct dhcp6_ifconf {
 	struct dhcp6_list reqopt_list;
 
 	struct dhcp6_option_list option_list;
+	
+	char user_class[MAX_USER_CLASS_LEN];	//  added pling 09/07/2010
 };
 
 struct prefix_ifconf {
@@ -277,12 +285,14 @@ struct cf_list {
 #endif
 /* ANYCAST later */
 
-enum {DECL_SEND, DECL_ALLOW, DECL_INFO_ONLY, DECL_TEMP_ADDR, DECL_REQUEST, DECL_DUID,
+enum {DECL_SEND, DECL_ALLOW, DECL_INFO_ONLY, DECL_TEMP_ADDR, DECL_REQUEST, DECL_DUID, DECL_SOLICIT_ONLY,
+      DECL_IANA_ONLY, DECL_IAPD_ONLY,
       DECL_PREFIX, DECL_PREFERENCE, DECL_IAID, DECL_RENEWTIME, DECL_REBINDTIME,
-      DECL_ADDRESS, DECL_LINKLOCAL, DECL_PREFIX_INFO, DECL_PREFIX_REQ, DECL_PREFIX_DELEGATION_INTERFACE,
+      DECL_ADDRESS, DECL_LINKLOCAL, DECL_PREFIX_INFO, DECL_PREFIX_REQ, DECL_PREFIX_DELEGATION_INTERFACE, DECL_USER_CLASS,
+      DECL_XID_SOL, DECL_XID_REQ, DECL_DUID_TIME,
       DHCPOPT_PREFIX_DELEGATION, IFPARAM_SLA_ID, IFPARAM_SLA_LEN,
       DHCPOPT_RAPID_COMMIT, 
-      DHCPOPT_DNS, ADDRESS_LIST_ENT };
+      DHCPOPT_DNS, DHCPOPT_DOMAIN_LIST, DHCPOPT_SIP, DHCPOPT_NTP, ADDRESS_LIST_ENT };
 
 typedef enum {DHCP6_MODE_SERVER, DHCP6_MODE_CLIENT, DHCP6_MODE_RELAY }
 dhcp6_mode_t;
@@ -295,6 +305,8 @@ extern struct dhcp6_if *dhcp6_if;
 extern struct dhcp6_ifconf *dhcp6_iflist;
 extern struct prefix_ifconf *prefix_ifconflist;
 extern struct dns_list dnslist;
+extern struct dhcp6_list siplist;
+extern struct dhcp6_list ntplist;
 
 extern int configure_interface (const struct cf_namelist *);
 extern int configure_prefix_interface (struct cf_namelist *);

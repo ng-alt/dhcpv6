@@ -1,4 +1,4 @@
-/*    $Id: server6_conf.c,v 1.14 2004/03/15 22:03:52 shemminger Exp $   */
+/*    $Id: server6_conf.c,v 1.1.1.1 2006/12/04 00:45:34 Exp $   */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -105,16 +105,6 @@ struct v6addr
 	return prefix;
 }
 
-#if 0
-static void
-get_random_bytes(u_int8_t seed[], int num)
-{
-	int i;
-	for (i = 0; i < num; i++)
-		seed[i] = random();
-	return;
-}
-#endif
 
 int
 get_numleases(currentpool, poolfile)
@@ -184,7 +174,6 @@ post_config(root)
 	if (root->group)
 		download_scope(root->group, &root->scope);
 	up = &root->scope;
-	/* XXX: check the physical interfaces for the server */
 	for (ifnetwork = root->iflist; ifnetwork; ifnetwork = ifnetwork->next) {
 		if (ifnetwork->group)
 			download_scope(ifnetwork->group, &ifnetwork->ifscope);
@@ -205,7 +194,6 @@ post_config(root)
 		current = &ifnetwork->ifscope;
 		download_scope(up, current);
 		up = &ifnetwork->ifscope;
-		/* XXX: check host */
 		for (link = ifnetwork->linklist; link; link = link->next) {
 				if (link->group)
 					download_scope(link->group, &link->linkscope);
@@ -291,6 +279,10 @@ download_scope(up, current)
 	current->send_flags |= up->send_flags;
 	if (TAILQ_EMPTY(&current->dnslist.addrlist))
 		dhcp6_copy_list(&current->dnslist.addrlist, &up->dnslist.addrlist);
+	if (TAILQ_EMPTY(&current->siplist))
+		dhcp6_copy_list(&current->siplist, &up->siplist);
+	if (TAILQ_EMPTY(&current->ntplist))
+		dhcp6_copy_list(&current->ntplist, &up->ntplist);
 	if (current->dnslist.domainlist == NULL)
 		current->dnslist.domainlist = up->dnslist.domainlist;
 	return;
@@ -322,4 +314,3 @@ is_anycast(struct in6_addr *in, int plen)
 			return 0;
 	return (in->s6_addr32[3] | htonl(0x7f)) == (u_int32_t)~0;
 }
-

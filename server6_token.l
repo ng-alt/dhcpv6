@@ -1,4 +1,4 @@
-/*	$Id: server6_token.l,v 1.5 2003/07/16 19:09:53 shirleyma Exp $	*/
+/*	$Id: server6_token.l,v 1.1.1.1 2006/12/04 00:45:34 Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -112,6 +112,8 @@ option		{ BEGIN S_OPTION; return OPTION; }
 <S_OPTION>temp-address	{ BEGIN INITIAL; return TEMPIPV6ADDR; }
 <S_OPTION>information-only	{ BEGIN INITIAL; return INFO_ONLY; }
 <S_OPTION>dns_servers	{ BEGIN INITIAL; return DNS_SERVERS;}
+<S_OPTION>sip_servers	{ BEGIN INITIAL; return SIP_SERVERS;}
+<S_OPTION>ntp_servers	{ BEGIN INITIAL; return NTP_SERVERS;}
 
 renew-time	{ return RENEWTIME; }
 rebind-time	{ return REBINDTIME; }

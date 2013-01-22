@@ -1,4 +1,4 @@
-/*	$Id: server6_conf.h,v 1.9 2003/04/30 19:04:14 shirleyma Exp $	*/
+/*	$Id: server6_conf.h,v 1.1.1.1 2006/12/04 00:45:34 Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -50,6 +50,8 @@ struct scope {
 	u_int8_t send_flags;
 	u_int8_t allow_flags;
 	struct dns_list dnslist;
+	struct dhcp6_list siplist;
+	struct dhcp6_list ntplist;
 };
 
 struct scopelist {

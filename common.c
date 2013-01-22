@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.26 2007/09/25 07:28:42 shirleyma Exp $	*/
+/*	$Id: common.c,v 1.1.1.1 2006/12/04 00:45:20 Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -83,11 +83,31 @@ int foreground;
 int debug_thresh;
 struct dhcp6_if *dhcp6_if;
 struct dns_list dnslist;
+/*  added start pling 01/25/2010 */
+struct dhcp6_list siplist;
+struct dhcp6_list ntplist;
+/*  added end pling 01/25/2010 */
 static struct host_conf *host_conflist;
 static int in6_matchflags __P((struct sockaddr *, char *, int));
 ssize_t gethwid __P((char *, int, const char *, u_int16_t *));
 static int get_assigned_ipv6addrs __P((char *, char *,
 					struct dhcp6_optinfo *));
+
+/*  added start pling 10/07/2010 */
+/* For testing purpose */
+u_int32_t duid_time = 0;
+/*  added end pling 10/07/2010 */
+
+/*  added start pling 09/21/2010 */
+/* Global flags for dhcpc configuration, e.g. IANA_ONLY, IAPD_ONLY */
+static u_int32_t   dhcp6c_flags = 0;
+int set_dhcp6c_flags(u_int32_t flags)
+{
+    dhcp6c_flags |= flags;
+    return 0;
+}
+/*  added end pling 09/21/2010 */
+
 struct dhcp6_if *
 find_ifconfbyname(const char *ifname)
 {
@@ -165,7 +185,7 @@ ifinit(const char *ifname)
 		goto die;
 	}
 #else
-	ifp->linkid = ifp->ifid; /* XXX */
+	ifp->linkid = ifp->ifid;
 #endif
 	if (get_linklocal(ifname, &ifp->linklocal) < 0)
 		goto die;
@@ -358,7 +378,6 @@ dhcp6_remove_event(ev)
 		dhcp6_remove_timer(ev->timer);
 	TAILQ_REMOVE(&ev->ifp->event_list, ev, link);
 	free(ev);
-	/* XXX: for safety */
 	ev = NULL;
 }
 
@@ -454,15 +473,14 @@ in6_addrscopebyif(addr, ifnam)
 		return (ifindex);
 
 	if (IN6_IS_ADDR_SITELOCAL(addr) || IN6_IS_ADDR_MC_SITELOCAL(addr))
-		return (1);	/* XXX */
+		return (1);
 
 	if (IN6_IS_ADDR_MC_ORGLOCAL(addr))
-		return (1);	/* XXX */
+		return (1);
 
 	return (1);		/* treat it as global */
 }
 
-/* XXX: this code assumes getifaddrs(3) */
 const char *
 getdev(addr)
 	struct sockaddr_in6 *addr;
@@ -623,7 +641,7 @@ in6_scope(addr)
 		if (addr->s6_addr[15] == 1) /* loopback */
 			return 1;
 		if (addr->s6_addr[15] == 0) /* unspecified */
-			return 0; /* XXX: good value? */
+			return 0;
 	}
 
 	return 14;		/* global */
@@ -762,11 +780,26 @@ get_duid(const 	char *idfile, const char *ifname,
 		u_int64_t t64;
 
 		dp = (struct dhcp6_duid_type1 *)duid->duid_id;
-		dp->dh6duid1_type = htons(1); /* type 1 */
+		/*  modifed start pling 04/26/2011 */
+		/* Netgear Router Spec requires DUID to be type DUID-LL, not DUID-LLT */
+		/* dp->dh6duid1_type = htons(1); */ /* type 1 */
+		dp->dh6duid1_type = htons(3); /* type 3: DUID-LL */
+		/*  modifed end pling 04/26/2011 */
 		dp->dh6duid1_hwtype = htons(hwtype);
 		/* time is Jan 1, 2000 (UTC), modulo 2^32 */
 		t64 = (u_int64_t)(time(NULL) - 946684800);
-		dp->dh6duid1_time = htonl((u_long)(t64 & 0xffffffff));
+        /*  added start pling 10/07/2010 */
+        /* For testing purposes !!! */
+        if (duid_time) {
+            dprintf(LOG_DEBUG, "%s"
+                "**TESTING** Use user-defined duid_time %lu", FNAME, duid_time);
+            t64 = (u_int64_t)duid_time;
+        }
+        /*  added end pling 10/07/2010 */
+		/*  removed start pling 04/26/2011 */
+		/* Netgear Router Spec requires DUID to be type DUID-LL, not DUID-LLT */
+		/* dp->dh6duid1_time = htonl((u_long)(t64 & 0xffffffff)); */
+		/*  removed end pling 04/26/2011 */
 		memcpy((void *)(dp + 1), tmpbuf, (len - sizeof(*dp)));
 
 		dprintf(LOG_DEBUG, "%s" "generated a new DUID: %s", FNAME,
@@ -837,7 +870,7 @@ gethwid(buf, len, ifname, hwtypep)
 	default:
 		dprintf(LOG_INFO, "dhcpv6 doesn't support hardware type %d",
 			if_hwaddr.ifr_hwaddr.sa_family);
-		return -1; /* XXX */
+		return -1;
 	}
 	memcpy(buf, if_hwaddr.ifr_hwaddr.sa_data, l);
 	dprintf(LOG_DEBUG, "%s found an interface %s hardware %p",
@@ -853,12 +886,18 @@ dhcp6_init_options(optinfo)
 	/* for safety */
 	optinfo->clientID.duid_id = NULL;
 	optinfo->serverID.duid_id = NULL;
-	optinfo->ia_stcode = DH6OPT_STCODE_UNDEFINE;
 	optinfo->pref = DH6OPT_PREF_UNDEF;
 	TAILQ_INIT(&optinfo->addr_list);
+	/*  added start pling 09/23/2009 */
+	TAILQ_INIT(&optinfo->prefix_list);
+	/*  added end pling 09/23/2009 */
 	TAILQ_INIT(&optinfo->reqopt_list);
 	TAILQ_INIT(&optinfo->stcode_list);
 	TAILQ_INIT(&optinfo->dns_list.addrlist);
+    /*  added start pling 01/25/2010 */
+	TAILQ_INIT(&optinfo->sip_list);
+	TAILQ_INIT(&optinfo->ntp_list);
+    /*  added end pling 01/25/2010 */
 	TAILQ_INIT(&optinfo->relay_list);
 	optinfo->dns_list.domainlist = NULL;
 }
@@ -872,6 +911,9 @@ dhcp6_clear_options(optinfo)
 	duidfree(&optinfo->serverID);
 
 	dhcp6_clear_list(&optinfo->addr_list);
+	/*  added start pling 09/23/2009 */
+	dhcp6_clear_list(&optinfo->prefix_list);
+	/*  added end pling 09/23/2009 */
 	dhcp6_clear_list(&optinfo->reqopt_list);
 	dhcp6_clear_list(&optinfo->stcode_list);
 	dhcp6_clear_list(&optinfo->dns_list.addrlist);
@@ -894,11 +936,14 @@ dhcp6_copy_options(dst, src)
 		goto fail;
 	if (duidcpy(&dst->serverID, &src->serverID))
 		goto fail;
-	dst->ia_stcode = src->ia_stcode;
 	dst->flags = src->flags;
 	
 	if (dhcp6_copy_list(&dst->addr_list, &src->addr_list))
 		goto fail;
+	/*  added start pling 09/23/2009 */
+	if (dhcp6_copy_list(&dst->prefix_list, &src->prefix_list))
+		goto fail;
+	/*  added end pling 09/23/2009 */
 	if (dhcp6_copy_list(&dst->reqopt_list, &src->reqopt_list))
 		goto fail;
 	if (dhcp6_copy_list(&dst->stcode_list, &src->stcode_list))
@@ -916,23 +961,47 @@ dhcp6_copy_options(dst, src)
 	return -1;
 }
 
+/*  added start pling 10/04/2010 */
+/* Add two extra arguments for DHCP client to use. 
+ * These two args are ignored in DHCP server mode (currently) 
+ */
+#if 0
 int
 dhcp6_get_options(p, ep, optinfo)
 	struct dhcp6opt *p, *ep;
 	struct dhcp6_optinfo *optinfo;
+#endif
+int
+dhcp6_get_options(p, ep, optinfo, msgtype, state, send_flags)
+    struct dhcp6opt *p, *ep;
+    struct dhcp6_optinfo *optinfo;
+    int msgtype, state, send_flags;
+/*  added end pling 10/04/2010 */
 {
 	struct dhcp6opt *np, opth;
 	int i, opt, optlen, reqopts, num;
 	char *cp, *val;
 	u_int16_t val16;
 
+    /*  added start pling 09/24/2009 */
+    int has_iana = 0;
+    int has_iapd = 0;
+    /*  added end pling 09/24/2009 */
+    /*  added start pling 10/04/2010 */
+    int has_dns = 0;
+    int has_ntp = 0;
+    int has_sip = 0;
+    /*  added end pling 10/04/2010 */
+    /*  added start pling 01/25/2010 */
+    char buf[1204];
+    char tmp_buf[1024];
+    char command[1024];
+    /*  added end pling 01/25/2010 */
+    int  type_set = 0;      // pling added 10/22/2010
+
 	for (; p + 1 <= ep; p = np) {
 		struct duid duid0;
 
-		/*
-		 * get the option header.  XXX: since there is no guarantee
-		 * about the header alignment, we need to make a local copy.
-		 */
 		memcpy(&opth, p, sizeof(opth));
 		optlen = ntohs(opth.dh6opt_len);
 		opt = ntohs(opth.dh6opt_type);
@@ -991,7 +1060,6 @@ dhcp6_get_options(p, ep, optinfo)
 			dprintf(LOG_DEBUG, "  this message status code: %s",
 			    dhcp6_stcodestr(num));
 			
-			/* XXX: status message */
 			
 			/* need to check duplication? */
 
@@ -1068,14 +1136,40 @@ dhcp6_get_options(p, ep, optinfo)
 			break;
 		case DH6OPT_IA_NA:
 		case DH6OPT_IA_PD:
-			if (opt == DH6OPT_IA_NA)
-				optinfo->type = IANA;
-			else if (opt == DH6OPT_IA_PD)
-				optinfo->type = IAPD;
+            /*  modified start pling 09/23/2009 */
+			if (dhcp6_mode == DHCP6_MODE_SERVER ||
+                (dhcp6_mode == DHCP6_MODE_CLIENT && (send_flags & DHCIFF_SOLICIT_ONLY)) ||
+                (dhcp6_mode == DHCP6_MODE_CLIENT && (dhcp6c_flags & DHCIFF_IAPD_ONLY))) {
+                /* pling modified start 10/22/2010 */
+                /* For each packet, we set to one type only (IANA/IAPD)
+                 * but not both.
+                 */
+    			if (opt == DH6OPT_IA_NA && !type_set)
+                {
+	    			optinfo->type = IANA;
+                    type_set = 1;
+                }
+			    else if (opt == DH6OPT_IA_PD && !type_set)
+                {
+				    optinfo->type = IAPD;
+                    type_set = 1;
+                }
+                /* pling modified end 10/22/2010 */
+            } else {
+                /* don't set optinfo->type to IAPD as this version
+                 * of dhcp6c can't handle IANA and IAPD concurrently.
+                 */
+    			if (opt == DH6OPT_IA_NA)
+	    			optinfo->type = IANA;
+            }
+            /*  modified end pling 09/23/2009 */
 			/* check iaid */
 			if (optlen < sizeof(struct dhcp6_iaid_info)) 
 				goto malformed;
-			optinfo->iaidinfo.iaid = ntohl(*(u_int32_t *)cp);
+			if (dhcp6_mode == DHCP6_MODE_CLIENT && opt == DH6OPT_IA_PD)
+                ;// If this is IAPD, don't modify the IAID
+            else
+    			optinfo->iaidinfo.iaid = ntohl(*(u_int32_t *)cp);
 			optinfo->iaidinfo.renewtime = 
 				ntohl(*(u_int32_t *)(cp + sizeof(u_int32_t)));
 			optinfo->iaidinfo.rebindtime = 
@@ -1083,9 +1177,24 @@ dhcp6_get_options(p, ep, optinfo)
 			dprintf(LOG_DEBUG, "get option iaid is %u, renewtime %u, "
 				"rebindtime %u", optinfo->iaidinfo.iaid,
 				optinfo->iaidinfo.renewtime, optinfo->iaidinfo.rebindtime);
+            /*  added start pling 10/07/2010 */
+            /* DHCPv6 client readylogo:
+             * Ignore IA with T1 > T2 */
+            if (optinfo->iaidinfo.renewtime > optinfo->iaidinfo.rebindtime)
+                goto fail;
+            /*  added end pling 10/07/2010 */
 			if (get_assigned_ipv6addrs(cp + 3 * sizeof(u_int32_t), 
 						cp + optlen, optinfo))
 				goto fail;
+
+            /*  added start pling 09/24/2009 */
+			if (dhcp6_mode == DHCP6_MODE_CLIENT) {
+			    if (opt == DH6OPT_IA_NA)
+                    has_iana = 1;
+                else
+                    has_iapd = 1;
+            }
+            /*  added end pling 09/24/2009 */
 			break;
 		case DH6OPT_DNS_SERVERS:
 			if (optlen % sizeof(struct in6_addr) || optlen == 0)
@@ -1109,7 +1218,83 @@ dhcp6_get_options(p, ep, optinfo)
 				}
 			nextdns: ;
 			}
+            /*  added start pling 10/04/2010 */
+            if (dhcp6_mode == DHCP6_MODE_CLIENT)
+                has_dns = 1;
+            /*  added end pling 10/04/2010 */
 			break;
+
+        /*  added start pling 01/25/2010 */
+        case DH6OPT_SIP_SERVERS:
+            memset(buf, 0, sizeof(buf));
+            memset(tmp_buf, 0, sizeof(tmp_buf));
+            if (optlen % sizeof(struct in6_addr) || optlen == 0)
+                goto malformed;
+            for (val = cp; val < cp + optlen;
+                 val += sizeof(struct in6_addr)) {
+                if (dhcp6_find_listval(&optinfo->sip_list,
+                    val, DHCP6_LISTVAL_ADDR6)) {
+                    dprintf(LOG_INFO, "%s" "duplicated "
+                        "SIP address (%s)", FNAME,
+                        in6addr2str((struct in6_addr *)val,
+                        0));
+                    goto nextsip;
+                }
+
+                if (dhcp6_add_listval(&optinfo->sip_list,
+                    val, DHCP6_LISTVAL_ADDR6) == NULL) {
+                        dprintf(LOG_ERR, "%s" "failed to copy "
+                        "SIP address", FNAME);
+                    goto fail;
+                }
+                /* Save SIP server to NVRAM */
+                sprintf(tmp_buf, "%s ", in6addr2str((struct in6_addr *)val, 0));
+                strcat(buf, tmp_buf);
+            nextsip: ;
+            }
+            /* Save SIP server to NVRAM */
+            if (dhcp6_mode == DHCP6_MODE_CLIENT && strlen(buf)) {
+                sprintf(command, "nvram set ipv6_sip_servers=\"%s\"", buf);
+                system(command);
+                has_sip = 1;    //  added pling 10/04/2010
+            }
+            break;
+		case DH6OPT_NTP_SERVERS:
+            memset(buf, 0, sizeof(buf));
+            memset(tmp_buf, 0, sizeof(tmp_buf));
+			if (optlen % sizeof(struct in6_addr) || optlen == 0)
+				goto malformed;
+			for (val = cp; val < cp + optlen;
+			     val += sizeof(struct in6_addr)) {
+				if (dhcp6_find_listval(&optinfo->ntp_list,
+				    val, DHCP6_LISTVAL_ADDR6)) {
+					dprintf(LOG_INFO, "%s" "duplicated "
+					    "NTP address (%s)", FNAME,
+					    in6addr2str((struct in6_addr *)val,
+						0));
+					goto nextntp;
+				}
+
+				if (dhcp6_add_listval(&optinfo->ntp_list,
+				    val, DHCP6_LISTVAL_ADDR6) == NULL) {
+					dprintf(LOG_ERR, "%s" "failed to copy "
+					    "NTP address", FNAME);
+					goto fail;
+				}
+                /* Save SIP server to NVRAM */
+                sprintf(tmp_buf, "%s ", in6addr2str((struct in6_addr *)val, 0));
+                strcat(buf, tmp_buf);
+			nextntp: ;
+			}
+            /* Save NTP server to NVRAM */
+            if (dhcp6_mode == DHCP6_MODE_CLIENT && strlen(buf)) {
+                sprintf(command, "nvram set ipv6_ntp_servers=\"%s\"", buf);
+                system(command);
+                has_ntp = 1;    //  added pling 10/04/2010
+            }
+			break;
+        /*  added end pling 01/25/2010 */
+
 		case DH6OPT_DOMAIN_LIST:
 			if (optlen == 0)
 				goto malformed;
@@ -1154,6 +1339,69 @@ dhcp6_get_options(p, ep, optinfo)
 		}
 	}
 
+    /*  added start pling 09/24/2009 */
+    /* Per Netgear spec, an acceptable DHCP advertise 
+     *  must have both IANA and IAPD option.
+     */
+    if (dhcp6_mode == DHCP6_MODE_CLIENT) {
+        /*  added start pling 09/21/2010 */
+        /* Check flag to see if we accept IANA/IAPD only
+         *  for DHCPv6 readylogo test.
+         */
+        if ((dhcp6c_flags & DHCIFF_IANA_ONLY) && has_iana)
+        {
+            dprintf(LOG_INFO, "%s" "recv IANA. OK!", FNAME);
+        }
+        else
+        if (dhcp6c_flags & DHCIFF_INFO_ONLY)
+        {
+            dprintf(LOG_INFO, "%s" "Info-only. OK!", FNAME);
+        }
+        else
+        if  ((dhcp6c_flags & DHCIFF_IAPD_ONLY) && has_iapd)
+        {
+            dprintf(LOG_INFO, "%s" "recv IAPD. OK!", FNAME);
+        }
+        else
+        /*  added end pling 09/21/2010 */
+        /*  added start pling 10/04/2010 */
+        /* Handle DHCP messages properly in different states */
+        if (state == DHCP6S_INFOREQ && msgtype == DH6_REPLY &&
+            has_dns && has_ntp && has_sip)
+        {
+            dprintf(LOG_INFO, "%s" "valid INFOREQ/REPLY. OK!", FNAME);
+        }
+        else
+        if (state == DHCP6S_DECLINE && msgtype == DH6_REPLY)
+        {
+            dprintf(LOG_INFO, "%s" "got REPLY to DECLINE.", FNAME);
+        }
+        else
+        /*  added end pling 10/04/2010 */
+        /*  added start pling 09/16/2011 */
+        /* In auto-detect mode, we don't accept Advert pkt with IANA only. */
+        if ((send_flags & DHCIFF_SOLICIT_ONLY) && has_iana && !has_iapd)
+        {
+            dprintf(LOG_INFO, "%s" "got IANA only in auto-detect mode. NG!", FNAME);
+            goto fail;
+        }
+        else
+        /*  added end pling 09/16/2011 */
+        /*  added start pling 10/14/2010 */
+        if ((send_flags & DHCIFF_SOLICIT_ONLY) && 
+            (has_iana || has_iapd) )
+        {
+            dprintf(LOG_INFO, "%s" "got IANA/IAPD in auto-detect mode", FNAME);
+        }
+        else
+        /*  added end pling 10/14/2010 */
+        if (!has_iana || !has_iapd) {
+            dprintf(LOG_INFO, "%s" "no IANA/IAPD", FNAME);
+            goto fail;
+        }
+    }
+    /*  added end pling 09/24/2009 */
+
 	return (0);
 
   malformed:
@@ -1177,8 +1425,35 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 	int optlen, opt;
 	u_int16_t val16;
 	int num;
-	
-	for (; p + sizeof(struct dhcp6opt) <= ep; p = np) {
+    int has_status_code = 0;    /*  added pling 09/15/2011 */
+
+	/*  added start pling 12/22/2011 */
+	char iapd_valid_lifetime_cmd_buf[1024];
+	char iapd_preferred_lifetime_cmd_buf[1024];
+	/*  added end pling 12/22/2011 */
+
+    /*  modified start pling 09/15/2011 */
+    /* To work around IANA/IAPD without status code */
+	//for (; p + sizeof(struct dhcp6opt) <= ep; p = np) {
+	for (; /*p + sizeof(struct dhcp6opt) <= ep*/; p = np) {
+
+        if (p + sizeof(struct dhcp6opt) > ep)
+        {
+            /*  added start pling 10/19/2011 */
+            /* for server, use original logic (break for loop) */
+            if (dhcp6_mode == DHCP6_MODE_SERVER)
+                break;
+            /*  added end pling 10/19/2011 */
+
+            /* Client check status code below */
+            if (has_status_code)
+                break;
+            else {
+                has_status_code = 1;
+                goto no_status_code;
+            }
+        }
+    /*  modified end pling 09/15/2011 */
 		memcpy(&opth, p, sizeof(opth));
 		optlen =  ntohs(opth.dh6opt_len);
 		opt = ntohs(opth.dh6opt_type);
@@ -1198,21 +1473,20 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 				goto malformed;
 			memcpy(&val16, cp, sizeof(val16));
 			num = ntohs(val16);
-			dprintf(LOG_INFO, "status code for this IA is: %s",
+			dprintf(LOG_INFO, "status code for this address is: %s",
 				dhcp6_stcodestr(num));
 			if (optlen > sizeof(val16)) {
 				dprintf(LOG_INFO, 
-					"status message for this IA is: %-*s",
+					"status message for this address is: %-*s",
 					(int)(optlen-sizeof(val16)), p+(val16));
 			}
-			optinfo->ia_stcode = num;
-			/* XXX: need to check duplication? */
 			if (dhcp6_add_listval(&optinfo->stcode_list,
 			    &num, DHCP6_LISTVAL_NUM) == NULL) {
 				dprintf(LOG_ERR, "%s" "failed to copy "
 				    "status code", FNAME);
 				goto fail;
 			}
+            has_status_code = 1;    /*  added pling 09/15/2011 */
 			break;
 		case DH6OPT_IADDR:
 			if (optlen < sizeof(ai) - sizeof(u_int32_t))
@@ -1284,6 +1558,21 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 				    "(%d)", addr6.preferlifetime, addr6.validlifetime);
 				goto malformed;
 			}
+
+			/*  added start pling 12/22/2011 */
+			/* WNDR4500 TD#156: Record the IAPD valid and preferred lifetime */
+			if (dhcp6_mode == DHCP6_MODE_CLIENT) {
+				sprintf(iapd_valid_lifetime_cmd_buf,
+						"nvram set RA_AdvValidLifetime_from_IAPD=%u",
+						addr6.validlifetime);
+				sprintf(iapd_preferred_lifetime_cmd_buf,
+						"nvram set RA_AdvPreferredLifetime_from_IAPD=%u",
+						addr6.preferlifetime);
+			}
+			/*  added end pling 12/22/2011 */
+
+            if (!(dhcp6c_flags & DHCIFF_IAPD_ONLY))
+    			addr6.type = IAPD;      /*  added pling 01/25/2009 */
 			if (optlen == sizeof(pi) - sizeof(u_int32_t)) {
 				addr6.status_code = DH6OPT_STCODE_UNDEFINE;
 				break;
@@ -1314,13 +1603,31 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 		default:
 			goto malformed;
 		}
+
+no_status_code: /*  added start pling 09/15/2011 */
 		/* set up address type */
+		/*  added start pling 09/23/2009 */
+		if (addr6.type == IAPD) {
+		    /*  added start pling 01/25/2010 */
+    		if (dhcp6_find_listval(&optinfo->prefix_list,
+	    			&addr6, DHCP6_LISTVAL_DHCP6ADDR)) {
+		    	dprintf(LOG_INFO, "duplicated prefix (%s/%d)", 
+			    	in6addr2str(&addr6.addr, 0), addr6.plen);
+    			continue;	
+	    	}
+		    /*  added end pling 01/25/2010 */
+			if (dhcp6_add_listval(&optinfo->prefix_list, &addr6,
+			    DHCP6_LISTVAL_DHCP6ADDR) == NULL) {
+				dprintf(LOG_ERR, "%s" "failed to copy prefix", FNAME);
+				goto fail;
+			}
+		} else {
+		/*  added end pling 09/23/2009 */
 		addr6.type = optinfo->type; 
 		if (dhcp6_find_listval(&optinfo->addr_list,
 				&addr6, DHCP6_LISTVAL_DHCP6ADDR)) {
 			dprintf(LOG_INFO, "duplicated address (%s/%d)", 
 				in6addr2str(&addr6.addr, 0), addr6.plen);
-			/* XXX: decline message */
 			continue;	
 		}
 		if (dhcp6_add_listval(&optinfo->addr_list, &addr6,
@@ -1329,7 +1636,21 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 			    "address", FNAME);
 			goto fail;
 		}
+		/*  added start pling 09/23/2009 */
+		} /* if (addr6.type == IAPD) */
+		/*  added end pling 09/23/2009 */
 	}
+
+	/*  added start pling 12/22/2011 */
+	/* WNDR4500 TD#156: Set the IAPD valid and preferred lifetime
+	 * to NVRAM for acos rc to use */
+	if (dhcp6_mode == DHCP6_MODE_CLIENT) {
+		system(iapd_valid_lifetime_cmd_buf);
+		system(iapd_preferred_lifetime_cmd_buf);
+		system("nvram set RA_use_dynamic_lifetime=1");
+	}
+	/*  added end pling 12/22/2011 */
+
 	return (0);
 
   malformed:
@@ -1375,7 +1696,46 @@ dhcp6_set_options(bp, ep, optinfo)
 			    optinfo->serverID.duid_id, p);
 	}
 	if (dhcp6_mode == DHCP6_MODE_CLIENT) 
-		COPY_OPTION(DH6OPT_ELAPSED_TIME, 2, &optinfo->elapsed_time, p);
+    {
+        /*  modified start pling 10/01/2010 */
+        /* Take care of endian issue */
+		// COPY_OPTION(DH6OPT_ELAPSED_TIME, 2, &optinfo->elapsed_time, p);
+        u_int16_t elapsed_time = htons(optinfo->elapsed_time);
+        COPY_OPTION(DH6OPT_ELAPSED_TIME, 2, &elapsed_time, p);
+        /*  modified end pling 10/01/2010 */
+    }
+
+    /*  added start pling 09/07/2010 */
+    /* For dhcp6c, add user-class if specified */
+    if (dhcp6_mode == DHCP6_MODE_CLIENT) 
+    {
+        /* user class option in this format (RFC3315):
+        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        | OPTION_USER_CLASS               | option-len                  |
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        | user-class-data                                               .
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+         user-class-data in this format:
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-...-+-+-+-+-+-+-+
+        | user-class-len (2 bytes)        | opaque-data                 |
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-...-+-+-+-+-+-+-+
+         */
+        int option_len;
+        unsigned short *user_class_len;
+        char user_class_data[MAX_USER_CLASS_LEN+2];
+
+        if (strlen(optinfo->user_class))
+        {
+            option_len = strlen(optinfo->user_class) + 2;
+            user_class_len = (unsigned short *)&user_class_data;
+            *user_class_len = htons(strlen(optinfo->user_class));
+            strcpy(&user_class_data[2], optinfo->user_class);
+            COPY_OPTION(DH6OPT_USER_CLASS, option_len, user_class_data, p);
+        }
+    }
+    /*  added end pling 09/07/2010 */
 
 	if (optinfo->flags & DHCIFF_RAPID_COMMIT)
 		COPY_OPTION(DH6OPT_RAPID_COMMIT, 0, NULL, p);
@@ -1412,11 +1772,25 @@ dhcp6_set_options(bp, ep, optinfo)
 		   		optinfo->iaidinfo.iaid, optinfo->iaidinfo.renewtime, 
 		   		optinfo->iaidinfo.rebindtime);
 			opt_iana.iaid = htonl(optinfo->iaidinfo.iaid);
+		    /*  modified start pling 01/25/2010 */
+    		/* Per Netgear spec, use IAID '11' for IAPD in dhcp6c */
+	    	if (dhcp6_mode == DHCP6_MODE_CLIENT)
+		    	opt_iana.iaid = htonl(IANA_IAID);
+    		/*  modified end pling 01/25/2010 */
 			opt_iana.renewtime = htonl(optinfo->iaidinfo.renewtime);
 			opt_iana.rebindtime = htonl(optinfo->iaidinfo.rebindtime);
 		}
-		buflen = sizeof(opt_iana) + dhcp6_count_list(&optinfo->addr_list) *
-				(sizeof(ai) + sizeof(status)) + sizeof(status);
+        /*  modified start pling 09/24/2009 */
+		if (dhcp6_mode == DHCP6_MODE_SERVER ||
+            dhcp6_mode == DHCP6_MODE_CLIENT && dhcp6c_flags & DHCIFF_IAPD_ONLY) {
+		    buflen = sizeof(opt_iana) + dhcp6_count_list(&optinfo->addr_list) *
+			    	(sizeof(ai) + sizeof(status));
+        } else {
+            /* Client don't need to send the status code */
+		    buflen = sizeof(opt_iana) + dhcp6_count_list(&optinfo->addr_list) *
+			    	 sizeof(ai);
+        }
+        /*  modified end pling 09/24/2009 */
 		tmpbuf = NULL;
 		if ((tmpbuf = malloc(buflen)) == NULL) {
 			dprintf(LOG_ERR, "%s"
@@ -1435,10 +1809,14 @@ dhcp6_set_options(bp, ep, optinfo)
 				int iaddr_len = 0;
 				memset(&ai, 0, sizeof(ai));
 				ai.dh6_ai_type = htons(DH6OPT_IADDR);
-				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) 
-					iaddr_len = sizeof(ai) - sizeof(u_int32_t) 
-								+ sizeof(status);
-				else 
+				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
+                    /*  modified start pling 09/24/2009 */
+		            if (dhcp6_mode == DHCP6_MODE_SERVER)
+					    iaddr_len = sizeof(ai) - sizeof(u_int32_t) 
+						    		+ sizeof(status);
+                    else
+					    iaddr_len = sizeof(ai) - sizeof(u_int32_t);
+                } else 
 					iaddr_len = sizeof(ai) - sizeof(u_int32_t);
 				ai.dh6_ai_len = htons(iaddr_len);
 				ai.preferlifetime = htonl(dp->val_dhcp6addr.preferlifetime);
@@ -1453,6 +1831,12 @@ dhcp6_set_options(bp, ep, optinfo)
 			    		ntohl(ai.preferlifetime), 
 					ntohl(ai.validlifetime));
 				/* set up address status code if any */
+                /*  added start pling 09/24/2009 */
+                /* Don't add status code in client reqeust */
+		        if (dhcp6_mode == DHCP6_MODE_CLIENT)
+                    ;
+                else
+                /*  added end pling 09/24/2009 */
 				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
 					status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
 					status.dh6_status_len = 
@@ -1464,37 +1848,18 @@ dhcp6_set_options(bp, ep, optinfo)
 			    		dhcp6_stcodestr(ntohs(status.dh6_status_code)));
 					optlen += sizeof(status);
 					tp += sizeof(status);
-					/* XXX: copy status message if any */
-				}
+                }
 			}
 		} else if (dhcp6_mode == DHCP6_MODE_SERVER) {
-			if (optinfo->ia_stcode != DH6OPT_STCODE_UNDEFINE &&
-					optinfo->ia_stcode != DH6OPT_STCODE_SUCCESS) {
-				/* set up IA status code in error case */
-				status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
-				status.dh6_status_len = 
-					htons(sizeof(status.dh6_status_code));
-				status.dh6_status_code = htons(optinfo->ia_stcode);
-				memcpy(tp, &status, sizeof(status));
-				dprintf(LOG_DEBUG, "this IA status code: %s",
-						dhcp6_stcodestr(ntohs(status.dh6_status_code)));
-				optlen += sizeof(status);
-				tp += sizeof(status);
-				dprintf(LOG_DEBUG, "set IA status len %d optlen: %d",
-						sizeof(status), optlen);
-				/* XXX: copy status message if any */
-			} else {
-				int num;
-				num = DH6OPT_STCODE_NOADDRAVAIL;
-				dprintf(LOG_DEBUG, "  status code: %s",
-						dhcp6_stcodestr(num));
-				/* XXX: need to check duplication? */
-				if (dhcp6_add_listval(&optinfo->stcode_list,
-						&num, DHCP6_LISTVAL_NUM) == NULL) {
-					dprintf(LOG_ERR, "%s" "failed to copy "
-							"status code", FNAME);
-					goto fail;
-				}
+			int num;
+			num = DH6OPT_STCODE_NOADDRAVAIL;
+			dprintf(LOG_DEBUG, "  status code: %s",
+			    dhcp6_stcodestr(num));
+			if (dhcp6_add_listval(&optinfo->stcode_list,
+			    &num, DHCP6_LISTVAL_NUM) == NULL) {
+				dprintf(LOG_ERR, "%s" "failed to copy "
+				    "status code", FNAME);
+				goto fail;
 			}
 		}
 		if (optinfo->type == IATA)
@@ -1502,8 +1867,25 @@ dhcp6_set_options(bp, ep, optinfo)
 		else if (optinfo->type == IANA)
 			COPY_OPTION(DH6OPT_IA_NA, optlen, tmpbuf, p);
 		free(tmpbuf);
-		break;
+		/*  modified start pling 09/22/2009 */
+		/* Per Netgear spec, dhcp6c need to send IAPD, 
+		 *  so we fall through to do IAPD.
+		 */
+		if (dhcp6_mode == DHCP6_MODE_SERVER)
+			break;
+		/*  modified end pling 09/22/2009 */
+        /*  added start pling 10/01/2010 */
+        /* For DHCPv6 readylogo test, send IANA only */
+        if (dhcp6_mode == DHCP6_MODE_CLIENT &&
+            dhcp6c_flags & DHCIFF_IANA_ONLY)
+            break;
+        /*  added end pling 10/01/2010 */
 	case IAPD:
+		/*  modified start pling 09/22/2009 */
+		/* Per Netgear spec, use IAID '11' for IAPD in dhcp6c */
+		if (dhcp6_mode == DHCP6_MODE_CLIENT)
+			optinfo->iaidinfo.iaid = IAPD_IAID;
+		/*  modified end pling 09/22/2009 */
 		if (optinfo->iaidinfo.iaid == 0)
 			break;
 		optlen = sizeof(opt_iapd);
@@ -1514,8 +1896,18 @@ dhcp6_set_options(bp, ep, optinfo)
 		opt_iapd.iaid = htonl(optinfo->iaidinfo.iaid);
 		opt_iapd.renewtime = htonl(optinfo->iaidinfo.renewtime);
 		opt_iapd.rebindtime = htonl(optinfo->iaidinfo.rebindtime);
-		buflen = sizeof(opt_iapd) + dhcp6_count_list(&optinfo->addr_list) *
-				(sizeof(pi) + sizeof(status));
+		/*  modified start pling 09/23/2009 */
+        /* In DHCP client mode, copy the prefix, 
+         * but not include the status code
+         */
+		if (dhcp6_mode == DHCP6_MODE_SERVER ||
+            dhcp6_mode == DHCP6_MODE_CLIENT && dhcp6c_flags & DHCIFF_IAPD_ONLY)
+		    buflen = sizeof(opt_iapd) + dhcp6_count_list(&optinfo->addr_list) *
+			    	(sizeof(pi) + sizeof(status));
+        else
+    		buflen = sizeof(opt_iapd) + dhcp6_count_list(&optinfo->prefix_list) *
+ 	    			sizeof(pi);
+		/*  modified end pling 09/23/2009 */
 		tmpbuf = NULL;
 		if ((tmpbuf = malloc(buflen)) == NULL) {
 			dprintf(LOG_ERR, "%s"
@@ -1524,74 +1916,89 @@ dhcp6_set_options(bp, ep, optinfo)
 		}
 		memcpy(tmpbuf, &opt_iapd, sizeof(opt_iapd));
 		tp = tmpbuf + optlen;
-		optlen += dhcp6_count_list(&optinfo->addr_list) * sizeof(pi);
-		if (!TAILQ_EMPTY(&optinfo->addr_list)) {
-			for (dp = TAILQ_FIRST(&optinfo->addr_list); dp; 
-			     dp = TAILQ_NEXT(dp, link)) {
-				int iaddr_len = 0;
-				memset(&pi, 0, sizeof(pi));
-				pi.dh6_pi_type = htons(DH6OPT_IAPREFIX);
-				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) 
-					iaddr_len = sizeof(pi) - sizeof(u_int32_t) 
-						+ sizeof(status); 
-				else 
-					iaddr_len = sizeof(pi) - sizeof(u_int32_t);
-				pi.dh6_pi_len = htons(iaddr_len);
-				pi.preferlifetime = htonl(dp->val_dhcp6addr.preferlifetime);
-				pi.validlifetime = htonl(dp->val_dhcp6addr.validlifetime);
-				pi.plen = dp->val_dhcp6addr.plen; 
-				memcpy(&pi.prefix, &dp->val_dhcp6addr.addr, sizeof(pi.prefix));
-				memcpy(tp, &pi, sizeof(pi));
-				tp += sizeof(pi);
-				dprintf(LOG_DEBUG, "set IAPREFIX option len %d: "
-			    		"%s/%d preferlifetime %d validlifetime %d", 
-			    		iaddr_len, in6addr2str(&pi.prefix, 0), pi.plen,
-			    		ntohl(pi.preferlifetime), ntohl(pi.validlifetime));
-				/* set up address status code if any */
-				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
-					status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
-					status.dh6_status_len = 
-						htons(sizeof(status.dh6_status_code));
-					status.dh6_status_code = 
-						htons(dp->val_dhcp6addr.status_code);
-					memcpy(tp, &status, sizeof(status));
-					dprintf(LOG_DEBUG, "  this address status code: %s",
-			    		dhcp6_stcodestr(ntohs(status.dh6_status_code)));
-					optlen += sizeof(status);
-					tp += sizeof(status);
-					/* copy status message if any */
-				}
-			}
-		} else if (dhcp6_mode == DHCP6_MODE_SERVER) {
-			if (optinfo->ia_stcode != DH6OPT_STCODE_UNDEFINE &&
-					optinfo->ia_stcode != DH6OPT_STCODE_SUCCESS) {
-				/* set up IA status code in error case */
-				status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
-				status.dh6_status_len = 
-					htons(sizeof(status.dh6_status_code));
-				status.dh6_status_code = htons(optinfo->ia_stcode);
-				memcpy(tp, &status, sizeof(status));
-				dprintf(LOG_DEBUG, "this IA status code: %s",
-						dhcp6_stcodestr(ntohs(status.dh6_status_code)));
-				optlen += sizeof(status);
-				tp += sizeof(status);
-				dprintf(LOG_DEBUG, "set IA status len %d optlen: %d",
-						sizeof(status), optlen);
-				/* XXX: copy status message if any */
-			} else {
-				int num;
-				num = DH6OPT_STCODE_NOPREFIXAVAIL;
-				dprintf(LOG_DEBUG, "  status code: %s",
-						dhcp6_stcodestr(num));
-				/* XXX: need to check duplication? */
-				if (dhcp6_add_listval(&optinfo->stcode_list,
-							&num, DHCP6_LISTVAL_NUM) == NULL) {
-					dprintf(LOG_ERR, "%s" "failed to copy "
-							"status code", FNAME);
-					goto fail;
-				}
+		/*  modified start pling 09/23/2009 */
+        /* IAPD is handle differently in server and client mode */
+		if (dhcp6_mode == DHCP6_MODE_SERVER ||
+            dhcp6_mode == DHCP6_MODE_CLIENT && dhcp6c_flags & DHCIFF_IAPD_ONLY) {
+		    optlen += dhcp6_count_list(&optinfo->addr_list) * sizeof(pi);
+    		if (!TAILQ_EMPTY(&optinfo->addr_list)) {
+	    		for (dp = TAILQ_FIRST(&optinfo->addr_list); dp; 
+			        dp = TAILQ_NEXT(dp, link)) {
+    				int iaddr_len = 0;
+	    			memset(&pi, 0, sizeof(pi));
+		    		pi.dh6_pi_type = htons(DH6OPT_IAPREFIX);
+			    	if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) 
+    					iaddr_len = sizeof(pi) - sizeof(u_int32_t) 
+	    					+ sizeof(status); 
+				    else 
+					    iaddr_len = sizeof(pi) - sizeof(u_int32_t);
+    				pi.dh6_pi_len = htons(iaddr_len);
+	    			pi.preferlifetime = htonl(dp->val_dhcp6addr.preferlifetime);
+		    		pi.validlifetime = htonl(dp->val_dhcp6addr.validlifetime);
+			    	pi.plen = dp->val_dhcp6addr.plen; 
+				    memcpy(&pi.prefix, &dp->val_dhcp6addr.addr, sizeof(pi.prefix));
+    				memcpy(tp, &pi, sizeof(pi));
+	    			tp += sizeof(pi);
+		    		dprintf(LOG_DEBUG, "set IAPREFIX option len %d: "
+			        		"%s/%d preferlifetime %d validlifetime %d", 
+			        		iaddr_len, in6addr2str(&pi.prefix, 0), pi.plen,
+			    	    	ntohl(pi.preferlifetime), ntohl(pi.validlifetime));
+    				/* set up address status code if any */
+    				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
+	    				status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
+		    			status.dh6_status_len = 
+			    			htons(sizeof(status.dh6_status_code));
+				    	status.dh6_status_code = 
+					    	htons(dp->val_dhcp6addr.status_code);
+    					memcpy(tp, &status, sizeof(status));
+	    				dprintf(LOG_DEBUG, "  this address status code: %s",
+		    	    		dhcp6_stcodestr(ntohs(status.dh6_status_code)));
+			    		optlen += sizeof(status);
+				    	tp += sizeof(status);
+					    /* copy status message if any */
+    				}
+                }
+		    } else if (dhcp6_mode == DHCP6_MODE_SERVER) {
+			    int num;
+    			num = DH6OPT_STCODE_NOPREFIXAVAIL;
+	    		dprintf(LOG_DEBUG, "  status code: %s",
+		    	    dhcp6_stcodestr(num));
+			    if (dhcp6_add_listval(&optinfo->stcode_list,
+			        &num, DHCP6_LISTVAL_NUM) == NULL) {
+    				dprintf(LOG_ERR, "%s" "failed to copy "
+	    			    "status code", FNAME);
+		    		goto fail;
+			    }
+    		}
+        } else {
+            /* Client mode */
+            /* Use 'prefix_list' instead of 'addr_list' for IAPD */
+    		optlen += dhcp6_count_list(&optinfo->prefix_list) * sizeof(pi);
+	    	if (!TAILQ_EMPTY(&optinfo->prefix_list)) {
+		    	for (dp = TAILQ_FIRST(&optinfo->prefix_list); dp; 
+			         dp = TAILQ_NEXT(dp, link)) {
+				    int iaddr_len = 0;
+    				memset(&pi, 0, sizeof(pi));
+	    			pi.dh6_pi_type = htons(DH6OPT_IAPREFIX);
+		    		if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) 
+					    iaddr_len = sizeof(pi) - sizeof(u_int32_t);
+    				else 
+	    				iaddr_len = sizeof(pi) - sizeof(u_int32_t);
+		    		pi.dh6_pi_len = htons(iaddr_len);
+			    	pi.preferlifetime = htonl(dp->val_dhcp6addr.preferlifetime);
+				    pi.validlifetime = htonl(dp->val_dhcp6addr.validlifetime);
+    				pi.plen = dp->val_dhcp6addr.plen; 
+	    			memcpy(&pi.prefix, &dp->val_dhcp6addr.addr, sizeof(pi.prefix));
+		    		memcpy(tp, &pi, sizeof(pi));
+			    	tp += sizeof(pi);
+				    dprintf(LOG_DEBUG, "set IAPREFIX option len %d: "
+			    	    	"%s/%d preferlifetime %d validlifetime %d", 
+			    		    iaddr_len, in6addr2str(&pi.prefix, 0), pi.plen,
+    			    		ntohl(pi.preferlifetime), ntohl(pi.validlifetime));
+                }
 			}
 		}
+        /*  modified end 09/23/2009 */
 		COPY_OPTION(DH6OPT_IA_PD, optlen, tmpbuf, p);
 		free(tmpbuf);
 		break;
@@ -1653,6 +2060,50 @@ dhcp6_set_options(bp, ep, optinfo)
 		COPY_OPTION(DH6OPT_DNS_SERVERS, optlen, tmpbuf, p);
 		free(tmpbuf);
 	}
+
+    /*  added start pling 01/25/2010 */
+	if (!TAILQ_EMPTY(&optinfo->sip_list)) {
+		struct in6_addr *in6;
+		struct dhcp6_listval *d;
+
+		tmpbuf = NULL;
+		optlen = dhcp6_count_list(&optinfo->sip_list) *
+			sizeof(struct in6_addr);
+		if ((tmpbuf = malloc(optlen)) == NULL) {
+			dprintf(LOG_ERR, "%s"
+			    "memory allocation failed for SIP options", FNAME);
+			goto fail;
+		}
+		in6 = (struct in6_addr *)tmpbuf;
+		for (d = TAILQ_FIRST(&optinfo->sip_list); d;
+		     d = TAILQ_NEXT(d, link), in6++) {
+			memcpy(in6, &d->val_addr6, sizeof(*in6));
+		}
+		COPY_OPTION(DH6OPT_SIP_SERVERS, optlen, tmpbuf, p);
+		free(tmpbuf);
+	}
+	if (!TAILQ_EMPTY(&optinfo->ntp_list)) {
+		struct in6_addr *in6;
+		struct dhcp6_listval *d;
+
+		tmpbuf = NULL;
+		optlen = dhcp6_count_list(&optinfo->ntp_list) *
+			sizeof(struct in6_addr);
+		if ((tmpbuf = malloc(optlen)) == NULL) {
+			dprintf(LOG_ERR, "%s"
+			    "memory allocation failed for NTP options", FNAME);
+			goto fail;
+		}
+		in6 = (struct in6_addr *)tmpbuf;
+		for (d = TAILQ_FIRST(&optinfo->ntp_list); d;
+		     d = TAILQ_NEXT(d, link), in6++) {
+			memcpy(in6, &d->val_addr6, sizeof(*in6));
+		}
+		COPY_OPTION(DH6OPT_NTP_SERVERS, optlen, tmpbuf, p);
+		free(tmpbuf);
+	}
+    /*  added end pling 01/25/2010 */
+
 	if (optinfo->dns_list.domainlist != NULL) {
 		struct domain_list *dlist;
 		u_char *dst;
@@ -1757,8 +2208,16 @@ dhcp6_reset_timer(ev)
 		 * MIN_SOL_DELAY and MAX_SOL_DELAY.
 		 * [dhcpv6-28 14.]
 		 */
-		ev->retrans = (random() % (MAX_SOL_DELAY - MIN_SOL_DELAY)) +
-			MIN_SOL_DELAY;
+        /*  modified start pling 08/26/2009 */
+        /* In IPv6 auto mode (when DHCIFF_SOLICIT_ONLY is set), 
+         * send immediately.
+         */
+        if ((ev->ifp->send_flags & DHCIFF_SOLICIT_ONLY))
+            ev->retrans = 0;
+        else
+		    ev->retrans = (random() % (MAX_SOL_DELAY - MIN_SOL_DELAY)) +
+			    MIN_SOL_DELAY;
+        /*  modified end pling 08/26/2009 */
 		break;
 	default:
 		if (ev->timeouts == 0) {
@@ -1780,7 +2239,15 @@ dhcp6_reset_timer(ev)
 		}
 		if (ev->max_retrans_time && n > ev->max_retrans_time)
 			n = ev->max_retrans_time + r * ev->max_retrans_time;
-		ev->retrans = (long)n;
+        /*  modified start pling 08/26/2009 */
+        /* In IPv6 auto mode (when DHCIFF_SOLICIT_ONLY is set),
+         * then send 1 DHCP Solicit every 1 sec.
+         */
+        if ((ev->ifp->send_flags & DHCIFF_SOLICIT_ONLY))
+            ev->retrans = 1000;
+        else
+    		ev->retrans = (long)n;
+        /*  modified end pling 08/26/2009 */
 		break;
 	}
 
@@ -1816,7 +2283,7 @@ dhcp6_reset_timer(ev)
 		statestr = "IDLE";
 		break;
 	default:
-		statestr = "???"; /* XXX */
+		statestr = "???";
 		break;
 	}
 
@@ -1872,7 +2339,7 @@ char *
 dhcp6optstr(type)
 	int type;
 {
-	static char genstr[sizeof("opt_65535") + 1]; /* XXX thread unsafe */
+	static char genstr[sizeof("opt_65535") + 1];
 
 	if (type > 65535)
 		return "INVALID option";
@@ -1892,6 +2359,16 @@ dhcp6optstr(type)
 		return "rapid commit";
 	case DH6OPT_DNS_SERVERS:
 		return "DNS_SERVERS";
+    /*  added start pling 09/23/2010 */
+    case DH6OPT_DOMAIN_LIST:
+        return "DOMAIN_LIST";
+    /*  added end pling 09/23/2010 */
+    /*  added start pling 01/25/2010 */
+	case DH6OPT_SIP_SERVERS:
+		return "SIP_SERVERS";
+	case DH6OPT_NTP_SERVERS:
+		return "NTP_SERVERS";
+    /*  added end pling 01/25/2010 */
 	default:
 		sprintf(genstr, "opt_%d", type);
 		return (genstr);
@@ -1902,7 +2379,7 @@ char *
 dhcp6msgstr(type)
 	int type;
 {
-	static char genstr[sizeof("msg255") + 1]; /* XXX thread unsafe */
+	static char genstr[sizeof("msg255") + 1];
 
 	if (type > 255)
 		return "INVALID msg";
@@ -1944,7 +2421,7 @@ char *
 dhcp6_stcodestr(code)
 	int code;
 {
-	static char genstr[sizeof("code255") + 1]; /* XXX thread unsafe */
+	static char genstr[sizeof("code255") + 1];
 
 	if (code > 255)
 		return "INVALID code";
@@ -2040,7 +2517,7 @@ dprintf(int level, const char *fmt, ...)
 		};
 
 		if ((now = time(NULL)) < 0)
-			exit(1); /* XXX */
+			exit(1);
 		tm_now = localtime(&now);
 		fprintf(stderr, "%3s/%02d/%04d %02d:%02d:%02d %s\n",
 			month[tm_now->tm_mon], tm_now->tm_mday,

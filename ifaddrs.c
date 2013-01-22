@@ -1,4 +1,4 @@
-/*	$Id: ifaddrs.c,v 1.4 2003/04/22 18:05:33 shemminger Exp $	*/
+/*	$Id: ifaddrs.c 241182 2011-02-17 21:50:03Z $	*/
 /* 	from USAGI: ifaddrs.c,v 1.20.2.1 2002/12/08 08:22:23 yoshfuji Exp */
 
 /* 
@@ -127,7 +127,7 @@ ifa_make_sockaddr (sa_family_t family,
       break;
     default:
       memcpy (sa->sa_data, p, len);
-      /*XXX*/ break;
+ break;
     }
   sa->sa_family = family;
 #ifdef HAVE_SOCKADDR_SA_LEN
@@ -157,12 +157,6 @@ ifa_make_sockaddr_mask (sa_family_t family,
       memset (&((struct sockaddr_in6 *) sa)->sin6_addr, 0,
 	      sizeof (((struct sockaddr_in6 *) sa)->sin6_addr));
       p = (char *) &((struct sockaddr_in6 *) sa)->sin6_addr;
-#if 0				/* XXX: fill scope-id? */
-      if (IN6_IS_ADDR_LINKLOCAL (p) || IN6_IS_ADDR_MC_LINKLOCAL (p))
-	{
-	  ((struct sockaddr_in6 *) sa)->sin6_scope_id = scopeid;
-	}
-#endif
       max_prefixlen = 128;
       break;
     default:
@@ -395,7 +389,7 @@ nl_close (int sd)
 {
   int saved_errno = errno;
   if (sd >= 0)
-    __close (sd);
+    close (sd);
   __set_errno (saved_errno);
 }
 

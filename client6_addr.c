@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.27 2007/09/25 07:37:48 shirleyma Exp $	*/
+/*	$Id: client6_addr.c,v 1.1.1.1 2006/12/04 00:45:21 Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -77,12 +77,30 @@ extern FILE *client6_lease_file;
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern struct dhcp6_list request_list;
 
+extern char* get_dhcpc_dev_name(void);       //  added pling 09/23/2009
+
 void
 dhcp6_init_iaidaddr(void)
 {
 	memset(&client6_iaidaddr, 0, sizeof(client6_iaidaddr));
 	TAILQ_INIT(&client6_iaidaddr.lease_list);
 }
+
+/*  added start pling 10/04/2010 */
+static char callback_cmd[256] = "";
+int dhcp6c_dad_callback(void)
+{
+    /* Execute our callback function to restart other 
+     * user-space apps, such as radvd, dhcp6s, etc
+     */
+    if (strlen(callback_cmd))
+    {
+        system(callback_cmd);
+        memset(callback_cmd, 0, sizeof(callback_cmd));
+    }
+    return 0;
+}
+/*  added end pling 10/04/2010 */
 
 int
 dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
@@ -91,8 +109,15 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	struct timeval timo;
 	struct dhcp6_lease *cl_lease;
 	double d;
+
+    /*  added start pling 08/15/2009 */
+    char command[256], command2[256];
+    memset(command, 0, sizeof(command));
+    /*  added end pling 08/15/2009 */
+
 	/* ignore IA with T1 > T2 */
-	if (optinfo->iaidinfo.renewtime > optinfo->iaidinfo.rebindtime) {
+	if (client6_iaidaddr.client6_info.iaidinfo.renewtime >
+	    client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
 		dprintf(LOG_INFO, " T1 time is greater than T2 time");
 		return (0);
 	}
@@ -116,6 +141,13 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 					"assigned address %s prefix len is not in any RAs"
 					" prefix length using 64 bit instead",
 					in6addr2str(&lv->val_dhcp6addr.addr, 0));
+
+                /*  added start pling 08/15/2009 */
+                sprintf(command, "dhcp6c_up %s %s %d ", 
+                        get_dhcpc_dev_name(),
+                        in6addr2str(&lv->val_dhcp6addr.addr, 0),
+                        lv->val_dhcp6addr.plen);
+                /*  added end pling 08/15/2009 */
 			}
 		}
 		if ((cl_lease = dhcp6_find_lease(&client6_iaidaddr, 
@@ -131,6 +163,24 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	}
 	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list))
 		return 0;
+
+    /*  added start pling 09/23/2009 */
+	/* add new prefix (IAPD) */
+	for (lv = TAILQ_FIRST(&optinfo->prefix_list); lv; lv = lv_next) {
+		lv_next = TAILQ_NEXT(lv, link);
+		if (lv->val_dhcp6addr.type == IAPD) {
+            sprintf(command2, " %s %d &",
+                    in6addr2str(&lv->val_dhcp6addr.addr, 0),
+			        lv->val_dhcp6addr.plen);
+            /*  added start pling 10/12/2010 */
+            if (!strlen(command))
+                sprintf(command, "dhcp6c_up %s ", get_dhcpc_dev_name());
+            /*  added end pling 10/12/2010 */
+            strcat(command, command2);
+        }
+    }
+    /*  added end pling 09/23/2009 */
+
 	/* set up renew T1, rebind T2 timer renew/rebind based on iaid */
 	/* Should we process IA_TA, IA_NA differently */
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0 ||
@@ -171,6 +221,14 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	timo.tv_sec = (long)d;
 	timo.tv_usec = 0;
 	dhcp6_set_timer(&timo, client6_iaidaddr.timer);
+
+    /*  modified start pling 10/04/2010 */
+    /* Call our callback function to do something useful */
+    if (strlen(command))
+        strcpy(callback_cmd, command);
+        //system(command);
+    /*  modified end pling 10/04/2010 */
+
 	return (0);
 }
 
@@ -284,11 +342,9 @@ dhcp6_remove_lease(struct dhcp6_lease *sp)
 			FNAME, in6addr2str(&sp->lease_addr.addr, 0));
 		return (-1);
 	}
-	/* XXX: ToDo: prefix delegation for client */
 	if (sp->lease_addr.type == IAPD) {
 		dprintf(LOG_INFO, "request prefix is %s/%d", 
 			in6addr2str(&sp->lease_addr.addr, 0), sp->lease_addr.plen);
-		/* XXX: remove from the update prefix list */
 
 	} else if (client6_ifaddrconf(IFADDRCONF_REMOVE, &sp->lease_addr) != 0) {
 			dprintf(LOG_INFO, "%s" "removing address %s failed",
@@ -304,6 +360,17 @@ dhcp6_remove_lease(struct dhcp6_lease *sp)
 	 * if(TAILQ_EMPTY(&client6_iaidaddr.lease_list))
 	 *	dhcp6_remove_iaidaddr();
 	 */
+
+	/*  added start pling 11/30/2010 */
+	/* WNR3500L TD192:
+	 * Execute dhcp6c_down, so that LAN services and GUI
+	 * are restarted correctly.
+	 */
+	char command[256];
+	sprintf(command, "dhcp6c_down %s", get_dhcpc_dev_name());
+	system(command);
+	/*  added end pling 11/30/2010 */
+
 	return 0;
 }
 
@@ -314,6 +381,11 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	struct dhcp6_lease *cl, *cl_next;
 	struct timeval timo;
 	double d;
+    /*  added start pling 08/15/2009 */
+    char command[256], command2[256];
+    memset(command, 0, sizeof(command));
+    /*  added end pling 08/15/2009 */
+
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime >
 	    client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
 		dprintf(LOG_INFO, " T1 time is greater than T2 time");
@@ -340,6 +412,12 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 				dprintf(LOG_WARNING, "assigned address %s is not in any RAs"
 					" prefix length using 64 bit instead",
 					in6addr2str(&lv->val_dhcp6addr.addr, 0)); 
+                /*  added start pling 08/15/2009 */
+                sprintf(command, "dhcp6c_up %s %s %d ", 
+                        get_dhcpc_dev_name(),
+                        in6addr2str(&lv->val_dhcp6addr.addr, 0),
+                        lv->val_dhcp6addr.plen);
+                /*  added end pling 08/15/2009 */
 			}
 		}
 		if ((cl = dhcp6_find_lease(&client6_iaidaddr, &lv->val_dhcp6addr)) != NULL) {
@@ -355,7 +433,6 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 		}
 		continue;
 	}
-#if 0
 	/* remove leases that not on the updated list */
 	for (cl = TAILQ_FIRST(&client6_iaidaddr.lease_list); cl; cl = cl_next) { 
 			cl_next = TAILQ_NEXT(cl, link);
@@ -365,7 +442,6 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 		if (lv == NULL)
 			dhcp6_remove_lease(cl);
 	}	
-#endif
 	/* update server id */
 	if (client6_iaidaddr.state == REBIND) {
 		if (duidcpy(&client6_iaidaddr.client6_info.serverid, &optinfo->serverID)) {
@@ -375,6 +451,24 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	}
 	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list))
 		return (0);
+    
+    /*  added start pling 09/23/2009 */
+	/* add new prefix (IAPD) */
+	for (lv = TAILQ_FIRST(&optinfo->prefix_list); lv; lv = lv_next) {
+		lv_next = TAILQ_NEXT(lv, link);
+		if (lv->val_dhcp6addr.type == IAPD) {
+            sprintf(command2, " %s %d &",
+                    in6addr2str(&lv->val_dhcp6addr.addr, 0),
+			        lv->val_dhcp6addr.plen);
+            /*  added start pling 10/12/2010 */
+            if (!strlen(command))
+                sprintf(command, "dhcp6c_up %s ", get_dhcpc_dev_name());
+            /*  added end pling 10/12/2010 */
+            strcat(command, command2);
+        }
+    }
+    /*  added end pling 09/23/2009 */
+
 	/* set up renew T1, rebind T2 timer renew/rebind based on iaid */
 	/* Should we process IA_TA, IA_NA differently */
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == 0) {
@@ -415,6 +509,13 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	timo.tv_sec = (long)d;
 	timo.tv_usec = 0;
 	dhcp6_set_timer(&timo, client6_iaidaddr.timer);
+    
+    /*  added start pling 08/15/2009 */
+    /* Call our callback function to do something useful */
+    if (strlen(command))
+        system(command);
+    /*  added start pling 08/15/2009 */
+
 	return 0;
 }
 
@@ -541,7 +642,7 @@ dhcp6_iaidaddr_timo(void *arg)
 	if ((ev = dhcp6_create_event(sp->ifp, dhcpstate)) == NULL) {
 		dprintf(LOG_ERR, "%s" "failed to create a new event",
 		    FNAME);
-		return (NULL); /* XXX: should try to recover reserve memory?? */
+		return (NULL);
 	}
 	switch(sp->state) {
 	case RENEW:
@@ -562,7 +663,7 @@ dhcp6_iaidaddr_timo(void *arg)
 		if (sp->state == RENEW)
 			duidfree(&ev->serverid);
 		free(ev);
-		return (NULL); /* XXX */
+		return (NULL);
 	}
 	TAILQ_INSERT_TAIL(&sp->ifp->event_list, ev, link);
 	if (sp->state != INVALID) {

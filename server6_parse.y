@@ -1,4 +1,4 @@
-/*	$Id: server6_parse.y,v 1.11 2005/03/10 00:39:09 shemminger Exp $	*/
+/*	$Id: server6_parse.y,v 1.1.1.1 2006/12/04 00:45:34 Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -101,6 +101,8 @@ extern int sfyylex __P((void));
 %token	<str>	UNICAST
 %token	<str>	TEMPIPV6ADDR
 %token	<str>	DNS_SERVERS
+%token	<str>	SIP_SERVERS
+%token	<str>	NTP_SERVERS
 %token	<str>	DUID DUID_ID
 %token	<str>	IAID IAIDINFO
 %token  <str>	INFO_ONLY
@@ -180,6 +182,8 @@ ifhead
 		}
 		memset(ifnetwork, 0, sizeof(*ifnetwork));
 		TAILQ_INIT(&ifnetwork->ifscope.dnslist.addrlist);
+		TAILQ_INIT(&ifnetwork->ifscope.siplist);
+		TAILQ_INIT(&ifnetwork->ifscope.ntplist);
 		strncpy(ifnetwork->name, $2, strlen($2)); 
 		if (get_linklocal(ifnetwork->name, &ifnetwork->linklocal) < 0) {
 			dprintf(LOG_ERR, "get device %s linklocal failed", ifnetwork->name);
@@ -241,6 +245,8 @@ linkhead
 		}
 		memset(link, 0, sizeof(*link));
 		TAILQ_INIT(&link->linkscope.dnslist.addrlist);
+		TAILQ_INIT(&link->linkscope.siplist);
+		TAILQ_INIT(&link->linkscope.ntplist);
 		while (temp_sub) {
 			if (!strcmp(temp_sub->name, $2))
 			{
@@ -334,6 +340,8 @@ poolhead
 		}
 		memset(pool, 0, sizeof(*pool));
 		TAILQ_INIT(&pool->poolscope.dnslist.addrlist);
+		TAILQ_INIT(&pool->poolscope.siplist);
+		TAILQ_INIT(&pool->poolscope.ntplist);
 		if (link)
 			pool->link = link;
 			
@@ -532,6 +540,8 @@ grouphead
 		}
 		memset(groupscope, 0, sizeof(*groupscope));
 		TAILQ_INIT(&groupscope->dnslist.addrlist);
+		TAILQ_INIT(&groupscope->siplist);
+		TAILQ_INIT(&groupscope->ntplist);
 		/* set up current group */
 		currentgroup = push_double_list(currentgroup, groupscope);
 		if (currentgroup == NULL)
@@ -589,6 +599,8 @@ hosthead
 		TAILQ_INIT(&host->addrlist);
 		TAILQ_INIT(&host->prefixlist);
 		TAILQ_INIT(&host->hostscope.dnslist.addrlist);
+		TAILQ_INIT(&host->hostscope.siplist);
+		TAILQ_INIT(&host->hostscope.ntplist);
 		host->network = ifnetwork;
 		strncpy(host->name, $2, strlen($2));
 		/* enter host scope */
@@ -791,6 +803,12 @@ optionpara
 	| DNS_SERVERS dns_paras ';'
 	{
 	}
+	| SIP_SERVERS sip_paras ';'
+	{
+	}
+	| NTP_SERVERS ntp_paras ';'
+	{
+	}
 	;
 
 dns_paras
@@ -804,6 +822,31 @@ dns_para
 		dhcp6_add_listval(&currentscope->scope->dnslist.addrlist, &$1,
 			DHCP6_LISTVAL_ADDR6);
 	}
+
+sip_paras
+	: sip_paras sip_para
+	| sip_para
+	;
+
+sip_para
+	: IPV6ADDR 
+	{
+		dhcp6_add_listval(&currentscope->scope->siplist, &$1,
+			DHCP6_LISTVAL_ADDR6);
+	}
+
+ntp_paras
+	: ntp_paras ntp_para
+	| ntp_para
+	;
+
+ntp_para
+	: IPV6ADDR 
+	{
+		dhcp6_add_listval(&currentscope->scope->ntplist, &$1,
+			DHCP6_LISTVAL_ADDR6);
+	}
+
 	| STRING
 	{
 		struct domain_list *domainname, *temp;
@@ -938,4 +981,3 @@ sfyyerror(char *msg)
 	cleanup();
 	dprintf(LOG_ERR, "%s in line %d: %s ", msg, num_lines, sfyytext);
 }
-
