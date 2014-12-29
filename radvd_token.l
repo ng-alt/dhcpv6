@@ -1,4 +1,4 @@
-/*	$Id: radvd_token.l,v 1.1.1.1 2006/12/04 00:45:31 Exp $	*/
+/*	$Id: radvd_token.l,v 1.1.1.1 2006-12-04 00:45:31 pmoutarl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -238,9 +238,6 @@ radvd_parse(struct dhcp6_iaidaddr *client6_iaid, int flag)
 {
 	struct stat buf;
 	char pidstr[128];
-	/* return here, don't signal radvd. 
-	 * our rc code will restart radvd and dhcp6s */
-	return 0;
 	sprintf(pidstr, "%d", getpid());
 	strcpy(radvd_dhcpv6_file, RADVD_CONF_DHCPV6_FILE);
 	strcat(radvd_dhcpv6_file, pidstr);
@@ -336,9 +333,6 @@ yywrap(void)
 	int fd;
 	char buff[8];
 	pid_t radvd_pid;
-	/* return here, don't signal radvd. 
-	 * our rc code will restart radvd and dhcp6s */
-	return 0;
 	(void)update_radvd();
 	if (update) {
 		if ((fd = open(PATH_RADVD_PID, O_RDONLY)) > 0) {

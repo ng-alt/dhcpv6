@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.1.1.1 2006/12/04 00:45:23 Exp $	*/
+/*	$Id: dhcp6c.c,v 1.1.1.1 2006-12-04 00:45:23 Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -103,7 +103,7 @@ static	char leasename[100];
 #define CLIENT6_INFO_REQ	0x10
 
 int insock;	/* inbound udp port */
-//int outsock;	/* outbound udp port */     //  removed pling 08/15/2009
+//int outsock;	/* outbound udp port */     // Foxconn removed pling 08/15/2009
 int nlsock;	
 
 extern char *raproc_file;
@@ -129,6 +129,7 @@ static struct dhcp6_serverinfo *allocate_newserver __P((struct dhcp6_if *, struc
 static struct dhcp6_serverinfo *select_server __P((struct dhcp6_if *));
 void client6_send __P((struct dhcp6_event *));
 int client6_send_newstate __P((struct dhcp6_if *, int));
+void client6_send_info_req __P((struct dhcp6_event *));
 static void client6_recv __P((void));
 static int client6_recvadvert __P((struct dhcp6_if *, struct dhcp6 *,
 				   ssize_t, struct dhcp6_optinfo *));
@@ -148,22 +149,22 @@ extern struct dhcp6_timer *syncfile_timo __P((void *));
 extern int radvd_parse (struct dhcp6_iaidaddr *, int);
 
 #define DHCP6C_CONF "/tmp/dhcp6c.conf"
-#define DHCP6C_USER_CONF "/tmp/dhcp6c_user.conf"    //  added pling 09/27/2010
+#define DHCP6C_USER_CONF "/tmp/dhcp6c_user.conf"    // Foxconn added pling 09/27/2010
 #define DHCP6C_PIDFILE "/var/run/dhcpv6/dhcp6c.pid"
 #define DUID_FILE "/tmp/dhcp6c_duid"
 
 static int pid;
 char client6_lease_temp[256];
 struct dhcp6_list request_list;
-struct dhcp6_list request_prefix_list;  //  added pling 09/24/2009
+struct dhcp6_list request_prefix_list;  // Foxconn added pling 09/24/2009
 
-/*  added start pling 10/07/2010 */
+/* Foxconn added start pling 10/07/2010 */
 /* For testing purpose */
 u_int32_t xid_solicit = 0;
 u_int32_t xid_request = 0;
-/*  added end pling 10/07/2010 */
+/* Foxconn added end pling 10/07/2010 */
 
-/*  added start pling 09/07/2010 */
+/* Foxconn added start pling 09/07/2010 */
 /* User secondary conf file to store info such as user-class */
 int parse_user_file(char *user_file)
 {
@@ -199,15 +200,15 @@ int parse_user_file(char *user_file)
     }
     return 0;
 }
-/*  added end pling 09/07/2010 */
+/* Foxconn added end pling 09/07/2010 */
 
-/*  added start pling 09/23/2009 */
+/* Foxconn added start pling 09/23/2009 */
 /* Return the interface where dhcp is run on */
 char* get_dhcpc_dev_name(void)
 {
     return device;
 }
-/*  added end pling 09/23/2009 */
+/* Foxconn added end pling 09/23/2009 */
 
 int
 main(argc, argv)
@@ -229,9 +230,9 @@ main(argc, argv)
 		progname++;
 
 	TAILQ_INIT(&request_list);
-	TAILQ_INIT(&request_prefix_list);	//  added pling 09/23/2009
+	TAILQ_INIT(&request_prefix_list);	// Foxconn added pling 09/23/2009
  
-    /*  modified start pling 09/17/2010 */
+    /* Foxconn modified start pling 09/17/2010 */
     /* Since 'user class' string may contain any printable char.
      * The current dhcp6s config file parsing (using yyparse)
      * can't handle this properly.
@@ -240,17 +241,17 @@ main(argc, argv)
      */
 	//while ((ch = getopt(argc, argv, "c:r:R:P:dDfI")) != -1) {
 	while ((ch = getopt(argc, argv, "c:u:r:R:P:dDfI")) != -1) {
-    /*  modified end pling 09/17/2010 */
+    /* Foxconn modified end pling 09/17/2010 */
 		switch (ch) {
 		case 'c':
 			conffile = optarg;
 			break;
-        /*  added start pling 09/17/2010 */
+        /* Foxconn added start pling 09/17/2010 */
         /* Another config file to store info, such as user-class, etc */
         case 'u':
             user_file = optarg;
             break;
-        /*  added end pling 09/17/2010 */
+        /* Foxconn added end pling 09/17/2010 */
 		case 'P':
 			client6_request_flag |= CLIENT6_REQUEST_ADDR;
 			for (addr = strtok(optarg, " "); addr; addr = strtok(NULL, " ")) {
@@ -361,10 +362,10 @@ main(argc, argv)
  
 	ifinit(device);
 
-    /*  added start pling 09/17/2010 */
+    /* Foxconn added start pling 09/17/2010 */
     /* Parse the second conf file, before reading original config file */
     parse_user_file(user_file);
-    /*  added end pling 09/17/2010 */
+    /* Foxconn added end pling 09/17/2010 */
 
 	if ((cfparse(conffile)) != 0) {
 		dprintf(LOG_ERR, "%s" "failed to parse configuration file",
@@ -372,11 +373,11 @@ main(argc, argv)
 		exit(1);
 	}
 
-    /*  added start pling 01/25/2010 */
+    /* Foxconn added start pling 01/25/2010 */
     /* Clear SIP and NTP servers params upon restart */
     system("nvram set ipv6_sip_servers=\"\"");
     system("nvram set ipv6_ntp_servers=\"\"");
-    /*  added end pling 01/25/2010 */
+    /* Foxconn added end pling 01/25/2010 */
 
 	client6_init(device);
 	client6_ifinit(device);
@@ -475,7 +476,7 @@ client6_init(device)
 			FNAME, gai_strerror(error));
 		exit(1);
 	}
-    /*  removed start pling 08/15/2009 */
+    /* Foxconn removed start pling 08/15/2009 */
 #if 0
 	outsock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if (outsock < 0) {
@@ -497,7 +498,7 @@ client6_init(device)
 		exit(1);
 	}
 #endif
-    /*  removed end pling 08/15/2009 */
+    /* Foxconn removed end pling 08/15/2009 */
 	freeaddrinfo(res);
 	/* open a socket to watch the off-on link for confirm messages */
 	if ((nlsock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -525,7 +526,7 @@ client6_init(device)
 			FNAME, device);
 		exit(1);
 	}
-	//ifp->outsock = outsock;       //  removed pling 08/15/2009 
+	//ifp->outsock = outsock;       // Foxconn removed pling 08/15/2009 
 
 	if (signal(SIGHUP, client6_signal) == SIG_ERR) {
 		dprintf(LOG_WARNING, "%s" "failed to set signal: %s",
@@ -556,11 +557,11 @@ client6_ifinit(char *device)
 	if (num_device == 0) {
 		if ((num_device = create_iaid(&iaidtab[0], num_device)) < 0)
 			exit(1);
-        /*  modified start pling 08/20/2009 */
+        /* Foxconn modified start pling 08/20/2009 */
         /* Per Netgear spec, use 1 as the IAID for IA_NA */
 		//ifp->iaidinfo.iaid = get_iaid(ifp->ifname, &iaidtab[0], num_device);
 		ifp->iaidinfo.iaid = 1; //get_iaid(ifp->ifname, &iaidtab[0], num_device);
-        /*  modified end pling 08/20/2009 */
+        /* Foxconn modified end pling 08/20/2009 */
 		if (ifp->iaidinfo.iaid == 0) {
 			dprintf(LOG_DEBUG, "%s" 
 				"interface %s iaid failed to be created", 
@@ -690,11 +691,11 @@ process_signals()
 	if ((sig_flags & SIGF_TERM)) {
 		dprintf(LOG_INFO, FNAME "exiting");
 
-        /*  added start pling 09/10/2010 */
+        /* Foxconn added start pling 09/10/2010 */
         /* Release IANA/IAPD before exiting */
         create_request_list(0);
         client6_send_newstate(dhcp6_if, DHCP6S_RELEASE);
-        /*  added end pling 09/10/2010 */
+        /* Foxconn added end pling 09/10/2010 */
 
 		free_resources(dhcp6_if);
 		unlink(DHCP6C_PIDFILE);
@@ -703,22 +704,22 @@ process_signals()
 	if ((sig_flags & SIGF_HUP)) {
 		dprintf(LOG_INFO, FNAME "restarting");
 
-        /*  added start pling 09/10/2010 */
+        /* Foxconn added start pling 09/10/2010 */
         /* Release IANA/IAPD before restarting */
         create_request_list(0);
         client6_send_newstate(dhcp6_if, DHCP6S_RELEASE);
-        /*  added end pling 09/10/2010 */
+        /* Foxconn added end pling 09/10/2010 */
 
 		free_resources(dhcp6_if);
 		client6_ifinit(device);
 	}
 	if ((sig_flags & SIGF_CLEAN)) {
 
-        /*  added start pling 09/10/2010 */
+        /* Foxconn added start pling 09/10/2010 */
         /* Release IANA/IAPD before exiting */
         create_request_list(0);
         client6_send_newstate(dhcp6_if, DHCP6S_RELEASE);
-        /*  added end pling 09/10/2010 */
+        /* Foxconn added end pling 09/10/2010 */
 
 		free_resources(dhcp6_if);
 		exit(0);
@@ -774,7 +775,7 @@ client6_timo(arg)
 	     >= ev->max_retrans_dur)) {
 		dprintf(LOG_INFO, "%s" "no responses were received", FNAME);
 
-        /*  added start pling 10/07/2010 */
+        /* Foxconn added start pling 10/07/2010 */
         /* WNR3500L TD170, after multiple re-transmit of REQUEST 
          * message, if we did not receive a valid response, 
          * go back to SOLICIT state */
@@ -787,7 +788,7 @@ client6_timo(arg)
             dhcp6_reset_timer(ev);
             return (ev->timer);
         }
-        /*  added end pling 10/07/2010 */
+        /* Foxconn added end pling 10/07/2010 */
 
 		dhcp6_remove_event(ev);
 		return (NULL);
@@ -811,12 +812,12 @@ client6_timo(arg)
 		 *    and information-only, conmand line -I are not set.
 		 */
 		if ((ifp->send_flags & DHCIFF_INFO_ONLY) || 
-			/*  modified start pling 09/15/2011 */
+			/* Foxconn modified start pling 09/15/2011 */
 			/* Ignore the "M" and "O" flags in RA. Just send DHCP solicit */
 			(client6_request_flag & CLIENT6_INFO_REQ) /* ||
 			(!(ifp->ra_flag & IF_RA_MANAGED) && 
 			 (ifp->ra_flag & IF_RA_OTHERCONF))*/ )
-			/*  modified end pling 09/15/2011 */
+			/* Foxconn modified end pling 09/15/2011 */
 			ev->state = DHCP6S_INFOREQ;
 		else if (client6_request_flag & CLIENT6_RELEASE_ADDR) 
 			/* do release */
@@ -837,7 +838,7 @@ client6_timo(arg)
 			ev->state = DHCP6S_SOLICIT;
 		dhcp6_set_timeoparam(ev);
 
-        /*  added start pling 10/14/2010 */
+        /* Foxconn added start pling 10/14/2010 */
         /* In auto-detect mode, we only send the SOLICIT messages
          * 3 times.
          */
@@ -846,7 +847,7 @@ client6_timo(arg)
 			dprintf(LOG_ERR, "%s" "Set SOLICIT message to %d times", 
                     FNAME, SOL_MAX_RC_AUTODETECT);
         }
-        /*  added end pling 10/14/2010 */
+        /* Foxconn added end pling 10/14/2010 */
 
 	case DHCP6S_SOLICIT:
 		if (ifp->servers) {
@@ -866,7 +867,7 @@ client6_timo(arg)
 			ev->state = DHCP6S_REQUEST;
 			dhcp6_set_timeoparam(ev);
 		}
-        /*  added start pling 10/14/2010 */
+        /* Foxconn added start pling 10/14/2010 */
         /* In auto-detect mode, we need to send two SOLICIT
          * messages, one with IANA+IAPD, one with IAPD only.
          */
@@ -877,18 +878,18 @@ client6_timo(arg)
             ifp->send_flags &=~ DHCIFF_PREFIX_DELEGATION;
             break;  /* don't fall through */
         }
-        /*  added end pling 10/14/2010 */
-	//case DHCP6S_INFOREQ:  //  removed pling 10/05/2010 */
+        /* Foxconn added end pling 10/14/2010 */
+	//case DHCP6S_INFOREQ:  // Foxconn removed pling 10/05/2010 */
 	case DHCP6S_REQUEST:
 		client6_send(ev);
 		break;
 
-    /*  added start pling 10/05/2010 */
+    /* Foxconn added start pling 10/05/2010 */
     /* Use different function to send INFO-REQ */
     case DHCP6S_INFOREQ:
         client6_send_info_req(ev);
         break;
-    /*  added end pling 10/05/2010 */
+    /* Foxconn added end pling 10/05/2010 */
 
 	case DHCP6S_RELEASE:
 	case DHCP6S_DECLINE:
@@ -1027,7 +1028,7 @@ client6_send(ev)
 		 */
 		ev->xid = random() & DH6_XIDMASK;
 
-        /*  added start pling 10/07/2010 */
+        /* Foxconn added start pling 10/07/2010 */
         /* For Testing purposes !!! */
         if (ev->state == DHCP6S_SOLICIT && xid_solicit) {
             dprintf(LOG_DEBUG, "%s"
@@ -1038,7 +1039,7 @@ client6_send(ev)
                 "**TESTING** Use user-defined xid_req %lu", FNAME, xid_request);
             ev->xid = xid_request & DH6_XIDMASK;
         }
-        /*  added end pling 10/07/2010 */
+        /* Foxconn added end pling 10/07/2010 */
 
 		dprintf(LOG_DEBUG, "%s" "ifp %p event %p a new XID (%x) is generated",
 			FNAME, ifp, ev, ev->xid);
@@ -1087,18 +1088,18 @@ client6_send(ev)
 		goto end;
 	}
 
-	/*  added start pling 09/07/2010 */
+	/* Foxconn added start pling 09/07/2010 */
 	/* User-class */
 	strcpy(optinfo.user_class, ifp->user_class);
-	/*  added end pling 09/07/2010 */
+	/* Foxconn added end pling 09/07/2010 */
 
 	/* option request options */
-    /*  added start pling 10/01/2010 */
+    /* Foxconn added start pling 10/01/2010 */
     /* DHCPv6 readylogo: DHCP confirm message should not
      *  have request for DNS/Domain list.
      */
     if (ev->state != DHCP6S_CONFIRM)
-    /*  added end pling 10/01/2010 */
+    /* Foxconn added end pling 10/01/2010 */
 	if (dhcp6_copy_list(&optinfo.reqopt_list, &ifp->reqopt_list)) {
 		dprintf(LOG_ERR, "%s" "failed to copy requested options",
 		    FNAME);
@@ -1126,7 +1127,7 @@ client6_send(ev)
 			if (dhcp6_copy_list(&optinfo.addr_list, &request_list))
 				goto end;
 		}
-        /*  added start pling 10/14/2010 */
+        /* Foxconn added start pling 10/14/2010 */
         /* In auto-detect mode, we need to send two SOLICIT
          * messages. 2nd one has IAPD only.
          */
@@ -1134,11 +1135,11 @@ client6_send(ev)
             (ifp->send_flags & DHCIFF_PREFIX_DELEGATION)) {
             optinfo.type = IAPD;
         }
-        /*  added end pling 10/14/2010 */
+        /* Foxconn added end pling 10/14/2010 */
 		break;
 	case DHCP6S_REQUEST:
 		if (!(ifp->send_flags & DHCIFF_INFO_ONLY)) {
-            /*  modified start pling 08/20/2009 */
+            /* Foxconn modified start pling 08/20/2009 */
             /* Should copy 'current_server's addr info */
 #if 0
 			memcpy(&optinfo.iaidinfo, &client6_iaidaddr.client6_info.iaidinfo,
@@ -1151,7 +1152,7 @@ client6_send(ev)
 			if (dhcp6_copy_list(&optinfo.prefix_list, 
 						&(ifp->current_server->optinfo.prefix_list)))
                 goto end;
-            /*  modified end pling 08/20/2009 */
+            /* Foxconn modified end pling 08/20/2009 */
 			dprintf(LOG_DEBUG, "%s IAID is %u", FNAME, optinfo.iaidinfo.iaid);
 			if (ifp->send_flags & DHCIFF_TEMP_ADDRS) 
 				optinfo.type = IATA;
@@ -1182,13 +1183,13 @@ client6_send(ev)
 				exit(1);
 			}
 		}
-        /*  added start pling 09/24/2009 */
+        /* Foxconn added start pling 09/24/2009 */
         /* PUt the IAPD prefix in the DHCP packet */
 		if (!TAILQ_EMPTY(&request_prefix_list)) {
 			if (dhcp6_copy_list(&optinfo.prefix_list, &request_prefix_list))
 				goto end;
         }
-        /*  added end pling 09/24/2009 */
+        /* Foxconn added end pling 09/24/2009 */
 		if (client6_request_flag & CLIENT6_RELEASE_ADDR) {
 			if (dhcp6_update_iaidaddr(&optinfo, ADDR_REMOVE)) {
 				dprintf(LOG_INFO, "client release failed");
@@ -1246,11 +1247,11 @@ client6_send(ev)
 	dst.sin6_scope_id = ifp->linkid;
 	dprintf(LOG_DEBUG, "send dst if %s addr is %s scope id is %d", 
 		ifp->ifname, addr2str((struct sockaddr *)&dst), ifp->linkid);
-    /*  modified start pling 08/15/2009 */
+    /* Foxconn modified start pling 08/15/2009 */
     /* why use 'outsock' here? */
 	//if (sendto(ifp->outsock, buf, len, MSG_DONTROUTE, (struct sockaddr *)&dst,
 	if (sendto(insock, buf, len, MSG_DONTROUTE, (struct sockaddr *)&dst,
-    /*  modified end pling 08/15/2009 */
+    /* Foxconn modified end pling 08/15/2009 */
 	    sizeof(dst)) == -1) {
 		dprintf(LOG_ERR, FNAME "transmit failed: %s", strerror(errno));
 		goto end;
@@ -1265,7 +1266,7 @@ client6_send(ev)
 	return;
 }
 	
-/*  added end pling 01/25/2010 */
+/* Foxconn added end pling 01/25/2010 */
 void
 client6_send_info_req(ev)
 	struct dhcp6_event *ev;
@@ -1324,10 +1325,10 @@ client6_send_info_req(ev)
 		goto end;
 	}
 
-	/*  added start pling 09/07/2010 */
+	/* Foxconn added start pling 09/07/2010 */
 	/* User-class */
 	strcpy(optinfo.user_class, ifp->user_class);
-	/*  added end pling 09/07/2010 */
+	/* Foxconn added end pling 09/07/2010 */
 
 	/* option request options */
 	if (dhcp6_copy_list(&optinfo.reqopt_list, &ifp->reqopt_list)) {
@@ -1388,11 +1389,11 @@ client6_send_info_req(ev)
 	dst.sin6_scope_id = ifp->linkid;
 	dprintf(LOG_DEBUG, "send dst if %s addr is %s scope id is %d", 
 		ifp->ifname, addr2str((struct sockaddr *)&dst), ifp->linkid);
-    /*  modified start pling 08/15/2009 */
+    /* Foxconn modified start pling 08/15/2009 */
     /* why use 'outsock' here? */
 	//if (sendto(ifp->outsock, buf, len, MSG_DONTROUTE, (struct sockaddr *)&dst,
 	if (sendto(insock, buf, len, MSG_DONTROUTE, (struct sockaddr *)&dst,
-    /*  modified end pling 08/15/2009 */
+    /* Foxconn modified end pling 08/15/2009 */
 	    sizeof(dst)) == -1) {
 		dprintf(LOG_ERR, FNAME "transmit failed: %s", strerror(errno));
 		goto end;
@@ -1406,7 +1407,7 @@ client6_send_info_req(ev)
 	dhcp6_clear_options(&optinfo);
 	return;
 }
-/*  added end pling 01/25/2010 */
+/* Foxconn added end pling 01/25/2010 */
 
 static void
 client6_recv()
@@ -1472,7 +1473,7 @@ client6_recv()
 	p = (struct dhcp6opt *)(dh6 + 1);
 	ep = (struct dhcp6opt *)((char *)dh6 + len);
 
-    /*  modified start pling 10/04/2010 */
+    /* Foxconn modified start pling 10/04/2010 */
     /* Pass some extra arguments to 'dhcp6_get_options'
      * to better determine whether this packet is ok or not.
      */
@@ -1485,7 +1486,7 @@ client6_recv()
     if (dhcp6_get_options(p, ep, &optinfo, dh6->dh6_msgtype, 
                 ev->state, ifp->send_flags) < 0) {
 	//if (dhcp6_get_options(p, ep, &optinfo) < 0) {
-    /*  modified end pling 10/04/2010 */
+    /* Foxconn modified end pling 10/04/2010 */
 		dprintf(LOG_INFO, "%s" "failed to parse options", FNAME);
 #ifdef TEST
 		return;
@@ -1574,11 +1575,11 @@ client6_recvadvert(ifp, dh6, len, optinfo0)
 		return -1;
 	}
 
-    /*  added start pling 08/26/2009 */
+    /* Foxconn added start pling 08/26/2009 */
     /* In Ipv6 auto mode, write result to a file */
 	if (ifp->send_flags & DHCIFF_SOLICIT_ONLY) {
         FILE *fp = NULL;
-        /*  modified start pling 10/14/2010 */
+        /* Foxconn modified start pling 10/14/2010 */
         /* For auto-detect mode, if recv ADVERTISE mesg with 
          * IAPD-only, write to different file.
          */
@@ -1586,27 +1587,27 @@ client6_recvadvert(ifp, dh6, len, optinfo0)
             fp = fopen("/tmp/wan_dhcp6c_iapd", "w");
         else
             fp = fopen("/tmp/wan_dhcp6c", "w");
-        /*  modified end pling 10/14/2010 */
+        /* Foxconn modified end pling 10/14/2010 */
         if (fp) {
             fprintf(fp, "1");
             fclose(fp);
         }
         return 0;
     }
-    /*  added end pling 08/26/2009 */
+    /* Foxconn added end pling 08/26/2009 */
 
 	newserver = allocate_newserver(ifp, optinfo0);
 	if (newserver == NULL)
 		return (-1);
 		
-    /*  added start pling 08/21/2009 */
+    /* Foxconn added start pling 08/21/2009 */
     /* for some reason, 'allocate_newserver' did not copy
      * the IAID info. So we do it here...
      */
     memcpy(&(newserver->optinfo.iaidinfo),
            &(optinfo0->iaidinfo),
            sizeof(struct dhcp6_iaid_info));
-    /*  added end pling 08/21/2009 */
+    /* Foxconn added end pling 08/21/2009 */
 
 	/* if the server has an extremely high preference, just use it. */
 	if (newserver->pref == DH6OPT_PREF_MAX) {
@@ -1640,11 +1641,11 @@ client6_recvadvert(ifp, dh6, len, optinfo0)
 	/* if the client send preferred addresses reqeust in SOLICIT */
 	if (!TAILQ_EMPTY(&optinfo0->addr_list))
 		dhcp6_copy_list(&request_list, &optinfo0->addr_list);
-	/*  added start pling 09/23/2009 */
+	/* Foxconn added start pling 09/23/2009 */
 	/* Store IAPD to the request_prefix_list, for later use by DHCP renew */
 	if (!TAILQ_EMPTY(&optinfo0->prefix_list))
 		dhcp6_copy_list(&request_prefix_list, &optinfo0->prefix_list);
-	/*  added end pling 09/23/2009 */
+	/* Foxconn added end pling 09/23/2009 */
 	return 0;
 }
 
@@ -1720,7 +1721,7 @@ free_servers(ifp)
 	ifp->current_server = NULL;
 }
 
-static int not_on_link_count = 0;    //  added pling 10/07/2010
+static int not_on_link_count = 0;    // Foxconn added pling 10/07/2010
 
 static int
 client6_recvreply(ifp, dh6, len, optinfo)
@@ -1809,7 +1810,7 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		case DH6OPT_STCODE_NOBINDING:
 		case DH6OPT_STCODE_NOTONLINK:
 		case DH6OPT_STCODE_USEMULTICAST:
-            if (addr_status_code == 0)      //  added pling 10/07/2010, don't override error status if already set
+            if (addr_status_code == 0)      // Foxconn added pling 10/07/2010, don't override error status if already set
     			addr_status_code = lv->val_num;
 		default:
 			break;
@@ -1847,7 +1848,7 @@ client6_recvreply(ifp, dh6, len, optinfo)
 			dprintf(LOG_DEBUG, "%s" 
 			    "got a NotOnLink reply for request/rapid commit,"
 			    " sending solicit.", FNAME);
-            /*  modified start pling 10/07/2010 */
+            /* Foxconn modified start pling 10/07/2010 */
             /* WNR3500L TD170, need to send request without any IP for
              *  3 times, then back to solicit state.
              */
@@ -1865,33 +1866,33 @@ client6_recvreply(ifp, dh6, len, optinfo)
                 free_servers(ifp);
                 newstate = DHCP6S_SOLICIT;
             }
-            /*  modified end pling 10/07/2010 */
+            /* Foxconn modified end pling 10/07/2010 */
 			break;
 		case DH6OPT_STCODE_NOADDRAVAIL:
 		case DH6OPT_STCODE_NOPREFIXAVAIL:
 			dprintf(LOG_DEBUG, "%s" 
 			    "got a NoAddrAvail reply for request/rapid commit,"
 			    " sending inforeq.", FNAME);
-            not_on_link_count = 0;  //  added pling 10/07/2010
+            not_on_link_count = 0;  // Foxconn added pling 10/07/2010
 			optinfo->iaidinfo.iaid = 0;
 			newstate = DHCP6S_INFOREQ;
 			break;
 		case DH6OPT_STCODE_SUCCESS:
 		case DH6OPT_STCODE_UNDEFINE:
 		default:
-            not_on_link_count = 0;  //  added pling 10/07/2010
+            not_on_link_count = 0;  // Foxconn added pling 10/07/2010
 			if (!TAILQ_EMPTY(&optinfo->addr_list)) {
 				(void)get_if_rainfo(ifp);
 				dhcp6_add_iaidaddr(optinfo);
 				if (optinfo->type == IAPD) {
 					radvd_parse(&client6_iaidaddr, ADDR_UPDATE);
-                    /*  added start pling 10/12/2010 */
+                    /* Foxconn added start pling 10/12/2010 */
                     /* 1. Execute callback now as IAPD only does not need DAD.
                      * 2. Send Info-req to get additional info
                      */
                     dhcp6c_dad_callback();
                     newstate = DHCP6S_INFOREQ;
-                    /*  added end pling 10/12/2010 */
+                    /* Foxconn added end pling 10/12/2010 */
                 }
 				else if (ifp->dad_timer == NULL && (ifp->dad_timer =
 					  dhcp6_add_timer(check_dad_timo, ifp)) < 0) {
@@ -1899,11 +1900,11 @@ client6_recvreply(ifp, dh6, len, optinfo)
 						" DAD", FNAME); 
 				}
 				setup_check_timer(ifp);
-                /*  removed start pling 10/05/2010 */
+                /* Foxconn removed start pling 10/05/2010 */
                 /* WNR3500L TD#175, send info-req after we complete the 
                  *  DAD check. */
                 //client6_send_info_req(ev);
-                /*  removed end pling 10/05/2010 */
+                /* Foxconn removed end pling 10/05/2010 */
 			}
 			break;
 		}
@@ -1915,64 +1916,30 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		/* NoBinding for RENEW, REBIND, send REQUEST */
 		switch(addr_status_code) {
 		case DH6OPT_STCODE_NOBINDING:
-		/*  modified start pling 10/01/2014 */
-		/* R7000 TD486: WAN IPv6 address not update if receive 
-		 * status code "Not-On-Link", and "No-binding"
-		 * Copy code from above "NOTONLINK" handling */
-#if 0
 			newstate = DHCP6S_REQUEST;
 			dprintf(LOG_DEBUG, "%s" 
 			    	  "got a NoBinding reply, sending request.", FNAME);
 			dhcp6_remove_iaidaddr(&client6_iaidaddr);
 			break;
-#endif
-		case DH6OPT_STCODE_NOTONLINK:
-		case DH6OPT_STCODE_NOADDRAVAIL:
-		case DH6OPT_STCODE_NOPREFIXAVAIL:
-		case DH6OPT_STCODE_UNSPECFAIL:
-			dprintf(LOG_DEBUG, "%s" "got a NotOnLink reply for renew/rebind", FNAME);
-			dhcp6_remove_iaidaddr(&client6_iaidaddr);
-			not_on_link_count++;
-			if (not_on_link_count <= REQ_MAX_RC_NOTONLINK) {
-				/* Clear the IA / PD address, so they won't appear in the
-				 * request pkt. */
-				dhcp6_clear_list(&(ifp->current_server->optinfo.addr_list));
-				dhcp6_clear_list(&(ifp->current_server->optinfo.prefix_list));
-				newstate = DHCP6S_REQUEST;
-			} else {
-				/* Three times, back to SOLICIT state */
-				not_on_link_count = 0;
-				free_servers(ifp);
-				newstate = DHCP6S_SOLICIT;
-			}
-			break;
-		/*  modified end pling 10/01/2014 */
-
-		/*  removed start pling 10/01/2014 */
-		/* Handle these status codes above */
-#if 0
 		case DH6OPT_STCODE_NOADDRAVAIL:
 		case DH6OPT_STCODE_NOPREFIXAVAIL:
 		case DH6OPT_STCODE_UNSPECFAIL:
 			break;
-#endif
-		/*  removed end pling 10/01/2014 */
-
 		case DH6OPT_STCODE_SUCCESS:
 		case DH6OPT_STCODE_UNDEFINE:
 		default:
 			dhcp6_update_iaidaddr(optinfo, ADDR_UPDATE);
 			if (optinfo->type == IAPD)
 				radvd_parse(&client6_iaidaddr, ADDR_UPDATE);
-			/*  added start pling 12/22/2011 */
+			/* Foxconn added start pling 12/22/2011 */
 			/* WNDR4500 TD#156: Send signal to radvd to refresh 
 			 * the prefix lifetime */
 			system("killall -SIGUSR1 radvd");
-			/*  added end pling 12/22/2011 */
-            /*  added start pling 01/25/2010 */
+			/* Foxconn added end pling 12/22/2011 */
+            /* Foxconn added start pling 01/25/2010 */
             /* Send info-req to get SIP server and NTP server */
             client6_send_info_req(ev);
-            /*  added end pling 01/25/2010 */
+            /* Foxconn added end pling 01/25/2010 */
 			break;
 		}
 		break;
@@ -2034,7 +2001,7 @@ rebind_confirm:	client6_request_flag &= ~CLIENT6_CONFIRM_ADDR;
 		/* send REQUEST message to server with none decline address */
 		dprintf(LOG_DEBUG, "%s" 
 		    "got an expected reply for decline, sending request.", FNAME);
-        /*  modified start pling 10/04/2010 */
+        /* Foxconn modified start pling 10/04/2010 */
         /* Should restart the 4-packet process, from SOLICIT */
 #if 0
 		create_request_list(0);
@@ -2043,7 +2010,7 @@ rebind_confirm:	client6_request_flag &= ~CLIENT6_CONFIRM_ADDR;
 #endif
         free_servers(ifp);
         newstate = DHCP6S_SOLICIT;
-        /*  modified end pling 10/04/2010 */
+        /* Foxconn modified end pling 10/04/2010 */
 		break;
 	case DHCP6S_RELEASE:
 		dprintf(LOG_INFO, "%s" "got an expected release, exit.", FNAME);
@@ -2081,23 +2048,23 @@ client6_send_newstate(ifp, state)
 	TAILQ_INSERT_TAIL(&ifp->event_list, ev, link);
 	ev->timeouts = 0;
 	dhcp6_set_timeoparam(ev);
-    /*  added start pling 10/07/2010 */
+    /* Foxconn added start pling 10/07/2010 */
     /* WNR3500L TD170, modify the maximum re-send counter of 
      *  Request message to 3 if a "NotOnLink" status is
      *  received. 
      */
     if (state == DHCP6S_REQUEST && not_on_link_count)
         ev->max_retrans_cnt = REQ_MAX_RC_NOTONLINK;
-    /*  added end pling 10/07/2010 */
+    /* Foxconn added end pling 10/07/2010 */
 	dhcp6_reset_timer(ev);
 
-    /*  modified start pling 10/05/2010 */
+    /* Foxconn modified start pling 10/05/2010 */
     /* Use diff function to send INFO-REQ */
     if (state == DHCP6S_INFOREQ)
         client6_send_info_req(ev);
     else
         client6_send(ev);
-    /*  modified end pling 10/05/2010 */
+    /* Foxconn modified end pling 10/05/2010 */
 	return 0;
 }
 
@@ -2205,7 +2172,7 @@ static struct dhcp6_timer
 *check_dad_timo(void *arg)
 {
 	struct dhcp6_if *ifp = (struct dhcp6_if *)arg;
-	int newstate = DHCP6S_REQUEST;   //  modified pling 10/04/2010
+	int newstate = DHCP6S_REQUEST;   // Foxconn modified pling 10/04/2010
 	if (client6_iaidaddr.client6_info.type == IAPD)
 		goto end;
 	dprintf(LOG_DEBUG, "enter checking dad ...");
@@ -2225,7 +2192,7 @@ end:
 	dhcp6_remove_timer(ifp->dad_timer);
 	ifp->dad_timer = NULL;
 
-    /*  added start pling 10/04/2010 */
+    /* Foxconn added start pling 10/04/2010 */
     /* Send info-req to get DNS/SIP/NTP, etc, per Netgear spec. */
     if (newstate != DHCP6S_DECLINE) {
         dhcp6c_dad_callback();
@@ -2233,7 +2200,7 @@ end:
         newstate = DHCP6S_INFOREQ;
         client6_send_newstate(ifp, newstate);
     }
-    /*  added end pling 10/04/2010 */
+    /* Foxconn added end pling 10/04/2010 */
 
 	return NULL;
 }

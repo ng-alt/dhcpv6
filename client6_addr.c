@@ -1,4 +1,4 @@
-/*	$Id: client6_addr.c,v 1.1.1.1 2006/12/04 00:45:21 Exp $	*/
+/*	$Id: client6_addr.c,v 1.1.1.1 2006-12-04 00:45:21 Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -77,7 +77,7 @@ extern FILE *client6_lease_file;
 extern struct dhcp6_iaidaddr client6_iaidaddr;
 extern struct dhcp6_list request_list;
 
-extern char* get_dhcpc_dev_name(void);       //  added pling 09/23/2009
+extern char* get_dhcpc_dev_name(void);       // Foxconn added pling 09/23/2009
 
 void
 dhcp6_init_iaidaddr(void)
@@ -86,7 +86,7 @@ dhcp6_init_iaidaddr(void)
 	TAILQ_INIT(&client6_iaidaddr.lease_list);
 }
 
-/*  added start pling 10/04/2010 */
+/* Foxconn added start pling 10/04/2010 */
 static char callback_cmd[256] = "";
 int dhcp6c_dad_callback(void)
 {
@@ -100,7 +100,7 @@ int dhcp6c_dad_callback(void)
     }
     return 0;
 }
-/*  added end pling 10/04/2010 */
+/* Foxconn added end pling 10/04/2010 */
 
 int
 dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
@@ -110,10 +110,10 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	struct dhcp6_lease *cl_lease;
 	double d;
 
-    /*  added start pling 08/15/2009 */
+    /* Foxconn added start pling 08/15/2009 */
     char command[256], command2[256];
     memset(command, 0, sizeof(command));
-    /*  added end pling 08/15/2009 */
+    /* Foxconn added end pling 08/15/2009 */
 
 	/* ignore IA with T1 > T2 */
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime >
@@ -142,12 +142,12 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 					" prefix length using 64 bit instead",
 					in6addr2str(&lv->val_dhcp6addr.addr, 0));
 
-                /*  added start pling 08/15/2009 */
+                /* Foxconn added start pling 08/15/2009 */
                 sprintf(command, "dhcp6c_up %s %s %d ", 
                         get_dhcpc_dev_name(),
                         in6addr2str(&lv->val_dhcp6addr.addr, 0),
                         lv->val_dhcp6addr.plen);
-                /*  added end pling 08/15/2009 */
+                /* Foxconn added end pling 08/15/2009 */
 			}
 		}
 		if ((cl_lease = dhcp6_find_lease(&client6_iaidaddr, 
@@ -164,7 +164,7 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list))
 		return 0;
 
-    /*  added start pling 09/23/2009 */
+    /* Foxconn added start pling 09/23/2009 */
 	/* add new prefix (IAPD) */
 	for (lv = TAILQ_FIRST(&optinfo->prefix_list); lv; lv = lv_next) {
 		lv_next = TAILQ_NEXT(lv, link);
@@ -172,14 +172,14 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
             sprintf(command2, " %s %d &",
                     in6addr2str(&lv->val_dhcp6addr.addr, 0),
 			        lv->val_dhcp6addr.plen);
-            /*  added start pling 10/12/2010 */
+            /* Foxconn added start pling 10/12/2010 */
             if (!strlen(command))
                 sprintf(command, "dhcp6c_up %s ", get_dhcpc_dev_name());
-            /*  added end pling 10/12/2010 */
+            /* Foxconn added end pling 10/12/2010 */
             strcat(command, command2);
         }
     }
-    /*  added end pling 09/23/2009 */
+    /* Foxconn added end pling 09/23/2009 */
 
 	/* set up renew T1, rebind T2 timer renew/rebind based on iaid */
 	/* Should we process IA_TA, IA_NA differently */
@@ -222,12 +222,12 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 	timo.tv_usec = 0;
 	dhcp6_set_timer(&timo, client6_iaidaddr.timer);
 
-    /*  modified start pling 10/04/2010 */
+    /* Foxconn modified start pling 10/04/2010 */
     /* Call our callback function to do something useful */
     if (strlen(command))
         strcpy(callback_cmd, command);
         //system(command);
-    /*  modified end pling 10/04/2010 */
+    /* Foxconn modified end pling 10/04/2010 */
 
 	return (0);
 }
@@ -361,7 +361,7 @@ dhcp6_remove_lease(struct dhcp6_lease *sp)
 	 *	dhcp6_remove_iaidaddr();
 	 */
 
-	/*  added start pling 11/30/2010 */
+	/* Foxconn added start pling 11/30/2010 */
 	/* WNR3500L TD192:
 	 * Execute dhcp6c_down, so that LAN services and GUI
 	 * are restarted correctly.
@@ -369,7 +369,7 @@ dhcp6_remove_lease(struct dhcp6_lease *sp)
 	char command[256];
 	sprintf(command, "dhcp6c_down %s", get_dhcpc_dev_name());
 	system(command);
-	/*  added end pling 11/30/2010 */
+	/* Foxconn added end pling 11/30/2010 */
 
 	return 0;
 }
@@ -381,10 +381,10 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	struct dhcp6_lease *cl, *cl_next;
 	struct timeval timo;
 	double d;
-    /*  added start pling 08/15/2009 */
+    /* Foxconn added start pling 08/15/2009 */
     char command[256], command2[256];
     memset(command, 0, sizeof(command));
-    /*  added end pling 08/15/2009 */
+    /* Foxconn added end pling 08/15/2009 */
 
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime >
 	    client6_iaidaddr.client6_info.iaidinfo.rebindtime) {
@@ -412,12 +412,12 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 				dprintf(LOG_WARNING, "assigned address %s is not in any RAs"
 					" prefix length using 64 bit instead",
 					in6addr2str(&lv->val_dhcp6addr.addr, 0)); 
-                /*  added start pling 08/15/2009 */
+                /* Foxconn added start pling 08/15/2009 */
                 sprintf(command, "dhcp6c_up %s %s %d ", 
                         get_dhcpc_dev_name(),
                         in6addr2str(&lv->val_dhcp6addr.addr, 0),
                         lv->val_dhcp6addr.plen);
-                /*  added end pling 08/15/2009 */
+                /* Foxconn added end pling 08/15/2009 */
 			}
 		}
 		if ((cl = dhcp6_find_lease(&client6_iaidaddr, &lv->val_dhcp6addr)) != NULL) {
@@ -452,7 +452,7 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	if (TAILQ_EMPTY(&client6_iaidaddr.lease_list))
 		return (0);
     
-    /*  added start pling 09/23/2009 */
+    /* Foxconn added start pling 09/23/2009 */
 	/* add new prefix (IAPD) */
 	for (lv = TAILQ_FIRST(&optinfo->prefix_list); lv; lv = lv_next) {
 		lv_next = TAILQ_NEXT(lv, link);
@@ -460,14 +460,14 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
             sprintf(command2, " %s %d &",
                     in6addr2str(&lv->val_dhcp6addr.addr, 0),
 			        lv->val_dhcp6addr.plen);
-            /*  added start pling 10/12/2010 */
+            /* Foxconn added start pling 10/12/2010 */
             if (!strlen(command))
                 sprintf(command, "dhcp6c_up %s ", get_dhcpc_dev_name());
-            /*  added end pling 10/12/2010 */
+            /* Foxconn added end pling 10/12/2010 */
             strcat(command, command2);
         }
     }
-    /*  added end pling 09/23/2009 */
+    /* Foxconn added end pling 09/23/2009 */
 
 	/* set up renew T1, rebind T2 timer renew/rebind based on iaid */
 	/* Should we process IA_TA, IA_NA differently */
@@ -510,11 +510,11 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	timo.tv_usec = 0;
 	dhcp6_set_timer(&timo, client6_iaidaddr.timer);
     
-    /*  added start pling 08/15/2009 */
+    /* Foxconn added start pling 08/15/2009 */
     /* Call our callback function to do something useful */
     if (strlen(command))
         system(command);
-    /*  added start pling 08/15/2009 */
+    /* Foxconn added start pling 08/15/2009 */
 
 	return 0;
 }
@@ -603,7 +603,6 @@ dhcp6_iaidaddr_timo(void *arg)
 	struct timeval timeo;
 	int dhcpstate;
 	double d = 0;
-	time_t now;		/* pling added 12/24/2014 */
 
 	dprintf(LOG_DEBUG, "client6_iaidaddr timeout for %d, state=%d", 
 		client6_iaidaddr.client6_info.iaidinfo.iaid, sp->state);
@@ -613,23 +612,6 @@ dhcp6_iaidaddr_timo(void *arg)
 	/* ToDo: what kind of opiton Request value, client would like to pass? */
 	switch(sp->state) {
 	case ACTIVE:
-		/*  added start pling 12/24/2014 */
-		/* R7000 TD#559: DHCP lease expiration is calculated based 
-		 *  on system time. Once NTP sync, system changed from 2003->current
-		 *  time, and lease expires immediately. So add following code to 
-		 *  fallback to Solicit state.
-		 */
-		time(&now);
-		//dprintf(LOG_INFO, "%s" "sp->start_date=0x%08x", FNAME, sp->start_date);
-
-		if (now > 0x50000000 &&				/* approx 2013-2014 */
-			sp->start_date < 0x50000000) {	/* some time around 2014 */
-			dprintf(LOG_INFO, "%s" "Lease expired due to NTP update."
-				" Go to solicit and request new ipv6 addresses",
-			    FNAME);
-			goto restart_from_solicit;
-		}
-		/*  added end pling 12/24/2014 */
 		sp->state = RENEW;
 		dhcpstate = DHCP6S_RENEW;
 		d = sp->client6_info.iaidinfo.rebindtime - sp->client6_info.iaidinfo.renewtime;
@@ -650,7 +632,6 @@ dhcp6_iaidaddr_timo(void *arg)
 		dprintf(LOG_INFO, "%s" "failed to rebind a client6_iaidaddr %d"
 		    " go to solicit and request new ipv6 addresses",
 		    FNAME, client6_iaidaddr.client6_info.iaidinfo.iaid);
-restart_from_solicit:	/* pling added 12/24/2014 */
 		sp->state = INVALID;
 		dhcpstate = DHCP6S_SOLICIT;
 		free_servers(sp->ifp);

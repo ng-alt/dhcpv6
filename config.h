@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.1.1.1 2006/12/04 00:45:21 Exp $	*/
+/*	$Id: config.h,v 1.1.1.1 2006-12-04 00:45:21 Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*
@@ -98,9 +98,9 @@ struct dhcp6_if {
 #define DHCIFF_TEMP_ADDRS 0x4
 #define DHCIFF_PREFIX_DELEGATION 0x8
 #define DHCIFF_UNICAST 0x10
-#define DHCIFF_SOLICIT_ONLY 0x20		//  added pling 08/26/2009
-#define DHCIFF_IANA_ONLY    0x40		//  added pling 09/21/2010
-#define DHCIFF_IAPD_ONLY    0x80		//  added pling 09/21/2010
+#define DHCIFF_SOLICIT_ONLY 0x20		// Foxconn added pling 08/26/2009
+#define DHCIFF_IANA_ONLY    0x40		// Foxconn added pling 09/21/2010
+#define DHCIFF_IAPD_ONLY    0x80		// Foxconn added pling 09/21/2010
 
 	struct in6_addr linklocal;
 	int server_pref;	/* server preference (server only) */
@@ -113,7 +113,7 @@ struct dhcp6_if {
 	struct dhcp6_serverinfo *current_server;
 	struct dhcp6_serverinfo *servers;
 
-	char user_class[MAX_USER_CLASS_LEN];	//  added pling 09/07/2010
+	char user_class[MAX_USER_CLASS_LEN];	// Foxconn added pling 09/07/2010
 };
 
 struct dhcp6_event {
@@ -183,7 +183,7 @@ struct dhcp6_ifconf {
 
 	struct dhcp6_option_list option_list;
 	
-	char user_class[MAX_USER_CLASS_LEN];	//  added pling 09/07/2010
+	char user_class[MAX_USER_CLASS_LEN];	// Foxconn added pling 09/07/2010
 };
 
 struct prefix_ifconf {

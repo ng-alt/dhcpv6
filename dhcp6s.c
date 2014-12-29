@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.1.1.1 2006/12/04 00:45:25 Exp $	*/
+/*	$Id: dhcp6s.c,v 1.1.1.1 2006-12-04 00:45:25 Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -94,7 +94,7 @@ static int num_device = 0;
 static int debug = 0;
 const dhcp6_mode_t dhcp6_mode = DHCP6_MODE_SERVER;
 int insock;	/* inbound udp port */
-//int outsock;	/* outbound udp port */     //  removed pling 08/15/2009
+//int outsock;	/* outbound udp port */     // Foxconn removed pling 08/15/2009
 extern FILE *server6_lease_file;
 char server6_lease_temp[100];
 
@@ -186,7 +186,6 @@ main(argc, argv)
 	TAILQ_INIT(&arg_dnslist.addrlist);
 
 	random_init();
-
 	while ((ch = getopt(argc, argv, "c:dDfn:")) != -1) {
 		switch (ch) {
 		case 'c':
@@ -339,7 +338,7 @@ server6_init()
 			FNAME, gai_strerror(error));
 		exit(1);
 	}
-    /*  removed start pling 08/15/2009 */
+    /* Foxconn removed start pling 08/15/2009 */
     /* Don't use outsock as it  conflicts with dhcp6c */
 #if 0
 	outsock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
@@ -354,7 +353,7 @@ server6_init()
 		exit(1);
 	}
 #endif
-    /*  removed end pling 08/15/2009 */
+    /* Foxconn removed end pling 08/15/2009 */
 	memcpy(&sa6_any_downstream_storage, res->ai_addr, res->ai_addrlen);
 	sa6_any_downstream =
 		(const struct sockaddr_in6*)&sa6_any_downstream_storage;
@@ -464,7 +463,7 @@ server6_init()
 		}
 		freeaddrinfo(res2);
 
-        /*  removed start pling 08/15/2009 */
+        /* Foxconn removed start pling 08/15/2009 */
         /* Don't use outsock as it  conflicts with dhcp6c */
 #if 0
 		/* set outgoing interface of multicast packets for DHCP reconfig */
@@ -476,7 +475,7 @@ server6_init()
 			exit(1);
 		}
 #endif
-        /*  removed start pling 08/15/2009 */
+        /* Foxconn removed start pling 08/15/2009 */
 	}
 	/* set up sync lease file timer */
 	sync_lease_timer = dhcp6_add_timer(check_lease_file_timo, NULL);
@@ -571,12 +570,6 @@ server6_recv(s)
 		    (unsigned int)pi->ipi6_ifindex);
 		return -1;
 	}
-	/* Don't accept packets not coming from LAN,
-	 *  e.g. from router's own dhcp6c client */
-	if (ifp && strcmp(ifp->ifname, "br0")) {
-		dprintf(LOG_INFO, "%s" "Don't accept pkts from non-LAN interface (%s)", FNAME, ifp->ifname);
-		return -1;
-	}
 	if (len < sizeof(*dh6)) {
 		dprintf(LOG_INFO, "%s" "short packet", FNAME);
 		return -1;
@@ -614,7 +607,7 @@ server6_recv(s)
 	/*
 	 * parse and validate options in the request
 	 */
-    /*  modified start pling 10/04/2010 */
+    /* Foxconn modified start pling 10/04/2010 */
     /* Pass extra arg to 'dhcp6_get_options' */
 #if 0
 	if (dhcp6_get_options((struct dhcp6opt *)(dh6 + 1),
@@ -622,7 +615,7 @@ server6_recv(s)
 #endif
     if (dhcp6_get_options((struct dhcp6opt *)(dh6 + 1),
         (struct dhcp6opt *)(rdatabuf + len), &optinfo, 0, 0, 0) < 0) {
-    /*  modified end pling 10/04/2010 */
+    /* Foxconn modified end pling 10/04/2010 */
 		dprintf(LOG_INFO, "%s" "failed to parse options", FNAME);
 		return -1;
 	}
@@ -812,7 +805,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		 * If Solicit has IA option, responds to Solicit with a Advertise
 		 * message.
 		 */
-		if (/*optinfo->iaidinfo.iaid != 0 &&*/ !(roptinfo.flags & DHCIFF_INFO_ONLY)) {  
+		if (optinfo->iaidinfo.iaid != 0 && !(roptinfo.flags & DHCIFF_INFO_ONLY)) {
 			memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo,
 					sizeof(roptinfo.iaidinfo));
 			roptinfo.type = optinfo->type;
@@ -836,7 +829,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			dprintf(LOG_ERR, "%s" "failed to copy DNS servers", FNAME);
 			goto fail;
 		}
-		/*  added start pling 01/25/2010 */
+		/* Foxconn added start pling 01/25/2010 */
         /* Add SIP and NTP server if available */
 		if (dhcp6_copy_list(&roptinfo.sip_list, &siplist)) {
 			dprintf(LOG_ERR, "%s" "failed to copy SIP servers", FNAME);
@@ -846,12 +839,12 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			dprintf(LOG_ERR, "%s" "failed to copy NTP servers", FNAME);
 			goto fail;
 		}
-		/*  added end pling 01/25/2010 */
+		/* Foxconn added end pling 01/25/2010 */
 		roptinfo.dns_list.domainlist = dnslist.domainlist;
 		break;
 	case DH6_REQUEST:
 		/* get iaid for that request client for that interface */
-		if (/*optinfo->iaidinfo.iaid != 0 &&*/ !(roptinfo.flags & DHCIFF_INFO_ONLY)) { 
+		if (optinfo->iaidinfo.iaid != 0 && !(roptinfo.flags & DHCIFF_INFO_ONLY)) {
 			memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo,
 					sizeof(roptinfo.iaidinfo));
 			roptinfo.type = optinfo->type;
@@ -872,10 +865,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			addr_flag = ADDR_UPDATE;
 		if (dh6->dh6_msgtype == DH6_RELEASE)
 			addr_flag = ADDR_REMOVE;
-		/*  Bob modified start on 01/09/2015, include DNS option in the reply of renew packet, 
-		   or some win8 PC can not get DNS server address correctly in TEC's noise test environment */ 
-		if (dh6->dh6_msgtype == DH6_CONFIRM || dh6->dh6_msgtype == DH6_RENEW)  {
-		/*  Bob modified end on 01/09/2015 */
+		if (dh6->dh6_msgtype == DH6_CONFIRM) {
 			/* DNS server */
 			addr_flag = ADDR_VALIDATE;
 			if (dhcp6_copy_list(&roptinfo.dns_list.addrlist, &dnslist.addrlist)) {
@@ -886,7 +876,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		}
 		if (dh6->dh6_msgtype == DH6_DECLINE)
 			addr_flag = ADDR_ABANDON;
-	if (/*optinfo->iaidinfo.iaid != 0*/ 1) {         
+	if (optinfo->iaidinfo.iaid != 0) {
 		if (!TAILQ_EMPTY(&optinfo->addr_list) && resptype != DH6_ADVERTISE) {
 			struct dhcp6_iaidaddr *iaidaddr;
 			memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo,
@@ -1005,7 +995,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			goto fail;
 		}
 
-        /*  added start pling 01/25/2010 */
+        /* Foxconn added start pling 01/25/2010 */
 		if (dhcp6_copy_list(&roptinfo.sip_list, &siplist)) {
 			dprintf(LOG_ERR, "%s" "failed to copy SIP servers", FNAME);
 			goto fail;
@@ -1014,7 +1004,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			dprintf(LOG_ERR, "%s" "failed to copy NTP servers", FNAME);
 			goto fail;
 		}
-        /*  added end pling 01/25/2010 */
+        /* Foxconn added end pling 01/25/2010 */
 
 		roptinfo.dns_list.domainlist = dnslist.domainlist;
 	}
@@ -1028,7 +1018,6 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		goto fail;
 	}
 	/* send a reply message. */
-    if (num != DH6OPT_STCODE_NOADDRAVAIL)  
 	(void)server6_send(resptype, ifp, dh6, optinfo, from, fromlen,
 			   &roptinfo);
 
@@ -1106,11 +1095,11 @@ server6_send(type, ifp, origmsg, optinfo, from, fromlen, roptinfo)
 	dst.sin6_scope_id = ((struct sockaddr_in6 *)from)->sin6_scope_id;
 	dprintf(LOG_DEBUG, "send destination address is %s, scope id is %d",
 		addr2str((struct sockaddr *)&dst), dst.sin6_scope_id);
-    /*  modified start pling 08/15/2009 */
+    /* Foxconn modified start pling 08/15/2009 */
     /* why use 'outsock' to send to client? */
 	//if (transmit_sa(outsock, &dst, replybuf, len) != 0) {
 	if (transmit_sa(insock, &dst, replybuf, len) != 0) {
-    /*  modified end pling 08/15/2009 */
+    /* Foxconn modified end pling 08/15/2009 */
 		dprintf(LOG_ERR, "%s" "transmit %s to %s failed", FNAME,
 			dhcp6msgstr(type), addr2str((struct sockaddr *)&dst));
 		return (-1);

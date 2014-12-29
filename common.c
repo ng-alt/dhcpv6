@@ -1,4 +1,4 @@
-/*	$Id: common.c,v 1.1.1.1 2006/12/04 00:45:20 Exp $	*/
+/*	$Id: common.c,v 1.1.1.1 2006-12-04 00:45:20 Exp $	*/
 /*	ported from KAME: common.c,v 1.65 2002/12/06 01:41:29 suz Exp	*/
 
 /*
@@ -83,22 +83,22 @@ int foreground;
 int debug_thresh;
 struct dhcp6_if *dhcp6_if;
 struct dns_list dnslist;
-/*  added start pling 01/25/2010 */
+/* Foxconn added start pling 01/25/2010 */
 struct dhcp6_list siplist;
 struct dhcp6_list ntplist;
-/*  added end pling 01/25/2010 */
+/* Foxconn added end pling 01/25/2010 */
 static struct host_conf *host_conflist;
 static int in6_matchflags __P((struct sockaddr *, char *, int));
 ssize_t gethwid __P((char *, int, const char *, u_int16_t *));
 static int get_assigned_ipv6addrs __P((char *, char *,
 					struct dhcp6_optinfo *));
 
-/*  added start pling 10/07/2010 */
+/* Foxconn added start pling 10/07/2010 */
 /* For testing purpose */
 u_int32_t duid_time = 0;
-/*  added end pling 10/07/2010 */
+/* Foxconn added end pling 10/07/2010 */
 
-/*  added start pling 09/21/2010 */
+/* Foxconn added start pling 09/21/2010 */
 /* Global flags for dhcpc configuration, e.g. IANA_ONLY, IAPD_ONLY */
 static u_int32_t   dhcp6c_flags = 0;
 int set_dhcp6c_flags(u_int32_t flags)
@@ -106,7 +106,7 @@ int set_dhcp6c_flags(u_int32_t flags)
     dhcp6c_flags |= flags;
     return 0;
 }
-/*  added end pling 09/21/2010 */
+/* Foxconn added end pling 09/21/2010 */
 
 struct dhcp6_if *
 find_ifconfbyname(const char *ifname)
@@ -780,26 +780,26 @@ get_duid(const 	char *idfile, const char *ifname,
 		u_int64_t t64;
 
 		dp = (struct dhcp6_duid_type1 *)duid->duid_id;
-		/*  modifed start pling 04/26/2011 */
+		/* Foxconn modifed start pling 04/26/2011 */
 		/* Netgear Router Spec requires DUID to be type DUID-LL, not DUID-LLT */
 		/* dp->dh6duid1_type = htons(1); */ /* type 1 */
 		dp->dh6duid1_type = htons(3); /* type 3: DUID-LL */
-		/*  modifed end pling 04/26/2011 */
+		/* Foxconn modifed end pling 04/26/2011 */
 		dp->dh6duid1_hwtype = htons(hwtype);
 		/* time is Jan 1, 2000 (UTC), modulo 2^32 */
 		t64 = (u_int64_t)(time(NULL) - 946684800);
-        /*  added start pling 10/07/2010 */
+        /* Foxconn added start pling 10/07/2010 */
         /* For testing purposes !!! */
         if (duid_time) {
             dprintf(LOG_DEBUG, "%s"
                 "**TESTING** Use user-defined duid_time %lu", FNAME, duid_time);
             t64 = (u_int64_t)duid_time;
         }
-        /*  added end pling 10/07/2010 */
-		/*  removed start pling 04/26/2011 */
+        /* Foxconn added end pling 10/07/2010 */
+		/* Foxconn removed start pling 04/26/2011 */
 		/* Netgear Router Spec requires DUID to be type DUID-LL, not DUID-LLT */
 		/* dp->dh6duid1_time = htonl((u_long)(t64 & 0xffffffff)); */
-		/*  removed end pling 04/26/2011 */
+		/* Foxconn removed end pling 04/26/2011 */
 		memcpy((void *)(dp + 1), tmpbuf, (len - sizeof(*dp)));
 
 		dprintf(LOG_DEBUG, "%s" "generated a new DUID: %s", FNAME,
@@ -864,18 +864,9 @@ gethwid(buf, len, ifname, hwtypep)
 		l = 6;
 		break;
 	case ARPHRD_PPP:
-#if 0
 		*hwtypep = ARPHRD_PPP;
 		l = 0;
 		return l;
-#else
-		*hwtypep = ARPHRD_ETHER;
-		l = 6;
-		strcpy(if_hwaddr.ifr_name, "eth0");
-		if (ioctl(skfd, SIOCGIFHWADDR, &if_hwaddr) < 0)
-			return -1;
-		break;
-#endif
 	default:
 		dprintf(LOG_INFO, "dhcpv6 doesn't support hardware type %d",
 			if_hwaddr.ifr_hwaddr.sa_family);
@@ -897,16 +888,16 @@ dhcp6_init_options(optinfo)
 	optinfo->serverID.duid_id = NULL;
 	optinfo->pref = DH6OPT_PREF_UNDEF;
 	TAILQ_INIT(&optinfo->addr_list);
-	/*  added start pling 09/23/2009 */
+	/* Foxconn added start pling 09/23/2009 */
 	TAILQ_INIT(&optinfo->prefix_list);
-	/*  added end pling 09/23/2009 */
+	/* Foxconn added end pling 09/23/2009 */
 	TAILQ_INIT(&optinfo->reqopt_list);
 	TAILQ_INIT(&optinfo->stcode_list);
 	TAILQ_INIT(&optinfo->dns_list.addrlist);
-    /*  added start pling 01/25/2010 */
+    /* Foxconn added start pling 01/25/2010 */
 	TAILQ_INIT(&optinfo->sip_list);
 	TAILQ_INIT(&optinfo->ntp_list);
-    /*  added end pling 01/25/2010 */
+    /* Foxconn added end pling 01/25/2010 */
 	TAILQ_INIT(&optinfo->relay_list);
 	optinfo->dns_list.domainlist = NULL;
 }
@@ -920,9 +911,9 @@ dhcp6_clear_options(optinfo)
 	duidfree(&optinfo->serverID);
 
 	dhcp6_clear_list(&optinfo->addr_list);
-	/*  added start pling 09/23/2009 */
+	/* Foxconn added start pling 09/23/2009 */
 	dhcp6_clear_list(&optinfo->prefix_list);
-	/*  added end pling 09/23/2009 */
+	/* Foxconn added end pling 09/23/2009 */
 	dhcp6_clear_list(&optinfo->reqopt_list);
 	dhcp6_clear_list(&optinfo->stcode_list);
 	dhcp6_clear_list(&optinfo->dns_list.addrlist);
@@ -949,10 +940,10 @@ dhcp6_copy_options(dst, src)
 	
 	if (dhcp6_copy_list(&dst->addr_list, &src->addr_list))
 		goto fail;
-	/*  added start pling 09/23/2009 */
+	/* Foxconn added start pling 09/23/2009 */
 	if (dhcp6_copy_list(&dst->prefix_list, &src->prefix_list))
 		goto fail;
-	/*  added end pling 09/23/2009 */
+	/* Foxconn added end pling 09/23/2009 */
 	if (dhcp6_copy_list(&dst->reqopt_list, &src->reqopt_list))
 		goto fail;
 	if (dhcp6_copy_list(&dst->stcode_list, &src->stcode_list))
@@ -970,7 +961,7 @@ dhcp6_copy_options(dst, src)
 	return -1;
 }
 
-/*  added start pling 10/04/2010 */
+/* Foxconn added start pling 10/04/2010 */
 /* Add two extra arguments for DHCP client to use. 
  * These two args are ignored in DHCP server mode (currently) 
  */
@@ -985,27 +976,27 @@ dhcp6_get_options(p, ep, optinfo, msgtype, state, send_flags)
     struct dhcp6opt *p, *ep;
     struct dhcp6_optinfo *optinfo;
     int msgtype, state, send_flags;
-/*  added end pling 10/04/2010 */
+/* Foxconn added end pling 10/04/2010 */
 {
 	struct dhcp6opt *np, opth;
 	int i, opt, optlen, reqopts, num;
 	char *cp, *val;
 	u_int16_t val16;
 
-    /*  added start pling 09/24/2009 */
+    /* Foxconn added start pling 09/24/2009 */
     int has_iana = 0;
     int has_iapd = 0;
-    /*  added end pling 09/24/2009 */
-    /*  added start pling 10/04/2010 */
+    /* Foxconn added end pling 09/24/2009 */
+    /* Foxconn added start pling 10/04/2010 */
     int has_dns = 0;
     int has_ntp = 0;
     int has_sip = 0;
-    /*  added end pling 10/04/2010 */
-    /*  added start pling 01/25/2010 */
+    /* Foxconn added end pling 10/04/2010 */
+    /* Foxconn added start pling 01/25/2010 */
     char buf[1204];
     char tmp_buf[1024];
     char command[1024];
-    /*  added end pling 01/25/2010 */
+    /* Foxconn added end pling 01/25/2010 */
     int  type_set = 0;      // pling added 10/22/2010
 
 	for (; p + 1 <= ep; p = np) {
@@ -1145,7 +1136,7 @@ dhcp6_get_options(p, ep, optinfo, msgtype, state, send_flags)
 			break;
 		case DH6OPT_IA_NA:
 		case DH6OPT_IA_PD:
-            /*  modified start pling 09/23/2009 */
+            /* Foxconn modified start pling 09/23/2009 */
 			if (dhcp6_mode == DHCP6_MODE_SERVER ||
                 (dhcp6_mode == DHCP6_MODE_CLIENT && (send_flags & DHCIFF_SOLICIT_ONLY)) ||
                 (dhcp6_mode == DHCP6_MODE_CLIENT && (dhcp6c_flags & DHCIFF_IAPD_ONLY))) {
@@ -1153,10 +1144,10 @@ dhcp6_get_options(p, ep, optinfo, msgtype, state, send_flags)
                 /* For each packet, we set to one type only (IANA/IAPD)
                  * but not both.
                  */
-    			if (opt == DH6OPT_IA_NA && type_set<2)
+    			if (opt == DH6OPT_IA_NA && !type_set)
                 {
 	    			optinfo->type = IANA;
-                    type_set = 2;
+                    type_set = 1;
                 }
 			    else if (opt == DH6OPT_IA_PD && !type_set)
                 {
@@ -1171,7 +1162,7 @@ dhcp6_get_options(p, ep, optinfo, msgtype, state, send_flags)
     			if (opt == DH6OPT_IA_NA)
 	    			optinfo->type = IANA;
             }
-            /*  modified end pling 09/23/2009 */
+            /* Foxconn modified end pling 09/23/2009 */
 			/* check iaid */
 			if (optlen < sizeof(struct dhcp6_iaid_info)) 
 				goto malformed;
@@ -1186,24 +1177,24 @@ dhcp6_get_options(p, ep, optinfo, msgtype, state, send_flags)
 			dprintf(LOG_DEBUG, "get option iaid is %u, renewtime %u, "
 				"rebindtime %u", optinfo->iaidinfo.iaid,
 				optinfo->iaidinfo.renewtime, optinfo->iaidinfo.rebindtime);
-            /*  added start pling 10/07/2010 */
+            /* Foxconn added start pling 10/07/2010 */
             /* DHCPv6 client readylogo:
              * Ignore IA with T1 > T2 */
             if (optinfo->iaidinfo.renewtime > optinfo->iaidinfo.rebindtime)
                 goto fail;
-            /*  added end pling 10/07/2010 */
+            /* Foxconn added end pling 10/07/2010 */
 			if (get_assigned_ipv6addrs(cp + 3 * sizeof(u_int32_t), 
 						cp + optlen, optinfo))
 				goto fail;
 
-            /*  added start pling 09/24/2009 */
+            /* Foxconn added start pling 09/24/2009 */
 			if (dhcp6_mode == DHCP6_MODE_CLIENT) {
 			    if (opt == DH6OPT_IA_NA)
                     has_iana = 1;
                 else
                     has_iapd = 1;
             }
-            /*  added end pling 09/24/2009 */
+            /* Foxconn added end pling 09/24/2009 */
 			break;
 		case DH6OPT_DNS_SERVERS:
 			if (optlen % sizeof(struct in6_addr) || optlen == 0)
@@ -1227,13 +1218,13 @@ dhcp6_get_options(p, ep, optinfo, msgtype, state, send_flags)
 				}
 			nextdns: ;
 			}
-            /*  added start pling 10/04/2010 */
+            /* Foxconn added start pling 10/04/2010 */
             if (dhcp6_mode == DHCP6_MODE_CLIENT)
                 has_dns = 1;
-            /*  added end pling 10/04/2010 */
+            /* Foxconn added end pling 10/04/2010 */
 			break;
 
-        /*  added start pling 01/25/2010 */
+        /* Foxconn added start pling 01/25/2010 */
         case DH6OPT_SIP_SERVERS:
             memset(buf, 0, sizeof(buf));
             memset(tmp_buf, 0, sizeof(tmp_buf));
@@ -1265,7 +1256,7 @@ dhcp6_get_options(p, ep, optinfo, msgtype, state, send_flags)
             if (dhcp6_mode == DHCP6_MODE_CLIENT && strlen(buf)) {
                 sprintf(command, "nvram set ipv6_sip_servers=\"%s\"", buf);
                 system(command);
-                has_sip = 1;    //  added pling 10/04/2010
+                has_sip = 1;    // Foxconn added pling 10/04/2010
             }
             break;
 		case DH6OPT_NTP_SERVERS:
@@ -1299,10 +1290,10 @@ dhcp6_get_options(p, ep, optinfo, msgtype, state, send_flags)
             if (dhcp6_mode == DHCP6_MODE_CLIENT && strlen(buf)) {
                 sprintf(command, "nvram set ipv6_ntp_servers=\"%s\"", buf);
                 system(command);
-                has_ntp = 1;    //  added pling 10/04/2010
+                has_ntp = 1;    // Foxconn added pling 10/04/2010
             }
 			break;
-        /*  added end pling 01/25/2010 */
+        /* Foxconn added end pling 01/25/2010 */
 
 		case DH6OPT_DOMAIN_LIST:
 			if (optlen == 0)
@@ -1348,12 +1339,12 @@ dhcp6_get_options(p, ep, optinfo, msgtype, state, send_flags)
 		}
 	}
 
-    /*  added start pling 09/24/2009 */
+    /* Foxconn added start pling 09/24/2009 */
     /* Per Netgear spec, an acceptable DHCP advertise 
      *  must have both IANA and IAPD option.
      */
     if (dhcp6_mode == DHCP6_MODE_CLIENT) {
-        /*  added start pling 09/21/2010 */
+        /* Foxconn added start pling 09/21/2010 */
         /* Check flag to see if we accept IANA/IAPD only
          *  for DHCPv6 readylogo test.
          */
@@ -1372,8 +1363,8 @@ dhcp6_get_options(p, ep, optinfo, msgtype, state, send_flags)
             dprintf(LOG_INFO, "%s" "recv IAPD. OK!", FNAME);
         }
         else
-        /*  added end pling 09/21/2010 */
-        /*  added start pling 10/04/2010 */
+        /* Foxconn added end pling 09/21/2010 */
+        /* Foxconn added start pling 10/04/2010 */
         /* Handle DHCP messages properly in different states */
         if (state == DHCP6S_INFOREQ && msgtype == DH6_REPLY &&
             has_dns && has_ntp && has_sip)
@@ -1386,8 +1377,8 @@ dhcp6_get_options(p, ep, optinfo, msgtype, state, send_flags)
             dprintf(LOG_INFO, "%s" "got REPLY to DECLINE.", FNAME);
         }
         else
-        /*  added end pling 10/04/2010 */
-        /*  added start pling 09/16/2011 */
+        /* Foxconn added end pling 10/04/2010 */
+        /* Foxconn added start pling 09/16/2011 */
         /* In auto-detect mode, we don't accept Advert pkt with IANA only. */
         if ((send_flags & DHCIFF_SOLICIT_ONLY) && has_iana && !has_iapd)
         {
@@ -1395,21 +1386,21 @@ dhcp6_get_options(p, ep, optinfo, msgtype, state, send_flags)
             goto fail;
         }
         else
-        /*  added end pling 09/16/2011 */
-        /*  added start pling 10/14/2010 */
+        /* Foxconn added end pling 09/16/2011 */
+        /* Foxconn added start pling 10/14/2010 */
         if ((send_flags & DHCIFF_SOLICIT_ONLY) && 
             (has_iana || has_iapd) )
         {
             dprintf(LOG_INFO, "%s" "got IANA/IAPD in auto-detect mode", FNAME);
         }
         else
-        /*  added end pling 10/14/2010 */
+        /* Foxconn added end pling 10/14/2010 */
         if (!has_iana || !has_iapd) {
             dprintf(LOG_INFO, "%s" "no IANA/IAPD", FNAME);
             goto fail;
         }
     }
-    /*  added end pling 09/24/2009 */
+    /* Foxconn added end pling 09/24/2009 */
 
 	return (0);
 
@@ -1434,25 +1425,25 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 	int optlen, opt;
 	u_int16_t val16;
 	int num;
-    int has_status_code = 0;    /*  added pling 09/15/2011 */
+    int has_status_code = 0;    /* Foxconn added pling 09/15/2011 */
 
-	/*  added start pling 12/22/2011 */
+	/* Foxconn added start pling 12/22/2011 */
 	char iapd_valid_lifetime_cmd_buf[1024];
 	char iapd_preferred_lifetime_cmd_buf[1024];
-	/*  added end pling 12/22/2011 */
+	/* Foxconn added end pling 12/22/2011 */
 
-    /*  modified start pling 09/15/2011 */
+    /* Foxconn modified start pling 09/15/2011 */
     /* To work around IANA/IAPD without status code */
 	//for (; p + sizeof(struct dhcp6opt) <= ep; p = np) {
 	for (; /*p + sizeof(struct dhcp6opt) <= ep*/; p = np) {
 
         if (p + sizeof(struct dhcp6opt) > ep)
         {
-            /*  added start pling 10/19/2011 */
+            /* Foxconn added start pling 10/19/2011 */
             /* for server, use original logic (break for loop) */
             if (dhcp6_mode == DHCP6_MODE_SERVER)
                 break;
-            /*  added end pling 10/19/2011 */
+            /* Foxconn added end pling 10/19/2011 */
 
             /* Client check status code below */
             if (has_status_code)
@@ -1462,7 +1453,7 @@ get_assigned_ipv6addrs(p, ep, optinfo)
                 goto no_status_code;
             }
         }
-    /*  modified end pling 09/15/2011 */
+    /* Foxconn modified end pling 09/15/2011 */
 		memcpy(&opth, p, sizeof(opth));
 		optlen =  ntohs(opth.dh6opt_len);
 		opt = ntohs(opth.dh6opt_type);
@@ -1495,7 +1486,7 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 				    "status code", FNAME);
 				goto fail;
 			}
-            has_status_code = 1;    /*  added pling 09/15/2011 */
+            has_status_code = 1;    /* Foxconn added pling 09/15/2011 */
 			break;
 		case DH6OPT_IADDR:
 			if (optlen < sizeof(ai) - sizeof(u_int32_t))
@@ -1568,7 +1559,7 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 				goto malformed;
 			}
 
-			/*  added start pling 12/22/2011 */
+			/* Foxconn added start pling 12/22/2011 */
 			/* WNDR4500 TD#156: Record the IAPD valid and preferred lifetime */
 			if (dhcp6_mode == DHCP6_MODE_CLIENT) {
 				sprintf(iapd_valid_lifetime_cmd_buf,
@@ -1578,10 +1569,10 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 						"nvram set RA_AdvPreferredLifetime_from_IAPD=%u",
 						addr6.preferlifetime);
 			}
-			/*  added end pling 12/22/2011 */
+			/* Foxconn added end pling 12/22/2011 */
 
             if (!(dhcp6c_flags & DHCIFF_IAPD_ONLY))
-    			addr6.type = IAPD;      /*  added pling 01/25/2009 */
+    			addr6.type = IAPD;      /* Foxconn added pling 01/25/2009 */
 			if (optlen == sizeof(pi) - sizeof(u_int32_t)) {
 				addr6.status_code = DH6OPT_STCODE_UNDEFINE;
 				break;
@@ -1613,25 +1604,25 @@ get_assigned_ipv6addrs(p, ep, optinfo)
 			goto malformed;
 		}
 
-no_status_code: /*  added start pling 09/15/2011 */
+no_status_code: /* Foxconn added start pling 09/15/2011 */
 		/* set up address type */
-		/*  added start pling 09/23/2009 */
+		/* Foxconn added start pling 09/23/2009 */
 		if (addr6.type == IAPD) {
-		    /*  added start pling 01/25/2010 */
+		    /* Foxconn added start pling 01/25/2010 */
     		if (dhcp6_find_listval(&optinfo->prefix_list,
 	    			&addr6, DHCP6_LISTVAL_DHCP6ADDR)) {
 		    	dprintf(LOG_INFO, "duplicated prefix (%s/%d)", 
 			    	in6addr2str(&addr6.addr, 0), addr6.plen);
     			continue;	
 	    	}
-		    /*  added end pling 01/25/2010 */
+		    /* Foxconn added end pling 01/25/2010 */
 			if (dhcp6_add_listval(&optinfo->prefix_list, &addr6,
 			    DHCP6_LISTVAL_DHCP6ADDR) == NULL) {
 				dprintf(LOG_ERR, "%s" "failed to copy prefix", FNAME);
 				goto fail;
 			}
 		} else {
-		/*  added end pling 09/23/2009 */
+		/* Foxconn added end pling 09/23/2009 */
 		addr6.type = optinfo->type; 
 		if (dhcp6_find_listval(&optinfo->addr_list,
 				&addr6, DHCP6_LISTVAL_DHCP6ADDR)) {
@@ -1645,12 +1636,12 @@ no_status_code: /*  added start pling 09/15/2011 */
 			    "address", FNAME);
 			goto fail;
 		}
-		/*  added start pling 09/23/2009 */
+		/* Foxconn added start pling 09/23/2009 */
 		} /* if (addr6.type == IAPD) */
-		/*  added end pling 09/23/2009 */
+		/* Foxconn added end pling 09/23/2009 */
 	}
 
-	/*  added start pling 12/22/2011 */
+	/* Foxconn added start pling 12/22/2011 */
 	/* WNDR4500 TD#156: Set the IAPD valid and preferred lifetime
 	 * to NVRAM for acos rc to use */
 	if (dhcp6_mode == DHCP6_MODE_CLIENT) {
@@ -1658,7 +1649,7 @@ no_status_code: /*  added start pling 09/15/2011 */
 		system(iapd_preferred_lifetime_cmd_buf);
 		system("nvram set RA_use_dynamic_lifetime=1");
 	}
-	/*  added end pling 12/22/2011 */
+	/* Foxconn added end pling 12/22/2011 */
 
 	return (0);
 
@@ -1706,15 +1697,15 @@ dhcp6_set_options(bp, ep, optinfo)
 	}
 	if (dhcp6_mode == DHCP6_MODE_CLIENT) 
     {
-        /*  modified start pling 10/01/2010 */
+        /* Foxconn modified start pling 10/01/2010 */
         /* Take care of endian issue */
 		// COPY_OPTION(DH6OPT_ELAPSED_TIME, 2, &optinfo->elapsed_time, p);
         u_int16_t elapsed_time = htons(optinfo->elapsed_time);
         COPY_OPTION(DH6OPT_ELAPSED_TIME, 2, &elapsed_time, p);
-        /*  modified end pling 10/01/2010 */
+        /* Foxconn modified end pling 10/01/2010 */
     }
 
-    /*  added start pling 09/07/2010 */
+    /* Foxconn added start pling 09/07/2010 */
     /* For dhcp6c, add user-class if specified */
     if (dhcp6_mode == DHCP6_MODE_CLIENT) 
     {
@@ -1744,7 +1735,7 @@ dhcp6_set_options(bp, ep, optinfo)
             COPY_OPTION(DH6OPT_USER_CLASS, option_len, user_class_data, p);
         }
     }
-    /*  added end pling 09/07/2010 */
+    /* Foxconn added end pling 09/07/2010 */
 
 	if (optinfo->flags & DHCIFF_RAPID_COMMIT)
 		COPY_OPTION(DH6OPT_RAPID_COMMIT, 0, NULL, p);
@@ -1767,12 +1758,6 @@ dhcp6_set_options(bp, ep, optinfo)
 	struct dhcp6_listval *dp;
 	case IATA:
 	case IANA:
-		/* For iOS device compatibility */
-		if (dhcp6_mode == DHCP6_MODE_SERVER)
-		{
-			dprintf(LOG_DEBUG, "%s" "DHCP server don't check IAID!", FNAME);
-		}
-		else
 		if (optinfo->iaidinfo.iaid == 0)
 			break;
 		if (optinfo->type == IATA) {
@@ -1787,15 +1772,15 @@ dhcp6_set_options(bp, ep, optinfo)
 		   		optinfo->iaidinfo.iaid, optinfo->iaidinfo.renewtime, 
 		   		optinfo->iaidinfo.rebindtime);
 			opt_iana.iaid = htonl(optinfo->iaidinfo.iaid);
-		    /*  modified start pling 01/25/2010 */
+		    /* Foxconn modified start pling 01/25/2010 */
     		/* Per Netgear spec, use IAID '11' for IAPD in dhcp6c */
 	    	if (dhcp6_mode == DHCP6_MODE_CLIENT)
 		    	opt_iana.iaid = htonl(IANA_IAID);
-    		/*  modified end pling 01/25/2010 */
+    		/* Foxconn modified end pling 01/25/2010 */
 			opt_iana.renewtime = htonl(optinfo->iaidinfo.renewtime);
 			opt_iana.rebindtime = htonl(optinfo->iaidinfo.rebindtime);
 		}
-        /*  modified start pling 09/24/2009 */
+        /* Foxconn modified start pling 09/24/2009 */
 		if (dhcp6_mode == DHCP6_MODE_SERVER ||
             dhcp6_mode == DHCP6_MODE_CLIENT && dhcp6c_flags & DHCIFF_IAPD_ONLY) {
 		    buflen = sizeof(opt_iana) + dhcp6_count_list(&optinfo->addr_list) *
@@ -1805,7 +1790,7 @@ dhcp6_set_options(bp, ep, optinfo)
 		    buflen = sizeof(opt_iana) + dhcp6_count_list(&optinfo->addr_list) *
 			    	 sizeof(ai);
         }
-        /*  modified end pling 09/24/2009 */
+        /* Foxconn modified end pling 09/24/2009 */
 		tmpbuf = NULL;
 		if ((tmpbuf = malloc(buflen)) == NULL) {
 			dprintf(LOG_ERR, "%s"
@@ -1825,7 +1810,7 @@ dhcp6_set_options(bp, ep, optinfo)
 				memset(&ai, 0, sizeof(ai));
 				ai.dh6_ai_type = htons(DH6OPT_IADDR);
 				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
-                    /*  modified start pling 09/24/2009 */
+                    /* Foxconn modified start pling 09/24/2009 */
 		            if (dhcp6_mode == DHCP6_MODE_SERVER)
 					    iaddr_len = sizeof(ai) - sizeof(u_int32_t) 
 						    		+ sizeof(status);
@@ -1846,12 +1831,12 @@ dhcp6_set_options(bp, ep, optinfo)
 			    		ntohl(ai.preferlifetime), 
 					ntohl(ai.validlifetime));
 				/* set up address status code if any */
-                /*  added start pling 09/24/2009 */
+                /* Foxconn added start pling 09/24/2009 */
                 /* Don't add status code in client reqeust */
 		        if (dhcp6_mode == DHCP6_MODE_CLIENT)
                     ;
                 else
-                /*  added end pling 09/24/2009 */
+                /* Foxconn added end pling 09/24/2009 */
 				if (dp->val_dhcp6addr.status_code != DH6OPT_STCODE_UNDEFINE) {
 					status.dh6_status_type = htons(DH6OPT_STATUS_CODE);
 					status.dh6_status_len = 
@@ -1882,25 +1867,25 @@ dhcp6_set_options(bp, ep, optinfo)
 		else if (optinfo->type == IANA)
 			COPY_OPTION(DH6OPT_IA_NA, optlen, tmpbuf, p);
 		free(tmpbuf);
-		/*  modified start pling 09/22/2009 */
+		/* Foxconn modified start pling 09/22/2009 */
 		/* Per Netgear spec, dhcp6c need to send IAPD, 
 		 *  so we fall through to do IAPD.
 		 */
 		if (dhcp6_mode == DHCP6_MODE_SERVER)
 			break;
-		/*  modified end pling 09/22/2009 */
-        /*  added start pling 10/01/2010 */
+		/* Foxconn modified end pling 09/22/2009 */
+        /* Foxconn added start pling 10/01/2010 */
         /* For DHCPv6 readylogo test, send IANA only */
         if (dhcp6_mode == DHCP6_MODE_CLIENT &&
             dhcp6c_flags & DHCIFF_IANA_ONLY)
             break;
-        /*  added end pling 10/01/2010 */
+        /* Foxconn added end pling 10/01/2010 */
 	case IAPD:
-		/*  modified start pling 09/22/2009 */
+		/* Foxconn modified start pling 09/22/2009 */
 		/* Per Netgear spec, use IAID '11' for IAPD in dhcp6c */
 		if (dhcp6_mode == DHCP6_MODE_CLIENT)
 			optinfo->iaidinfo.iaid = IAPD_IAID;
-		/*  modified end pling 09/22/2009 */
+		/* Foxconn modified end pling 09/22/2009 */
 		if (optinfo->iaidinfo.iaid == 0)
 			break;
 		optlen = sizeof(opt_iapd);
@@ -1911,7 +1896,7 @@ dhcp6_set_options(bp, ep, optinfo)
 		opt_iapd.iaid = htonl(optinfo->iaidinfo.iaid);
 		opt_iapd.renewtime = htonl(optinfo->iaidinfo.renewtime);
 		opt_iapd.rebindtime = htonl(optinfo->iaidinfo.rebindtime);
-		/*  modified start pling 09/23/2009 */
+		/* Foxconn modified start pling 09/23/2009 */
         /* In DHCP client mode, copy the prefix, 
          * but not include the status code
          */
@@ -1922,7 +1907,7 @@ dhcp6_set_options(bp, ep, optinfo)
         else
     		buflen = sizeof(opt_iapd) + dhcp6_count_list(&optinfo->prefix_list) *
  	    			sizeof(pi);
-		/*  modified end pling 09/23/2009 */
+		/* Foxconn modified end pling 09/23/2009 */
 		tmpbuf = NULL;
 		if ((tmpbuf = malloc(buflen)) == NULL) {
 			dprintf(LOG_ERR, "%s"
@@ -1931,7 +1916,7 @@ dhcp6_set_options(bp, ep, optinfo)
 		}
 		memcpy(tmpbuf, &opt_iapd, sizeof(opt_iapd));
 		tp = tmpbuf + optlen;
-		/*  modified start pling 09/23/2009 */
+		/* Foxconn modified start pling 09/23/2009 */
         /* IAPD is handle differently in server and client mode */
 		if (dhcp6_mode == DHCP6_MODE_SERVER ||
             dhcp6_mode == DHCP6_MODE_CLIENT && dhcp6c_flags & DHCIFF_IAPD_ONLY) {
@@ -2013,7 +1998,7 @@ dhcp6_set_options(bp, ep, optinfo)
                 }
 			}
 		}
-        /*  modified end 09/23/2009 */
+        /* Foxconn modified end 09/23/2009 */
 		COPY_OPTION(DH6OPT_IA_PD, optlen, tmpbuf, p);
 		free(tmpbuf);
 		break;
@@ -2076,7 +2061,7 @@ dhcp6_set_options(bp, ep, optinfo)
 		free(tmpbuf);
 	}
 
-    /*  added start pling 01/25/2010 */
+    /* Foxconn added start pling 01/25/2010 */
 	if (!TAILQ_EMPTY(&optinfo->sip_list)) {
 		struct in6_addr *in6;
 		struct dhcp6_listval *d;
@@ -2117,7 +2102,7 @@ dhcp6_set_options(bp, ep, optinfo)
 		COPY_OPTION(DH6OPT_NTP_SERVERS, optlen, tmpbuf, p);
 		free(tmpbuf);
 	}
-    /*  added end pling 01/25/2010 */
+    /* Foxconn added end pling 01/25/2010 */
 
 	if (optinfo->dns_list.domainlist != NULL) {
 		struct domain_list *dlist;
@@ -2223,7 +2208,7 @@ dhcp6_reset_timer(ev)
 		 * MIN_SOL_DELAY and MAX_SOL_DELAY.
 		 * [dhcpv6-28 14.]
 		 */
-        /*  modified start pling 08/26/2009 */
+        /* Foxconn modified start pling 08/26/2009 */
         /* In IPv6 auto mode (when DHCIFF_SOLICIT_ONLY is set), 
          * send immediately.
          */
@@ -2232,7 +2217,7 @@ dhcp6_reset_timer(ev)
         else
 		    ev->retrans = (random() % (MAX_SOL_DELAY - MIN_SOL_DELAY)) +
 			    MIN_SOL_DELAY;
-        /*  modified end pling 08/26/2009 */
+        /* Foxconn modified end pling 08/26/2009 */
 		break;
 	default:
 		if (ev->timeouts == 0) {
@@ -2254,7 +2239,7 @@ dhcp6_reset_timer(ev)
 		}
 		if (ev->max_retrans_time && n > ev->max_retrans_time)
 			n = ev->max_retrans_time + r * ev->max_retrans_time;
-        /*  modified start pling 08/26/2009 */
+        /* Foxconn modified start pling 08/26/2009 */
         /* In IPv6 auto mode (when DHCIFF_SOLICIT_ONLY is set),
          * then send 1 DHCP Solicit every 1 sec.
          */
@@ -2262,7 +2247,7 @@ dhcp6_reset_timer(ev)
             ev->retrans = 1000;
         else
     		ev->retrans = (long)n;
-        /*  modified end pling 08/26/2009 */
+        /* Foxconn modified end pling 08/26/2009 */
 		break;
 	}
 
@@ -2374,16 +2359,16 @@ dhcp6optstr(type)
 		return "rapid commit";
 	case DH6OPT_DNS_SERVERS:
 		return "DNS_SERVERS";
-    /*  added start pling 09/23/2010 */
+    /* Foxconn added start pling 09/23/2010 */
     case DH6OPT_DOMAIN_LIST:
         return "DOMAIN_LIST";
-    /*  added end pling 09/23/2010 */
-    /*  added start pling 01/25/2010 */
+    /* Foxconn added end pling 09/23/2010 */
+    /* Foxconn added start pling 01/25/2010 */
 	case DH6OPT_SIP_SERVERS:
 		return "SIP_SERVERS";
 	case DH6OPT_NTP_SERVERS:
 		return "NTP_SERVERS";
-    /*  added end pling 01/25/2010 */
+    /* Foxconn added end pling 01/25/2010 */
 	default:
 		sprintf(genstr, "opt_%d", type);
 		return (genstr);

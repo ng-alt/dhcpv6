@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.2 2008/11/20 21:40:02 Exp $
+# $Id: Makefile.in,v 1.2 2008-11-20 21:40:02 Exp $
 #
 
 srcdir=	@srcdir@
@@ -125,7 +125,7 @@ clean::
 	/bin/rm -f *.o $(TARGET) $(CLEANFILES) $(GENSRCS)
 
 distclean:: clean
-	/bin/rm -f config.cache config.log config.status .depend 
+	/bin/rm -f Makefile config.cache config.log config.status .depend 
 
 depend:
 	mkdep ${CFLAGS:M-[ID]*} $(srcdir)/*.c

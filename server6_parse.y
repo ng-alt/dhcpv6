@@ -1,4 +1,4 @@
-/*	$Id: server6_parse.y,v 1.1.1.1 2006/12/04 00:45:34 Exp $	*/
+/*	$Id: server6_parse.y,v 1.1.1.1 2006-12-04 00:45:34 pmoutarl Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
@@ -981,3 +981,4 @@ sfyyerror(char *msg)
 	cleanup();
 	dprintf(LOG_ERR, "%s in line %d: %s ", msg, num_lines, sfyytext);
 }
+

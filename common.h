@@ -1,4 +1,4 @@
-/*	$Id: common.h,v 1.2 2008/11/20 21:41:03 Exp $	*/
+/*	$Id: common.h,v 1.2 2008-11-20 21:41:03 Exp $	*/
 /*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*
@@ -50,7 +50,7 @@ extern int foreground;
 extern int debug_thresh;
 
 /* common.c */
-extern int set_dhcp6c_flags(u_int32_t flags);   //  added pling 09/21/2010
+extern int set_dhcp6c_flags(u_int32_t flags);   // Foxconn added pling 09/21/2010
 
 extern int dhcp6_copy_list __P((struct dhcp6_list *, const struct dhcp6_list *));
 extern void dhcp6_clear_list __P((struct dhcp6_list *));
@@ -87,12 +87,12 @@ extern void dhcp6_init_options __P((struct dhcp6_optinfo *));
 extern void dhcp6_clear_options __P((struct dhcp6_optinfo *));
 extern int dhcp6_copy_options __P((struct dhcp6_optinfo *,
 				   struct dhcp6_optinfo *));
-/*  modified start pling 10/04/2010 */
+/* Foxconn modified start pling 10/04/2010 */
 //extern int dhcp6_get_options __P((struct dhcp6opt *, struct dhcp6opt *,
 //				  struct dhcp6_optinfo *));
 extern int dhcp6_get_options __P((struct dhcp6opt *, struct dhcp6opt *,
                   struct dhcp6_optinfo *, int, int, int));
-/*  modified end pling 10/04/2010 */
+/* Foxconn modified end pling 10/04/2010 */
 extern int dhcp6_set_options __P((struct dhcp6opt *, struct dhcp6opt *,
 				  struct dhcp6_optinfo *));
 extern void dhcp6_set_timeoparam __P((struct dhcp6_event *));
@@ -112,8 +112,7 @@ extern struct dhcp6_if *find_ifconfbyid __P((unsigned int));
 extern struct prefix_ifconf *find_prefixifconf __P((const char *));
 extern struct host_conf *find_hostconf __P((const struct duid *));
 
-#include "bcmconfig.h"
-#if defined(__CONFIG_UCLIBC__)     /* Use macro instead for uClibc. */
+#if 1//defined(__CONFIG_UCLIBC__)     /* Use macro instead for uClibc. */
 #define warn(format, ...) do { fprintf(stderr, format "\n", ##__VA_ARGS__); } while(0)
 #define warnx(format, ...) do { fprintf(stderr, format "\n", ##__VA_ARGS__); } while(0)
 

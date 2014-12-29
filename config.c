@@ -1,4 +1,4 @@
-/*	$Id: config.c,v 1.1.1.1 2006/12/04 00:45:20 Exp $	*/
+/*	$Id: config.c,v 1.1.1.1 2006-12-04 00:45:20 Exp $	*/
 /*	ported from KAME: config.c,v 1.21 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -63,7 +63,7 @@ static int clear_option_list  __P((struct dhcp6_option_list *));
 static void clear_ifconf __P((struct dhcp6_ifconf *));
 static void clear_hostconf __P((struct host_conf *));
 
-/*  added start pling 09/17/2010 */
+/* Foxconn added start pling 09/17/2010 */
 static char user_class[MAX_USER_CLASS_LEN];
 int set_dhcpc_user_class(char *str)
 {
@@ -71,14 +71,14 @@ int set_dhcpc_user_class(char *str)
     dprintf(LOG_INFO, "Set User-class [%s]", user_class);
     return 0;
 }
-/*  added end pling 09/17/2010 */
+/* Foxconn added end pling 09/17/2010 */
 
-/*  added start pling 10/07/2010 */
+/* Foxconn added start pling 10/07/2010 */
 /* For testing purposes */
 extern u_int32_t xid_solicit;
 extern u_int32_t xid_request;
 extern u_int32_t duid_time;
-/*  added end pling 10/07/2010 */
+/* Foxconn added end pling 10/07/2010 */
 
 int
 configure_interface(const struct cf_namelist *iflist)
@@ -140,9 +140,9 @@ configure_interface(const struct cf_namelist *iflist)
 				if (dhcp6_mode == DHCP6_MODE_CLIENT)
                 {
 					ifc->send_flags |= DHCIFF_INFO_ONLY;
-                    /*  added start pling 09/23/2010 */
+                    /* Foxconn added start pling 09/23/2010 */
                     set_dhcp6c_flags(DHCIFF_INFO_ONLY);
-                    /*  added end pling 09/23/2010 */
+                    /* Foxconn added end pling 09/23/2010 */
                 }
 				break;
 			case DECL_TEMP_ADDR:
@@ -217,7 +217,7 @@ configure_interface(const struct cf_namelist *iflist)
 					goto bad;
 				}
 				break;
-			/*  added start pling 08/26/2009 */
+			/* Foxconn added start pling 08/26/2009 */
 			/* Add flag to send dhcpv6 solicit only for DHCP client.
 			 * Used by IPv6 auto detection.
 			 */
@@ -228,8 +228,8 @@ configure_interface(const struct cf_namelist *iflist)
 					ifc->send_flags |= DHCIFF_SOLICIT_ONLY;
 				}
 				break;
-			/*  added end pling 08/26/2009 */
-			/*  added start pling 09/07/2010 */
+			/* Foxconn added end pling 08/26/2009 */
+			/* Foxconn added start pling 09/07/2010 */
 			/* Support user-class for DHCP client */
 			case DECL_USER_CLASS:
 				if (dhcp6_mode == DHCP6_MODE_CLIENT)
@@ -241,8 +241,8 @@ configure_interface(const struct cf_namelist *iflist)
 						ifc->user_class[0] = '\0';
 				}
 				break;
-			/*  added end pling 09/07/2010 */
-            /*  added start pling 09/21/2010 */
+			/* Foxconn added end pling 09/07/2010 */
+            /* Foxconn added start pling 09/21/2010 */
             /* For DHCPv6 readylogo, need to send IANA and IAPD separately.
              */
             case DECL_IANA_ONLY:
@@ -259,8 +259,8 @@ configure_interface(const struct cf_namelist *iflist)
                     set_dhcp6c_flags(DHCIFF_IAPD_ONLY);
                 }
                 break;
-            /*  added end pling 09/21/2010 */
-            /*  added start pling 10/07/2010 */
+            /* Foxconn added end pling 09/21/2010 */
+            /* Foxconn added start pling 10/07/2010 */
             /* For Testing purposes */
             case DECL_XID_SOL:
                 xid_solicit =  (u_int32_t)cfl->num;
@@ -271,7 +271,7 @@ configure_interface(const struct cf_namelist *iflist)
             case DECL_DUID_TIME:
                 duid_time = (u_int32_t)cfl->num;
                 break;
-            /*  added end pling 10/07/2010 */
+            /* Foxconn added end pling 10/07/2010 */
 			default:
 				dprintf(LOG_ERR, "%s" "%s:%d "
 					"invalid interface configuration",
@@ -491,11 +491,11 @@ configure_commit(void)
 
 			ifp->server_pref = ifc->server_pref;
 
-			/*  added start pling 09/07/2010 */
+			/* Foxconn added start pling 09/07/2010 */
 			/* configure user-class */
 			if (dhcp6_mode == DHCP6_MODE_CLIENT)
 			    strcpy(ifp->user_class, ifc->user_class);
-			/*  added end pling 09/07/2010 */
+			/* Foxconn added end pling 09/07/2010 */
 
 			memcpy(&ifp->iaidinfo, &ifc->iaidinfo, sizeof(ifp->iaidinfo));
 		}
@@ -617,7 +617,7 @@ add_options(int opcode,	struct dhcp6_ifconf *ifc,
 			}
 			break;
 
-        /*  added start pling 09/23/2010 */
+        /* Foxconn added start pling 09/23/2010 */
         /* To support domain search list for DHCPv6 readylogo tests */
         case DHCPOPT_DOMAIN_LIST:
             switch(opcode) {
@@ -637,7 +637,7 @@ add_options(int opcode,	struct dhcp6_ifconf *ifc,
                     break;
             }
             break;
-        /*  added end pling 09/23/2010 */
+        /* Foxconn added end pling 09/23/2010 */
 
 		default:
 			dprintf(LOG_ERR, "%s"

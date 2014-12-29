@@ -1,4 +1,4 @@
-/*	$Id: server6_addr.c 241182 2011-02-17 21:50:03Z $	*/
+/*	$Id: server6_addr.c,v 1.1.1.1 2006-12-04 00:45:33 Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003

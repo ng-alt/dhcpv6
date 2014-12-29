@@ -1,4 +1,4 @@
-/*	$Id: client6_parse.y,v 1.1.1.1 2006/12/04 00:45:21 Exp $	*/
+/*	$Id: client6_parse.y,v 1.1.1.1 2006-12-04 00:45:21 pmoutarl Exp $	*/
 /*	ported from KAME: cfparse.y,v 1.16 2002/09/24 14:20:49 itojun Exp	*/
 
 /*

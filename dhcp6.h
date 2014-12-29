@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.1.1.1 2006/12/04 00:45:22 Exp $	*/
+/*	$Id: dhcp6.h,v 1.1.1.1 2006-12-04 00:45:22 Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -91,8 +91,8 @@
 #define CNF_MAX_RD	10000
 #define CNF_MAX_RT	4000
 
-#define REQ_MAX_RC_NOTONLINK 3  //  added pling 10//07/2010
-#define SOL_MAX_RC_AUTODETECT   3   //  added pling 10/14/2010 
+#define REQ_MAX_RC_NOTONLINK 3  // Foxconn added pling 10//07/2010
+#define SOL_MAX_RC_AUTODETECT   3   // Foxconn added pling 10/14/2010 
 
 #define DHCP6_DURATITION_INFINITE 0xffffffff
 #define DHCP6_ELAPSEDTIME_MAX	0xffff
@@ -117,12 +117,12 @@ char resolv_dhcpv6_file[254];
 char radvd_dhcpv6_file[254];
 
 
-/*  added start pling 09/22/2009 */
+/* Foxconn added start pling 09/22/2009 */
 #define IANA_IAID		1
 #define IAPD_IAID		11
-/*  added end pling 09/22/2009 */
+/* Foxconn added end pling 09/22/2009 */
 
-typedef enum { IANA=1, IATA, IAPD} iatype_t;
+typedef enum { IANA, IATA, IAPD} iatype_t;
 
 typedef enum { ACTIVE, RENEW,
 	       REBIND, EXPIRED,
@@ -223,25 +223,25 @@ struct relay_listval {
 
 TAILQ_HEAD (relay_list, relay_listval);
 
-/*  added start pling 09/07/2010 */
+/* Foxconn added start pling 09/07/2010 */
 /* Currnetly GUI allow 63 chars for user-class. 128 is more than enough */
 #define MAX_USER_CLASS_LEN		128
-/*  added end pling 09/07/2010 */
+/* Foxconn added end pling 09/07/2010 */
 
 struct dhcp6_optinfo {
 	struct duid clientID;	/* DUID */
 	struct duid serverID;	/* DUID */
 	u_int16_t elapsed_time;
-	char   user_class[MAX_USER_CLASS_LEN];	/*  added pling 09/07/2010 */
+	char   user_class[MAX_USER_CLASS_LEN];	/* Foxconn added pling 09/07/2010 */
 	struct dhcp6_iaid_info iaidinfo;
 	iatype_t type;
 	u_int8_t flags;	/* flags for rapid commit, info_only, temp address */
 	u_int8_t pref;		/* server preference */
 	struct in6_addr server_addr;
 	struct dhcp6_list addr_list; /* assigned ipv6 address list */
-	/*  added start pling 09/23/2009, to store server assigned prefix */
+	/* Foxconn added start pling 09/23/2009, to store server assigned prefix */
 	struct dhcp6_list prefix_list; /* assigned prefix list */
-	/*  added end pling 09/23/2009 */
+	/* Foxconn added end pling 09/23/2009 */
 	struct dhcp6_list reqopt_list; /*  options in option request */
 	struct dhcp6_list stcode_list; /* status code */
 	struct dns_list dns_list; /* DNS server list */
@@ -312,10 +312,10 @@ struct dhcp6 {
 #define DH6OPT_IA_PD 25
 #define DH6OPT_IAPREFIX 26
 
-/*  added start pling 01/25/2010*/
+/* Foxconn added start pling 01/25/2010*/
 #define DH6OPT_SIP_SERVERS 22
 #define DH6OPT_NTP_SERVERS 31
-/*  added end pling 01/25/2010 */
+/* Foxconn added end pling 01/25/2010 */
 
 struct dhcp6opt {
 	u_int16_t dh6opt_type;
@@ -327,10 +327,10 @@ struct dhcp6opt {
 struct dhcp6_duid_type1 {
 	u_int16_t dh6duid1_type;
 	u_int16_t dh6duid1_hwtype;
-	/*  removed start pling 04/26/2011 */
+	/* Foxconn removed start pling 04/26/2011 */
 	/* Netgear Router Spec requires DUID to be type DUID-LL, not DUID-LLT */
 	/* u_int32_t dh6duid1_time; */
-	/*  removed end pling 04/26/2011 */
+	/* Foxconn removed end pling 04/26/2011 */
 	/* link-layer address follows */
 } __attribute__ ((__packed__));
 
