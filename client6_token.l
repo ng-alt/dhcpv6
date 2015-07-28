@@ -1,4 +1,4 @@
-/*	$Id: client6_token.l,v 1.1.1.1 2006-12-04 00:45:22 pmoutarl Exp $	*/
+/*	$Id: client6_token.l,v 1.1.1.1 2006/12/04 00:45:22 Exp $	*/
 /*	ported from KAME: cftoken.l,v 1.15 2002/09/24 14:20:49 itojun Exp	*/
 
 /*

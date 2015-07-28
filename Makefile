@@ -2,25 +2,25 @@
 # $Id: Makefile.in,v 1.2 2008/11/20 21:40:02 Exp $
 #
 
-srcdir=	@srcdir@
-CFLAGS=	@CFLAGS@ @DEFS@
-LDFLAGS=@LDFLAGS@
-LIBOBJS=@LIBOBJS@
-LIBS=	@LIBS@
-CC=	@CC@
-YACC=	@YACC@
-LEX=	@LEX@
+srcdir=	.
+CFLAGS=	-I../../../src/router/shared -I$(srcdir) -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DYYTEXT_POINTER=1 -DHAVE_LIBCRYPTO=1 -DHAVE_LIBRESOLV=1 -DHAVE_GETADDRINFO=1 -DHAVE_GETNAMEINFO=1 -DHAVE_IF_NAMETOINDEX=1 -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_FCNTL_H=1 -DHAVE_SYS_IOCTL_H=1 -DHAVE_SYS_TIME_H=1 -DHAVE_SYSLOG_H=1 -DHAVE_UNISTD_H=1 -DHAVE_IFADDRS_H=1 -DTIME_WITH_SYS_TIME=1 -DHAVE_STRUCT_TM_TM_ZONE=1 -DHAVE_TM_ZONE=1 -DGETPGRP_VOID=1 -DSETPGRP_VOID=1 -DRETSIGTYPE=void -DHAVE_MKTIME=1 -DHAVE_SELECT=1 -DHAVE_SOCKET=1 -DHAVE_ANSI_FUNC=1 -DHAVE_STDARG_H=1 
+LDFLAGS=
+LIBOBJS= ifaddrs$U.o
+LIBS=	-lresolv -lcrypto 
+CC=	gcc
+YACC=	bison -y
+LEX=	flex
 TARGET=	dhcp6c dhcp6s dhcp6r
 DESTDIR=
 
-INSTALL=@INSTALL@
-INSTALL_PROGRAM=@INSTALL_PROGRAM@
-INSTALL_DATA=@INSTALL_DATA@
-prefix=	@prefix@
-exec_prefix=	@exec_prefix@
-bindir=	@bindir@
-sbindir=@sbindir@
-mandir=	@mandir@
+INSTALL=/usr/bin/install -c
+INSTALL_PROGRAM=${INSTALL}
+INSTALL_DATA=${INSTALL} -m 644
+prefix=	/usr/local
+exec_prefix=	${prefix}
+bindir=	${exec_prefix}/bin
+sbindir=${exec_prefix}/sbin
+mandir=	${prefix}/man
 initdir=/etc/rc.d/init.d
 etc=/etc
 sysconfigdir=/etc/sysconfig

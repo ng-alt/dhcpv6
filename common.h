@@ -1,4 +1,4 @@
-/*	$Id: common.h,v 1.2 2008-11-20 21:41:03 Exp $	*/
+/*	$Id: common.h,v 1.2 2008/11/20 21:41:03 Exp $	*/
 /*	ported from KAME: common.h,v 1.29 2002/06/11 08:24:34 jinmei Exp */
 
 /*
@@ -112,7 +112,8 @@ extern struct dhcp6_if *find_ifconfbyid __P((unsigned int));
 extern struct prefix_ifconf *find_prefixifconf __P((const char *));
 extern struct host_conf *find_hostconf __P((const struct duid *));
 
-#if 1//defined(__CONFIG_UCLIBC__)     /* Use macro instead for uClibc. */
+#include "bcmconfig.h"
+#if defined(__CONFIG_UCLIBC__)     /* Use macro instead for uClibc. */
 #define warn(format, ...) do { fprintf(stderr, format "\n", ##__VA_ARGS__); } while(0)
 #define warnx(format, ...) do { fprintf(stderr, format "\n", ##__VA_ARGS__); } while(0)
 

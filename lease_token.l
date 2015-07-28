@@ -1,4 +1,4 @@
-/*	$Id: lease_token.l,v 1.1.1.1 2006-12-04 00:45:31 pmoutarl Exp $	*/
+/*	$Id: lease_token.l,v 1.1.1.1 2006/12/04 00:45:31 Exp $	*/
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003
