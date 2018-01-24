@@ -1,4 +1,4 @@
-/*	$Id: dhcp6.h,v 1.1.1.1 2006-12-04 00:45:22 Exp $	*/
+/*	$Id: dhcp6.h,v 1.1.1.1 2006/12/04 00:45:22 Exp $	*/
 /*	ported from KAME: dhcp6.h,v 1.32 2002/07/04 15:03:19 jinmei Exp	*/
 
 /*
@@ -122,7 +122,7 @@ char radvd_dhcpv6_file[254];
 #define IAPD_IAID		11
 /* Foxconn added end pling 09/22/2009 */
 
-typedef enum { IANA, IATA, IAPD} iatype_t;
+typedef enum { IANA=1, IATA, IAPD} iatype_t;
 
 typedef enum { ACTIVE, RENEW,
 	       REBIND, EXPIRED,

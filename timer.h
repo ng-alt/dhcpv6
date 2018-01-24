@@ -1,4 +1,4 @@
-/*	$Id: timer.h,v 1.1.1.1 2006-12-04 00:45:30 Exp $	*/
+/*	$Id: timer.h 241182 2011-02-17 21:50:03Z $	*/
 /*	ported from KAME: timer.h,v 1.1 2002/05/16 06:04:08 jinmei Exp	*/
 
 /*

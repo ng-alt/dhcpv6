@@ -1,4 +1,4 @@
-/*    $Id: server6_conf.c,v 1.1.1.1 2006-12-04 00:45:34 Exp $   */
+/*    $Id: server6_conf.c,v 1.1.1.1 2006/12/04 00:45:34 Exp $   */
 
 /*
  * Copyright (C) International Business Machines  Corp., 2003

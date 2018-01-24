@@ -1,4 +1,4 @@
-/*	$Id: dhcp6s.c,v 1.1.1.1 2006-12-04 00:45:25 Exp $	*/
+/*	$Id: dhcp6s.c,v 1.1.1.1 2006/12/04 00:45:25 Exp $	*/
 /*	ported from KAME: dhcp6s.c,v 1.91 2002/09/24 14:20:50 itojun Exp */
 
 /*
@@ -186,6 +186,7 @@ main(argc, argv)
 	TAILQ_INIT(&arg_dnslist.addrlist);
 
 	random_init();
+
 	while ((ch = getopt(argc, argv, "c:dDfn:")) != -1) {
 		switch (ch) {
 		case 'c':
@@ -570,6 +571,14 @@ server6_recv(s)
 		    (unsigned int)pi->ipi6_ifindex);
 		return -1;
 	}
+	/* Foxconn added start pling 06/04/2014 */
+	/* Don't accept packets not coming from LAN,
+	 *  e.g. from router's own dhcp6c client */
+	if (ifp && strcmp(ifp->ifname, "br0")) {
+		dprintf(LOG_INFO, "%s" "Don't accept pkts from non-LAN interface (%s)", FNAME, ifp->ifname);
+		return -1;
+	}
+	/* Foxconn added end pling 06/04/2014 */
 	if (len < sizeof(*dh6)) {
 		dprintf(LOG_INFO, "%s" "short packet", FNAME);
 		return -1;
@@ -805,7 +814,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		 * If Solicit has IA option, responds to Solicit with a Advertise
 		 * message.
 		 */
-		if (optinfo->iaidinfo.iaid != 0 && !(roptinfo.flags & DHCIFF_INFO_ONLY)) {
+		if (/*optinfo->iaidinfo.iaid != 0 &&*/ !(roptinfo.flags & DHCIFF_INFO_ONLY)) {  /* pling modified 06/03/2014, for iOS compatibility */
 			memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo,
 					sizeof(roptinfo.iaidinfo));
 			roptinfo.type = optinfo->type;
@@ -844,7 +853,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		break;
 	case DH6_REQUEST:
 		/* get iaid for that request client for that interface */
-		if (optinfo->iaidinfo.iaid != 0 && !(roptinfo.flags & DHCIFF_INFO_ONLY)) {
+		if (/*optinfo->iaidinfo.iaid != 0 &&*/ !(roptinfo.flags & DHCIFF_INFO_ONLY)) { /* pling modified 06/03/2014, for iOS compatibility */
 			memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo,
 					sizeof(roptinfo.iaidinfo));
 			roptinfo.type = optinfo->type;
@@ -865,7 +874,10 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 			addr_flag = ADDR_UPDATE;
 		if (dh6->dh6_msgtype == DH6_RELEASE)
 			addr_flag = ADDR_REMOVE;
-		if (dh6->dh6_msgtype == DH6_CONFIRM) {
+		/* Foxconn Bob modified start on 01/09/2015, include DNS option in the reply of renew packet, 
+		   or some win8 PC can not get DNS server address correctly in TEC's noise test environment */ 
+		if (dh6->dh6_msgtype == DH6_CONFIRM || dh6->dh6_msgtype == DH6_RENEW)  {
+		/* Foxconn Bob modified end on 01/09/2015 */
 			/* DNS server */
 			addr_flag = ADDR_VALIDATE;
 			if (dhcp6_copy_list(&roptinfo.dns_list.addrlist, &dnslist.addrlist)) {
@@ -876,7 +888,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		}
 		if (dh6->dh6_msgtype == DH6_DECLINE)
 			addr_flag = ADDR_ABANDON;
-	if (optinfo->iaidinfo.iaid != 0) {
+	if (/*optinfo->iaidinfo.iaid != 0*/ 1) {          /* pling modified 06/03/2014, for iOS compatibility */
 		if (!TAILQ_EMPTY(&optinfo->addr_list) && resptype != DH6_ADVERTISE) {
 			struct dhcp6_iaidaddr *iaidaddr;
 			memcpy(&roptinfo.iaidinfo, &optinfo->iaidinfo,
@@ -1018,6 +1030,7 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 		goto fail;
 	}
 	/* send a reply message. */
+    if (num != DH6OPT_STCODE_NOADDRAVAIL)   /* pling added, Comcast issue workaround */
 	(void)server6_send(resptype, ifp, dh6, optinfo, from, fromlen,
 			   &roptinfo);
 
@@ -1028,6 +1041,38 @@ server6_react_message(ifp, pi, dh6, optinfo, from, fromlen)
 	dhcp6_clear_options(&roptinfo);
 	return -1;
 }
+
+/* Foxconn added start pling 04/13/2015 */
+/* to lookup the MAC address from link local address via "ip -6 neigh" command */
+static int get_client_mac(char *link_local_addr, char *mac)
+{
+	FILE *fp = NULL;
+	char line[256];
+	char *tmp;
+	int  found = 0;
+
+	system("/usr/sbin/ip -6 neigh > /tmp/ip6_neigh");
+	fp = fopen("/tmp/ip6_neigh", "r");
+	if (fp) {
+		while (!feof(fp)) {
+			fgets(line, sizeof(line), fp);
+			if (strstr(line, link_local_addr)) {
+				tmp = strstr(line, "lladdr");
+                if(tmp) {
+    				tmp += strlen("lladdr") + 1;
+	    			memcpy(mac, tmp, 17);
+		    		found = 1;
+				    break;
+                } 
+			}
+		}
+		fclose(fp);
+	}
+	unlink("/tmp/ip6_neigh");
+
+	return found;
+}
+/* Foxconn added end pling 04/13/2015 */
 
 static int
 server6_send(type, ifp, origmsg, optinfo, from, fromlen, roptinfo)
@@ -1107,6 +1152,34 @@ server6_send(type, ifp, origmsg, optinfo, from, fromlen, roptinfo)
 
 	dprintf(LOG_DEBUG, "%s" "transmit %s to %s", FNAME,
 		dhcp6msgstr(type), addr2str((struct sockaddr *)&dst));
+
+	/* Foxconn added start pling 04/13/2015 */
+	/* R7000 TD#485: workaround for Mac OS client.
+	 *  Mac OS does not respond NA, so add static neigh entry */
+	if (type == DH6_REPLY)
+	{
+		char command[256];
+		unsigned char client_mac[32];
+		unsigned char link_local_addr[128];
+		struct dhcp6_listval *dp;
+				
+		memset(&client_mac, 0, sizeof(client_mac));
+		if (!TAILQ_EMPTY(&roptinfo->addr_list)) {
+			for (dp = TAILQ_FIRST(&roptinfo->addr_list); dp; 
+				 dp = TAILQ_NEXT(dp, link)) {
+				sprintf(link_local_addr, "%s", addr2str((struct sockaddr *)&dst));
+				dprintf(LOG_DEBUG, "%s" "Global address is %s, lladdr is %s " , FNAME, 
+					in6addr2str(&dp->val_dhcp6addr.addr,0), link_local_addr);
+				if (get_client_mac(link_local_addr, client_mac)) {
+					sprintf(command, "/usr/sbin/ip -6 neigh replace %s lladdr %s dev br0", 
+							in6addr2str(&dp->val_dhcp6addr.addr,0), client_mac);
+					dprintf(LOG_DEBUG, "%s" "Command is '%s' ", FNAME, command);
+					system(command);
+				}
+			}
+		}
+	}
+	/* Foxconn added end pling 04/13/2015 */
 
 	return 0;
 }

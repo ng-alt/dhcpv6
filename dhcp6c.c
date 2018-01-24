@@ -1,4 +1,4 @@
-/*	$Id: dhcp6c.c,v 1.1.1.1 2006-12-04 00:45:23 Exp $	*/
+/*	$Id: dhcp6c.c,v 1.1.1.1 2006/12/04 00:45:23 Exp $	*/
 /*	ported from KAME: dhcp6c.c,v 1.97 2002/09/24 14:20:49 itojun Exp */
 
 /*
@@ -129,7 +129,6 @@ static struct dhcp6_serverinfo *allocate_newserver __P((struct dhcp6_if *, struc
 static struct dhcp6_serverinfo *select_server __P((struct dhcp6_if *));
 void client6_send __P((struct dhcp6_event *));
 int client6_send_newstate __P((struct dhcp6_if *, int));
-void client6_send_info_req __P((struct dhcp6_event *));
 static void client6_recv __P((void));
 static int client6_recvadvert __P((struct dhcp6_if *, struct dhcp6 *,
 				   ssize_t, struct dhcp6_optinfo *));
@@ -1916,15 +1915,49 @@ client6_recvreply(ifp, dh6, len, optinfo)
 		/* NoBinding for RENEW, REBIND, send REQUEST */
 		switch(addr_status_code) {
 		case DH6OPT_STCODE_NOBINDING:
+		/* Foxconn modified start pling 10/01/2014 */
+		/* R7000 TD486: WAN IPv6 address not update if receive 
+		 * status code "Not-On-Link", and "No-binding"
+		 * Copy code from above "NOTONLINK" handling */
+#if 0
 			newstate = DHCP6S_REQUEST;
 			dprintf(LOG_DEBUG, "%s" 
 			    	  "got a NoBinding reply, sending request.", FNAME);
 			dhcp6_remove_iaidaddr(&client6_iaidaddr);
 			break;
+#endif
+		case DH6OPT_STCODE_NOTONLINK:
+		case DH6OPT_STCODE_NOADDRAVAIL:
+		case DH6OPT_STCODE_NOPREFIXAVAIL:
+		case DH6OPT_STCODE_UNSPECFAIL:
+			dprintf(LOG_DEBUG, "%s" "got a NotOnLink reply for renew/rebind", FNAME);
+			dhcp6_remove_iaidaddr(&client6_iaidaddr);
+			not_on_link_count++;
+			if (not_on_link_count <= REQ_MAX_RC_NOTONLINK) {
+				/* Clear the IA / PD address, so they won't appear in the
+				 * request pkt. */
+				dhcp6_clear_list(&(ifp->current_server->optinfo.addr_list));
+				dhcp6_clear_list(&(ifp->current_server->optinfo.prefix_list));
+				newstate = DHCP6S_REQUEST;
+			} else {
+				/* Three times, back to SOLICIT state */
+				not_on_link_count = 0;
+				free_servers(ifp);
+				newstate = DHCP6S_SOLICIT;
+			}
+			break;
+		/* Foxconn modified end pling 10/01/2014 */
+
+		/* Foxconn removed start pling 10/01/2014 */
+		/* Handle these status codes above */
+#if 0
 		case DH6OPT_STCODE_NOADDRAVAIL:
 		case DH6OPT_STCODE_NOPREFIXAVAIL:
 		case DH6OPT_STCODE_UNSPECFAIL:
 			break;
+#endif
+		/* Foxconn removed end pling 10/01/2014 */
+
 		case DH6OPT_STCODE_SUCCESS:
 		case DH6OPT_STCODE_UNDEFINE:
 		default:
@@ -2167,6 +2200,23 @@ static struct dhcp6_timer
 	dhcp6_set_timer(&timo, ifp->sync_timer);
 	return ifp->sync_timer;
 }
+/*Foxconn tab tseng added, 2013/07/23, for dhcp6c wan ipv6 DAD*/
+#define flag_wan_DAD "/proc/ipv6_wan_DAD_detected"
+static int check_wan_DAD()
+{
+	FILE* fp;
+	char buf[64];
+	int  ret;
+	if (( fp = fopen(flag_wan_DAD, "r")) == NULL) {
+		dprintf(LOG_ERR, "check_wan_DAD : can't open /proc/ipv6_wan_DAD_detected\n");
+		return (-1);
+	}
+	fgets(buf, sizeof(buf), fp); 
+	ret=atoi(buf);
+	//DAD detected : ret=1, else : ret=0
+	return ret;  
+}
+/*Foxconn tab tseng added end, 2013/07/23, for dhcp6c wan ipv6 DAD*/
 
 static struct dhcp6_timer
 *check_dad_timo(void *arg)
@@ -2180,7 +2230,8 @@ static struct dhcp6_timer
 		dprintf(LOG_ERR, "parse /proc/net/if_inet6 failed");
 		goto end;
 	}
-	if (TAILQ_EMPTY(&request_list))
+	//if (TAILQ_EMPTY(&request_list))
+	if (TAILQ_EMPTY(&request_list) && !check_wan_DAD())//Foxconn tab tseng modified, 2013/07/23
 		goto end;
 	/* remove RENEW timer for client6_iaidaddr */
 	if (client6_iaidaddr.timer != NULL)

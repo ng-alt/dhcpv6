@@ -1,4 +1,4 @@
-/*	$Id: config.h,v 1.1.1.1 2006-12-04 00:45:21 Exp $	*/
+/*	$Id: config.h,v 1.1.1.1 2006/12/04 00:45:21 Exp $	*/
 /*	ported from KAME: config.h,v 1.18 2002/06/14 15:32:55 jinmei Exp */
 
 /*

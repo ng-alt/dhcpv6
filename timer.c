@@ -1,4 +1,4 @@
-/*	$Id: timer.c,v 1.1.1.1 2006-12-04 00:45:30 Exp $	*/
+/*	$Id: timer.c 241182 2011-02-17 21:50:03Z $	*/
 /*	ported from KAME: timer.c,v 1.3 2002/09/24 14:20:50 itojun Exp	*/
 
 /*
