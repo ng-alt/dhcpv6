@@ -206,7 +206,11 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 		return (0);
 	if (client6_iaidaddr.client6_info.iaidinfo.renewtime == DHCP6_DURATITION_INFINITE) {
 		client6_iaidaddr.client6_info.iaidinfo.rebindtime = DHCP6_DURATITION_INFINITE;
-		return (0);
+	
+		/* R7000 TD#658/TD#758, Handle INFINITY lease case */
+		//return (0);
+		goto add_lease_do_callback;
+
 	}
 	/* set up start date, and renew timer */
 	if ((client6_iaidaddr.timer = 
@@ -224,6 +228,7 @@ dhcp6_add_iaidaddr(struct dhcp6_optinfo *optinfo)
 
     /* Foxconn modified start pling 10/04/2010 */
     /* Call our callback function to do something useful */
+add_lease_do_callback:   /* pling added 02/23/2016 */
     if (strlen(command))
         strcpy(callback_cmd, command);
         //system(command);
@@ -492,7 +497,11 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 		client6_iaidaddr.client6_info.iaidinfo.rebindtime = DHCP6_DURATITION_INFINITE;
 		if (client6_iaidaddr.timer)
 			dhcp6_remove_timer(client6_iaidaddr.timer);
-		return (0);
+	
+		/* R7000 TD#658/TD#758, Handle INFINITY lease case */
+		//return (0);
+		goto update_lease_do_callback;
+	
 	}
 	/* update the start date and timer */
 	if (client6_iaidaddr.timer == NULL) {
@@ -510,11 +519,12 @@ dhcp6_update_iaidaddr(struct dhcp6_optinfo *optinfo, int flag)
 	timo.tv_usec = 0;
 	dhcp6_set_timer(&timo, client6_iaidaddr.timer);
     
-    /* Foxconn added start pling 08/15/2009 */
+  
     /* Call our callback function to do something useful */
+update_lease_do_callback:    /* pling added 02/23/2016 */
     if (strlen(command))
         system(command);
-    /* Foxconn added start pling 08/15/2009 */
+    
 
 	return 0;
 }
